@@ -6,8 +6,11 @@ class RecategorizeAndRemoveOldCategories < ActiveRecord::Migration[7.0]
     analytics = Category.find_by!(name: "Analytics & Insights")
     doc_mgmt = Category.find_by!(name: "Document Management and Automation")
 
-    # Update companies to new categories
+    # Update all companies in a single transaction
     execute <<-SQL
+      BEGIN;
+
+      -- Update companies to new categories
       UPDATE companies
       SET category_id = #{practice_mgmt.id}
       WHERE id IN (300, 9779);
@@ -23,18 +26,19 @@ class RecategorizeAndRemoveOldCategories < ActiveRecord::Migration[7.0]
       UPDATE companies
       SET category_id = #{doc_mgmt.id}
       WHERE id IN (1744, 11222);
+
+      -- Delete old categories now that no companies reference them
+      DELETE FROM categories
+      WHERE name IN (
+        'Collaboration & Communication',
+        'Online Portals',
+        'Consulting',
+        'Business Process Automation',
+        'Developer Tools'
+      );
+
+      COMMIT;
     SQL
-
-    # Remove old categories
-    old_categories = [
-      "Collaboration & Communication",
-      "Online Portals",
-      "Consulting",
-      "Business Process Automation",
-      "Developer Tools"
-    ]
-
-    Category.where(name: old_categories).destroy_all
   end
 
   def down

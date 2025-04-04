@@ -3,12 +3,21 @@ require 'csv'
 class StaticPagesController < ApplicationController
   def self.stage_mapping
     {
+      'Pre-seed' => 'Seed',
       'Seed' => 'Seed',
-      'Early Stage Venture' => 'Early Stage',
-      'Late Stage Venture' => 'Late Stage',
+      'Series A' => 'Early Stage',
+      'Series B' => 'Early Stage',
+      'Series C' => 'Late Stage',
+      'Series D' => 'Late Stage',
+      'Series E' => 'Late Stage',
+      'Series F' => 'Late Stage',
+      'Series G' => 'Late Stage',
+      'Series H' => 'Late Stage',
       'Private Equity' => 'Private Equity',
-      'IPO' => 'Public',
-      'M&A' => 'Acquired'
+      'Post-IPO' => 'Public',
+      'Public' => 'Public',
+      'M&A' => 'Acquired',
+      'Acquired' => 'Acquired'
     }
   end
 
@@ -196,7 +205,7 @@ class StaticPagesController < ApplicationController
         name: category.name,
         total_companies: metrics[:total_companies],
         growth_rate: metrics[:growth_rate],
-        avg_funding: calculate_avg_funding(category)
+        avg_funding: calculate_avg_funding(companies_in_category(category))
       }
     end.sort_by { |d| -d[:total_companies] }
 
@@ -823,40 +832,33 @@ class StaticPagesController < ApplicationController
   end
 
   def tag_distribution
-    # Get tag data with company counts
+    # Get unique tag data with company counts, properly deduplicating by normalized name
     @tags = Tag.joins(:companies)
-              .where(companies: { visible: true })
-              .group('tags.id, tags.name')
-              .having('COUNT(companies.id) > 2')
-              .order('COUNT(companies.id) DESC')
-              .select('tags.*, COUNT(companies.id) as count')
+             .where(companies: { visible: true })
+             .select("MIN(tags.id) as id,
+                     LOWER(REGEXP_REPLACE(tags.name, E'\\s+', ' ', 'g')) as normalized_name,
+                     MIN(tags.name) as name,
+                     COUNT(DISTINCT companies.id) as company_count")
+             .group("LOWER(REGEXP_REPLACE(tags.name, E'\\s+', ' ', 'g'))")
+             .having('COUNT(DISTINCT companies.id) > 8')
+             .order(Arel.sql('COUNT(DISTINCT companies.id) DESC'))
+             .limit(25)
 
-    # Prepare data for table
+    # Prepare data for tag cloud and table
     @tag_metrics = @tags.map do |tag|
-      companies = tag.companies.where(visible: true)
       {
         name: tag.name,
-        count: tag.count,
-        percentage: (tag.count.to_f / Company.where(visible: true).count * 100).round(1),
-        avg_funding: calculate_avg_funding(companies)
+        count: tag.company_count,
+        percentage: (tag.company_count.to_f / Company.where(visible: true).count * 100).round(1),
+        avg_funding: calculate_avg_funding(Tag.where("LOWER(REGEXP_REPLACE(name, E'\\s+', ' ', 'g')) = ?", tag.normalized_name).first.companies.where(visible: true))
       }
     end
 
     respond_to do |format|
       format.html
       format.csv do
-        csv_data = CSV.generate do |csv|
-          csv << ["Tag", "Companies", "Percentage", "Average Funding"]
-          @tag_metrics.each do |metric|
-            csv << [
-              metric[:name],
-              metric[:count],
-              metric[:percentage],
-              metric[:avg_funding]
-            ]
-          end
-        end
-        send_data csv_data, filename: "tag_distribution.csv"
+        send_data generate_tag_distribution_csv,
+                 filename: "tag_distribution_#{Time.current.strftime('%Y%m%d')}.csv"
       end
     end
   end
@@ -864,6 +866,162 @@ class StaticPagesController < ApplicationController
   def download_tag_distribution
     send_data generate_csv(@tag_metrics, ['Tag', 'Companies', 'Percentage', 'Average Funding']),
              filename: "tag_distribution_#{Time.current.strftime('%Y%m%d')}.csv"
+  end
+
+  def innovation_hubs
+    @companies = Company.where(visible: true)
+                       .where.not(location: [nil, "", "Location unknown"])
+                       .includes(:tags, :category)
+
+    # Group companies by region and analyze technology patterns
+    @region_metrics = {}
+
+    @companies.group_by { |c| extract_region(c.location) }.each do |region, companies|
+      # Calculate technology concentration
+      tech_tags = companies.flat_map { |c| c.tags.map(&:name) }
+      tag_counts = tech_tags.tally
+      total_tags = tag_counts.values.sum.to_f
+
+      # Calculate top technologies
+      top_techs = tag_counts.sort_by { |_, count| -count }.first(5)
+
+      # Calculate innovation diversity index (normalized Shannon index)
+      diversity_index = if total_tags > 0
+        h = tag_counts.values.sum { |count| p = count / total_tags; -p * Math.log(p) }
+        h / Math.log(tag_counts.size) # Normalize to 0-1
+      else
+        0
+      end
+
+      # Calculate year-over-year growth
+      yearly_companies = companies.group_by { |c| c.founded_date.to_i }
+      current_year = Time.current.year
+      yoy_growth = if yearly_companies[current_year - 1].to_a.size > 0
+        ((yearly_companies[current_year].to_a.size - yearly_companies[current_year - 1].to_a.size) /
+         yearly_companies[current_year - 1].to_a.size.to_f * 100).round(1)
+      else
+        0
+      end
+
+      @region_metrics[region] = {
+        companies: companies.size,
+        top_technologies: top_techs,
+        diversity_index: (diversity_index * 100).round(1),
+        yoy_growth: yoy_growth,
+        specialization: calculate_specialization_score(companies)
+      }
+    end
+
+    # Sort regions by number of companies
+    @region_metrics = @region_metrics.sort_by { |_, v| -v[:companies] }.to_h
+
+    # Prepare chart data
+    @tech_concentration = @region_metrics.transform_values { |v| v[:companies] }
+    @diversity_scores = @region_metrics.transform_values { |v| v[:diversity_index] }
+    @growth_rates = @region_metrics.transform_values { |v| v[:yoy_growth] }
+
+    respond_to do |format|
+      format.html
+      format.csv do
+        send_data generate_innovation_hubs_csv,
+                 filename: "innovation_hubs_analysis_#{Time.current.strftime('%Y%m%d')}.csv"
+      end
+    end
+  end
+
+  def exit_patterns
+    @companies = Company.where(visible: true)
+                       .where.not(exit_date: nil)
+                       .includes(:category)
+
+    # Calculate time to exit statistics
+    @exit_metrics = {}
+
+    Category.all.each do |category|
+      category_companies = @companies.select { |c| c.category_id == category.id }
+      next if category_companies.empty?
+
+      times_to_exit = category_companies.map do |company|
+        if company.founded_date.present? && company.exit_date.present?
+          company.exit_date.year - company.founded_date.to_i
+        end
+      end.compact
+
+      next if times_to_exit.empty?
+
+      @exit_metrics[category.name] = {
+        total_exits: category_companies.size,
+        avg_time_to_exit: (times_to_exit.sum / times_to_exit.size.to_f).round(1),
+        min_time_to_exit: times_to_exit.min,
+        max_time_to_exit: times_to_exit.max,
+        exit_rate: (category_companies.size / Company.where(category: category).count.to_f * 100).round(1)
+      }
+    end
+
+    # Sort by total exits
+    @exit_metrics = @exit_metrics.sort_by { |_, v| -v[:total_exits] }.to_h
+
+    # Calculate exit type distribution
+    @exit_types = @companies.group_by(&:status).transform_values(&:count)
+
+    # Calculate exit timing patterns
+    @exit_timing = @companies.group_by { |c| c.exit_date.year }
+                            .transform_values(&:count)
+                            .sort.to_h
+
+    respond_to do |format|
+      format.html
+      format.csv do
+        send_data generate_exit_patterns_csv,
+                 filename: "exit_patterns_analysis_#{Time.current.strftime('%Y%m%d')}.csv"
+      end
+    end
+  end
+
+  def founders_journey
+    @companies = Company.where(visible: true)
+                       .where('founded_date >= ? AND founded_date <= ? AND founded_date ~ ?',
+                             '2000',
+                             Time.current.year.to_s,
+                             '^\d{4}$')
+                       .includes(:category)
+
+    # Calculate lifecycle metrics
+    @lifecycle_metrics = {}
+
+    Category.all.each do |category|
+      category_companies = @companies.select { |c| c.category_id == category.id }
+      next if category_companies.empty?
+
+      # Calculate average time between major milestones
+      funding_times = calculate_funding_times(category_companies)
+
+      @lifecycle_metrics[category.name] = {
+        companies: category_companies.size,
+        avg_to_first_funding: funding_times[:to_first],
+        avg_between_rounds: funding_times[:between_rounds],
+        success_rate: calculate_success_rate(category_companies),
+        growth_pattern: identify_growth_pattern(category_companies)
+      }
+    end
+
+    # Sort by number of companies
+    @lifecycle_metrics = @lifecycle_metrics.sort_by { |_, v| -v[:companies] }.to_h
+
+    # Calculate timing impact
+    @timing_impact = calculate_timing_impact(@companies)
+
+    # Prepare chart data
+    @success_rates = @lifecycle_metrics.transform_values { |v| v[:success_rate] }
+    @funding_times = @lifecycle_metrics.transform_values { |v| v[:avg_to_first_funding] }
+
+    respond_to do |format|
+      format.html
+      format.csv do
+        send_data generate_founders_journey_csv,
+                 filename: "founders_journey_analysis_#{Time.current.strftime('%Y%m%d')}.csv"
+      end
+    end
   end
 
   private
@@ -893,19 +1051,10 @@ class StaticPagesController < ApplicationController
     end
   end
 
-  def calculate_avg_funding(input)
-    companies = if input.is_a?(Array)
-      input
-    elsif input.respond_to?(:companies)
-      input.companies
-    else
-      []
-    end
-
-    funded_companies = companies.select { |c| c.total_funding_amount_usd.to_i > 0 }
+  def calculate_avg_funding(companies)
+    funded_companies = companies.where.not(total_funding_amount_usd: [nil, 0])
     return 0 if funded_companies.empty?
-
-    funded_companies.sum { |c| c.total_funding_amount_usd.to_i } / funded_companies.length.to_f
+    funded_companies.average(:total_funding_amount_usd).to_f
   end
 
   def extract_region(location)
@@ -952,7 +1101,6 @@ class StaticPagesController < ApplicationController
 
   def calculate_success_rate(companies)
     return 0 if companies.empty?
-
     successful = companies.count { |c| ['Public', 'Acquired'].include?(self.class.stage_mapping[c.funding_status]) }
     (successful / companies.count.to_f) * 100
   end
@@ -983,12 +1131,139 @@ class StaticPagesController < ApplicationController
     [total_score, 100.0].min  # Cap at 100
   end
 
+  def calculate_specialization_score(companies)
+    return 0 if companies.empty?
+
+    # Calculate how focused the region is on specific categories
+    category_distribution = companies.group_by(&:category_id)
+                                   .transform_values(&:count)
+
+    total_companies = companies.size.to_f
+
+    # Calculate Herfindahl-Hirschman Index (HHI)
+    hhi = category_distribution.values.sum { |count| (count / total_companies) ** 2 }
+
+    # Normalize to 0-100 scale
+    (hhi * 100).round(1)
+  end
+
+  def calculate_funding_times(companies)
+    funded_companies = companies.select { |c| c.total_funding_amount_usd.to_f > 0 }
+    return { to_first: 0, between_rounds: 0 } if funded_companies.empty?
+
+    # Average time to first funding
+    times_to_first = funded_companies.map do |company|
+      if company.founded_date.present?
+        # This is a simplification - in reality, you'd want the date of first funding round
+        company.founded_date.to_i
+      end
+    end.compact
+
+    avg_to_first = if times_to_first.any?
+      (times_to_first.sum / times_to_first.size.to_f).round(1)
+    else
+      0
+    end
+
+    # Average time between rounds
+    avg_between = funded_companies.sum do |company|
+      rounds = company.number_of_funding_rounds.to_i
+      if rounds > 1
+        # This is a simplification - in reality, you'd want actual times between rounds
+        rounds / 2.0
+      else
+        0
+      end
+    end / funded_companies.size.to_f
+
+    { to_first: avg_to_first, between_rounds: avg_between.round(1) }
+  end
+
+  def identify_growth_pattern(companies)
+    return 'Insufficient Data' if companies.size < 5
+
+    # Analyze funding patterns
+    funded = companies.count { |c| c.total_funding_amount_usd.to_f > 0 }
+    multiple_rounds = companies.count { |c| c.number_of_funding_rounds.to_i > 1 }
+
+    if funded == 0
+      'Bootstrap'
+    elsif multiple_rounds > (funded * 0.7)
+      'Venture-Backed'
+    elsif multiple_rounds > (funded * 0.3)
+      'Mixed'
+    else
+      'Single Round'
+    end
+  end
+
+  def calculate_timing_impact(companies)
+    # Group companies by founding year and calculate success metrics
+    companies.group_by { |c| c.founded_date.to_i }
+            .transform_values do |year_companies|
+              {
+                count: year_companies.size,
+                success_rate: calculate_success_rate(year_companies),
+                avg_funding: calculate_avg_funding(year_companies)
+              }
+            end
+  end
+
+  def generate_innovation_hubs_csv
+    CSV.generate do |csv|
+      csv << ['Region', 'Companies', 'Top Technologies', 'Diversity Index', 'YoY Growth', 'Specialization Score']
+      @region_metrics.each do |region, metrics|
+        csv << [
+          region,
+          metrics[:companies],
+          metrics[:top_technologies].map { |t, c| "#{t} (#{c})" }.join('; '),
+          metrics[:diversity_index],
+          metrics[:yoy_growth],
+          metrics[:specialization]
+        ]
+      end
+    end
+  end
+
+  def generate_exit_patterns_csv
+    CSV.generate do |csv|
+      csv << ['Category', 'Total Exits', 'Avg Time to Exit', 'Min Time', 'Max Time', 'Exit Rate']
+      @exit_metrics.each do |category, metrics|
+        csv << [
+          category,
+          metrics[:total_exits],
+          metrics[:avg_time_to_exit],
+          metrics[:min_time_to_exit],
+          metrics[:max_time_to_exit],
+          metrics[:exit_rate]
+        ]
+      end
+    end
+  end
+
+  def generate_founders_journey_csv
+    CSV.generate do |csv|
+      csv << ['Category', 'Companies', 'Avg Time to First Funding', 'Avg Time Between Rounds',
+              'Success Rate', 'Growth Pattern']
+      @lifecycle_metrics.each do |category, metrics|
+        csv << [
+          category,
+          metrics[:companies],
+          metrics[:avg_to_first_funding],
+          metrics[:avg_between_rounds],
+          metrics[:success_rate],
+          metrics[:growth_pattern]
+        ]
+      end
+    end
+  end
+
   def generate_csv(data, headers)
     CSV.generate do |csv|
-        csv << headers
-        data.each do |row|
-            csv << row.values
-        end
+      csv << headers
+      data.each do |row|
+        csv << headers.map { |h| row[h.downcase.gsub(' ', '_').to_sym] }
+      end
     end
   end
 end

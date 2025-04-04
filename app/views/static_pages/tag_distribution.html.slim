@@ -1,14 +1,18 @@
 .bg-body.border-bottom
-    .container-lg
-        .row.text-center.mt-5.pt-5
-            .col-lg-10.mx-auto
+    .container
+        .row.text-center.mt-5.py-5
+            .col-lg-8.mx-auto
                 .fs-1.fw-bold Tag Distribution
-                p.lead Technology focus areas in the legal tech ecosystem
+                p.lead.mb-4 Technology focus areas in the legal tech ecosystem
+
+.bg-body-tertiary.border-bottom
+    .container.py-5
         .row
             .col-12
-                .p-3.border
-                    .h4.fw-bold Popular Tags
-                    #tag-cloud.mt-4 style="height: 400px;"
+                .card.border
+                    .card-body.px-4.pt-4
+                        h4.fw-bold Popular Tags
+                        #tag-cloud.mt-4.w-100 style="height: 600px;"
 
             .col-12.mt-4
                 .table-responsive
@@ -24,8 +28,10 @@
                                 tr
                                     td= metric[:name]
                                     td= metric[:count]
-                                    td.text-end= number_to_percentage(metric[:percentage], precision: 1)
-                                    td.text-end= number_to_currency(metric[:avg_funding], precision: 0)
+                                    td.text-end
+                                        = number_to_percentage(metric[:percentage], precision: 1)
+                                    td.text-end
+                                        = number_to_currency(metric[:avg_funding], precision: 0)
                 .mt-3.text-end
                     = link_to "Download CSV", download_tag_distribution_path(format: :csv), class: "btn btn-sm btn-outline-secondary"
 
@@ -49,36 +55,78 @@
                                 p.small.text-muted.mb-0
                                     ' Analysis based on company-assigned tags.
                                     ' Tag size indicates frequency of use.
-                                    ' Only tags used by 3 or more companies are included.
+                                    ' Only tags used by 8 or more companies are included.
                                     ' Percentages calculated against total verified companies.
 
 javascript:
-    $(document).ready(function() {
-        var words = #{@tag_metrics.map { |m| { text: m[:name], weight: m[:count], link: tag_path(m[:name]), html: { class: 'text-decoration-none' } } }.to_json.html_safe};
+    document.addEventListener('DOMContentLoaded', function() {
+        var rawData = #{raw(@tag_metrics.map { |m| ({ text: m[:name].to_s, size: m[:count].to_i }) }.to_json)};
 
-        $("#tag-cloud").jQCloud(words, {
-            width: $("#tag-cloud").parent().width(),
-            height: 400,
-            delay: 50,
-            colors: ["#8c1515", "#820000", "#5D0F0F", "#8F2424", "#A82A2A", "#C13030"],
-            fontSize: {
-                from: 0.08,
-                to: 0.02
-            }
-        });
+        // Find min and max for scaling
+        var sizes = rawData.map(d => d.size);
+        var minSize = Math.min(...sizes);
+        var maxSize = Math.max(...sizes);
 
-        // Handle resize
-        $(window).on('resize', function() {
-            $("#tag-cloud").jQCloud('destroy');
-            $("#tag-cloud").jQCloud(words, {
-                width: $("#tag-cloud").parent().width(),
-                height: 400,
-                delay: 50,
-                colors: ["#8c1515", "#820000", "#5D0F0F", "#8F2424", "#A82A2A", "#C13030"],
-                fontSize: {
-                    from: 0.08,
-                    to: 0.02
-                }
-            });
+        // Scale sizes between 16 and 72 pixels with logarithmic scaling
+        function scaleFontSize(size) {
+            var logScale = Math.log(size - minSize + 1) / Math.log(maxSize - minSize + 1);
+            return Math.round(16 + logScale * (72 - 16));
+        }
+
+        // Update sizes using the scaling function
+        var data = rawData.map(d => ({
+            text: d.text,
+            size: scaleFontSize(d.size)
+        }));
+
+        var width = document.getElementById('tag-cloud').offsetWidth;
+        var height = 600;
+
+        // Create SVG
+        var svg = d3.select("#tag-cloud")
+            .append("svg")
+            .attr("width", width)
+            .attr("height", height);
+
+        // Create word cloud layout
+        var layout = d3.layout.cloud()
+            .size([width, height])
+            .words(data)
+            .padding(25)
+            .rotate(0)
+            .fontSize(d => d.size)
+            .spiral("rectangular")
+            .random(() => 0.5) // Deterministic layout
+            .on("end", draw);
+
+        // Color scale from light to dark cardinal
+        var color = d3.scaleLinear()
+            .domain([0, data.length - 1])
+            .range(["#c41e3a", "#8c1515"]);
+
+        // Draw the word cloud
+        function draw(words) {
+            svg.append("g")
+                .attr("transform", "translate(" + width/2 + "," + height/2 + ")")
+                .selectAll("text")
+                .data(words)
+                .enter()
+                .append("text")
+                .style("font-size", d => d.size + "px")
+                .style("fill", (d, i) => color(i))
+                .style("font-weight", "bold")
+                .attr("text-anchor", "middle")
+                .attr("transform", d => "translate(" + [d.x, d.y] + ")")
+                .text(d => d.text);
+        }
+
+        // Start the layout
+        layout.start();
+
+        // Handle window resize
+        window.addEventListener('resize', function() {
+            var newWidth = document.getElementById('tag-cloud').offsetWidth;
+            svg.attr("width", newWidth);
+            layout.size([newWidth, height]).start();
         });
     });

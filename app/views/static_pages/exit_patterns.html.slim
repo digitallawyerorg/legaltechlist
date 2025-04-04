@@ -1,0 +1,78 @@
+div.bg-body.border-bottom
+    div.container
+        div.row.text-center.mt-5.py-5
+            div.col-lg-8.mx-auto
+                div.fs-1.fw-bold Exit Patterns Analysis
+                p.lead.mb-4 Understanding successful exits and market timing in the legal tech ecosystem
+
+div.bg-body-tertiary.border-bottom
+    div.container.py-5
+        div.row.justify-content-center
+            div.col-lg-10
+                div.card.border
+                    div.card-body.px-4.pt-4
+                        div.d-flex.justify-content-between.align-items-start.mb-3
+                            div.rounded.d-flex.justify-content-center.align-items-center style="background-color:#8c15151a; width: 40px; height: 40px;"
+                                i.fas.fa-door-open.text-cardinal-red
+
+                        h3.h5.card-title.mb-4 Exit Type Distribution
+                        = pie_chart @exit_types, height: "400px", colors: ["#8C1515", "#B83A4B", "#E98080", "#F4C7C7"], library: { plugins: { legend: { position: "bottom" } } }
+
+                    div.card-footer.bg-white.border-top-0.px-4.pb-4
+                        = link_to download_exit_patterns_path(format: :csv), class: "text-decoration-none d-flex align-items-center" do
+                            span.fs-sm style="color: rgb(140 21 21)"
+                                b Download data
+                                i.fa.fa-download.ms-2
+
+    div.row.mb-4
+        div.col-lg-6
+            div.card.h-100
+                div.card-header
+                    h5.card-title.mb-0 Exit Timing Trends
+                div.card-body
+                    = line_chart @exit_timing, height: '300px', title: 'Number of Exits by Year', legend: 'bottom'
+
+    div.row.mb-4
+        div.col-lg-12
+            div.card
+                div.card-header
+                    h5.card-title.mb-0 Category Exit Performance
+                div.card-body
+                    div.table-responsive
+                        table.table.table-hover
+                            thead
+                                tr
+                                    th Category
+                                    th Total Exits
+                                    th Avg Time to Exit
+                                    th Time Range
+                                    th Exit Rate
+                            tbody
+                                - @exit_metrics.each do |category, metrics|
+                                    tr
+                                        td = category
+                                        td = metrics[:total_exits]
+                                        td = "#{metrics[:avg_time_to_exit]} years"
+                                        td = "#{metrics[:min_time_to_exit]}-#{metrics[:max_time_to_exit]} years"
+                                        td class=exit_rate_class(metrics[:exit_rate])
+                                            = "#{metrics[:exit_rate]}%"
+
+    div.row
+        div.col-lg-12
+            div.card
+                div.card-header
+                    h5.card-title.mb-0 Key Insights
+                div.card-body
+                    div.row
+                        div.col-md-4
+                            div.metric-card.text-center
+                                h3 = @exit_metrics.values.sum { |m| m[:total_exits] }
+                                p.text-muted Total Exits
+                        div.col-md-4
+                            div.metric-card.text-center
+                                h3 = "#{(@exit_metrics.values.sum { |m| m[:avg_time_to_exit] } / @exit_metrics.size).round(1)}"
+                                p.text-muted Average Years to Exit
+                        div.col-md-4
+                            div.metric-card.text-center
+                                h3 = "#{(@exit_metrics.values.sum { |m| m[:exit_rate] } / @exit_metrics.size).round(1)}%"
+                                p.text-muted Average Exit Rate
