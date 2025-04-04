@@ -1,63 +1,65 @@
 .bg-body.border-bottom
-  .container-lg
-    .row.text-center.mt-5.pt-5
-      .col-lg-10.mx-auto
+  .container
+    .row.text-center.mt-5.py-5
+      .col-lg-8.mx-auto
         .fs-1.fw-bold Category Evolution
-        p.lead Growth patterns across legal tech segments over time
+        p.lead.mb-4 Growth patterns across legal tech segments over time
+
+.bg-body-tertiary.border-bottom
+  .container.py-5
     .row
       .col-12
-        .p-3.border
-          .h4.fw-bold Historical Growth by Category
-          - chart_options = { height: "600px", discrete: true, points: false, legend: "bottom", colors: ["#8c1515", "#175E54", "#820000", "#B83A4B", "#2E2D29", "#53284F", "#008566", "#007C92", "#71B2C9"], library: { plugins: { legend: { display: true, position: "bottom" }, tooltip: { callbacks: { label: "function(context) { return context.dataset.label + ': ' + context.parsed.y + ' companies'; }" } } }, scales: { x: { grid: { display: true, drawBorder: false }, ticks: { font: { size: 12 } }, title: { display: true, text: "Year", font: { size: 14 } } }, y: { grid: { display: true, drawBorder: false }, ticks: { font: { size: 12 } }, title: { display: true, text: "Cumulative Number of Companies", font: { size: 14 } } } }, elements: { line: { tension: 0.4, borderWidth: 2 }, point: { radius: 0, hitRadius: 10, hoverRadius: 4 } }, interaction: { intersect: false, mode: "index" } } }
-          = line_chart @chart_data, **chart_options
-      .col-12.mt-4
-        .table-responsive
-          table.table.table-hover.border#categoryEvolutionTable
-            thead
-              tr
-                th.bg-body-tertiary Category
-                th.bg-body-tertiary.text-end Total Companies
-                th.bg-body-tertiary.text-end Growth Rate
-            tbody
-              - @table_data.each do |data|
-                tr
-                  td= data[:name]
-                  td.text-end= data[:total_companies]
-                  td.text-end
-                    - if data[:growth_rate] > 0
-                      span.text-success
-                        i.fas.fa-arrow-up.me-1
-                        = number_to_percentage(data[:growth_rate], precision: 1)
-                    - elsif data[:growth_rate] < 0
-                      span.text-danger
-                        i.fas.fa-arrow-down.me-1
-                        = number_to_percentage(data[:growth_rate], precision: 1)
-                    - else
-                      span.text-secondary
-                        i.fas.fa-minus.me-1
-                        | 0%
-          .mt-3.text-end
-            = link_to "Download CSV", download_category_evolution_path(format: :csv), class: "btn btn-sm btn-outline-secondary"
-      .col-12.mt-4
         .card.border
-          .card-body
-            h3.h5.mb-4 Research Notes
-            .row.g-4
-              .col-md-6
-                .card.h-100.bg-light.border-0
-                  .card-body
-                    h6.fw-bold.mb-3 Key Findings
-                    ul.mb-0
-                      li.mb-2 Different growth patterns emerge across legal tech segments
-                      li.mb-2 Some categories show accelerated growth in recent years
-                      li.mb-2 Mature segments demonstrate stable, sustained growth
-                      li.mb-2 Newer categories exhibit more volatile growth patterns
-              .col-md-6
-                .card.h-100.bg-light.border-0
-                  .card-body
-                    h6.fw-bold.mb-3 Methodology
-                    p.small.text-muted.mb-0
-                      ' Analysis tracks cumulative company growth by category from 2000 onwards.
-                      ' Companies are counted in their primary category only.
-                      ' Growth rates compare total companies today vs 5 years ago.
-                      ' Only verified legal tech companies are included in the analysis.
+          .card-body.px-4.pt-4
+            h4.fw-bold Category Growth Over Time
+            - chart_data = @category_metrics.map { |m| { name: m[:name], data: @evolution_data.map { |year, data| [year, data[m[:name]] || 0] }.to_h } }
+            - chart_options = { height: "500px", colors: ["#8c1515", "#175E54", "#820000", "#B83A4B", "#2E2D29", "#53284F", "#008566", "#007C92", "#71B2C9"], library: { plugins: { legend: { position: "bottom" } }, scales: { y: { beginAtZero: true, title: { display: true, text: "Number of Companies" } }, x: { title: { display: true, text: "Year" } } } } }
+            = line_chart chart_data, **chart_options
+
+.bg-body
+  .container.py-5
+    .row
+      .col-12
+        .card.border
+          .card-body.px-4.pt-4
+            .d-flex.justify-content-between.align-items-start.mb-4
+              div
+                h4.fw-bold Category Analysis
+                p.text-muted.mb-0 Detailed breakdown of legal tech categories and their metrics
+              = link_to statistics_category_evolution_path(format: :csv), class: "btn btn-outline-cardinal-red" do
+                i.fas.fa-download.me-2
+                | Download Data
+
+            .table-responsive
+              table.table.table-hover.align-middle
+                thead
+                  tr
+                    th.border-0 Category
+                    th.border-0.text-end Companies
+                    th.border-0.text-end % of Total
+                    th.border-0.text-end Avg Funding
+                    th.border-0.text-end Success Rate
+                tbody
+                  - @category_metrics.each do |metrics|
+                    tr
+                      td = metrics[:name]
+                      td.text-end = metrics[:count]
+                      td.text-end #{metrics[:percentage]}%
+                      td.text-end $#{number_with_delimiter(metrics[:avg_funding].round)}
+                      td.text-end #{metrics[:success_rate]}%
+
+    .row.mt-4
+      .col-12
+        .card.border
+          .card-body.px-4.pt-4
+            h4.fw-bold Key Insights
+            ul.list-unstyled.mb-0
+              li.mb-3
+                i.fas.fa-chart-line.text-cardinal-red.me-2
+                | Most populous category: #{@category_metrics.first[:name]} with #{@category_metrics.first[:count]} companies (#{@category_metrics.first[:percentage]}% of total)
+              li.mb-3
+                i.fas.fa-dollar-sign.text-cardinal-red.me-2
+                | Highest average funding: #{@category_metrics.max_by { |m| m[:avg_funding] }[:name]} ($#{number_with_delimiter(@category_metrics.max_by { |m| m[:avg_funding] }[:avg_funding].round)})
+              li.mb-3
+                i.fas.fa-trophy.text-cardinal-red.me-2
+                | Best success rate: #{@category_metrics.max_by { |m| m[:success_rate] }[:name]} (#{@category_metrics.max_by { |m| m[:success_rate] }[:success_rate]}%)

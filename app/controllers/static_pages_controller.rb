@@ -135,90 +135,84 @@ class StaticPagesController < ApplicationController
   end
 
   def category_evolution
-    # Get all companies founded from 2000 onwards with valid dates
     @companies = Company.where(visible: true)
                        .where('founded_date >= ? AND founded_date <= ? AND founded_date ~ ?',
                              '2000',
                              Time.current.year.to_s,
                              '^\d{4}$')
-                       .includes(:category) # Eager load categories
+                       .includes(:category)
+                       .to_a  # Load into memory once
 
-    # Get categories excluding Unknown and small categories
-    excluded_categories = ['Unknown', 'Online Portals', 'Collaboration & Communication']
-    categories = Category.where.not(name: excluded_categories)
-                        .joins(:companies)
-                        .group('categories.id')
-                        .having('COUNT(companies.id) > 5') # Only include categories with more than 5 companies
-                        .order(:name)
+    # Initialize data structures
+    @category_data = {}
+    @evolution_data = {}
+    @category_metrics = []
 
-    # Initialize data structure for each category
-    yearly_totals = {}
+    # Get all categories
+    categories = Category.all.to_a
+    total_companies = @companies.count.to_f
+
+    # Calculate metrics for each category
     categories.each do |category|
-      yearly_totals[category.name] = Hash.new(0)
+      companies_in_cat = @companies.select { |c| c.category_id == category.id }
+      next if companies_in_cat.empty?
+
+      count = companies_in_cat.size
+      percentage = (count / total_companies * 100).round(1)
+
+      # Calculate average funding
+      total_funding = companies_in_cat.sum { |c| c.total_funding_amount_usd.to_f }
+      avg_funding = count > 0 ? (total_funding / count) : 0
+
+      # Calculate success rate
+      successful = companies_in_cat.count { |c| ['Public', 'Acquired'].include?(self.class.stage_mapping[c.funding_status]) }
+      success_rate = count > 0 ? (successful.to_f / count * 100).round(1) : 0
+
+      @category_metrics << {
+        name: category.name,
+        count: count,
+        percentage: percentage,
+        avg_funding: avg_funding,
+        success_rate: success_rate
+      }
+
+      # Store count for pie chart
+      @category_data[category.name] = count
     end
 
-    # Get all years from 2000 to current
-    start_year = 2000
-    end_year = Time.current.year
-    years = (start_year..end_year).to_a
+    # Sort categories by count
+    @category_data = @category_data.sort_by { |_, count| -count }.to_h
+    @category_metrics.sort_by! { |m| -m[:count] }
 
-    # Initialize all years with zero for each category
-    categories.each do |category|
-      years.each do |year|
-        yearly_totals[category.name][year.to_s] = 0
+    # Calculate evolution over time
+    (2000..Time.current.year).each do |year|
+      @evolution_data[year] = {}
+
+      categories.each do |category|
+        # Count companies in this category founded up to this year
+        count = @companies.count { |c| c.category_id == category.id && c.founded_date.to_i <= year }
+        @evolution_data[year][category.name] = count if count > 0
       end
     end
 
-    # Calculate cumulative totals for each category by year
-    @companies.each do |company|
-      next if company.category.nil? || excluded_categories.include?(company.category.name)
-
-      category_name = company.category.name
-      next unless yearly_totals.key?(category_name) # Skip if category is not in our tracked categories
-
-      founded_year = company.founded_date.to_i
-      next if founded_year < start_year || founded_year > end_year # Skip invalid years
-
-      # Add to cumulative total for this year and all subsequent years
-      years.each do |year|
-        if year >= founded_year
-          yearly_totals[category_name][year.to_s] += 1
+    respond_to do |format|
+      format.html
+      format.csv do
+        csv_data = CSV.generate do |csv|
+          csv << ["Category", "Companies", "Percentage", "Average Funding", "Success Rate"]
+          @category_metrics.each do |metrics|
+            csv << [
+              metrics[:name],
+              metrics[:count],
+              metrics[:percentage],
+              metrics[:avg_funding].round(2),
+              metrics[:success_rate]
+            ]
+          end
         end
+        send_data csv_data, filename: "category_evolution_#{Time.current.strftime('%Y%m%d')}.csv"
       end
     end
-
-    # Format data for Chartkick
-    @chart_data = categories.map do |category|
-      {
-        name: category.name,
-        data: yearly_totals[category.name]
-      }
-    end
-
-    # Calculate growth metrics
-    @growth_metrics = calculate_growth_metrics(categories)
-
-    # Prepare table data
-    @table_data = categories.map do |category|
-      metrics = @growth_metrics[category.id]
-      {
-        name: category.name,
-        total_companies: metrics[:total_companies],
-        growth_rate: metrics[:growth_rate],
-        avg_funding: calculate_avg_funding(companies_in_category(category))
-      }
-    end.sort_by { |d| -d[:total_companies] }
-
-    # Calculate top growing categories for research notes
-    @top_growing = @table_data.select { |d| d[:growth_rate] > 0 }
-                             .sort_by { |d| -d[:growth_rate] }
-                             .take(3)
-                             .map { |d| d[:name] }
-
-    # Calculate top funded categories for research notes
-    @top_funded = @table_data.sort_by { |d| -d[:avg_funding] }
-                            .take(3)
-                            .map { |d| d[:name] }
   end
 
   def funding_concentration
