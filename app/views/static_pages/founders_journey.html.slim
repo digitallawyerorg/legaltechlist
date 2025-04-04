@@ -1,25 +1,63 @@
-div.bg-body.border-bottom
-    div.container
-        div.row.text-center.mt-5.py-5
-            div.col-lg-8.mx-auto
-                div.fs-1.fw-bold Founder's Journey Analysis
-                p.lead.mb-4 Exploring company lifecycle patterns and success factors in legal tech
+.bg-body.border-bottom
+    .container
+        .row.text-center.mt-5.py-5
+            .col-lg-8.mx-auto
+                .fs-1.fw-bold Founder's Journey
+                p.lead.mb-4 Company lifecycle patterns and success factors in legal tech
 
-div.bg-body-tertiary.border-bottom
-    div.container.py-5
-        div.row.justify-content-center
-            div.col-lg-10
-                div.card.border
-                    div.card-body.px-4.pt-4
-                        div.d-flex.justify-content-between.align-items-start.mb-3
-                            div.rounded.d-flex.justify-content-center.align-items-center style="background-color:#8c15151a; width: 40px; height: 40px;"
-                                i.fas.fa-road.text-cardinal-red
+.bg-body-tertiary.border-bottom
+    .container.py-5
+        .row
+            .col-12
+                .card.border
+                    .card-body.px-4.pt-4
+                        .d-flex.justify-content-between.align-items-start.mb-4
+                            div
+                                h4.fw-bold Journey Stage Analysis
+                                p.text-muted.mb-0 Distribution of companies across different stages of growth
+                            = link_to statistics_founders_journey_path(format: :csv), class: "btn btn-outline-cardinal-red" do
+                                i.fas.fa-download.me-2
+                                | Download Data
 
-                        h3.h5.card-title.mb-4 Success Rates by Category
-                        = bar_chart @success_rates, height: "400px", colors: ["#8C1515"], library: { scales: { y: { beginAtZero: true, title: { display: true, text: "Success Rate (%)" } }, x: { title: { display: true, text: "Category" } } } }
+                        .table-responsive
+                            table.table.table-hover.align-middle
+                                thead
+                                    tr
+                                        th.border-0 Stage
+                                        th.border-0.text-end Companies
+                                        th.border-0.text-end % of Total
+                                        th.border-0.text-end Avg Funding
+                                        th.border-0.text-end Success Rate
+                                tbody
+                                    - @journey_metrics.each do |stage, metrics|
+                                        tr
+                                            td = stage
+                                            td.text-end = metrics[:count]
+                                            td.text-end #{metrics[:percentage]}%
+                                            td.text-end $#{number_with_delimiter(metrics[:avg_funding].round)}
+                                            td.text-end #{metrics[:success_rate].round(1)}%
 
-                    div.card-footer.bg-white.border-top-0.px-4.pb-4
-                        = link_to download_founders_journey_path(format: :csv), class: "text-decoration-none d-flex align-items-center" do
-                            span.fs-sm style="color: rgb(140 21 21)"
-                                b Download data
-                                i.fa.fa-download.ms-2
+.bg-body
+    .container.py-5
+        .row
+            .col-12
+                .card.border
+                    .card-body.px-4.pt-4
+                        h4.fw-bold Company Progression Over Time
+                        = line_chart @progression_data.transform_values { |v| v[:companies] }, height: "400px", colors: ["#8c1515"], library: { scales: { y: { beginAtZero: true } } }
+
+        .row.mt-4
+            .col-12
+                .card.border
+                    .card-body.px-4.pt-4
+                        h4.fw-bold Key Insights
+                        ul.list-unstyled.mb-0
+                            li.mb-3
+                                i.fas.fa-chart-line.text-cardinal-red.me-2
+                                | Most companies are in the #{@journey_metrics.max_by { |_, m| m[:count] }.first.downcase} stage (#{@journey_metrics.max_by { |_, m| m[:count] }.last[:percentage]}% of total)
+                            li.mb-3
+                                i.fas.fa-dollar-sign.text-cardinal-red.me-2
+                                | Highest average funding in #{@journey_metrics.max_by { |_, m| m[:avg_funding] }.first.downcase} stage: $#{number_with_delimiter(@journey_metrics.max_by { |_, m| m[:avg_funding] }.last[:avg_funding].round)}
+                            li.mb-3
+                                i.fas.fa-trophy.text-cardinal-red.me-2
+                                | Best success rate in #{@journey_metrics.max_by { |_, m| m[:success_rate] }.first.downcase} stage: #{@journey_metrics.max_by { |_, m| m[:success_rate] }.last[:success_rate].round(1)}%

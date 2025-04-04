@@ -301,7 +301,9 @@ class StaticPagesController < ApplicationController
   end
 
   def growth_stage
-    @companies = Company.where(visible: true).includes(:category)
+    @companies = Company.where(visible: true)
+                       .includes(:category)
+                       .to_a  # Load into memory once
 
     # Initialize stage data structure
     @stage_data = {}
@@ -340,12 +342,25 @@ class StaticPagesController < ApplicationController
       companies_in_stage = @companies.select { |c| (self.class.stage_mapping[c.funding_status] || 'Operating') == stage }
 
       # Calculate metrics
+      avg_funding = if companies_in_stage.any?
+        companies_in_stage.sum { |c| c.total_funding_amount_usd.to_f } / companies_in_stage.size
+      else
+        0
+      end
+
+      success_rate = if companies_in_stage.any?
+        successful = companies_in_stage.count { |c| ['Public', 'Acquired'].include?(self.class.stage_mapping[c.funding_status]) }
+        (successful / companies_in_stage.size.to_f) * 100
+      else
+        0
+      end
+
       metrics = {
         stage: stage,
         count: count,
         percentage: (count / total_companies * 100),
-        avg_funding: calculate_avg_funding(companies_in_stage),
-        success_rate: calculate_success_rate(companies_in_stage)
+        avg_funding: avg_funding,
+        success_rate: success_rate
       }
 
       @stage_metrics << metrics
@@ -353,6 +368,25 @@ class StaticPagesController < ApplicationController
 
     # Sort stages by count for the pie chart
     @stage_data = @stage_data.sort_by { |_, count| -count }.to_h
+
+    respond_to do |format|
+      format.html
+      format.csv do
+        csv_data = CSV.generate do |csv|
+          csv << ["Stage", "Companies", "Percentage", "Average Funding", "Success Rate"]
+          @stage_metrics.each do |metrics|
+            csv << [
+              metrics[:stage],
+              metrics[:count],
+              metrics[:percentage].round(1),
+              metrics[:avg_funding].round(2),
+              metrics[:success_rate].round(1)
+            ]
+          end
+        end
+        send_data csv_data, filename: "growth_stage_analysis_#{Time.current.strftime('%Y%m%d')}.csv"
+      end
+    end
   end
 
   def business_model
@@ -395,6 +429,7 @@ class StaticPagesController < ApplicationController
                              Time.current.year.to_s,
                              '^\d{4}$')
                        .includes(:target_client)
+                       .to_a  # Load into memory once
 
     # Initialize counters for individual target clients
     individual_counts = Hash.new(0)
@@ -423,11 +458,16 @@ class StaticPagesController < ApplicationController
     individual_counts.each do |client_name, count|
       next if count < 10  # Skip very small segments
 
+      # Calculate average funding for companies targeting this client
+      companies_for_client = client_companies[client_name]
+      total_funding = companies_for_client.sum { |c| c.total_funding_amount_usd.to_f }
+      avg_funding = companies_for_client.any? ? (total_funding / companies_for_client.size) : 0
+
       metrics = {
         client: client_name,
         count: count,
         percentage: (count.to_f / total_companies * 100).round(1),
-        avg_funding: calculate_avg_funding(client_companies[client_name])
+        avg_funding: avg_funding
       }
 
       @client_metrics << metrics
@@ -437,6 +477,24 @@ class StaticPagesController < ApplicationController
     # Sort by count descending
     @client_metrics.sort_by! { |m| -m[:count] }
     @client_data = @client_data.sort_by { |_, count| -count }.to_h
+
+    respond_to do |format|
+      format.html
+      format.csv do
+        csv_data = CSV.generate do |csv|
+          csv << ["Target Client", "Companies", "Percentage", "Average Funding"]
+          @client_metrics.each do |metrics|
+            csv << [
+              metrics[:client],
+              metrics[:count],
+              metrics[:percentage],
+              metrics[:avg_funding].round(2)
+            ]
+          end
+        end
+        send_data csv_data, filename: "target_client_analysis_#{Time.current.strftime('%Y%m%d')}.csv"
+      end
+    end
   end
 
   def country_distribution
@@ -985,41 +1043,78 @@ class StaticPagesController < ApplicationController
                              Time.current.year.to_s,
                              '^\d{4}$')
                        .includes(:category)
+                       .to_a  # Load into memory once
 
-    # Calculate lifecycle metrics
-    @lifecycle_metrics = {}
+    # Initialize metrics
+    @journey_metrics = {}
+    total_companies = @companies.count.to_f
 
-    Category.all.each do |category|
-      category_companies = @companies.select { |c| c.category_id == category.id }
-      next if category_companies.empty?
+    # Define journey stages
+    stages = ['Ideation', 'Early Growth', 'Scaling', 'Maturity']
 
-      # Calculate average time between major milestones
-      funding_times = calculate_funding_times(category_companies)
+    # Calculate metrics for each stage
+    stages.each do |stage|
+      companies_in_stage = case stage
+      when 'Ideation'
+        @companies.select { |c| c.founded_date.to_i >= (Time.current.year - 2) }
+      when 'Early Growth'
+        @companies.select { |c| (Time.current.year - 5..Time.current.year - 3).include?(c.founded_date.to_i) }
+      when 'Scaling'
+        @companies.select { |c| (Time.current.year - 8..Time.current.year - 6).include?(c.founded_date.to_i) }
+      else # Maturity
+        @companies.select { |c| c.founded_date.to_i < (Time.current.year - 8) }
+      end
 
-      @lifecycle_metrics[category.name] = {
-        companies: category_companies.size,
-        avg_to_first_funding: funding_times[:to_first],
-        avg_between_rounds: funding_times[:between_rounds],
-        success_rate: calculate_success_rate(category_companies),
-        growth_pattern: identify_growth_pattern(category_companies)
+      # Calculate funding metrics
+      total_funding = companies_in_stage.sum { |c| c.total_funding_amount_usd.to_f }
+      avg_funding = companies_in_stage.any? ? (total_funding / companies_in_stage.size) : 0
+
+      # Calculate success metrics
+      successful = companies_in_stage.count { |c| ['Public', 'Acquired'].include?(self.class.stage_mapping[c.funding_status]) }
+      success_rate = companies_in_stage.any? ? (successful.to_f / companies_in_stage.size * 100) : 0
+
+      @journey_metrics[stage] = {
+        count: companies_in_stage.size,
+        percentage: (companies_in_stage.size / total_companies * 100).round(1),
+        avg_funding: avg_funding,
+        success_rate: success_rate
       }
     end
 
-    # Sort by number of companies
-    @lifecycle_metrics = @lifecycle_metrics.sort_by { |_, v| -v[:companies] }.to_h
+    # Calculate year-over-year progression
+    @progression_data = {}
+    (2000..Time.current.year).each do |year|
+      companies_until_year = @companies.select { |c| c.founded_date.to_i <= year }
 
-    # Calculate timing impact
-    @timing_impact = calculate_timing_impact(@companies)
+      # Skip years with no companies
+      next if companies_until_year.empty?
 
-    # Prepare chart data
-    @success_rates = @lifecycle_metrics.transform_values { |v| v[:success_rate] }
-    @funding_times = @lifecycle_metrics.transform_values { |v| v[:avg_to_first_funding] }
+      successful = companies_until_year.count { |c| ['Public', 'Acquired'].include?(self.class.stage_mapping[c.funding_status]) }
+      total_funding = companies_until_year.sum { |c| c.total_funding_amount_usd.to_f }
+
+      @progression_data[year] = {
+        companies: companies_until_year.size,
+        success_rate: (successful.to_f / companies_until_year.size * 100).round(1),
+        avg_funding: companies_until_year.any? ? (total_funding / companies_until_year.size) : 0
+      }
+    end
 
     respond_to do |format|
       format.html
       format.csv do
-        send_data generate_founders_journey_csv,
-                 filename: "founders_journey_analysis_#{Time.current.strftime('%Y%m%d')}.csv"
+        csv_data = CSV.generate do |csv|
+          csv << ["Stage", "Companies", "Percentage", "Average Funding", "Success Rate"]
+          @journey_metrics.each do |stage, metrics|
+            csv << [
+              stage,
+              metrics[:count],
+              metrics[:percentage],
+              metrics[:avg_funding].round(2),
+              metrics[:success_rate].round(1)
+            ]
+          end
+        end
+        send_data csv_data, filename: "founders_journey_analysis_#{Time.current.strftime('%Y%m%d')}.csv"
       end
     end
   end
