@@ -7,8 +7,12 @@
         .row
             .col-12
                 .p-3.border
-                    .h4.fw-bold Total Companies
+                    .h4.fw-bold Total Companies Over Time
                     = line_chart [@chart_data], height: "600px", discrete: true, points: false, legend: "bottom", colors: ["#8c1515"], library: { plugins: { legend: { display: true, position: "bottom" } }, scales: { x: { grid: { display: true, drawBorder: false }, ticks: { font: { size: 12 } } }, y: { grid: { display: true, drawBorder: false }, ticks: { font: { size: 12 } } } }, elements: { line: { tension: 0.4, borderWidth: 2 }, point: { radius: 0, hitRadius: 10, hoverRadius: 4 } }, interaction: { intersect: false, mode: 'index' } }
+            .col-12.mt-4
+                .p-3.border
+                    .h4.fw-bold Companies Founded per Year
+                    = column_chart @table_data.map { |data| [data[:year], data[:new_companies]] }, height: "400px", colors: ["#007bff"], library: { plugins: { legend: { display: false } }, scales: { x: { grid: { display: true, drawBorder: false }, ticks: { font: { size: 12 } } }, y: { grid: { display: true, drawBorder: false }, ticks: { font: { size: 12 } } } } }
             .col-12.mt-4
                 .table-responsive
                     table.table.table-hover.border#totalCompaniesTable
