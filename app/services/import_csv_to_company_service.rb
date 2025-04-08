@@ -52,15 +52,8 @@ class ImportCsvToCompanyService
           funding_status = determine_funding_status(raw_row)
 
           # Build a comprehensive description
-          description_parts = []
-          description_parts << row["description"] if row["description"].present?
-          description_parts << "Industry: #{raw_row['Industries']}" if raw_row['Industries'].present?
-          description_parts << "Stage: #{funding_status}" if funding_status.present?
-          description_parts << "Operating Status: #{row['status']}" if row['status'].present?
-          description_parts << raw_row["verification_notes"] if raw_row["verification_notes"].present?
-
-          full_description = description_parts.join("\n\n").strip
-          full_description = "No detailed description available." if full_description.blank?
+          description = row["description"].to_s.strip
+          description = "No description available." if description.blank?
 
           # Get location, with fallbacks
           location = row["location"]
@@ -80,7 +73,7 @@ class ImportCsvToCompanyService
             sub_category: sub,
             target_client: trg,
             business_model: biz,
-            description: full_description,
+            description: description,
             main_url: row["main_url"],
             twitter_url: row["twitter_url"],
             linkedin_url: row["linkedin_url"],
