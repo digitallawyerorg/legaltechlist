@@ -202,13 +202,13 @@ ActiveAdmin.register Company do
       f.input :linkedin_url
       f.input :facebook_url
       f.input :legalio_url
-      f.input :status
+      f.input :status,        as: :select, collection: ['active', 'inactive', 'acquired']
       f.input :all_tags
       f.input :codex_presenter
       f.input :codex_presentation_date
       f.input :logo_url
       f.input :total_funding_amount_usd
-      f.input :funding_status
+      f.input :funding_status, as: :select, collection: ['Operating', 'Seed', 'Early Stage Venture', 'Late Stage Venture', 'Private Equity', 'M&A']
       f.input :number_of_funding_rounds
       f.input :exit_date
     end
