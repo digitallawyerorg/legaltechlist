@@ -16,12 +16,6 @@ class ImportCsvToCompanyService
             next
           end
 
-          # Only import verified legal tech companies
-          unless raw_row["is_legal_tech"].to_s.downcase == 'true' && raw_row["verified"].to_s.downcase == 'true'
-            stats[:skipped] += 1
-            next
-          end
-
           # Clean up required fields
           business_model = raw_row["suggested_business_model"] || "Unknown"
           target_client = raw_row["suggested_target_client"] || "Unknown"
@@ -290,26 +284,53 @@ class ImportCsvToCompanyService
 
     def valid_for_import?(row)
       return false if row['name'].blank?
-      return false if row['is_legal_tech'] != 'true'
-      return false if row['verified'] != 'true'
-      return false if row['founded_date'].blank?
       true
     end
 
     def determine_funding_status(row)
       # Check for exit events first
-      return 'IPO' if row['Operating Status'].to_s.match?(/ipo|public/i)
-      return 'M&A' if row['Operating Status'].to_s.match?(/acquired|merged/i) || row['Exit Date'].present?
+      return 'IPO' if row['Stage'].to_s.match?(/public/i) || row['Operating Status'].to_s.match?(/ipo|public/i)
+      return 'M&A' if row['Stage'].to_s.match?(/acquired/i) || row['Operating Status'].to_s.match?(/acquired|merged/i) || row['Exit Date'].present?
 
-      # Then check funding status
-      funding_status = row['Funding Status'].to_s.strip
-      return funding_status if funding_status.present?
-
-      # If no funding status but has funding rounds, assume Early Stage
-      return 'Early Stage Venture' if row['Number of Funding Rounds'].to_i > 0
-
-      # Default to Operating
-      'Operating'
+      # Map funding stages
+      stage = row['Stage'].to_s.strip.downcase
+      case stage
+      when /series a/
+        'Early Stage Venture'
+      when /series b/
+        'Late Stage Venture'
+      when /series c|series d|series e|series f/
+        'Late Stage Venture'
+      when /seed|angel/
+        'Seed'
+      when /private equity|growth equity/
+        'Private Equity'
+      when /early stage/
+        'Early Stage Venture'
+      when /late stage/
+        'Late Stage Venture'
+      when /funding raised/
+        # Check amount to determine stage
+        amount = clean_funding_amount(row)
+        if amount > 30_000_000
+          'Late Stage Venture'
+        elsif amount > 10_000_000
+          'Early Stage Venture'
+        elsif amount > 0
+          'Seed'
+        else
+          'Operating'
+        end
+      else
+        # If no clear stage but has funding rounds or significant funding, assume Early Stage
+        amount = clean_funding_amount(row)
+        if row['Number of Funding Rounds'].to_i > 0 || amount > 1_000_000
+          'Early Stage Venture'
+        else
+          # Default to Operating
+          'Operating'
+        end
+      end
     end
 
     def clean_funding_amount(row)
