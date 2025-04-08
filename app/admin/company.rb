@@ -20,6 +20,18 @@ ActiveAdmin.register Company do
          .order("TRIM(companies.name), companies.visible DESC, companies.created_at DESC")
   end
 
+  scope("Case-Insensitive Duplicates") do |scope|
+    # Get names that appear more than once (case insensitive)
+    duplicate_names = scope.pluck('LOWER(companies.name)')
+                          .group_by(&:itself)
+                          .select { |_, v| v.length > 1 }
+                          .keys
+
+    # Return companies with those names
+    scope.where("LOWER(companies.name) IN (?)", duplicate_names)
+         .order("LOWER(companies.name), companies.created_at DESC")
+  end
+
   permit_params :name, :location, :founded_date, :category, :business_model, :target_client, :description, :main_url, :twitter_url, :angellist_url, :crunchbase_url, :linkedin_url, :facebook_url, :legalio_url, :status, :all_tags, :category_id, :sub_category_id, :business_model_id, :target_client_id, :latitude, :longitude, :contact_name, :contact_email, :visible, :codex_presenter, :employee_count, :codex_presentation_date, :logo_url, tag_list: []
 
   batch_action :destroy, confirm: "Are you sure you want to delete these companies?" do |ids|
@@ -65,6 +77,29 @@ ActiveAdmin.register Company do
     invisible_duplicates.destroy_all
 
     redirect_to collection_path, notice: "Successfully deleted #{count} invisible duplicate entries"
+  end
+
+  batch_action :remove_case_duplicates, confirm: "This will keep the newest entry for each duplicate set (based on created_at). Are you sure?", if: proc { true } do |ids|
+    selected_companies = Company.where(id: ids)
+
+    # Group by lowercase name
+    grouped = selected_companies.group_by { |c| c.name.downcase }
+    deleted_count = 0
+
+    grouped.each do |lowercase_name, companies|
+      if companies.size > 1
+        # Sort by created_at descending and keep the newest one
+        to_keep = companies.max_by(&:created_at)
+        companies.each do |company|
+          if company.id != to_keep.id
+            company.destroy
+            deleted_count += 1
+          end
+        end
+      end
+    end
+
+    redirect_to collection_path, notice: "Successfully deleted #{deleted_count} case-insensitive duplicates"
   end
 
   filter :name
