@@ -249,12 +249,14 @@ class ImportCsvToCompanyService
           .gsub(/[^\w\s-]/, '') # Remove special characters
           .squeeze(' ')         # Remove multiple spaces
           .strip
-          .downcase
     end
 
     def map_input_row(row)
+      org_name = row['Organization Name'].to_s.strip
+      org_name = org_name.gsub(/\b(llc|ltd|inc|corp|corporation|limited)\b/i, '').strip
+
       {
-        'name' => normalize_company_name(row['Organization Name']),
+        'name' => org_name,
         'main_url' => clean_url(row['Website']),
         'location' => clean_location(row['Headquarters Location']),
         'founded_date' => clean_date(row['Founded Date']),
