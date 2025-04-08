@@ -12,7 +12,7 @@
             .col-12.mt-4
                 .p-3.border
                     .h4.fw-bold Companies Founded per Year
-                    = column_chart @table_data.map { |data| [data[:year], data[:new_companies]] }, height: "400px", colors: ["#007bff"], library: { plugins: { legend: { display: false } }, scales: { x: { grid: { display: true, drawBorder: false }, ticks: { font: { size: 12 } } }, y: { grid: { display: true, drawBorder: false }, ticks: { font: { size: 12 } } } } }
+                    = column_chart @table_data.map { |data| [data[:year], data[:new_companies]] }, height: "400px", colors: ["#005D92"], library: { plugins: { legend: { display: false } }, scales: { x: { grid: { display: true, drawBorder: false }, ticks: { font: { size: 12 } } }, y: { grid: { display: true, drawBorder: false }, ticks: { font: { size: 12 } } } } }
             .col-12.mt-4
                 .table-responsive
                     table.table.table-hover.border#totalCompaniesTable

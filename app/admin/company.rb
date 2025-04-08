@@ -32,7 +32,7 @@ ActiveAdmin.register Company do
          .order("LOWER(companies.name), companies.created_at DESC")
   end
 
-  permit_params :name, :location, :founded_date, :category, :business_model, :target_client, :description, :main_url, :twitter_url, :angellist_url, :crunchbase_url, :linkedin_url, :facebook_url, :legalio_url, :status, :all_tags, :category_id, :sub_category_id, :business_model_id, :target_client_id, :latitude, :longitude, :contact_name, :contact_email, :visible, :codex_presenter, :employee_count, :codex_presentation_date, :logo_url, tag_list: []
+  permit_params :name, :location, :founded_date, :category, :business_model, :target_client, :description, :main_url, :twitter_url, :angellist_url, :crunchbase_url, :linkedin_url, :facebook_url, :legalio_url, :status, :all_tags, :category_id, :sub_category_id, :business_model_id, :target_client_id, :latitude, :longitude, :contact_name, :contact_email, :visible, :codex_presenter, :employee_count, :codex_presentation_date, :logo_url, :total_funding_amount_usd, :funding_status, :number_of_funding_rounds, :exit_date, tag_list: []
 
   batch_action :destroy, confirm: "Are you sure you want to delete these companies?" do |ids|
     Company.where(id: ids).destroy_all
@@ -188,6 +188,7 @@ ActiveAdmin.register Company do
       f.input :name,          :required => true
       f.input :location,      :required => true
       f.input :founded_date,  :required => true
+      f.input :founders
       f.input :visible,       as: :boolean
       f.input :category,      as: :select, collection: Category.all.order(:name), :required => true, :include_blank => false
       f.input :sub_category,      as: :select, collection: SubCategory.all.order(:name), :required => true, :include_blank => false
@@ -206,6 +207,10 @@ ActiveAdmin.register Company do
       f.input :codex_presenter
       f.input :codex_presentation_date
       f.input :logo_url
+      f.input :total_funding_amount_usd
+      f.input :funding_status
+      f.input :number_of_funding_rounds
+      f.input :exit_date
     end
     f.actions do
       f.action :submit
