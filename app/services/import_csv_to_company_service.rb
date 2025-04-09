@@ -17,9 +17,9 @@ class ImportCsvToCompanyService
           end
 
           # Clean up required fields
-          business_model = raw_row["suggested_business_model"] || "Unknown"
-          target_client = raw_row["suggested_target_client"] || "Unknown"
-          category = raw_row["suggested_category"] || "Unknown"
+          business_model = raw_row["Business Model"] || raw_row["suggested_business_model"] || "Unknown"
+          target_client = raw_row["target_client"] || raw_row["suggested_target_client"] || "Unknown"
+          category = raw_row["Category"] || raw_row["suggested_category"] || "Unknown"
 
           # Get category and subcategory
           catName = category.to_s.split('-').first.to_s.strip
@@ -252,7 +252,7 @@ class ImportCsvToCompanyService
         'linkedin_url' => clean_url(row['LinkedIn']),
         'facebook_url' => clean_url(row['Facebook']),
         'status' => row['Operating Status'],
-        'category' => row['suggested_category'],
+        'category' => row['Category'],
         'stage' => row['Stage'],
         'company_type' => row['Company Type'],
         'number_of_funding_rounds' => row['Number of Funding Rounds'].to_i,
@@ -260,7 +260,8 @@ class ImportCsvToCompanyService
         'funding_status' => row['Funding Status'],
         'founders' => row['Founders'],
         'contact_email' => row['Contact Email'],
-        'headquarters_region' => row['Headquarters Regions']&.split(',')&.first&.strip,
+        'headquarters_region' => row['Headquarters Location'],
+        'suggested_tags' => row['suggested_tags'],
 
         # Preserve original values for reference
         'Organization Name' => row['Organization Name'],

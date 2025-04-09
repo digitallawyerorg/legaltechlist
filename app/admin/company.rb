@@ -107,6 +107,7 @@ ActiveAdmin.register Company do
   filter :description
   filter :category
   filter :sub_category
+  filter :founded_date, as: :numeric, filters: [:eq, :gt, :lt], label: 'Founded Year'
   filter :status, as: :select, collection: ['active', 'inactive', 'acquired']
   filter :visible
   filter :created_at
