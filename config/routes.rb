@@ -55,4 +55,8 @@ Rails.application.routes.draw do
   get 'statistics/funding_concentration', to: 'static_pages#funding_concentration', as: :statistics_funding_concentration
   get 'statistics/funding_concentration/download', to: 'static_pages#download_funding_concentration', as: :download_funding_concentration
   get 'statistics/download_country_distribution', to: 'static_pages#download_country_distribution'
+  get 'statistics/ai_trends', to: 'static_pages#ai_trends', as: :statistics_ai_trends
+  get 'statistics/ai_trends/download', to: 'static_pages#download_ai_trends', as: :download_ai_trends
+  get 'statistics/category_evolution_5_years', to: 'static_pages#category_evolution_5_years', as: :statistics_category_evolution_5_years
+  get 'statistics/category_evolution_5_years/download', to: 'static_pages#download_category_evolution_5_years', as: :download_category_evolution_5_years
 end

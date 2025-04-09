@@ -1079,6 +1079,60 @@ class StaticPagesController < ApplicationController
     filename: "funding_efficiency_analysis_#{Time.current.strftime('%Y%m%d')}.csv"
   end
 
+  def ai_trends
+    ai_tags = Tag.where("LOWER(name) IN (?)", ['ai', 'artificial intelligence', 'machine learning']).pluck(:id)
+
+    @ai_companies_by_year = Company.joins(:taggings)
+                                   .where(taggings: { tag_id: ai_tags })
+                                   .where(visible: true)
+                                   .where("founded_date ~ '^[0-9]{4}$'") # Ensure founded_date is a 4-digit year
+                                   .group("CAST(founded_date AS INTEGER)")
+                                   .count
+                                   .sort_by { |year, count| year }
+
+    @table_data = @ai_companies_by_year.map { |year, count| [year.to_s, count] }
+
+    respond_to do |format|
+      format.html
+    end
+  end
+
+  def download_ai_trends
+    ai_tags = Tag.where("LOWER(name) IN (?)", ['ai', 'artificial intelligence', 'machine learning']).pluck(:id)
+
+    ai_companies_by_year = Company.joins(:taggings)
+                                  .where(taggings: { tag_id: ai_tags })
+                                  .where(visible: true)
+                                  .where("founded_date ~ '^[0-9]{4}$'")
+                                  .group("CAST(founded_date AS INTEGER)")
+                                  .count
+                                  .sort_by { |year, count| year }
+
+    csv_data = ai_companies_by_year.map { |year, count| { year: year.to_s, count: count } }
+
+    send_data generate_csv(csv_data, ['Year', 'AI Companies Founded']),
+              filename: "ai_trends_analysis_#{Time.current.strftime('%Y%m%d')}.csv"
+  end
+
+  def category_evolution_5_years
+    @category_data = Company.joins(:category)
+                            .where(visible: true)
+                            .where("founded_date ~ '^[0-9]{4}$'")
+                            .group("categories.name", "((CAST(founded_date AS INTEGER) - 1) / 5) * 5 + 1")
+                            .count
+                            .group_by { |(category, _), _| category }
+                            .transform_values do |values|
+                              values.map { |(_, year), count| [year, count] }.to_h
+                            end
+
+    @chart_data = @category_data.map do |category, data|
+      {
+        name: category,
+        data: data.sort.to_h
+      }
+    end
+  end
+
   private
 
   def calculate_growth_rate(year, count)

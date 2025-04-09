@@ -35,28 +35,7 @@
                 .mt-3.text-end
                     = link_to "Download CSV", download_tag_distribution_path(format: :csv), class: "btn btn-sm btn-outline-secondary"
 
-        .card.border.mt-4
-            .card-body
-                h3.h5.mb-4 Research Notes
-                .row.g-4
-                    .col-md-6
-                        .card.h-100.bg-light.border-0
-                            .card-body
-                                h6.fw-bold.mb-3 Key Findings
-                                ul.mb-0
-                                    li.mb-2 Most common tags represent core legal tech functionalities
-                                    li.mb-2 Emerging technology tags show rapid adoption trends
-                                    li.mb-2 Specialized tags indicate niche market opportunities
-                                    li.mb-2 Cross-category tags reveal integration patterns
-                    .col-md-6
-                        .card.h-100.bg-light.border-0
-                            .card-body
-                                h6.fw-bold.mb-3 Methodology
-                                p.small.text-muted.mb-0
-                                    ' Analysis based on company-assigned tags.
-                                    ' Tag size indicates frequency of use.
-                                    ' Only tags used by 8 or more companies are included.
-                                    ' Percentages calculated against total verified companies.
+
 
 javascript:
     document.addEventListener('DOMContentLoaded', function() {

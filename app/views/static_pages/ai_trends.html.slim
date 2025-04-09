@@ -1,0 +1,18 @@
+- content_for :title, "AI Trends in Legal Tech"
+
+.bg-body.border-bottom
+    .container
+        .row.text-center.mt-5.py-5
+            .col-lg-8.mx-auto
+                .fs-1.fw-bold AI Trends in Legal Tech
+                p.lead.mb-4 Annual growth in new AI-focused legal tech ventures
+
+.container.my-5
+    .row
+        .col-12
+            .card.border
+                .card-header.d-flex.justify-content-between.align-items-center
+                    h2.h4.mb-0 AI Companies Founded Per Year
+                    = link_to "Download CSV", download_ai_trends_path(format: :csv), class: "btn btn-sm btn-outline-secondary"
+                .card-body
+                    = bar_chart @table_data, height: '500px', colors: ['#8c1515'], library: { scales: { xAxes: [{ ticks: { autoSkip: false, maxRotation: 90, minRotation: 90 } }], yAxes: [{ ticks: { beginAtZero: true } }] } }
