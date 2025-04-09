@@ -1,68 +1,70 @@
-.bg-body.border-bottom
-    .container-lg
-        .row.text-center.mt-5.pt-5
-            .col-lg-10.mx-auto
-                .fs-1.fw-bold Total Companies
-                p.lead Growth of the legal tech ecosystem over time
-        .row
-            .col-12
-                .p-3.border
-                    .h4.fw-bold Total Companies Over Time
-                    = line_chart [@chart_data], height: "600px", discrete: true, points: false, legend: "bottom", colors: ["#8c1515"], library: { plugins: { legend: { display: true, position: "bottom" } }, scales: { x: { grid: { display: true, drawBorder: false }, ticks: { font: { size: 12 } } }, y: { grid: { display: true, drawBorder: false }, ticks: { font: { size: 12 } } } }, elements: { line: { tension: 0.4, borderWidth: 2 }, point: { radius: 0, hitRadius: 10, hoverRadius: 4 } }, interaction: { intersect: false, mode: 'index' } }
-            .col-12.mt-4
-                .p-3.border
-                    .h4.fw-bold Companies Founded per Year
-                    = column_chart @table_data.map { |data| [data[:year], data[:new_companies]] }, height: "400px", colors: ["#005D92"], library: { plugins: { legend: { display: false } }, scales: { x: { grid: { display: true, drawBorder: false }, ticks: { font: { size: 12 } } }, y: { grid: { display: true, drawBorder: false }, ticks: { font: { size: 12 } } } } }
-            .col-12.mt-4
-                .table-responsive
-                    table.table.table-hover.border#totalCompaniesTable
-                        thead
-                            tr
-                                th.bg-body-tertiary Year
-                                th.bg-body-tertiary Total Companies
-                                th.bg-body-tertiary New Companies
-                                th.bg-body-tertiary.text-end Growth Rate
-                        tbody
-                            - @table_data.each do |data|
-                                tr
-                                    td= data[:year]
-                                    td = data[:total_companies]
-                                    td = data[:new_companies]
-                                    td.text-end
-                                        - if data[:growth_rate] > 0
-                                            span.text-success
-                                                i.fas.fa-arrow-up.me-1
-                                                = number_to_percentage(data[:growth_rate], precision: 1)
-                                        - elsif data[:growth_rate] < 0
-                                            span.text-danger
-                                                i.fas.fa-arrow-down.me-1
-                                                = number_to_percentage(data[:growth_rate], precision: 1)
-                                        - else
-                                            span.text-secondary
-                                                i.fas.fa-minus.me-1
-                                                | 0%
-                .mt-3.text-end
-                    = link_to "Download CSV", download_total_companies_path(format: :csv), class: "btn btn-sm btn-outline-secondary"
-
-        .card.border.mt-4
+.bg-body-tertiary.border-bottom
+    .container.py-4
+        .card
             .card-body
-                h3.h5.mb-4 Research Notes
-                .row.g-4
-                    .col-md-6
-                        .card.h-100.bg-light.border-0
-                            .card-body
-                                h6.fw-bold.mb-3 Key Findings
-                                ul.mb-0
-                                    li.mb-2 The legal tech sector has shown consistent growth since 2000
-                                    li.mb-2 Peak growth periods occurred during major tech adoption waves
-                                    li.mb-2 Recent years show accelerated growth in new company formation
-                                    li.mb-2 The ecosystem demonstrates sustained expansion and maturation
-                    .col-md-6
-                        .card.h-100.bg-light.border-0
-                            .card-body
-                                h6.fw-bold.mb-3 Methodology
-                                p.small.text-muted.mb-0
-                                    ' Analysis based on company founding dates from 2000 onwards.
-                                    ' Growth rates calculated year-over-year.
-                                    ' Companies are counted from their founding year forward.
-                                    ' Only verified legal tech companies are included in the analysis.
+                .row
+                    .col-12
+                        .d-flex.flex-column.flex-md-row.justify-content-between.align-items-start.align-items-md-center.mb-3.mb-md-0
+                            div
+                                .h4.fw-bold.mb-0 Total Companies Over Time
+                                p Cumulative growth of the legal tech ecosystem
+                            .dropdown
+                                button.btn.btn-sm.btn-light.dropdown-toggle type="button" data-bs-toggle="dropdown" aria-expanded="false"
+                                    i.fas.fa-download.me-2
+                                    | Export
+                                ul.dropdown-menu.dropdown-menu-end
+                                    li
+                                        button.dropdown-item onclick="downloadChart()"
+                                            i.fas.fa-image.me-2
+                                            | Download Chart (PNG)
+                                    li
+                                        = link_to statistics_total_companies_path(format: :csv), class: "dropdown-item" do
+                                            i.fas.fa-file-csv.me-2
+                                            | Download Data (CSV)
+                                    li
+                                        = link_to statistics_total_companies_path(format: :xlsx), class: "dropdown-item" do
+                                            i.fas.fa-file-excel.me-2
+                                            | Download Data (Excel)
+                        = area_chart [@chart_data], height: "600px", discrete: true, points: false, legend: "bottom", colors: ["#8c1515"], thousands: ",", library: { plugins: { legend: { display: true, position: "bottom" } }, scales: { x: { grid: { display: true, drawBorder: false }, ticks: { font: { size: 12 } } }, y: { min: 0, grid: { display: true, drawBorder: false }, ticks: { font: { size: 12 }, stepSize: 250 } } }, elements: { line: { tension: 0.4, borderWidth: 2, fill: true, backgroundColor: "rgba(140, 21, 21, 0.1)" }, point: { radius: 0, hitRadius: 10, hoverRadius: 4 } }, interaction: { intersect: false, mode: 'index' } }, id: "total-companies-chart"
+
+                    .col-12
+                        .table-responsive.mt-5
+                            table.table.table-hover.border#totalCompaniesTable
+                                thead
+                                    tr
+                                        th.bg-body-tertiary.fw-normal.text-muted.text-uppercase.fs-sm
+                                            ' Year
+                                        th.bg-body-tertiary.fw-normal.text-muted.text-uppercase.fs-sm
+                                            ' New Companies
+                                        th.bg-body-tertiary.fw-normal.text-muted.text-uppercase.fs-sm
+                                            ' Total Companies
+                                        th.bg-body-tertiary.fw-normal.text-muted.text-uppercase.fs-sm
+                                            ' Growth Rate
+                                tbody
+                                    - @table_data.each do |data|
+                                        tr
+                                            td= data[:year]
+                                            td= data[:new_companies]
+                                            td= data[:total_companies]
+                                            td
+                                                - if data[:growth_rate] > 0
+                                                    .badge.bg-success-subtle.text-success
+                                                        |+
+                                                        = number_to_percentage(data[:growth_rate], precision: 1)
+                                                - elsif data[:growth_rate] < 0
+                                                    .badge.bg-danger-subtle.text-danger
+                                                        | -
+                                                        = number_to_percentage(data[:growth_rate], precision: 1)
+                                                - else
+                                                    .badge.bg-secondary-subtle.text-secondary
+                                                        | 0%
+
+javascript:
+  function downloadChart() {
+    const chartElement = document.querySelector('#total-companies-chart');
+    const chartInstance = Chartkick.charts[chartElement.id].getChartObject();
+    const link = document.createElement('a');
+    link.download = 'total_companies.png';
+    link.href = chartInstance.canvas.toDataURL('image/png');
+    link.click();
+  }

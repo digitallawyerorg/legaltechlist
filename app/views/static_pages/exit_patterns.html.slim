@@ -55,7 +55,7 @@
                                 | Categories with highest exit rates: #{@exit_metrics.sort_by { |_, m| -m[:exit_rate] }.first(3).map { |c, m| "#{c} (#{m[:exit_rate]}%)" }.join(", ")}
                             li.mb-3
                                 i.fas.fa-clock.text-cardinal-red.me-2
-                                | Average time to exit: #{@exit_metrics.values.sum { |m| m[:avg_time_to_exit] } / @exit_metrics.size} years
+                                | Average time to exit: #{@exit_metrics.empty? ? 0 : (@exit_metrics.values.sum { |m| m[:avg_time_to_exit] } / @exit_metrics.size)} years
                             li.mb-3
                                 i.fas.fa-rocket.text-cardinal-red.me-2
-                                | Most exits occurred in #{@exit_timing.max_by { |_, count| count }.first}
+                                | Most exits occurred in #{@exit_timing.empty? ? 'N/A' : @exit_timing.max_by { |_, count| count }.first}

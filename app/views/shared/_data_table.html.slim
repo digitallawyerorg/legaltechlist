@@ -1,0 +1,11 @@
+.table-responsive
+    table.table.table-hover.align-middle
+        thead
+            tr
+                - headers.each do |header|
+                    th= header
+        tbody
+            - rows.each do |row|
+                tr
+                    - row.each do |cell|
+                        td= cell

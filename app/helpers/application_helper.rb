@@ -68,4 +68,21 @@ module ApplicationHelper
       yield(tag, classes[index])
     end
   end
+
+  def growth_rate_class(rate)
+    return 'text-muted' if rate.nil?
+    if rate > 0
+      'text-success'
+    elsif rate < 0
+      'text-danger'
+    else
+      'text-muted'
+    end
+  end
+
+  def growth_rate_content(rate)
+    return 'N/A' if rate.nil?
+    prefix = rate > 0 ? '+' : ''
+    "#{prefix}#{rate.round(1)}%"
+  end
 end

@@ -21,6 +21,14 @@ gem 'jquery-rails', '~> 4.5'
 gem 'turbolinks', '~> 5.2.1'
 gem 'slim-rails'
 
+# Charts and Data Visualization
+gem 'chartkick'
+gem 'groupdate'
+
+# Data Export
+gem 'caxlsx'
+gem 'caxlsx_rails'
+
 # API and Data
 gem 'jbuilder', '~> 2.0'
 gem 'sdoc', '~> 2.6.0'
@@ -75,9 +83,6 @@ gem 'importmap-rails'
 
 # Add if not already present
 gem "turbo-rails"
-
-gem 'chartkick'
-gem 'groupdate'
 
 gem 'httparty'
 gem 'aws-sdk-s3', '~> 1.141'

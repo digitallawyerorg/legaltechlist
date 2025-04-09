@@ -1,4 +1,5 @@
 require 'csv'
+require 'axlsx'
 
 class StaticPagesController < ApplicationController
   def self.stage_mapping
@@ -63,191 +64,236 @@ class StaticPagesController < ApplicationController
   end
 
   def total_companies
-    # Get all companies founded from 2000 onwards with valid dates
     @companies = Company.where(visible: true)
-                       .where('founded_date >= ? AND founded_date <= ? AND founded_date ~ ?',
-                             '2000',
-                             Time.current.year.to_s,
-                             '^\d{4}$')
+                       .where('founded_date ~ ?', '^\d{4}$')
 
-    # Get all years from 2000 to current
-    start_year = 2000
-    end_year = Time.current.year
-    years = (start_year..end_year).to_a
+    # Get pre-2000 companies count
+    pre_2000_count = @companies.count { |c| c.founded_date.to_i < 2000 }
 
-    # Initialize yearly totals
-    yearly_totals = Hash.new(0)
-    years.each { |year| yearly_totals[year.to_s] = 0 }
+    # Calculate cumulative totals and new companies by year
+    @table_data = (2000..Time.current.year).map do |year|
+      # Include pre-2000 companies in the total count
+      total = pre_2000_count + @companies.count { |c| c.founded_date.to_i <= year && c.founded_date.to_i >= 2000 }
+      new_companies = @companies.count { |c| c.founded_date.to_i == year }
 
-    # Calculate cumulative totals by year
-    @companies.each do |company|
-      founded_year = company.founded_date.to_i
-      next if founded_year < start_year || founded_year > end_year
+      # For growth rate, we need to consider the previous year's total including pre-2000 companies
+      prev_total = year > 2000 ?
+        (pre_2000_count + @companies.count { |c| c.founded_date.to_i <= (year - 1) && c.founded_date.to_i >= 2000 }) :
+        pre_2000_count
 
-      # Add to cumulative total for this year and all subsequent years
-      years.each do |year|
-        if year >= founded_year
-          yearly_totals[year.to_s] += 1
-        end
-      end
-    end
-
-    # Format data for Chartkick
-    @chart_data = {
-      name: "Total Companies",
-      data: yearly_totals
-    }
-
-    # Calculate year-over-year growth rates
-    @table_data = years.map do |year|
-      prev_year = (year - 1).to_s
-      current_year = year.to_s
-
-      total = yearly_totals[current_year]
-      prev_total = yearly_totals[prev_year] || 0
       growth_rate = prev_total > 0 ? ((total - prev_total) / prev_total.to_f * 100) : 0
 
       {
-        year: current_year,
+        year: year,
         total_companies: total,
-        new_companies: total - prev_total,
+        new_companies: new_companies,
         growth_rate: growth_rate
       }
     end
 
+    # Prepare chart data
+    @chart_data = {
+      name: 'Total Companies',
+      data: @table_data.map { |d| [d[:year], d[:total_companies]] }
+    }
+
     respond_to do |format|
       format.html
       format.csv do
         csv_data = CSV.generate do |csv|
-          csv << ["Year", "Total Companies", "New Companies", "Growth Rate (%)"]
+          csv << ["Year", "New Companies", "Total Companies", "Growth Rate (%)"]
           @table_data.each do |data|
             csv << [
               data[:year],
-              data[:total_companies],
               data[:new_companies],
+              data[:total_companies],
               data[:growth_rate].round(1)
             ]
           end
         end
-        send_data csv_data, filename: "total_companies_evolution.csv"
+        send_data csv_data,
+                  filename: "total_companies_evolution.csv",
+                  type: 'text/csv',
+                  disposition: 'attachment'
+      end
+      format.xlsx do
+        p = Axlsx::Package.new
+        wb = p.workbook
+        wb.add_worksheet(name: "Total Companies") do |sheet|
+          sheet.add_row ["Year", "New Companies", "Total Companies", "Growth Rate (%)"]
+          @table_data.each do |data|
+            sheet.add_row [
+              data[:year],
+              data[:new_companies],
+              data[:total_companies],
+              data[:growth_rate].round(1)
+            ]
+          end
+        end
+        send_data p.to_stream.read,
+                  filename: "total_companies_evolution.xlsx",
+                  type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                  disposition: 'attachment'
       end
     end
   end
 
-  def category_evolution
-    @companies = Company.where(visible: true)
-                       .where('founded_date >= ? AND founded_date <= ? AND founded_date ~ ?',
+  def companies_founded
+    @table_data = Company.where(visible: true)
+                        .where('founded_date >= ? AND founded_date <= ? AND founded_date ~ ?',
                              '2000',
                              Time.current.year.to_s,
                              '^\d{4}$')
-                       .includes(:category)
-                       .to_a  # Load into memory once
-
-    # Initialize data structures
-    @category_data = {}
-    @evolution_data = {}
-    @category_metrics = []
-
-    # Get all categories
-    categories = Category.all.to_a
-    total_companies = @companies.count.to_f
-
-    # Calculate metrics for each category
-    categories.each do |category|
-      companies_in_cat = @companies.select { |c| c.category_id == category.id }
-      next if companies_in_cat.empty?
-
-      count = companies_in_cat.size
-      percentage = (count / total_companies * 100).round(1)
-
-      # Calculate average funding
-      total_funding = companies_in_cat.sum { |c| c.total_funding_amount_usd.to_f }
-      avg_funding = count > 0 ? (total_funding / count) : 0
-
-      # Calculate success rate
-      successful = companies_in_cat.count { |c| ['Public', 'Acquired'].include?(self.class.stage_mapping[c.funding_status]) }
-      success_rate = count > 0 ? (successful.to_f / count * 100).round(1) : 0
-
-      @category_metrics << {
-        name: category.name,
-        count: count,
-        percentage: percentage,
-        avg_funding: avg_funding,
-        success_rate: success_rate
+                        .group(:founded_date)
+                        .order(:founded_date)
+                        .count
+                        .map do |year, count|
+      {
+        year: year,
+        new_companies: count,
+        growth_rate: calculate_growth_rate(year, count)
       }
-
-      # Store count for pie chart
-      @category_data[category.name] = count
-    end
-
-    # Sort categories by count
-    @category_data = @category_data.sort_by { |_, count| -count }.to_h
-    @category_metrics.sort_by! { |m| -m[:count] }
-
-    # Calculate evolution over time
-    (2000..Time.current.year).each do |year|
-      @evolution_data[year] = {}
-
-      categories.each do |category|
-        # Count companies in this category founded up to this year
-        count = @companies.count { |c| c.category_id == category.id && c.founded_date.to_i <= year }
-        @evolution_data[year][category.name] = count if count > 0
-      end
     end
 
     respond_to do |format|
       format.html
-      format.csv do
-        csv_data = CSV.generate do |csv|
-          csv << ["Category", "Companies", "Percentage", "Average Funding", "Success Rate"]
-          @category_metrics.each do |metrics|
-            csv << [
-              metrics[:name],
-              metrics[:count],
-              metrics[:percentage],
-              metrics[:avg_funding].round(2),
-              metrics[:success_rate]
-            ]
-          end
+      format.csv { send_data generate_companies_founded_csv, filename: "companies_founded.csv" }
+      format.xlsx { send_data generate_companies_founded_xlsx, filename: "companies_founded.xlsx" }
+    end
+  end
+
+  def download_companies_founded
+    redirect_to statistics_companies_founded_path(format: :csv)
+  end
+
+  def category_evolution
+    # Get all companies with their categories and founding years
+    companies = Company.includes(:category)
+                      .where('founded_date >= ? AND founded_date <= ? AND founded_date ~ ?',
+                             '2000',
+                             Time.current.year.to_s,
+                             '^\d{4}$')
+                      .where.not(category_id: nil)
+
+    # Get the year range
+    start_year = 2000
+    end_year = Time.current.year
+    years = (start_year..end_year).to_a
+
+    # Initialize data structures
+    categories = Category.where.not(name: 'Unknown')
+    category_data = {}
+
+    # Initialize yearly data for each category
+    categories.each do |category|
+        category_data[category.id] = {
+            category: category.name,
+            yearly_data: years.map { |year| [year.to_s, 0] }.to_h,
+            total_companies: 0
+        }
+    end
+
+    # Calculate cumulative companies per category per year
+    companies.each do |company|
+        next if company.category.name == 'Unknown'
+        year = company.founded_date.to_i
+        category_id = company.category_id
+
+        # Update yearly count for the category
+        (year..end_year).each do |y|
+            category_data[category_id][:yearly_data][y.to_s] += 1
         end
-        send_data csv_data, filename: "category_evolution_#{Time.current.strftime('%Y%m%d')}.csv"
-      end
+        category_data[category_id][:total_companies] += 1
+    end
+
+    # Calculate total companies per year for market share
+    total_companies = category_data.values.sum { |d| d[:total_companies] }
+
+    # Prepare final data structures
+    @table_data = category_data.values.sort_by { |d| -d[:total_companies] }
+
+    @summary_data = @table_data.map do |data|
+        prev_year = (end_year - 1).to_s
+        current_year = end_year.to_s
+
+        growth_rate = if data[:yearly_data][prev_year] > 0
+            ((data[:yearly_data][current_year] - data[:yearly_data][prev_year]) / data[:yearly_data][prev_year].to_f) * 100
+        else
+            0
+        end
+
+        {
+            category: data[:category],
+            total_companies: data[:total_companies],
+            growth_rate: growth_rate,
+            market_share: (data[:total_companies] / total_companies.to_f) * 100
+        }
+    end
+
+    respond_to do |format|
+        format.html
+        format.csv { send_data generate_category_evolution_csv, filename: "category_evolution.csv" }
+        format.xlsx { send_data generate_category_evolution_xlsx, filename: "category_evolution.xlsx" }
     end
   end
 
   def funding_concentration
-    @companies = Company.where(visible: true)
-                       .where.not(location: [nil, "", "Location unknown"])
-                       .includes(:category)
+    # Get companies with funding data and valid locations
+    companies = Company.where(visible: true)
+                      .where.not(location: [nil, "", "Location unknown"])
+                      .where('founded_date >= ? AND founded_date <= ? AND founded_date ~ ?',
+                            '2000',
+                            Time.current.year.to_s,
+                            '^\d{4}$')
 
-    # Group companies by region and calculate metrics
-    region_metrics = @companies.group_by { |c| extract_region(c.location) }
-                              .transform_values do |companies|
-      {
-        companies: companies.count,
-        total_funding: companies.sum(&:total_funding_amount_usd),
-        avg_funding: companies.sum(&:total_funding_amount_usd) / companies.count.to_f
-      }
+    # Group companies by region
+    regions = companies.group_by { |c| extract_region(c.location) }
+                      .transform_values(&:count)
+
+    # Calculate funding metrics per region
+    region_metrics = {}
+
+    companies.group_by { |c| extract_region(c.location) }.each do |region, companies_in_region|
+        funded_companies = companies_in_region.reject { |c| c.total_funding_amount_usd.nil? || c.total_funding_amount_usd.zero? }
+        total_funding = funded_companies.sum { |c| c.total_funding_amount_usd }
+        company_count = companies_in_region.count
+        funded_count = funded_companies.count
+
+        region_metrics[region] = {
+            company_count: company_count,
+            funded_count: funded_count,
+            total_funding: total_funding,
+            avg_deal_size: funded_count > 0 ? total_funding / funded_count : 0
+        }
     end
 
-    # Prepare data for geo chart
-    @region_data = region_metrics.transform_values { |v| v[:companies] }
+    # Calculate total funding for market share
+    total_funding = region_metrics.values.sum { |v| v[:total_funding] }
 
-    # Prepare data for table
-    @region_table = region_metrics.map do |region, metrics|
-      {
-        region: region,
-        companies: metrics[:companies],
-        total_funding: metrics[:total_funding],
-        avg_funding: metrics[:avg_funding]
-      }
-    end.sort_by { |d| -d[:companies] }
+    # Prepare data for view
+    @table_data = region_metrics.map do |region, metrics|
+        {
+            region: region,
+            company_count: metrics[:company_count],
+            funded_count: metrics[:funded_count],
+            total_funding: metrics[:total_funding],
+            avg_deal_size: metrics[:avg_deal_size],
+            market_share: total_funding > 0 ? (metrics[:total_funding] / total_funding.to_f * 100) : 0
+        }
+    end
 
-    # Calculate top regions for research notes
-    @top_regions = @region_table.take(3).map { |d| d[:region] }
-    @top_funded_regions = @region_table.sort_by { |d| -d[:total_funding] }
-                                     .take(3)
-                                     .map { |d| d[:region] }
+    # Sort by total funding descending
+    @table_data = @table_data.sort_by { |d| -d[:total_funding] }
+
+    respond_to do |format|
+        format.html
+        format.csv { send_data generate_funding_concentration_csv, filename: "funding_concentration.csv" }
+        format.xlsx { send_data generate_funding_concentration_xlsx, filename: "funding_concentration.xlsx" }
+    end
+  end
+
+  def download_funding_concentration
+    redirect_to statistics_funding_concentration_path(format: :csv)
   end
 
   def category_success
@@ -292,95 +338,6 @@ class StaticPagesController < ApplicationController
     @top_exits = @success_metrics.sort_by { |d| -d[:exit_rate] }
                                 .take(3)
                                 .map { |d| d[:name] }
-  end
-
-  def growth_stage
-    @companies = Company.where(visible: true)
-                       .includes(:category)
-                       .to_a  # Load into memory once
-
-    # Initialize stage data structure
-    @stage_data = {}
-    @stage_evolution = {}
-    @stage_metrics = []
-
-    # Count companies by stage
-    @companies.each do |company|
-      stage = self.class.stage_mapping[company.funding_status] || 'Operating'
-      @stage_data[stage] ||= 0
-      @stage_data[stage] += 1
-    end
-
-    # Calculate stage evolution over time
-    (2000..Time.current.year).each do |year|
-      @stage_evolution[year] = Hash.new(0)
-
-      companies_until_year = @companies.select { |c| c.founded_date.to_i <= year }
-
-      companies_until_year.each do |company|
-        stage = self.class.stage_mapping[company.funding_status] || 'Operating'
-        @stage_evolution[year][stage] += 1
-      end
-    end
-
-    # Calculate metrics for each stage
-    total_companies = @companies.count.to_f
-
-    # Define stage order for consistent presentation
-    stage_order = ['Seed', 'Early Stage', 'Late Stage', 'Private Equity', 'Public', 'Acquired', 'Operating']
-
-    stage_order.each do |stage|
-      next unless @stage_data[stage]
-
-      count = @stage_data[stage]
-      companies_in_stage = @companies.select { |c| (self.class.stage_mapping[c.funding_status] || 'Operating') == stage }
-
-      # Calculate metrics
-      avg_funding = if companies_in_stage.any?
-        companies_in_stage.sum { |c| c.total_funding_amount_usd.to_f } / companies_in_stage.size
-      else
-        0
-      end
-
-      success_rate = if companies_in_stage.any?
-        successful = companies_in_stage.count { |c| ['Public', 'Acquired'].include?(self.class.stage_mapping[c.funding_status]) }
-        (successful / companies_in_stage.size.to_f) * 100
-      else
-        0
-      end
-
-      metrics = {
-        stage: stage,
-        count: count,
-        percentage: (count / total_companies * 100),
-        avg_funding: avg_funding,
-        success_rate: success_rate
-      }
-
-      @stage_metrics << metrics
-    end
-
-    # Sort stages by count for the pie chart
-    @stage_data = @stage_data.sort_by { |_, count| -count }.to_h
-
-    respond_to do |format|
-      format.html
-      format.csv do
-        csv_data = CSV.generate do |csv|
-          csv << ["Stage", "Companies", "Percentage", "Average Funding", "Success Rate"]
-          @stage_metrics.each do |metrics|
-            csv << [
-              metrics[:stage],
-              metrics[:count],
-              metrics[:percentage].round(1),
-              metrics[:avg_funding].round(2),
-              metrics[:success_rate].round(1)
-            ]
-          end
-        end
-        send_data csv_data, filename: "growth_stage_analysis_#{Time.current.strftime('%Y%m%d')}.csv"
-      end
-    end
   end
 
   def business_model
@@ -492,80 +449,67 @@ class StaticPagesController < ApplicationController
   end
 
   def country_distribution
-    @companies = Company.where(visible: true)
-                       .where('founded_date >= ? AND founded_date <= ? AND founded_date ~ ?',
-                             '2000',
-                             Time.current.year.to_s,
-                             '^\d{4}$')
+    # Get companies with valid locations
+    companies = Company.where(visible: true)
+                      .where.not(location: [nil, "", "Location unknown"])
+                      .where('founded_date >= ? AND founded_date <= ? AND founded_date ~ ?',
+                            '2000',
+                            Time.current.year.to_s,
+                            '^\d{4}$')
 
-    # Group companies by country
-    country_data = @companies.group_by do |company|
-      location = company.location.to_s
-      country = if location.include?(',')
-                  location.split(',').last.strip
-                else
-                  location
-                end
+    # Group companies by country and calculate metrics
+    country_metrics = {}
 
-      # Map common variations to standard names
-      case country
-      when 'USA', 'United States of America', 'US'
-        'United States'
-      when 'UK'
-        'United Kingdom'
-      when 'UAE'
-        'United Arab Emirates'
-      else
-        country
-      end
+    companies.each do |company|
+        country = extract_country(company.location)
+        next unless country
+
+        country_metrics[country] ||= {
+            companies: 0,
+            total_funding: 0,
+            funded_companies: 0
+        }
+
+        country_metrics[country][:companies] += 1
+
+        if company.total_funding_amount_usd && company.total_funding_amount_usd > 0
+            country_metrics[country][:total_funding] += company.total_funding_amount_usd
+            country_metrics[country][:funded_companies] += 1
+        end
     end
 
-    # Calculate metrics for each country
-    @country_metrics = country_data.transform_values do |companies|
-      total_funding = companies.sum { |c| c.total_funding_amount_usd.to_f }
-      {
-        companies: companies.size,
-        total_funding: total_funding,
-        avg_funding: companies.any? ? (total_funding / companies.size) : 0
-      }
+    # Prepare data for view
+    @chart_data = []
+    @chart_data << ['Country', 'Companies']  # Header row
+    country_metrics.each do |country, metrics|
+        @chart_data << [country, metrics[:companies]]
     end
 
-    # Prepare data for GeoChart
-    @chart_data = @country_metrics.transform_keys do |country|
-      # Map country names to ISO codes if needed
-      country
+    # Prepare table data
+    @table_data = country_metrics.map do |country, metrics|
+        avg_funding = metrics[:funded_companies] > 0 ?
+                     metrics[:total_funding] / metrics[:funded_companies] :
+                     0
+
+        {
+            country: country,
+            companies: metrics[:companies],
+            total_funding: metrics[:total_funding],
+            avg_funding: avg_funding
+        }
     end
 
-    # Prepare table data sorted by number of companies
-    @table_data = @country_metrics.map do |country, metrics|
-      {
-        country: country,
-        companies: metrics[:companies],
-        total_funding: metrics[:total_funding],
-        avg_funding: metrics[:avg_funding]
-      }
-    end.sort_by { |d| -d[:companies] }
+    # Sort table data by number of companies
+    @table_data.sort_by! { |d| -d[:companies] }
 
     # Get top countries for research notes
-    @top_countries = @table_data.take(5).map { |d| d[:country] }
-    @top_funded_countries = @table_data.sort_by { |d| -d[:total_funding] }.take(5).map { |d| d[:country] }
+    @top_countries = @table_data.take(3).map { |d| d[:country] }
+    @top_funded_countries = @table_data.sort_by { |d| -d[:total_funding] }.take(3).map { |d| d[:country] }
 
     respond_to do |format|
-      format.html
-      format.csv do
-        csv_data = CSV.generate do |csv|
-          csv << ["Country", "Companies", "Total Funding", "Average Funding"]
-          @table_data.each do |data|
-            csv << [
-              data[:country],
-              data[:companies],
-              data[:total_funding],
-              data[:avg_funding]
-            ]
-          end
-        end
-        send_data csv_data, filename: "country_distribution.csv"
-      end
+        format.html
+        format.csv { send_data generate_country_distribution_csv, filename: "country_distribution.csv" }
+        format.xlsx { send_data generate_country_distribution_xlsx, filename: "country_distribution.xlsx" }
     end
   end
 
@@ -574,19 +518,9 @@ class StaticPagesController < ApplicationController
              filename: "category_evolution_#{Time.current.strftime('%Y%m%d')}.csv"
   end
 
-  def download_funding_concentration
-    send_data generate_csv(@region_table, ['Region', 'Companies', 'Total Funding', 'Avg Funding']),
-             filename: "funding_concentration_#{Time.current.strftime('%Y%m%d')}.csv"
-  end
-
   def download_category_success
     send_data generate_csv(@success_metrics, ['Category', 'Survival Rate', 'Funding Success', 'Exit Rate']),
              filename: "category_success_#{Time.current.strftime('%Y%m%d')}.csv"
-  end
-
-  def download_growth_stage
-    send_data generate_csv(@stage_metrics, ['Stage', 'Companies', 'Percentage', 'Avg Funding']),
-             filename: "growth_stage_#{Time.current.strftime('%Y%m%d')}.csv"
   end
 
   def download_business_model
@@ -595,8 +529,8 @@ class StaticPagesController < ApplicationController
   end
 
   def download_target_client
-    send_data generate_csv(@client_metrics, ['Target Client', 'Companies', 'Percentage', 'Avg Funding']),
-             filename: "target_client_#{Time.current.strftime('%Y%m%d')}.csv"
+    send_data generate_csv(@client_metrics, ['Target Client', 'Companies', 'Percentage', 'Average Funding']),
+             filename: "target_client_analysis_#{Time.current.strftime('%Y%m%d')}.csv"
   end
 
   def funding_stages
@@ -1113,31 +1047,47 @@ class StaticPagesController < ApplicationController
     end
   end
 
+  def download_funding_stages
+    send_data generate_csv(@stage_data.map { |stage, data|
+      {
+        stage: stage,
+        companies: data[:count],
+        percentage: data[:percentage],
+        total_funding: data[:total_funding],
+        avg_funding: data[:avg_funding]
+      }
+    }, ['Stage', 'Companies', 'Percentage', 'Total Funding', 'Average Funding']),
+    filename: "funding_stages_analysis_#{Time.current.strftime('%Y%m%d')}.csv"
+  end
+
+  def download_funding_efficiency
+    send_data generate_csv(@category_metrics.map { |category, metrics|
+      {
+        category: category,
+        companies: metrics[:companies],
+        funded_companies: metrics[:funded_companies],
+        total_funding: metrics[:total_funding],
+        avg_funding: metrics[:avg_funding],
+        avg_rounds: metrics[:avg_rounds],
+        funding_per_round: metrics[:funding_per_round],
+        funding_per_year: metrics[:funding_per_year],
+        success_rate: metrics[:success_rate],
+        efficiency_score: metrics[:efficiency_score]
+      }
+    }, ['Category', 'Companies', 'Funded Companies', 'Total Funding', 'Avg Funding',
+        'Avg Rounds', 'Funding per Round', 'Funding per Year', 'Success Rate', 'Efficiency Score']),
+    filename: "funding_efficiency_analysis_#{Time.current.strftime('%Y%m%d')}.csv"
+  end
+
   private
 
-  def calculate_growth_metrics(categories)
-    # Calculate metrics for each category
-    categories.each_with_object({}) do |category, metrics|
-      # Get companies in this category
-      category_companies = @companies.select { |c| c.category == category }
-      total = category_companies.count
+  def calculate_growth_rate(year, count)
+    previous_year = (year.to_i - 1).to_s
+    previous_count = Company.where(visible: true)
+                          .where(founded_date: previous_year)
+                          .count
 
-      # Calculate growth rate using 5-year cumulative growth
-      current_year = Time.current.year
-      companies_now = category_companies.count { |c| c.founded_date.to_i <= current_year }
-      companies_5y_ago = category_companies.count { |c| c.founded_date.to_i <= (current_year - 5) }
-
-      growth_rate = if companies_5y_ago > 0
-        ((companies_now.to_f / companies_5y_ago) - 1) * 100
-      else
-        companies_now > 0 ? 100 : 0
-      end
-
-      metrics[category.id] = {
-        total_companies: total,
-        growth_rate: growth_rate.round(1)
-      }
-    end
+    previous_count > 0 ? ((count - previous_count) / previous_count.to_f * 100) : 0
   end
 
   def calculate_avg_funding(companies)
@@ -1354,5 +1304,146 @@ class StaticPagesController < ApplicationController
         csv << headers.map { |h| row[h.downcase.gsub(' ', '_').to_sym] }
       end
     end
+  end
+
+  def generate_category_evolution_csv
+    CSV.generate do |csv|
+        csv << ['Category', 'Total Companies', 'Growth Rate', 'Market Share']
+        @summary_data.each do |data|
+            csv << [
+                data[:category],
+                data[:total_companies],
+                "#{data[:growth_rate].round(1)}%",
+                "#{data[:market_share].round(1)}%"
+            ]
+        end
+    end
+  end
+
+  def generate_funding_concentration_csv
+    CSV.generate do |csv|
+        csv << ['Region', 'Total Companies', 'Funded Companies', 'Total Funding', 'Avg Deal Size', 'Market Share']
+        @table_data.each do |data|
+            csv << [
+                data[:region],
+                data[:company_count],
+                data[:funded_count],
+                number_to_currency(data[:total_funding], precision: 0),
+                number_to_currency(data[:avg_deal_size], precision: 0),
+                "#{data[:market_share].round(1)}%"
+            ]
+        end
+    end
+  end
+
+  def generate_category_evolution_xlsx
+    Axlsx::Package.new do |p|
+        p.workbook.add_worksheet(name: 'Category Evolution') do |sheet|
+            sheet.add_row ['Category', 'Total Companies', 'Growth Rate', 'Market Share']
+            @summary_data.each do |data|
+                sheet.add_row [
+                    data[:category],
+                    data[:total_companies],
+                    "#{data[:growth_rate].round(1)}%",
+                    "#{data[:market_share].round(1)}%"
+                ]
+            end
+        end
+    end.to_stream.read
+  end
+
+  def generate_funding_concentration_xlsx
+    Axlsx::Package.new do |p|
+        p.workbook.add_worksheet(name: 'Funding Concentration') do |sheet|
+            sheet.add_row ['Region', 'Total Companies', 'Funded Companies', 'Total Funding', 'Avg Deal Size', 'Market Share']
+            @table_data.each do |data|
+                sheet.add_row [
+                    data[:region],
+                    data[:company_count],
+                    data[:funded_count],
+                    data[:total_funding],
+                    data[:avg_deal_size],
+                    "#{data[:market_share].round(1)}%"
+                ]
+            end
+        end
+    end.to_stream.read
+  end
+
+  def generate_companies_founded_csv
+    CSV.generate do |csv|
+        csv << ['Year', 'New Companies', 'Growth Rate']
+        @table_data.each do |data|
+            csv << [
+                data[:year],
+                data[:new_companies],
+                "#{data[:growth_rate].round(1)}%"
+            ]
+        end
+    end
+  end
+
+  def generate_companies_founded_xlsx
+    Axlsx::Package.new do |p|
+        p.workbook.add_worksheet(name: 'Companies Founded') do |sheet|
+            sheet.add_row ['Year', 'New Companies', 'Growth Rate']
+            @table_data.each do |data|
+                sheet.add_row [
+                    data[:year],
+                    data[:new_companies],
+                    "#{data[:growth_rate].round(1)}%"
+                ]
+            end
+        end
+    end.to_stream.read
+  end
+
+  def extract_country(location)
+    return nil unless location
+    # Split on comma and take the last part, which is typically the country
+    parts = location.split(',').map(&:strip)
+    country = parts.last
+
+    # Handle common variations
+    case country
+    when 'USA', 'United States', 'US', 'U.S.', 'U.S.A.'
+        'United States'
+    when 'UK', 'United Kingdom', 'Great Britain'
+        'United Kingdom'
+    when 'UAE', 'U.A.E.'
+        'United Arab Emirates'
+    else
+        country
+    end
+  end
+
+  def generate_country_distribution_csv
+    CSV.generate do |csv|
+        csv << ['Country', 'Companies', 'Total Funding', 'Avg Funding']
+        @table_data.each do |data|
+            csv << [
+                data[:country],
+                data[:companies],
+                number_to_currency(data[:total_funding], precision: 0),
+                number_to_currency(data[:avg_funding], precision: 0)
+            ]
+        end
+    end
+  end
+
+  def generate_country_distribution_xlsx
+    Axlsx::Package.new do |p|
+        p.workbook.add_worksheet(name: 'Country Distribution') do |sheet|
+            sheet.add_row ['Country', 'Companies', 'Total Funding', 'Avg Funding']
+            @table_data.each do |data|
+                sheet.add_row [
+                    data[:country],
+                    data[:companies],
+                    data[:total_funding],
+                    data[:avg_funding]
+                ]
+            end
+        end
+    end.to_stream.read
   end
 end

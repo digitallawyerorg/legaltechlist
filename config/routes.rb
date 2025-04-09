@@ -23,27 +23,17 @@ Rails.application.routes.draw do
   get 'statistics/tag_distribution/download', to: 'static_pages#download_tag_distribution', as: :download_tag_distribution
   get 'statistics/category_evolution', to: 'static_pages#category_evolution'
   get 'statistics/category_evolution/download', to: 'static_pages#download_category_evolution', as: :download_category_evolution
-  get 'statistics/total_companies', to: 'static_pages#total_companies'
-  get 'statistics/total_companies/download', to: 'static_pages#download_total_companies', as: :download_total_companies
-  get 'statistics/funding_concentration', to: 'static_pages#funding_concentration'
-  get 'statistics/funding_concentration/download', to: 'static_pages#download_funding_concentration', as: :download_funding_concentration
-  get 'statistics/growth_stage', to: 'static_pages#growth_stage'
-  get 'statistics/growth_stage/download', to: 'static_pages#download_growth_stage', as: :download_growth_stage
-  get 'statistics/target_client', to: 'static_pages#target_client'
-  get 'statistics/target_client/download', to: 'static_pages#download_target_client', as: :download_target_client
-  get 'statistics/country_distribution', to: 'static_pages#country_distribution'
-  get 'statistics/country_distribution/download', to: 'static_pages#download_country_distribution', as: :download_country_distribution
-  get 'statistics/funding_stages', to: 'static_pages#funding_stages'
-  get 'statistics/funding_stages/download', to: 'static_pages#download_funding_stages', as: :download_funding_stages
-  get 'statistics/funding_efficiency', to: 'static_pages#funding_efficiency'
-  get 'statistics/funding_efficiency/download', to: 'static_pages#download_funding_efficiency', as: :download_funding_efficiency
+
+  # Total Companies routes with format support
+  get 'statistics/total_companies', to: 'static_pages#total_companies', as: :statistics_total_companies
+  get 'statistics/companies_founded', to: 'static_pages#companies_founded', as: :statistics_companies_founded
 
   # New analytics pages
-  get 'statistics/innovation_hubs', to: 'static_pages#innovation_hubs'
+  get 'statistics/innovation_hubs', to: 'static_pages#innovation_hubs', as: :statistics_innovation_hubs
   get 'statistics/innovation_hubs/download', to: 'static_pages#download_innovation_hubs', as: :download_innovation_hubs
-  get 'statistics/exit_patterns', to: 'static_pages#exit_patterns'
+  get 'statistics/exit_patterns', to: 'static_pages#exit_patterns', as: :statistics_exit_patterns
   get 'statistics/exit_patterns/download', to: 'static_pages#download_exit_patterns', as: :download_exit_patterns
-  get 'statistics/founders_journey', to: 'static_pages#founders_journey'
+  get 'statistics/founders_journey', to: 'static_pages#founders_journey', as: :statistics_founders_journey
   get 'statistics/founders_journey/download', to: 'static_pages#download_founders_journey', as: :download_founders_journey
 
   get 'static_pages/home'
@@ -51,4 +41,18 @@ Rails.application.routes.draw do
 
   # Add tag routes
   get 'tags/:tag', to: 'companies#index', as: :tag
+
+  post '/export_chart', to: 'static_pages#export_chart'
+
+  # Statistics routes
+  get 'statistics/country_distribution', to: 'static_pages#country_distribution', as: :statistics_country_distribution
+  get 'statistics/target_client', to: 'static_pages#target_client', as: :statistics_target_client
+  get 'statistics/target_client/download', to: 'static_pages#download_target_client', as: :download_target_client
+  get 'statistics/funding_stages', to: 'static_pages#funding_stages', as: :statistics_funding_stages
+  get 'statistics/funding_stages/download', to: 'static_pages#download_funding_stages', as: :download_funding_stages
+  get 'statistics/funding_efficiency', to: 'static_pages#funding_efficiency', as: :statistics_funding_efficiency
+  get 'statistics/funding_efficiency/download', to: 'static_pages#download_funding_efficiency', as: :download_funding_efficiency
+  get 'statistics/funding_concentration', to: 'static_pages#funding_concentration', as: :statistics_funding_concentration
+  get 'statistics/funding_concentration/download', to: 'static_pages#download_funding_concentration', as: :download_funding_concentration
+  get 'statistics/download_country_distribution', to: 'static_pages#download_country_distribution'
 end

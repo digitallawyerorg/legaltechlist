@@ -1,0 +1,36 @@
+.card.border
+  .card-body
+    .d-flex.justify-content-between.align-items-start.mb-4
+      div
+        h3.h4.fw-bold.mb-0= title
+        p.text-muted.small.mb-0= subtitle
+      .dropdown
+        button.btn.btn-sm.btn-light.dropdown-toggle type="button" data-bs-toggle="dropdown" aria-expanded="false"
+          i.fas.fa-download.me-2
+          | Export
+        ul.dropdown-menu.dropdown-menu-end
+          li
+            button.dropdown-item onclick="downloadChart('#{chart_id}')"
+              i.fas.fa-image.me-2
+              | Download as Image (PNG)
+          li
+            = link_to url_for(format: :csv), class: "dropdown-item" do
+              i.fas.fa-file-csv.me-2
+              | Download as CSV
+          li
+            = link_to url_for(format: :xlsx), class: "dropdown-item" do
+              i.fas.fa-file-excel.me-2
+              | Download as Excel
+    = chart
+    - if table.present?
+      .card-body.border-top
+        = table
+
+javascript:
+  function downloadChart(chartId) {
+    const chart = document.getElementById(chartId);
+    const link = document.createElement('a');
+    link.download = '#{download_filename}.png';
+    link.href = chart.toBase64Image('image/png', 1.0);
+    link.click();
+  }

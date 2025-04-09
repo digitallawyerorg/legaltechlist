@@ -1,59 +1,28 @@
 .bg-body.border-bottom
-    .container-lg
-        .row.text-center.mt-5.pt-5
-            .col-lg-10.mx-auto
-                .fs-1.fw-bold Geographic Distribution
-                p.lead Regional concentration of legal tech companies
+    .container.py-4
         .row
             .col-12
-                .p-3.border
-                    .h4.fw-bold Companies by Region
-                    - chart_options = { height: "600px", library: { backgroundColor: "#ffffff", datalessRegionColor: "#f8f9fa", defaultColor: "#8c1515", tooltip: { isHtml: true }, region: "world", displayMode: "regions", resolution: "countries" } }
-                    javascript:
-                        google.charts.load('current', { 'packages': ['geochart'] });
-                    = geo_chart @region_data, **chart_options
-            .col-12.mt-4
-                .table-responsive
-                    table.table.table-hover.border#regionTable
-                        thead
-                            tr
-                                th.bg-body-tertiary Region
-                                th.bg-body-tertiary.text-end Companies
-                                th.bg-body-tertiary.text-end Total Funding
-                                th.bg-body-tertiary.text-end Avg Funding
-                        tbody
-                            - @region_table.each do |data|
-                                tr
-                                    td= data[:region]
-                                    td.text-end= data[:companies]
-                                    td.text-end= number_to_currency(data[:total_funding], precision: 0)
-                                    td.text-end= number_to_currency(data[:avg_funding], precision: 0)
-                .mt-3.text-end
-                    = link_to "Download CSV", download_funding_concentration_path(format: :csv), class: "btn btn-sm btn-outline-secondary"
-            .col-12.mt-4
-                .card.border
-                    .card-body
-                        h3.h5.mb-4 Research Notes
-                        .row.g-4
-                            .col-md-6
-                                .card.h-100.bg-light.border-0
-                                    .card-body
-                                        h6.fw-bold.mb-3 Key Findings
-                                        ul.mb-0
-                                            li.mb-2
-                                                | Highest concentration in
-                                                = @top_regions.to_sentence
-                                            li.mb-2
-                                                | Most well-funded regions:
-                                                = @top_funded_regions.to_sentence
-                                            li.mb-2 Emerging hubs showing significant growth in company formation
-                                            li.mb-2 Regional specialization patterns emerging in specific categories
-                            .col-md-6
-                                .card.h-100.bg-light.border-0
-                                    .card-body
-                                        h6.fw-bold.mb-3 Methodology
-                                        p.small.text-muted.mb-0
-                                            | Analysis based on company headquarters location and total funding raised.
-                                            | Regions are defined by primary geographic markets.
-                                            | Funding data includes all reported investment rounds.
-                                            | Companies without location data are excluded from the analysis.
+                = render partial: 'shared/statistics_card', locals: { title: "Investment Distribution by Region", subtitle: "Total funding across major tech hubs", chart: pie_chart(@table_data.map { |d| [d[:region], d[:total_funding]] }, height: "600px", colors: ["#8c1515", "#175e54", "#820000", "#b83a4b", "#544948", "#006b81"], library: { plugins: { legend: { position: 'right' } } }, id: "funding-concentration-chart"), table: render(partial: 'shared/data_table', locals: { headers: ['Region', 'Total Funding', 'Avg Deal Size', 'Market Share', 'Companies'], rows: @table_data.map { |data| [data[:region], number_to_currency(data[:total_funding], precision: 0), number_to_currency(data[:avg_deal_size], precision: 0), "#{data[:market_share].round(1)}%", data[:company_count]] } }), chart_id: "funding-concentration-chart", download_filename: "funding_concentration" }
+
+        .card.border.mt-4
+            .card-body
+                h3.h5.mb-4 Research Notes
+                .row.g-4
+                    .col-md-6
+                        .card.h-100.bg-light.border-0
+                            .card-body
+                                h6.fw-bold.mb-3 Key Findings
+                                ul.mb-0
+                                    li.mb-2 Major investment hubs identified
+                                    li.mb-2 Regional funding disparities
+                                    li.mb-2 Deal size variations by region
+                                    li.mb-2 Geographic concentration of capital
+                    .col-md-6
+                        .card.h-100.bg-light.border-0
+                            .card-body
+                                h6.fw-bold.mb-3 Methodology
+                                p.small.text-muted.mb-0
+                                    ' Analysis based on total funding raised by companies in each region.
+                                    ' Regions defined by major metropolitan areas and tech hubs.
+                                    ' Market share calculated as percentage of total global funding.
+                                    ' Only includes verified funding data.
