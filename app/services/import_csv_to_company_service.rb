@@ -251,7 +251,7 @@ class ImportCsvToCompanyService
         'twitter_url' => clean_url(row['Twitter']),
         'linkedin_url' => clean_url(row['LinkedIn']),
         'facebook_url' => clean_url(row['Facebook']),
-        'status' => row['Operating Status'],
+        'status' => determine_status(row['Stage']),
         'category' => row['Category'],
         'stage' => row['Stage'],
         'company_type' => row['Company Type'],
@@ -272,7 +272,6 @@ class ImportCsvToCompanyService
         'Twitter' => row['Twitter'],
         'LinkedIn' => row['LinkedIn'],
         'Facebook' => row['Facebook'],
-        'Operating Status' => row['Operating Status'],
         'Stage' => row['Stage'],
         'Company Type' => row['Company Type'],
         'Number of Funding Rounds' => row['Number of Funding Rounds'],
@@ -283,6 +282,19 @@ class ImportCsvToCompanyService
       }
     end
 
+    def determine_status(stage)
+      case stage.to_s.downcase.strip
+      when 'acquired'
+        'acquired'
+      when 'public'
+        'active'  # Public companies are active
+      when 'seed', 'series a', 'series b', 'series c', 'series d', 'funding raised', 'early stage', 'late stage', ''
+        'active'  # Companies with funding or no stage specified are considered active
+      else
+        'active'  # Default for any other status
+      end
+    end
+
     def valid_for_import?(row)
       return false if row['name'].blank?
       true
@@ -290,8 +302,8 @@ class ImportCsvToCompanyService
 
     def determine_funding_status(row)
       # Check for exit events first
-      return 'IPO' if row['Stage'].to_s.match?(/public/i) || row['Operating Status'].to_s.match?(/ipo|public/i)
-      return 'M&A' if row['Stage'].to_s.match?(/acquired/i) || row['Operating Status'].to_s.match?(/acquired|merged/i) || row['Exit Date'].present?
+      return 'IPO' if row['Stage'].to_s.match?(/public/i) || row['Funding Status'].to_s.match?(/ipo|public/i)
+      return 'M&A' if row['Stage'].to_s.match?(/acquired/i) || row['Funding Status'].to_s.match?(/acquired|merged/i) || row['Exit Date'].present?
 
       # Map funding stages
       stage = row['Stage'].to_s.strip.downcase
