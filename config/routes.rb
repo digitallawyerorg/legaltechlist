@@ -26,6 +26,7 @@ Rails.application.routes.draw do
 
   # Total Companies routes with format support
   get 'statistics/total_companies', to: 'static_pages#total_companies', as: :statistics_total_companies
+  get 'statistics/total_companies_all_time', to: 'static_pages#total_companies_all_time', as: :statistics_total_companies_all_time
   get 'statistics/companies_founded', to: 'static_pages#companies_founded', as: :statistics_companies_founded
 
   # New analytics pages

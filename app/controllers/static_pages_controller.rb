@@ -138,6 +138,80 @@ class StaticPagesController < ApplicationController
     end
   end
 
+  def total_companies_all_time
+    @companies = Company.where(visible: true)
+                       .where('founded_date ~ ?', '^\d{4}$')
+
+    # Find the earliest founding year
+    earliest_year = @companies.pluck(:founded_date).map(&:to_i).min
+    earliest_year = [earliest_year, 1975].max # Ensure we don't go too far back
+
+    # Calculate cumulative totals and new companies by year
+    @table_data = (earliest_year..Time.current.year).map do |year|
+      total = @companies.count { |c| c.founded_date.to_i <= year }
+      new_companies = @companies.count { |c| c.founded_date.to_i == year }
+
+      # For growth rate, we need to consider the previous year's total
+      prev_total = year > earliest_year ?
+        @companies.count { |c| c.founded_date.to_i <= (year - 1) } : 0
+
+      growth_rate = prev_total > 0 ? ((total - prev_total) / prev_total.to_f * 100) : 0
+
+      {
+        year: year,
+        total_companies: total,
+        new_companies: new_companies,
+        growth_rate: growth_rate
+      }
+    end
+
+    # Prepare chart data
+    @chart_data = {
+      name: 'Total Companies',
+      data: @table_data.map { |d| [d[:year], d[:total_companies]] }
+    }
+
+    respond_to do |format|
+      format.html
+      format.csv do
+        csv_data = CSV.generate do |csv|
+          csv << ["Year", "New Companies", "Total Companies", "Growth Rate (%)"]
+          @table_data.each do |data|
+            csv << [
+              data[:year],
+              data[:new_companies],
+              data[:total_companies],
+              data[:growth_rate].round(1)
+            ]
+          end
+        end
+        send_data csv_data,
+                  filename: "total_companies_all_time.csv",
+                  type: 'text/csv',
+                  disposition: 'attachment'
+      end
+      format.xlsx do
+        p = Axlsx::Package.new
+        wb = p.workbook
+        wb.add_worksheet(name: "Total Companies") do |sheet|
+          sheet.add_row ["Year", "New Companies", "Total Companies", "Growth Rate (%)"]
+          @table_data.each do |data|
+            sheet.add_row [
+              data[:year],
+              data[:new_companies],
+              data[:total_companies],
+              data[:growth_rate].round(1)
+            ]
+          end
+        end
+        send_data p.to_stream.read,
+                  filename: "total_companies_all_time.xlsx",
+                  type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                  disposition: 'attachment'
+      end
+    end
+  end
+
   def companies_founded
     @table_data = Company.where(visible: true)
                         .where('founded_date >= ? AND founded_date <= ? AND founded_date ~ ?',

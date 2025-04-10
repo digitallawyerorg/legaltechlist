@@ -7,11 +7,11 @@
                         div
                             div
                                 .h4.fw-bold.mb-0 Total Legal Tech Companies
-                                p.mb-2 Cumulative growth of the legal technology ecosystem (2000 - #{Date.current.year})
+                                p.mb-2 Cumulative growth of the legal technology ecosystem (1975 - #{Date.current.year})
                             div.mb-3
-                                = link_to statistics_total_companies_path, class: "badge bg-primary text-white me-2 text-decoration-none" do
+                                = link_to statistics_total_companies_path, class: "badge bg-secondary text-white me-2 text-decoration-none" do
                                     ' 2000 - #{Date.current.year}
-                                = link_to statistics_total_companies_all_time_path, class: "badge bg-secondary text-white me-2 text-decoration-none" do
+                                = link_to statistics_total_companies_all_time_path, class: "badge bg-primary text-white me-2 text-decoration-none" do
                                     ' 1975 - #{Date.current.year}
 
                         .dropdown
@@ -24,15 +24,15 @@
                                         i.fas.fa-image.me-2
                                         | Download Chart (PNG)
                                 li
-                                    = link_to statistics_total_companies_path(format: :csv), class: "dropdown-item" do
+                                    = link_to statistics_total_companies_all_time_path(format: :csv), class: "dropdown-item" do
                                         i.fas.fa-file-csv.me-2
                                         | Download Data (CSV)
                                 li
-                                    = link_to statistics_total_companies_path(format: :xlsx), class: "dropdown-item" do
+                                    = link_to statistics_total_companies_all_time_path(format: :xlsx), class: "dropdown-item" do
                                         i.fas.fa-file-excel.me-2
                                         | Download Data (Excel)
                     .border.rounded-3.p-3
-                        = area_chart [@chart_data], height: "600px", discrete: true, points: false, legend: "bottom", colors: ["#8c1515"], thousands: ",", library: { plugins: { legend: { display: true, position: "bottom" } }, scales: { x: { grid: { display: true, drawBorder: false }, ticks: { font: { size: 12 } } }, y: { min: 0, grid: { display: true, drawBorder: false }, ticks: { font: { size: 12 }, stepSize: 250 } } }, elements: { line: { tension: 0.4, borderWidth: 2, fill: true, backgroundColor: "rgba(140, 21, 21, 0.1)" }, point: { radius: 0, hitRadius: 10, hoverRadius: 4 } }, interaction: { intersect: false, mode: 'index' } }, id: "total-companies-chart"
+                        = area_chart [@chart_data], height: "600px", discrete: true, points: false, legend: "bottom", colors: ["#8c1515"], thousands: ",", library: { plugins: { legend: { display: true, position: "bottom" } }, scales: { x: { grid: { display: true, drawBorder: false }, ticks: { font: { size: 12 } } }, y: { min: 0, grid: { display: true, drawBorder: false }, ticks: { font: { size: 12 }, stepSize: 250 } } }, elements: { line: { tension: 0.4, borderWidth: 2, fill: true, backgroundColor: "rgba(140, 21, 21, 0.1)" }, point: { radius: 0, hitRadius: 10, hoverRadius: 4 } }, interaction: { intersect: false, mode: 'index' } }, id: "total-companies-all-time-chart"
 
                 .col-12
                     .table-responsive.mt-5
@@ -68,10 +68,10 @@
 
 javascript:
   function downloadChart() {
-    const chartElement = document.querySelector('#total-companies-chart');
+    const chartElement = document.querySelector('#total-companies-all-time-chart');
     const chartInstance = Chartkick.charts[chartElement.id].getChartObject();
     const link = document.createElement('a');
-    link.download = 'total_companies.png';
+    link.download = 'total_companies_all_time.png';
     link.href = chartInstance.canvas.toDataURL('image/png');
     link.click();
   }
