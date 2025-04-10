@@ -1134,6 +1134,100 @@ class StaticPagesController < ApplicationController
     end
   end
 
+  def funding_by_category
+    # Get companies with funding data
+    companies = Company.where(visible: true)
+                      .where.not(total_funding_amount_usd: [nil, 0])
+                      .includes(:category)
+                      .where('founded_date >= ? AND founded_date <= ? AND founded_date ~ ?',
+                             '2000',
+                             Time.current.year.to_s,
+                             '^\d{4}$')
+
+    # Group by category and calculate funding metrics
+    funding_by_category = {}
+
+    companies.group_by { |c| c.category&.name || "Unknown" }.each do |category, companies_in_category|
+      total_funding = companies_in_category.sum(&:total_funding_amount_usd)
+      company_count = companies_in_category.count
+
+      funding_by_category[category] = {
+        total_funding: total_funding,
+        company_count: company_count,
+        avg_funding: company_count > 0 ? total_funding / company_count : 0
+      }
+    end
+
+    # Calculate total funding for market share percentage
+    total_funding = funding_by_category.sum { |_, v| v[:total_funding] }
+
+    # Prepare data for view
+    @table_data = funding_by_category.map do |category, metrics|
+      {
+        category: category,
+        total_funding: metrics[:total_funding],
+        company_count: metrics[:company_count],
+        avg_funding: metrics[:avg_funding],
+        market_share: total_funding > 0 ? metrics[:total_funding] / total_funding * 100 : 0
+      }
+    end
+
+    # Sort by total funding (descending)
+    @table_data.sort_by! { |item| -item[:total_funding] }
+
+    # Prepare chart data
+    @chart_data = {
+      name: 'Total Funding',
+      data: @table_data.first(10).map { |d| [d[:category], d[:total_funding]] }
+    }
+
+    respond_to do |format|
+      format.html
+      format.csv do
+        csv_data = CSV.generate do |csv|
+          csv << ["Category", "Total Funding", "Company Count", "Average Funding", "Market Share (%)"]
+          @table_data.each do |data|
+            csv << [
+              data[:category],
+              data[:total_funding],
+              data[:company_count],
+              data[:avg_funding].round(2),
+              data[:market_share].round(1)
+            ]
+          end
+        end
+        send_data csv_data,
+                  filename: "funding_by_category_#{Time.current.strftime('%Y%m%d')}.csv",
+                  type: 'text/csv',
+                  disposition: 'attachment'
+      end
+      format.xlsx do
+        p = Axlsx::Package.new
+        wb = p.workbook
+        wb.add_worksheet(name: "Funding by Category") do |sheet|
+          sheet.add_row ["Category", "Total Funding", "Company Count", "Average Funding", "Market Share (%)"]
+          @table_data.each do |data|
+            sheet.add_row [
+              data[:category],
+              data[:total_funding],
+              data[:company_count],
+              data[:avg_funding].round(2),
+              data[:market_share].round(1)
+            ]
+          end
+        end
+        send_data p.to_stream.read,
+                  filename: "funding_by_category_#{Time.current.strftime('%Y%m%d')}.xlsx",
+                  type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                  disposition: 'attachment'
+      end
+    end
+  end
+
+  def download_funding_by_category
+    redirect_to statistics_funding_by_category_path(format: :csv)
+  end
+
   private
 
   def calculate_growth_rate(year, count)

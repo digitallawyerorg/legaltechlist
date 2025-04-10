@@ -59,4 +59,6 @@ Rails.application.routes.draw do
   get 'statistics/ai_trends/download', to: 'static_pages#download_ai_trends', as: :download_ai_trends
   get 'statistics/category_evolution_5_years', to: 'static_pages#category_evolution_5_years', as: :statistics_category_evolution_5_years
   get 'statistics/category_evolution_5_years/download', to: 'static_pages#download_category_evolution_5_years', as: :download_category_evolution_5_years
+  get 'statistics/funding_by_category', to: 'static_pages#funding_by_category', as: :statistics_funding_by_category
+  get 'statistics/funding_by_category/download', to: 'static_pages#download_funding_by_category', as: :download_funding_by_category
 end
