@@ -1,4 +1,3 @@
-
 .bg-body-tertiary.border-bottom
     .container.py-5
         .row
@@ -17,15 +16,14 @@
                                         | Export
                                     ul.dropdown-menu.dropdown-menu-end
                                         li
-                                            button.dropdown-item onclick="downloadChart()"
+                                            button.dropdown-item onclick="downloadTagChart()"
                                                 i.fas.fa-image.me-2
                                                 | Download Chart (PNG)
                                         li
-                                            = link_to download_ai_trends_path(format: :csv), class: "dropdown-item" do
+                                            = link_to download_tag_distribution_path(format: :csv), class: "dropdown-item" do
                                                 i.fas.fa-file-csv.me-2
                                                 | Download Data (CSV)
-                        - top_tags = @tag_metrics.sort_by { |m| -m[:count] }.first(50)
-                        = column_chart top_tags.map { |m| [m[:name], m[:count]] }, height: '600px', colors: ["#8c1515"], library: { backgroundColor: "transparent", chartArea: { width: "85%", height: "70%" }, vAxis: { title: "Number of Companies", minValue: 0 }, hAxis: { title: "", slantedText: true, slantedTextAngle: 45 }, bar: { groupWidth: "80%" } }
+                        div#tag-chart style="width: 100%; height: 600px;"
 
             .col-12.mt-4
                 .table-responsive
@@ -47,3 +45,61 @@
                                         = number_to_currency(metric[:avg_funding], precision: 0)
                 .mt-3.text-end
                     = link_to "Download CSV", download_tag_distribution_path(format: :csv), class: "btn btn-sm btn-outline-secondary"
+
+javascript:
+  google.charts.load('current', {packages: ['corechart']});
+  google.charts.setOnLoadCallback(drawTagChart);
+
+  function drawTagChart() {
+    var rawData = #{raw(@tag_metrics.sort_by { |m| -m[:count] }.first(50).map { |m| [m[:name], m[:count]] }.to_json)};
+
+    // Add header row
+    var data = [['Tag', 'Companies']];
+    rawData.forEach(function(row) {
+      data.push(row);
+    });
+
+    var dataTable = google.visualization.arrayToDataTable(data);
+
+    var options = {
+      backgroundColor: 'transparent',
+      colors: ['#8c1515'],
+      chartArea: {
+        left: 75,
+        top: 20,
+        width: '100%',
+        height: '75%'
+      },
+      legend: { position: 'none' },
+      hAxis: {
+        slantedText: true,
+        slantedTextAngle: 45,
+        textStyle: { fontSize: 10 }
+      },
+      vAxis: {
+        title: 'Number of Companies',
+        minValue: 0,
+        textStyle: { fontSize: 12 }
+      },
+      bar: { groupWidth: '80%' }
+    };
+
+    var chart = new google.visualization.ColumnChart(document.getElementById('tag-chart'));
+    chart.draw(dataTable, options);
+
+    // Redraw on window resize for responsiveness
+    window.addEventListener('resize', function() {
+      chart.draw(dataTable, options);
+    });
+  }
+
+  function downloadTagChart() {
+    var chart = document.getElementById('tag-chart');
+    var canvas = chart.getElementsByTagName('canvas')[0];
+    if (canvas) {
+      var link = document.createElement('a');
+      link.download = 'tag_distribution.png';
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    }
+  }
