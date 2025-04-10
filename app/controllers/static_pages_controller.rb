@@ -1085,10 +1085,11 @@ class StaticPagesController < ApplicationController
     @ai_companies_by_year = Company.joins(:taggings)
                                    .where(taggings: { tag_id: ai_tags })
                                    .where(visible: true)
-                                   .where("founded_date ~ '^[0-9]{4}$'") # Ensure founded_date is a 4-digit year
+                                   .where("founded_date ~ '^[0-9]{4}$'")
                                    .group("CAST(founded_date AS INTEGER)")
                                    .count
-                                   .sort_by { |year, count| year }
+                                   .select { |year, _| year >= 2010 } # Filter for years >= 2010
+                                   .sort_by { |year, _| year }
 
     @table_data = @ai_companies_by_year.map { |year, count| [year.to_s, count] }
 
