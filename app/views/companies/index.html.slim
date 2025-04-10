@@ -3,7 +3,7 @@
         .mb-0
             .fs-2 Companies
         p.text-secondary = "#{@companies.total_count} legal technology companies"
-    
+
 		= form_tag companies_path, method: :get, class: "card mb-4" do
 			.card-body
 				.d-flex.gap-3
@@ -12,7 +12,7 @@
 							= text_field_tag :query, params[:query], class: "form-control", placeholder: "Search companies..."
 							button.btn.btn-primary type="submit"
 								i.fa.fa-search
-					
+
 					div style="flex: 0 0 200px"
 						.d-flex.gap-2
 							.dropdown
@@ -30,14 +30,14 @@
 										button.btn.btn-primary type="submit"
 											i.fa.fa-filter.me-2
 											| Apply Filters
-							
+
 							.btn-group
 								= hidden_field_tag :view, params[:view] || "grid", id: "view-input"
 								button.btn.btn-light#grid-view.rounded-start class=("active" if params[:view] != "list") type="button" data-view="grid"
 									i.fa.fa-th
 								button.btn.btn-light#list-view.rounded-end class=("active" if params[:view] == "list") type="button" data-view="list"
 									i.fa.fa-list
-		
+
 		//.mb-4
 			.d-flex.gap-2
 				= hidden_field_tag :sort, params[:sort]
@@ -46,7 +46,7 @@
 					i.fa.fa-arrow-down-up.ms-1
 				= link_to "Categories", companies_path(category: params[:category]), class: "btn btn-light btn-sm #{"active" if params[:category].present?}"
 				= link_to "Location", companies_path(location: params[:location]), class: "btn btn-light btn-sm #{"active" if params[:location].present?}"
-		
+
 		- if @view == 'list'
 			.list-view
 				- @companies.each do |company|
@@ -65,29 +65,27 @@
 							.card.h-100.border
 								.card-body
 									.d-flex.gap-3.mb-3
-										= image_tag company.logo, 
-											class: "rounded bg-light", 
+										= image_tag company.logo,
+											class: "rounded bg-light",
 											style: "width: 48px; height: 48px; object-fit: contain;",
 											alt: "#{company.name} logo"
 										.flex-grow-1
 											h3.h5.mb-1= company.name
 											p.text-secondary.small.mb-0= truncate(company.description, length: 100)
-									
+
 									.d-flex.gap-3.small.text-secondary.mb-3
 										- if company.location.present? && company.location != "Nowhere"
 											.d-flex.align-items-center
 												i.fa.fa-location-dot.me-1
 												= company.location
-										- if company.main_url.present?
-											.d-flex.align-items-center
-												i.fa.fa-globe.me-1
-												| Website
-									
+
 									- if company.tags.any?
 										.d-flex.flex-wrap.gap-2
-											- company.tags.each do |tag|
-												- unless tag.name.downcase == 'n/a'
-													span.badge.rounded-pill.bg-light.text-secondary= tag.name
+											- visible_tags = company.tags.reject { |tag| tag.name.downcase == 'n/a' }
+											- visible_tags.first(3).each do |tag|
+												span.badge.rounded-pill.bg-light.text-secondary= tag.name
+											- if visible_tags.size > 3
+												span.badge.rounded-pill.bg-light.text-secondary +#{visible_tags.size - 3}
 
 		.container.py-4
 			= paginate @companies
