@@ -72,9 +72,9 @@ module ApplicationHelper
   def growth_rate_class(rate)
     return 'text-muted' if rate.nil?
     if rate > 0
-      'text-success'
+      'badge badge-sm bg-danger-subtle text-danger'
     elsif rate < 0
-      'text-danger'
+      'badge badge-sm bg-success-subtle text-success'
     else
       'text-muted'
     end

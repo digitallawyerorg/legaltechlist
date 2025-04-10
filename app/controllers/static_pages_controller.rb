@@ -213,6 +213,14 @@ class StaticPagesController < ApplicationController
   end
 
   def companies_founded
+    # Get all companies with valid founding dates
+    all_companies = Company.where(visible: true)
+                          .where('founded_date ~ ?', '^\d{4}$')
+
+    # Get pre-2000 companies count
+    pre_2000_count = all_companies.count { |c| c.founded_date.to_i < 2000 }
+
+    # Get companies founded from 2000 onwards
     @table_data = Company.where(visible: true)
                         .where('founded_date >= ? AND founded_date <= ? AND founded_date ~ ?',
                              '2000',
@@ -227,6 +235,13 @@ class StaticPagesController < ApplicationController
         new_companies: count,
         growth_rate: calculate_growth_rate(year, count)
       }
+    end
+
+    # Calculate cumulative total for each year, including pre-2000 companies
+    running_total = pre_2000_count
+    @table_data.each do |data|
+      running_total += data[:new_companies]
+      data[:total_companies] = running_total
     end
 
     respond_to do |format|
@@ -1709,11 +1724,12 @@ class StaticPagesController < ApplicationController
 
   def generate_companies_founded_csv
     CSV.generate do |csv|
-        csv << ['Year', 'New Companies', 'Growth Rate']
+        csv << ['Year', 'New Companies', 'Total Companies', 'Growth Rate']
         @table_data.each do |data|
             csv << [
                 data[:year],
                 data[:new_companies],
+                data[:total_companies],
                 "#{data[:growth_rate].round(1)}%"
             ]
         end
@@ -1723,11 +1739,12 @@ class StaticPagesController < ApplicationController
   def generate_companies_founded_xlsx
     Axlsx::Package.new do |p|
         p.workbook.add_worksheet(name: 'Companies Founded') do |sheet|
-            sheet.add_row ['Year', 'New Companies', 'Growth Rate']
+            sheet.add_row ['Year', 'New Companies', 'Total Companies', 'Growth Rate']
             @table_data.each do |data|
                 sheet.add_row [
                     data[:year],
                     data[:new_companies],
+                    data[:total_companies],
                     "#{data[:growth_rate].round(1)}%"
                 ]
             end

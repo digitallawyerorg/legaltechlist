@@ -3,13 +3,14 @@
         .row.text-center.mt-5.pt-5
             .col-lg-10.mx-auto
                 .fs-1.fw-bold Target Client Analysis
-                p.lead Market focus and client segment distribution
+
         .row
             .col-12
                 .p-3.border
                     .h4.fw-bold Companies by Target Client
-                    - chart_options = { height: "600px", library: { chart: { style: { fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial" } }, colors: ["#8c1515"], plotOptions: { bar: { dataLabels: { enabled: true, format: "{point.y}" } } }, xAxis: { title: { text: "Target Client" } }, yAxis: { title: { text: "Number of Companies" } } } }
-                    = bar_chart @client_data, **chart_options
+                    p Market focus and client segment distribution
+                    - chart_options = { height: "600px", library: { chart: { style: { fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial" } }, plotOptions: { bar: { dataLabels: { enabled: true, format: "{point.y}" } } }, xAxis: { title: { text: "Target Client" } }, yAxis: { title: { text: "Number of Companies" } } } }
+                    = bar_chart @client_data, colors: ["#8c1515"], **chart_options
             .col-12.mt-4
                 .table-responsive
                     table.table.table-hover.border#clientTable
