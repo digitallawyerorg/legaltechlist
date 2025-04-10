@@ -12,7 +12,7 @@
                 .card.border
                     .card-body.px-4.pt-4
                         h4.fw-bold Popular Tags
-                        #tag-cloud.mt-4.w-100 style="height: 600px;"
+                        = column_chart @tag_metrics.map { |m| [m[:name], m[:count]] }.sort_by { |_, count| -count }, height: '600px', colors: ["#8c1515"], library: { scales: { xAxes: [{ ticks: { autoSkip: false, maxRotation: 90, minRotation: 90 } }], yAxes: [{ ticks: { beginAtZero: true } }] } }
 
             .col-12.mt-4
                 .table-responsive
@@ -34,78 +34,3 @@
                                         = number_to_currency(metric[:avg_funding], precision: 0)
                 .mt-3.text-end
                     = link_to "Download CSV", download_tag_distribution_path(format: :csv), class: "btn btn-sm btn-outline-secondary"
-
-
-
-javascript:
-    document.addEventListener('DOMContentLoaded', function() {
-        var rawData = #{raw(@tag_metrics.map { |m| ({ text: m[:name].to_s, size: m[:count].to_i }) }.to_json)};
-
-        // Find min and max for scaling
-        var sizes = rawData.map(d => d.size);
-        var minSize = Math.min(...sizes);
-        var maxSize = Math.max(...sizes);
-
-        // Scale sizes between 16 and 72 pixels with logarithmic scaling
-        function scaleFontSize(size) {
-            var logScale = Math.log(size - minSize + 1) / Math.log(maxSize - minSize + 1);
-            return Math.round(16 + logScale * (72 - 16));
-        }
-
-        // Update sizes using the scaling function
-        var data = rawData.map(d => ({
-            text: d.text,
-            size: scaleFontSize(d.size)
-        }));
-
-        var width = document.getElementById('tag-cloud').offsetWidth;
-        var height = 600;
-
-        // Create SVG
-        var svg = d3.select("#tag-cloud")
-            .append("svg")
-            .attr("width", width)
-            .attr("height", height);
-
-        // Create word cloud layout
-        var layout = d3.layout.cloud()
-            .size([width, height])
-            .words(data)
-            .padding(25)
-            .rotate(0)
-            .fontSize(d => d.size)
-            .spiral("rectangular")
-            .random(() => 0.5) // Deterministic layout
-            .on("end", draw);
-
-        // Color scale from light to dark cardinal
-        var color = d3.scaleLinear()
-            .domain([0, data.length - 1])
-            .range(["#c41e3a", "#8c1515"]);
-
-        // Draw the word cloud
-        function draw(words) {
-            svg.append("g")
-                .attr("transform", "translate(" + width/2 + "," + height/2 + ")")
-                .selectAll("text")
-                .data(words)
-                .enter()
-                .append("text")
-                .style("font-size", d => d.size + "px")
-                .style("fill", (d, i) => color(i))
-                .style("font-weight", "bold")
-                .attr("text-anchor", "middle")
-                .attr("transform", d => "translate(" + [d.x, d.y] + ")")
-                .text(d => d.text);
-        }
-
-        // Start the layout
-        layout.start();
-
-        // Handle window resize
-        window.addEventListener('resize', function() {
-            var newWidth = document.getElementById('tag-cloud').offsetWidth;
-            svg.attr("width", newWidth);
-            layout.size([newWidth, height]).start();
-        });
-    });

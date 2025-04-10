@@ -828,7 +828,7 @@ class StaticPagesController < ApplicationController
              .group("LOWER(REGEXP_REPLACE(tags.name, E'\\s+', ' ', 'g'))")
              .having('COUNT(DISTINCT companies.id) > 8')
              .order(Arel.sql('COUNT(DISTINCT companies.id) DESC'))
-             .limit(25)
+             .limit(50)
 
     # Prepare data for tag cloud and table
     @tag_metrics = @tags.map do |tag|
