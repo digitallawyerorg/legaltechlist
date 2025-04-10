@@ -18,11 +18,13 @@ class CompaniesController < ApplicationController
       @companies = @companies.where("location ILIKE ?", "%#{params[:location]}%") if params[:location].present?
 
       # Sorting
-      case params[:sort]
+      case params[:sort] || 'founded_desc'
       when 'name_asc'
         @companies = @companies.order(name: :asc)
       when 'name_desc'
         @companies = @companies.order(name: :desc)
+      when 'founded_desc'
+        @companies = @companies.order(founded_date: :desc)
       end
 
       # View handling
