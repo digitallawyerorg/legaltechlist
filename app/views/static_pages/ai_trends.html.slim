@@ -1,18 +1,52 @@
 - content_for :title, "AI Trends in Legal Tech"
 
-.bg-body.border-bottom
-    .container
-        .row.text-center.mt-5.py-5
-            .col-lg-8.mx-auto
-                .fs-1.fw-bold AI Trends in Legal Tech
-                p.lead.mb-4 Annual growth in new AI-focused legal tech ventures
+.bg-body-tertiary.border-bottom
+    .container.py-4
+        .card
+            .card-body
+                .row
+                    .col-12
+                        .d-flex.flex-column.flex-md-row.justify-content-between.align-items-start.align-items-md-center.mb-3.mb-md-0
+                            div
+                                .h4.fw-bold.mb-0 AI Companies Founded Per Year
+                                p Annual growth in new AI-focused legal tech ventures
+                            .dropdown
+                                button.btn.btn-sm.btn-light.dropdown-toggle type="button" data-bs-toggle="dropdown" aria-expanded="false"
+                                    i.fas.fa-download.me-2
+                                    | Export
+                                ul.dropdown-menu.dropdown-menu-end
+                                    li
+                                        button.dropdown-item onclick="downloadChart()"
+                                            i.fas.fa-image.me-2
+                                            | Download Chart (PNG)
+                                    li
+                                        = link_to download_ai_trends_path(format: :csv), class: "dropdown-item" do
+                                            i.fas.fa-file-csv.me-2
+                                            | Download Data (CSV)
 
-.container.my-5
-    .row
-        .col-12
-            .card.border
-                .card-header.d-flex.justify-content-between.align-items-center
-                    h2.h4.mb-0 AI Companies Founded Per Year
-                    = link_to "Download CSV", download_ai_trends_path(format: :csv), class: "btn btn-sm btn-outline-secondary"
-                .card-body
-                    = bar_chart @table_data, height: '500px', colors: ['#8c1515'], library: { scales: { xAxes: [{ ticks: { autoSkip: false, maxRotation: 90, minRotation: 90 } }], yAxes: [{ ticks: { beginAtZero: true } }] } }
+
+                        = column_chart @table_data, height: '500px', colors: ['#8c1515'], library: { scales: { xAxes: [{ ticks: { autoSkip: false, maxRotation: 90, minRotation: 90 } }], yAxes: [{ ticks: { beginAtZero: true } }] } }
+                    .col-12
+                        .table-responsive.mt-5
+                            table.table.table-hover.border#totalCompaniesTable
+                                thead
+                                    tr
+                                        th.bg-body-tertiary.fw-normal.text-muted.text-uppercase.fs-sm
+                                            ' Year
+                                        th.bg-body-tertiary.fw-normal.text-muted.text-uppercase.fs-sm
+                                            ' AI Companies Founded
+                                tbody
+                                    - @table_data.each do |year, count|
+                                        tr
+                                            td = year
+                                            td = count
+
+javascript:
+  function downloadChart() {
+    const chartElement = document.querySelector('#aiCompaniesTable');
+    const chartInstance = Chartkick.charts[chartElement.id].getChartObject();
+    const link = document.createElement('a');
+    link.download = 'ai_companies.png';
+    link.href = chartInstance.canvas.toDataURL('image/png');
+    link.click();
+  }
