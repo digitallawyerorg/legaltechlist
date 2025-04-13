@@ -599,6 +599,7 @@ class StaticPagesController < ApplicationController
         format.html
         format.csv { send_data generate_country_distribution_csv, filename: "country_distribution.csv" }
         format.xlsx { send_data generate_country_distribution_xlsx, filename: "country_distribution.xlsx" }
+        format.png { head :ok } # Just return a success status for PNG downloads (handled by JavaScript)
     end
   end
 
@@ -1680,8 +1681,8 @@ class StaticPagesController < ApplicationController
                 data[:region],
                 data[:company_count],
                 data[:funded_count],
-                number_to_currency(data[:total_funding], precision: 0),
-                number_to_currency(data[:avg_deal_size], precision: 0),
+                data[:total_funding],
+                data[:avg_deal_size],
                 "#{data[:market_share].round(1)}%"
             ]
         end
@@ -1778,8 +1779,8 @@ class StaticPagesController < ApplicationController
             csv << [
                 data[:country],
                 data[:companies],
-                number_to_currency(data[:total_funding], precision: 0),
-                number_to_currency(data[:avg_funding], precision: 0)
+                data[:total_funding],
+                data[:avg_funding]
             ]
         end
     end

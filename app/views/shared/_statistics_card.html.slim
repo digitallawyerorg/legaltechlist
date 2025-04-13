@@ -31,6 +31,35 @@ javascript:
     const chart = document.getElementById(chartId);
     const link = document.createElement('a');
     link.download = '#{download_filename}.png';
-    link.href = chart.toBase64Image('image/png', 1.0);
-    link.click();
+
+    // Check if this is a Chart.js chart or a Google Chart
+    if (chart.toBase64Image) {
+      // Chart.js chart
+      link.href = chart.toBase64Image('image/png', 1.0);
+      link.click();
+    } else {
+      // Google Chart - use the Google Charts API to get the PNG
+      const googleChart = document.querySelector(`#${chartId} div`);
+      if (googleChart && googleChart.__chartjs__) {
+        const chartObj = googleChart.__chartjs__;
+        link.href = chartObj.toBase64Image('image/png', 1.0);
+        link.click();
+      } else if (googleChart) {
+        // Try to use html2canvas as fallback for Google Charts
+        html2canvas(googleChart).then(canvas => {
+          link.href = canvas.toDataURL('image/png');
+          link.click();
+        });
+      } else {
+        // Fallback to AJAX request
+        fetch(`${window.location.pathname}.png`)
+          .then(() => {
+            alert("Please right-click on the chart and use 'Save image as...' to download the chart");
+          })
+          .catch(error => {
+            console.error("Error downloading chart:", error);
+            alert("Could not download chart. Please try again or right-click to save.");
+          });
+      }
+    }
   }
