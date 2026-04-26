@@ -3,12 +3,18 @@
 .d-flex.justify-content-between.align-items-start.mb-4
     div
         h1.h3.mb-1= @pipeline_run.name
-        p.text-muted.mb-0 Evidence and proposed corrections are review-only. Apply/reject controls will be added after review policy is settled.
+        p.text-muted.mb-0 Review evidence, apply selected safe metadata fields, or reject/follow up without changing public descriptions.
     = link_to "Back to Agent Reviews", custom_admin_agent_reviews_path, class: "btn btn-outline-secondary"
 
-.alert.alert-warning
-    strong No public writes:
-    |  this screen does not update company records, visibility, or published descriptions.
+.alert.alert-info
+    strong Human-controlled:
+    |  only selected safe metadata fields can be applied. Description proposals remain review-only.
+
+- if @details["admin_decision"].present?
+    .alert.alert-secondary
+        strong Admin decision:
+        = " #{@details['admin_decision']['decision'].to_s.humanize}"
+        span= " by #{@details['admin_decision']['admin_user_email']} at #{@details['admin_decision']['decided_at']}"
 
 .row.g-3
     .col-lg-7
@@ -53,6 +59,38 @@
                     p.text-muted.mb-0 No risks recorded.
 
     .col-lg-5
+        .card.border-0.shadow-sm.mb-3
+            .card-header.bg-white
+                h2.h5.mb-0 Apply Safe Fields
+            .card-body
+                - if @company.blank?
+                    p.text-muted.mb-0 This review is not linked to a company.
+                - elsif @safe_proposed_corrections.present?
+                    = form_with url: apply_custom_admin_agent_review_path(@pipeline_run), method: :post, local: true do
+                        .table-responsive.mb-3
+                            table.table.table-sm.align-middle
+                                thead
+                                    tr
+                                        th Apply
+                                        th Field
+                                        th Current
+                                        th Proposed
+                                tbody
+                                    - @safe_proposed_corrections.each do |field, value|
+                                        tr
+                                            td= check_box_tag "fields[]", field, true, id: "field_#{field}"
+                                            td
+                                                label.form-check-label for="field_#{field}"= field.humanize
+                                            td.text-muted= @company.public_send(field).presence || "Blank"
+                                            td.fw-semibold= value.presence || "Blank"
+                        = submit_tag "Apply Selected Safe Fields", class: "btn btn-primary w-100", data: { turbo_confirm: "Apply selected metadata fields to this company?" }
+                - else
+                    p.text-muted.mb-0 No safe metadata corrections are available to apply.
+
+                .d-grid.gap-2.mt-3
+                    = button_to "Reject Review Output", reject_custom_admin_agent_review_path(@pipeline_run), method: :post, class: "btn btn-outline-danger", form: { data: { turbo_confirm: "Reject this agent review without changing company data?" } }
+                    = button_to "Mark Needs Follow-Up", follow_up_custom_admin_agent_review_path(@pipeline_run), method: :post, class: "btn btn-outline-secondary"
+
         .card.border-0.shadow-sm
             .card-header.bg-white
                 h2.h5.mb-0 Proposed Corrections
@@ -68,3 +106,8 @@
                                     = value
                 - else
                     p.text-muted.mb-0 No proposed corrections recorded.
+
+                - if @review_only_proposed_corrections.present?
+                    .alert.alert-warning.mt-3.mb-0
+                        strong Review-only fields:
+                        = " #{@review_only_proposed_corrections.keys.map(&:humanize).to_sentence} cannot be applied by this control."

@@ -13,6 +13,9 @@ Rails.application.routes.draw do
   get 'admin/pipeline-runs/:id', to: 'admin/pipeline_run_reviews#show', as: :custom_admin_pipeline_run
   get 'admin/agent-reviews', to: 'admin/agent_reviews#index', as: :custom_admin_agent_reviews
   get 'admin/agent-reviews/:id', to: 'admin/agent_reviews#show', as: :custom_admin_agent_review
+  post 'admin/agent-reviews/:id/apply', to: 'admin/agent_reviews#apply', as: :apply_custom_admin_agent_review
+  post 'admin/agent-reviews/:id/reject', to: 'admin/agent_reviews#reject', as: :reject_custom_admin_agent_review
+  post 'admin/agent-reviews/:id/follow-up', to: 'admin/agent_reviews#follow_up', as: :follow_up_custom_admin_agent_review
   get 'admin/app/resources/:resource', to: 'admin/resources#index', as: :custom_admin_resources
   get 'admin/app/resources/:resource/new', to: 'admin/resources#new', as: :new_custom_admin_resource
   post 'admin/app/resources/:resource', to: 'admin/resources#create'
