@@ -1,0 +1,55 @@
+- content_for :title, "Company Review"
+
+.d-flex.justify-content-between.align-items-start.mb-4
+    div
+        h1.h3.mb-1 Company Review
+        p.text-muted.mb-0 Read-first review queues for company quality, duplicates, and future agent suggestions.
+    = link_to "Quality Dashboard", custom_admin_quality_path, class: "btn btn-outline-secondary"
+
+.card.border-0.shadow-sm.mb-4
+    .card-body
+        .d-flex.flex-wrap.gap-2
+            = link_to "All companies", custom_admin_company_reviews_path, class: "btn btn-sm #{params[:queue].blank? ? 'btn-primary' : 'btn-outline-secondary'}"
+            - Admin::CompanyReviewsController::QUEUES.each do |key, label|
+                = link_to "#{label} (#{number_with_delimiter(@queue_counts[key])})", custom_admin_company_reviews_path(queue: key), class: "btn btn-sm #{params[:queue] == key ? 'btn-primary' : 'btn-outline-secondary'}"
+
+.card.border-0.shadow-sm
+    .card-header.bg-white
+        h2.h5.mb-0= @queue_label
+    .table-responsive
+        table.table.table-hover.align-middle.mb-0
+            thead
+                tr
+                    th Company
+                    th URL
+                    th Category
+                    th Quality
+                    th Updated
+                    th
+            tbody
+                - @companies.each do |company|
+                    tr
+                        td
+                            .fw-semibold= company.name
+                            .text-muted.small= truncate(company.description.to_s, length: 120)
+                        td
+                            - if company.main_url.present?
+                                = link_to company.canonical_domain.presence || company.canonical_main_domain || company.main_url, company.main_url, target: "_blank", rel: "noopener"
+                            - else
+                                span.text-warning Missing
+                        td
+                            .small= company.category&.name || "Unknown"
+                            .text-muted.small= company.business_model&.name || "Unknown"
+                        td
+                            .small= company.quality_status.presence || "Unreviewed"
+                            .text-muted.small= company.verification_verdict.presence || "No verdict"
+                        td.small= company.updated_at&.to_date
+                        td.text-end
+                            = link_to "Review", custom_admin_company_review_path(company), class: "btn btn-sm btn-primary"
+            - if @companies.empty?
+                tbody
+                    tr
+                        td.text-muted.text-center colspan="6" No companies found for this queue.
+
+.py-3
+    = paginate @companies

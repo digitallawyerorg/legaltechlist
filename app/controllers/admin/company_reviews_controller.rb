@@ -1,0 +1,68 @@
+module Admin
+  class CompanyReviewsController < BaseController
+    QUEUES = {
+      "missing_url" => "Missing URLs",
+      "weak_description" => "Weak descriptions",
+      "duplicate_name" => "Duplicate-name candidates",
+      "duplicate_domain" => "Duplicate-domain candidates",
+      "needs_review" => "Needs review",
+      "rejected" => "Rejected"
+    }.freeze
+
+    def index
+      @queue = params[:queue].presence
+      @queue_label = QUEUES.fetch(@queue, "All companies")
+      @companies = review_scope.page(params[:page]).per(25)
+      @queue_counts = queue_counts
+    end
+
+    def show
+      @company = Company.find(params[:id])
+      @duplicate_domain_companies = duplicate_domain_companies
+      @duplicate_name_companies = duplicate_name_companies
+      @recent_pipeline_runs = PipelineRun.recent.limit(5)
+    end
+
+    private
+
+    def review_scope
+      base = Company.includes(:category, :business_model, :target_client).order(updated_at: :desc)
+
+      case @queue
+      when "missing_url" then base.missing_main_url
+      when "weak_description" then base.weak_description
+      when "duplicate_name" then base.duplicate_name_candidates
+      when "duplicate_domain" then base.duplicate_domain_candidates
+      when "needs_review" then base.needs_review
+      when "rejected" then base.rejected_quality
+      else base
+      end
+    end
+
+    def queue_counts
+      {
+        "missing_url" => Company.missing_main_url.count,
+        "weak_description" => Company.weak_description.count,
+        "duplicate_name" => Company.duplicate_name_candidate_ids.count,
+        "duplicate_domain" => Company.duplicate_domain_candidate_ids.count,
+        "needs_review" => Company.needs_review.count,
+        "rejected" => Company.rejected_quality.count
+      }
+    end
+
+    def duplicate_domain_companies
+      domain = @company.canonical_domain.presence || @company.canonical_main_domain
+      return Company.none if domain.blank?
+
+      Company.where(canonical_domain: domain).where.not(id: @company.id).order(:name)
+    end
+
+    def duplicate_name_companies
+      normalized_name = @company.normalized_name
+      ids = Company.duplicate_name_candidate_ids
+      return Company.none if normalized_name.blank? || ids.blank?
+
+      Company.where(id: ids).where.not(id: @company.id).select { |company| company.normalized_name == normalized_name }
+    end
+  end
+end

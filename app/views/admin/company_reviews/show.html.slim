@@ -1,0 +1,87 @@
+- content_for :title, "#{@company.name} Review"
+
+.d-flex.justify-content-between.align-items-start.mb-4
+    div
+        h1.h3.mb-1= @company.name
+        p.text-muted.mb-0 Read-only company review page. Edits still happen in ActiveAdmin until custom apply/reject workflows are ready.
+    .d-flex.gap-2
+        = link_to "Back to Review Queue", custom_admin_company_reviews_path, class: "btn btn-outline-secondary"
+        = link_to "Edit in ActiveAdmin", edit_admin_company_path(@company), class: "btn btn-primary"
+
+.row.g-3
+    .col-lg-8
+        .card.border-0.shadow-sm.mb-3
+            .card-header.bg-white
+                h2.h5.mb-0 Public Record
+            .card-body
+                dl.row.mb-0
+                    dt.col-sm-3 Name
+                    dd.col-sm-9= @company.name
+                    dt.col-sm-3 Website
+                    dd.col-sm-9
+                        - if @company.main_url.present?
+                            = link_to @company.main_url, @company.main_url, target: "_blank", rel: "noopener"
+                        - else
+                            span.text-warning Missing
+                    dt.col-sm-3 Description
+                    dd.col-sm-9= @company.description
+                    dt.col-sm-3 Category
+                    dd.col-sm-9= @company.category&.name || "Unknown"
+                    dt.col-sm-3 Business model
+                    dd.col-sm-9= @company.business_model&.name || "Unknown"
+                    dt.col-sm-3 Target client
+                    dd.col-sm-9= @company.target_client&.name || "Unknown"
+
+        .card.border-0.shadow-sm
+            .card-header.bg-white
+                h2.h5.mb-0 Duplicate Signals
+            .card-body
+                h3.h6 Canonical domain matches
+                - if @duplicate_domain_companies.any?
+                    ul.mb-3
+                        - @duplicate_domain_companies.each do |company|
+                            li= link_to company.name, custom_admin_company_review_path(company)
+                - else
+                    p.text-muted.mb-3 No other companies share this canonical domain.
+
+                h3.h6 Normalized name matches
+                - if @duplicate_name_companies.any?
+                    ul.mb-0
+                        - @duplicate_name_companies.each do |company|
+                            li= link_to company.name, custom_admin_company_review_path(company)
+                - else
+                    p.text-muted.mb-0 No other companies share this normalized name.
+
+    .col-lg-4
+        .card.border-0.shadow-sm.mb-3
+            .card-header.bg-white
+                h2.h5.mb-0 Quality Metadata
+            .card-body
+                .mb-2
+                    .text-muted.small Status
+                    .fw-semibold= @company.quality_status.presence || "Unreviewed"
+                .mb-2
+                    .text-muted.small Verdict
+                    .fw-semibold= @company.verification_verdict.presence || "No verdict"
+                .mb-2
+                    .text-muted.small Score
+                    .fw-semibold= @company.quality_score.presence || "No score"
+                .mb-2
+                    .text-muted.small Canonical domain
+                    .fw-semibold= @company.canonical_domain.presence || @company.canonical_main_domain || "Missing"
+                .mb-0
+                    .text-muted.small Human reviewed
+                    .fw-semibold= @company.human_reviewed_at&.to_date || "No"
+
+        .card.border-0.shadow-sm
+            .card-header.bg-white
+                h2.h5.mb-0 Recent Pipeline Runs
+            .card-body
+                - if @recent_pipeline_runs.any?
+                    ul.mb-0
+                        - @recent_pipeline_runs.each do |run|
+                            li
+                                span= run.name
+                                span.text-muted.small= " #{run.status}"
+                - else
+                    p.text-muted.mb-0 No pipeline runs yet.

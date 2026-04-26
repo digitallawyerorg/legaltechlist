@@ -5,6 +5,8 @@ Rails.application.routes.draw do
   devise_for :admin_users, ActiveAdmin::Devise.config
   get 'admin/app', to: 'admin/app#show', as: :custom_admin_root
   get 'admin/quality', to: 'admin/quality#index', as: :custom_admin_quality
+  get 'admin/review/companies', to: 'admin/company_reviews#index', as: :custom_admin_company_reviews
+  get 'admin/review/companies/:id', to: 'admin/company_reviews#show', as: :custom_admin_company_review
   ActiveAdmin.routes(self)
 
   # Resources

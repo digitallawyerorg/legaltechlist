@@ -29,4 +29,25 @@ class CustomAdminTest < ActionDispatch::IntegrationTest
     assert_select "div", text: "Missing URLs"
     assert_select "div", text: "Duplicate-domain candidates"
   end
+
+  test "company review index is available to signed-in admin users" do
+    sign_in admin_users(:one)
+
+    get custom_admin_company_reviews_path
+
+    assert_response :success
+    assert_select "h1", "Company Review"
+    assert_select "a", "Review"
+  end
+
+  test "company review show is available to signed-in admin users" do
+    sign_in admin_users(:one)
+
+    get custom_admin_company_review_path(companies(:one))
+
+    assert_response :success
+    assert_select "h1", companies(:one).name
+    assert_select "h2", "Public Record"
+    assert_select "a", "Edit in ActiveAdmin"
+  end
 end
