@@ -14,11 +14,11 @@
         h2.h5.mb-0 Company Records
         span.text-muted.small= "#{number_with_delimiter(@companies.total_count)} records"
     .table-responsive
-        table.table.table-sm.table-hover.align-middle.mb-0.admin-table
+        table.table.table-hover.align-middle.mb-0.admin-table
             thead
                 tr
                     th Company
-                    th.admin-nowrap URL
+                    th URL
                     th.admin-nowrap Category
                     th.admin-nowrap Visible
                     th.admin-nowrap Updated
@@ -29,10 +29,18 @@
                         td.admin-description
                             .fw-semibold= company.name
                             .text-muted.small= truncate(company.description.to_s, length: 180)
-                        td.admin-nowrap= company.main_url.presence || "Missing"
+                        td.admin-url
+                            - if company.main_url.present?
+                                = link_to company.canonical_domain.presence || company.canonical_main_domain || company.main_url, company.main_url, target: "_blank", rel: "noopener"
+                            - else
+                                span.text-warning Missing
                         td.admin-nowrap= company.category&.name || "Unknown"
-                        td.admin-nowrap= company.visible? ? "Yes" : "No"
-                        td.small.admin-nowrap= company.updated_at
+                        td.admin-nowrap
+                            - if company.visible?
+                                span.badge.text-bg-success Yes
+                            - else
+                                span.badge.text-bg-secondary No
+                        td.small.admin-nowrap= company.updated_at&.to_date
                         td.text-end.admin-actions
                             .d-inline-flex.gap-2
                                 = link_to "Review", custom_admin_company_review_path(company), class: "btn btn-sm btn-outline-secondary"

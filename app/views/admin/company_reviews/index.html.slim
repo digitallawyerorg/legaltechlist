@@ -18,11 +18,11 @@
         h2.h5.mb-0= @queue_label
         span.text-muted.small= "#{number_with_delimiter(@companies.total_count)} records"
     .table-responsive
-        table.table.table-sm.table-hover.align-middle.mb-0.admin-table
+        table.table.table-hover.align-middle.mb-0.admin-table
             thead
                 tr
                     th Company
-                    th.admin-nowrap URL
+                    th URL
                     th.admin-nowrap Category
                     th.admin-nowrap Quality
                     th.admin-nowrap Updated
@@ -33,7 +33,7 @@
                         td.admin-description
                             .fw-semibold= company.name
                             .text-muted.small= truncate(company.description.to_s, length: 180)
-                        td.admin-nowrap
+                        td.admin-url
                             - if company.main_url.present?
                                 = link_to company.canonical_domain.presence || company.canonical_main_domain || company.main_url, company.main_url, target: "_blank", rel: "noopener"
                             - else
@@ -42,7 +42,7 @@
                             .small= company.category&.name || "Unknown"
                             .text-muted.small= company.business_model&.name || "Unknown"
                         td.admin-nowrap
-                            .small= company.quality_status.presence || "Unreviewed"
+                            span.badge class="#{company.quality_status.present? ? 'text-bg-info' : 'text-bg-light text-dark'}"= company.quality_status.presence || "Unreviewed"
                             .text-muted.small= company.verification_verdict.presence || "No verdict"
                         td.small.admin-nowrap= company.updated_at&.to_date
                         td.text-end.admin-actions
