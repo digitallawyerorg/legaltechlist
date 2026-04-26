@@ -23,4 +23,58 @@ class CompanyTest < ActiveSupport::TestCase
 
     assert_equal first, second
   end
+
+  test "missing main URL scope finds blank URLs" do
+    company = companies(:one).dup
+    company.name = "Missing URL Company"
+    company.main_url = ""
+    company.save!
+
+    assert_includes Company.missing_main_url, company
+  end
+
+  test "weak description scope finds short descriptions" do
+    company = companies(:one).dup
+    company.name = "Weak Description Company"
+    company.description = "Short text"
+    company.save!
+
+    assert_includes Company.weak_description, company
+  end
+
+  test "quality status scopes find review states" do
+    needs_review = companies(:one).dup
+    needs_review.name = "Needs Review Company"
+    needs_review.quality_status = "needs_review"
+    needs_review.save!
+
+    verified = companies(:one).dup
+    verified.name = "Verified Company"
+    verified.quality_status = "verified"
+    verified.human_reviewed_at = Time.current
+    verified.save!
+
+    assert_includes Company.needs_review, needs_review
+    assert_includes Company.verified_quality, verified
+    assert_includes Company.human_reviewed, verified
+  end
+
+  test "duplicate name candidates use normalized names" do
+    duplicate = companies(:one).dup
+    duplicate.name = " test company one "
+    duplicate.save!
+
+    assert_includes Company.duplicate_name_candidates, companies(:one)
+    assert_includes Company.duplicate_name_candidates, duplicate
+  end
+
+  test "duplicate domain candidates use canonical domains" do
+    duplicate = companies(:one).dup
+    duplicate.name = "Duplicate Domain Company"
+    duplicate.main_url = "https://www.example.com/path"
+    duplicate.save!
+
+    assert_includes Company.duplicate_domain_candidates, companies(:one)
+    assert_includes Company.duplicate_domain_candidates, duplicate
+  end
 end

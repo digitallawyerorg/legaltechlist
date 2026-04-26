@@ -6,6 +6,17 @@ ActiveAdmin.register Company do
 # https://github.com/activeadmin/activeadmin/blob/master/docs/2-resource-customization.md#setting-up-strong-parameters
 
   scope("In Moderation") { |scope| scope.where(visible: false) }
+  scope("Missing URL") { |scope| scope.missing_main_url }
+  scope("Weak Description") { |scope| scope.weak_description }
+  scope("Duplicate Name Candidates") { |scope| scope.duplicate_name_candidates.order("LOWER(TRIM(companies.name)), companies.created_at DESC") }
+  scope("Duplicate Domain Candidates") { |scope| scope.duplicate_domain_candidates.order("companies.canonical_domain, companies.main_url, companies.created_at DESC") }
+  scope("Unknown Category") { |scope| scope.unknown_category }
+  scope("Unknown Business Model") { |scope| scope.unknown_business_model }
+  scope("Unknown Target Client") { |scope| scope.unknown_target_client }
+  scope("Needs Review") { |scope| scope.needs_review }
+  scope("Verified Quality") { |scope| scope.verified_quality }
+  scope("Rejected Quality") { |scope| scope.rejected_quality }
+  scope("Human Reviewed") { |scope| scope.human_reviewed }
 
   scope("Duplicates") do |scope|
     # Get names that appear more than once (accounting for spaces)
@@ -32,7 +43,7 @@ ActiveAdmin.register Company do
          .order("LOWER(companies.name), companies.created_at DESC")
   end
 
-  permit_params :name, :location, :founded_date, :category, :business_model, :target_client, :description, :main_url, :twitter_url, :angellist_url, :crunchbase_url, :linkedin_url, :facebook_url, :legalio_url, :status, :all_tags, :category_id, :sub_category_id, :business_model_id, :target_client_id, :latitude, :longitude, :contact_name, :contact_email, :visible, :codex_presenter, :employee_count, :codex_presentation_date, :logo_url, :total_funding_amount_usd, :funding_status, :number_of_funding_rounds, :exit_date, tag_list: []
+  permit_params :name, :location, :founded_date, :category, :business_model, :target_client, :description, :main_url, :twitter_url, :angellist_url, :crunchbase_url, :linkedin_url, :facebook_url, :legalio_url, :status, :all_tags, :category_id, :sub_category_id, :business_model_id, :target_client_id, :latitude, :longitude, :contact_name, :contact_email, :visible, :codex_presenter, :employee_count, :codex_presentation_date, :logo_url, :total_funding_amount_usd, :funding_status, :number_of_funding_rounds, :exit_date, :quality_status, :verification_verdict, :quality_score, :verified_at, :enriched_at, :quality_reviewed_at, :human_reviewed_at, :fingerprint, :canonical_domain, :source, :source_url, tag_list: []
 
   batch_action :destroy, confirm: "Are you sure you want to delete these companies?" do |ids|
     Company.where(id: ids).destroy_all
@@ -110,6 +121,13 @@ ActiveAdmin.register Company do
   filter :founded_date, as: :numeric, filters: [:eq, :gt, :lt], label: 'Founded Year'
   filter :status, as: :select, collection: ['active', 'inactive', 'acquired']
   filter :visible
+  filter :quality_status
+  filter :verification_verdict
+  filter :quality_score
+  filter :verified_at
+  filter :human_reviewed_at
+  filter :canonical_domain
+  filter :source
   filter :created_at
   filter :updated_at
   filter :tags
@@ -173,6 +191,8 @@ ActiveAdmin.register Company do
       column :main_url
       column :all_tags
       column :visible
+      column :quality_status
+      column :canonical_domain
       column :logo do |company|
         if company.logo_url.present?
           image_tag company.logo_url, style: "height: 30px; width: 30px; object-fit: contain"

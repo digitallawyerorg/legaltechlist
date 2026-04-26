@@ -32,6 +32,17 @@ class Company < ActiveRecord::Base
   validates :description, presence: true, length: {minimum: 5}
 
   scope :publicly_visible, -> { where(visible: true) }
+  scope :missing_main_url, -> { where(main_url: [nil, ""]) }
+  scope :weak_description, -> { where("description IS NULL OR LENGTH(TRIM(description)) < 40") }
+  scope :needs_review, -> { where(quality_status: "needs_review") }
+  scope :verified_quality, -> { where(quality_status: "verified") }
+  scope :rejected_quality, -> { where(quality_status: "rejected") }
+  scope :human_reviewed, -> { where.not(human_reviewed_at: nil) }
+  scope :unknown_category, -> { left_joins(:category).where(categories: { name: "Unknown" }) }
+  scope :unknown_business_model, -> { left_joins(:business_model).where(business_models: { name: "Unknown" }) }
+  scope :unknown_target_client, -> { left_joins(:target_client).where(target_clients: { name: "Unknown" }) }
+  scope :duplicate_name_candidates, -> { where(id: duplicate_name_candidate_ids) }
+  scope :duplicate_domain_candidates, -> { where(id: duplicate_domain_candidate_ids) }
 
   #geocoding
 
@@ -77,6 +88,24 @@ class Company < ActiveRecord::Base
     identity = [normalized_name, canonical_domain].compact_blank.join("|")
 
     Digest::SHA256.hexdigest(identity) if identity.present?
+  end
+
+  def self.duplicate_name_candidate_ids
+    rows = where.not(name: [nil, ""]).pluck(:id, :name)
+    grouped = rows.group_by { |_id, name| normalized_name_value(name) }
+    grouped.values.select { |group| group.size > 1 }.flatten(1).map(&:first)
+  end
+
+  def self.duplicate_domain_candidate_ids
+    columns = column_names.include?("canonical_domain") ? [:id, :main_url, :canonical_domain] : [:id, :main_url]
+    rows = where.not(main_url: [nil, ""]).pluck(*columns)
+
+    grouped = rows.group_by do |row|
+      _id, main_url, stored_domain = row
+      stored_domain.presence || canonical_domain_for(main_url)
+    end
+
+    grouped.except(nil).values.select { |group| group.size > 1 }.flatten(1).map(&:first)
   end
 
   def normalized_name
