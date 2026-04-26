@@ -4,7 +4,7 @@
     div
         h1.h3.mb-1 TechIndex Admin
         p.text-muted.mb-0 A custom admin workspace for quality review, pipeline logs, and future agent-assisted curation.
-    = link_to "Open ActiveAdmin", admin_root_path, class: "btn btn-outline-secondary"
+    = link_to "Manage Companies", custom_admin_companies_path, class: "btn btn-outline-secondary"
 
 .row.g-3.mb-4
     .col-md-6.col-xl-3
@@ -33,7 +33,7 @@
         .card.border-0.shadow-sm
             .card-body
                 h2.h5 Quality Review Workspace
-                p.text-muted This dashboard is the first custom admin surface. It keeps ActiveAdmin available while we build purpose-built review queues and agent evidence screens.
+                p.text-muted This dashboard is the custom admin home for purpose-built review queues, resource management, pipeline logs, and agent evidence screens.
                 .list-group.list-group-flush
                     .list-group-item.px-0.d-flex.justify-content-between
                         span Pipeline runs logged
@@ -45,7 +45,7 @@
         .card.border-0.shadow-sm
             .card-body
                 h2.h5 Next Up
-                p.text-muted.mb-3 Build the quality dashboard, company review pages, and read-only pipeline run UI here before replacing ActiveAdmin workflows.
+                p.text-muted.mb-3 Use the custom admin to review data quality, manage companies, inspect pipeline logs, and prepare future agent-assisted curation.
                 .d-grid.gap-2
                     = link_to "Open Quality Dashboard", custom_admin_quality_path, class: "btn btn-primary"
-                    = link_to "View ActiveAdmin companies", admin_companies_path, class: "btn btn-outline-secondary"
+                    = link_to "Manage Companies", custom_admin_companies_path, class: "btn btn-outline-secondary"

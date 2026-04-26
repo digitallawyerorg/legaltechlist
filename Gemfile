@@ -9,7 +9,6 @@ gem 'puma'
 gem 'webpacker', '~> 5.4'
 
 # Admin and Authentication
-gem 'activeadmin', '~> 3.0'
 gem 'devise', '~> 4.9'
 gem 'kaminari', '~> 1.2.1'
 
@@ -50,7 +49,6 @@ gem 'google-analytics-rails', '1.1.0'
 
 # Twitter integration
 gem 'twitter', '~> 7.0'
-gem 'arbre', '~> 1.7.0'
 gem 'ffi', '~> 1.17.0'
 
 gem 'recaptcha', require: 'recaptcha/rails'

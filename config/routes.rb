@@ -2,7 +2,8 @@ Rails.application.routes.draw do
   get 'up', to: proc { [200, { 'Content-Type' => 'text/plain' }, ['OK']] }, as: :rails_health_check
 
   # Admin and Authentication
-  devise_for :admin_users, ActiveAdmin::Devise.config
+  devise_for :admin_users, path: "admin", path_names: { sign_in: "login", sign_out: "logout" }
+  get 'admin', to: 'admin/app#show', as: :admin_root
   get 'admin/app', to: 'admin/app#show', as: :custom_admin_root
   get 'admin/quality', to: 'admin/quality#index', as: :custom_admin_quality
   get 'admin/review/companies', to: 'admin/company_reviews#index', as: :custom_admin_company_reviews
@@ -25,7 +26,6 @@ Rails.application.routes.draw do
   get 'admin/app/companies/export', to: 'admin/company_management#export', as: :export_custom_admin_companies_csv
   get 'admin/app/companies/:id/edit', to: 'admin/company_management#edit', as: :edit_custom_admin_company
   patch 'admin/app/companies/:id', to: 'admin/company_management#update', as: :custom_admin_company
-  ActiveAdmin.routes(self)
 
   # Resources
   resources :companies

@@ -16,7 +16,7 @@ class CustomAdminTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "h1", "TechIndex Admin"
-    assert_select "a", "Open ActiveAdmin"
+    assert_select "a", "Manage Companies"
   end
 
   test "quality dashboard is available to signed-in admin users" do
@@ -48,7 +48,7 @@ class CustomAdminTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "h1", companies(:one).name
     assert_select "h2", "Public Record"
-    assert_select "a", "Edit in ActiveAdmin"
+    assert_select "a", "Edit Company"
   end
 
   test "pipeline run index and show are available to signed-in admin users" do

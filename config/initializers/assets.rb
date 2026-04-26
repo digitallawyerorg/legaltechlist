@@ -9,8 +9,6 @@ Rails.application.config.assets.paths << Rails.root.join('vendor', 'javascript')
 
 # Precompile additional assets.
 Rails.application.config.assets.precompile += %w( 
-  active_admin.js 
-  active_admin.css 
   companies.js 
   application.js
 )

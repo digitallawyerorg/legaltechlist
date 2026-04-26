@@ -6,8 +6,6 @@
 //= link Chart.bundle.js
 
 //= link application.js
-//= link active_admin.css
-//= link active_admin.js
 //= link companies.js
 //= link_tree ../../javascript .js
 //= link_tree ../../../vendor/javascript .js
