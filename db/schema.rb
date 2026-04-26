@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.0].define(version: 2026_04_26_210500) do
+ActiveRecord::Schema[7.0].define(version: 2026_04_26_213800) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -145,6 +145,25 @@ ActiveRecord::Schema[7.0].define(version: 2026_04_26_210500) do
     t.index ["target_client_id"], name: "index_companies_on_target_client_id"
     t.index ["verification_verdict"], name: "index_companies_on_verification_verdict"
     t.index ["verified_at"], name: "index_companies_on_verified_at"
+  end
+
+  create_table "pipeline_runs", force: :cascade do |t|
+    t.string "name", null: false
+    t.string "run_type", null: false
+    t.string "status", default: "pending", null: false
+    t.string "agent_name"
+    t.integer "records_processed", default: 0, null: false
+    t.datetime "started_at"
+    t.datetime "finished_at"
+    t.text "error_message"
+    t.jsonb "details"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["agent_name"], name: "index_pipeline_runs_on_agent_name"
+    t.index ["finished_at"], name: "index_pipeline_runs_on_finished_at"
+    t.index ["run_type"], name: "index_pipeline_runs_on_run_type"
+    t.index ["started_at"], name: "index_pipeline_runs_on_started_at"
+    t.index ["status"], name: "index_pipeline_runs_on_status"
   end
 
   create_table "sub_categories", force: :cascade do |t|
