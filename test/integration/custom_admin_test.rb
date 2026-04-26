@@ -50,4 +50,19 @@ class CustomAdminTest < ActionDispatch::IntegrationTest
     assert_select "h2", "Public Record"
     assert_select "a", "Edit in ActiveAdmin"
   end
+
+  test "pipeline run index and show are available to signed-in admin users" do
+    sign_in admin_users(:one)
+    run = PipelineRun.create!(name: "Manual verifier", run_type: "company_verification", status: "succeeded", records_processed: 1, details: { "company_id" => companies(:one).id })
+
+    get custom_admin_pipeline_runs_path
+    assert_response :success
+    assert_select "h1", "Pipeline Runs"
+    assert_select "td", "Manual verifier"
+
+    get custom_admin_pipeline_run_path(run)
+    assert_response :success
+    assert_select "h1", "Manual verifier"
+    assert_select "h2", "Raw Details"
+  end
 end

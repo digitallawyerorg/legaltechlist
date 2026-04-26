@@ -1,0 +1,38 @@
+- content_for :title, "#{@pipeline_run.name} Pipeline Run"
+
+.d-flex.justify-content-between.align-items-start.mb-4
+    div
+        h1.h3.mb-1= @pipeline_run.name
+        p.text-muted.mb-0 Pipeline run audit record.
+    = link_to "Back to Pipeline Runs", custom_admin_pipeline_runs_path, class: "btn btn-outline-secondary"
+
+.row.g-3
+    .col-lg-8
+        .card.border-0.shadow-sm
+            .card-header.bg-white
+                h2.h5.mb-0 Details
+            .card-body
+                dl.row.mb-0
+                    dt.col-sm-3 Type
+                    dd.col-sm-9= @pipeline_run.run_type
+                    dt.col-sm-3 Status
+                    dd.col-sm-9= @pipeline_run.status
+                    dt.col-sm-3 Agent
+                    dd.col-sm-9= @pipeline_run.agent_name.presence || "None"
+                    dt.col-sm-3 Records processed
+                    dd.col-sm-9= number_with_delimiter(@pipeline_run.records_processed)
+                    dt.col-sm-3 Started
+                    dd.col-sm-9= @pipeline_run.started_at || "Not started"
+                    dt.col-sm-3 Finished
+                    dd.col-sm-9= @pipeline_run.finished_at || "Not finished"
+                    dt.col-sm-3 Error
+                    dd.col-sm-9= @pipeline_run.error_message.presence || "None"
+    .col-lg-4
+        .card.border-0.shadow-sm
+            .card-header.bg-white
+                h2.h5.mb-0 Raw Details
+            .card-body
+                - if @pipeline_run.details.present?
+                    pre.bg-light.border.rounded.p-3.small.mb-0= JSON.pretty_generate(@pipeline_run.details)
+                - else
+                    p.text-muted.mb-0 No structured details recorded.

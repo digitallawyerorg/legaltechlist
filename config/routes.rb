@@ -7,6 +7,8 @@ Rails.application.routes.draw do
   get 'admin/quality', to: 'admin/quality#index', as: :custom_admin_quality
   get 'admin/review/companies', to: 'admin/company_reviews#index', as: :custom_admin_company_reviews
   get 'admin/review/companies/:id', to: 'admin/company_reviews#show', as: :custom_admin_company_review
+  get 'admin/pipeline-runs', to: 'admin/pipeline_run_reviews#index', as: :custom_admin_pipeline_runs
+  get 'admin/pipeline-runs/:id', to: 'admin/pipeline_run_reviews#show', as: :custom_admin_pipeline_run
   ActiveAdmin.routes(self)
 
   # Resources
