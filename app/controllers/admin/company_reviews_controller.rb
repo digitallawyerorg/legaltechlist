@@ -23,6 +23,13 @@ module Admin
       @recent_pipeline_runs = PipelineRun.recent.limit(5)
     end
 
+    def create_agent_review
+      company = Company.find(params[:id])
+      run = CompanyAgentReviewService.call(company: company, reviewer: current_admin_user.email, notes: "Triggered from custom company review page")
+
+      redirect_to custom_admin_agent_review_path(run), notice: "Agent review created for #{company.name}."
+    end
+
     private
 
     def review_scope

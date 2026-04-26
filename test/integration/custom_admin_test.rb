@@ -49,6 +49,30 @@ class CustomAdminTest < ActionDispatch::IntegrationTest
     assert_select "h1", companies(:one).name
     assert_select "h2", "Public Record"
     assert_select "a", "Edit Company"
+    assert_select "button", "Run Agent Review"
+  end
+
+  test "company agent review action requires authentication" do
+    post custom_admin_company_agent_review_path(companies(:one))
+
+    assert_redirected_to new_admin_user_session_path
+  end
+
+  test "company agent review action creates review output without changing company" do
+    sign_in admin_users(:one)
+    company = companies(:one)
+    original_attributes = company.attributes.slice("name", "description", "main_url", "visible", "quality_status", "verification_verdict", "quality_score", "canonical_domain", "fingerprint", "updated_at")
+
+    assert_difference "PipelineRun.count", 1 do
+      post custom_admin_company_agent_review_path(company)
+    end
+
+    run = PipelineRun.order(:created_at).last
+    assert_redirected_to custom_admin_agent_review_path(run)
+    assert_equal "company_agent_review", run.run_type
+    assert_equal "agent_proposal_no_public_writes", run.details["mode"]
+    assert_equal company.id, run.details["company_id"]
+    assert_equal original_attributes, company.reload.attributes.slice("name", "description", "main_url", "visible", "quality_status", "verification_verdict", "quality_score", "canonical_domain", "fingerprint", "updated_at")
   end
 
   test "pipeline run index and show are available to signed-in admin users" do
