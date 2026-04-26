@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+base_url="${BASE_URL:-https://techindex.law.stanford.edu}"
+paths=("/" "/companies" "/statistics" "/up")
+
+for path in "${paths[@]}"; do
+  url="${base_url}${path}"
+  status="$(curl -L -s -o /dev/null -w "%{http_code}" "$url")"
+
+  if [[ "$status" != "200" ]]; then
+    echo "FAIL ${url} returned ${status}"
+    exit 1
+  fi
+
+  echo "OK ${url} returned ${status}"
+done
