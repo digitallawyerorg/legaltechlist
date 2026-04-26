@@ -7,7 +7,7 @@ class CompaniesController < ApplicationController
   # this search could easily be made much more complex and powerful
   # with ands and ors if necessary
   def index
-    @companies = Company.where(visible: true)
+    @companies = Company.publicly_visible
 
     begin
       # Search

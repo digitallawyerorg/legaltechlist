@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.0].define(version: 2025_04_04_101052) do
+ActiveRecord::Schema[7.0].define(version: 2026_04_26_210500) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -122,10 +122,29 @@ ActiveRecord::Schema[7.0].define(version: 2025_04_04_101052) do
     t.date "exit_date"
     t.string "founders"
     t.string "headquarters_region"
+    t.string "quality_status"
+    t.string "verification_verdict"
+    t.integer "quality_score"
+    t.jsonb "quality_review"
+    t.datetime "verified_at"
+    t.datetime "enriched_at"
+    t.datetime "quality_reviewed_at"
+    t.datetime "human_reviewed_at"
+    t.string "fingerprint"
+    t.string "canonical_domain"
+    t.string "source"
+    t.string "source_url"
     t.index ["business_model_id"], name: "index_companies_on_business_model_id"
+    t.index ["canonical_domain"], name: "index_companies_on_canonical_domain"
     t.index ["category_id"], name: "index_companies_on_category_id"
+    t.index ["fingerprint"], name: "index_companies_on_fingerprint"
+    t.index ["human_reviewed_at"], name: "index_companies_on_human_reviewed_at"
+    t.index ["quality_score"], name: "index_companies_on_quality_score"
+    t.index ["quality_status"], name: "index_companies_on_quality_status"
     t.index ["sub_category_id"], name: "index_companies_on_sub_category_id"
     t.index ["target_client_id"], name: "index_companies_on_target_client_id"
+    t.index ["verification_verdict"], name: "index_companies_on_verification_verdict"
+    t.index ["verified_at"], name: "index_companies_on_verified_at"
   end
 
   create_table "sub_categories", force: :cascade do |t|

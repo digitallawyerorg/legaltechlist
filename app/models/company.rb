@@ -1,3 +1,6 @@
+require "digest"
+require "uri"
+
 class Company < ActiveRecord::Base
   attr_accessor :skip_geocoding
 
@@ -28,6 +31,8 @@ class Company < ActiveRecord::Base
   validates :target_client, presence: true
   validates :description, presence: true, length: {minimum: 5}
 
+  scope :publicly_visible, -> { where(visible: true) }
+
   #geocoding
 
   geocoded_by :location
@@ -50,6 +55,40 @@ class Company < ActiveRecord::Base
 
   def self.tagged_with(name)
     Tag.find_by_name!(name).companies
+  end
+
+  def self.normalized_name_value(value)
+    value.to_s.downcase.gsub(/[^a-z0-9]+/, " ").squish
+  end
+
+  def self.canonical_domain_for(url)
+    raw = url.to_s.strip.downcase
+    return nil if raw.blank? || raw == "unknown"
+
+    raw = "http://#{raw}" unless raw.match?(%r{\Ahttps?://})
+    URI.parse(raw).host&.sub(/\Awww\./, "")
+  rescue URI::InvalidURIError
+    nil
+  end
+
+  def self.fingerprint_for(name, url)
+    normalized_name = normalized_name_value(name)
+    canonical_domain = canonical_domain_for(url)
+    identity = [normalized_name, canonical_domain].compact_blank.join("|")
+
+    Digest::SHA256.hexdigest(identity) if identity.present?
+  end
+
+  def normalized_name
+    self.class.normalized_name_value(name)
+  end
+
+  def canonical_main_domain
+    self.class.canonical_domain_for(main_url)
+  end
+
+  def calculated_fingerprint
+    self.class.fingerprint_for(name, main_url)
   end
 
   def all_tags=(names)
@@ -132,7 +171,9 @@ class Company < ActiveRecord::Base
        description main_url twitter_url angellist_url crunchbase_url
        linkedin_url facebook_url legalio_url status visible
        contact_name contact_email codex_presenter codex_presentation_date
-       employee_count latitude longitude created_at updated_at]
+       employee_count latitude longitude created_at updated_at
+       quality_status verification_verdict quality_score verified_at enriched_at
+       quality_reviewed_at human_reviewed_at fingerprint canonical_domain source source_url]
   end
 
   def self.ransackable_associations(auth_object = nil)

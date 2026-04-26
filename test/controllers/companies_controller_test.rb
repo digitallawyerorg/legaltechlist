@@ -11,6 +11,19 @@ class CompaniesControllerTest < ActionController::TestCase
     assert_not_nil assigns(:companies)
   end
 
+  test "index only includes publicly visible companies" do
+    hidden = @company.dup
+    hidden.name = "Hidden Company"
+    hidden.visible = false
+    hidden.save!
+
+    get :index
+
+    assert_response :success
+    assert_includes assigns(:companies), @company
+    assert_not_includes assigns(:companies), hidden
+  end
+
   test "should get new" do
     get :new
     assert_response :success

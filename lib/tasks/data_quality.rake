@@ -1,19 +1,7 @@
-require "uri"
-
 namespace :data_quality do
   desc "Print a read-only data quality audit for companies"
   task audit: :environment do
     spam_keywords = %w[casino betting porn escort xxx adult]
-
-    normalize_domain = lambda do |url|
-      raw = url.to_s.strip.downcase
-      next nil if raw.blank? || raw == "unknown"
-
-      raw = "http://#{raw}" unless raw.match?(%r{\Ahttps?://})
-      URI.parse(raw).host&.sub(/\Awww\./, "")
-    rescue URI::InvalidURIError
-      nil
-    end
 
     duplicate_name_groups = Company
       .where.not(name: [nil, ""])
@@ -22,9 +10,16 @@ namespace :data_quality do
       .count
 
     domains = Hash.new { |hash, key| hash[key] = [] }
-    Company.where.not(main_url: [nil, ""]).pluck(:id, :main_url).each do |id, main_url|
-      domain = normalize_domain.call(main_url)
-      domains[domain] << id if domain.present?
+    if Company.column_names.include?("canonical_domain")
+      Company.where.not(main_url: [nil, ""]).pluck(:id, :main_url, :canonical_domain).each do |id, main_url, canonical_domain|
+        domain = canonical_domain.presence || Company.canonical_domain_for(main_url)
+        domains[domain] << id if domain.present?
+      end
+    else
+      Company.where.not(main_url: [nil, ""]).pluck(:id, :main_url).each do |id, main_url|
+        domain = Company.canonical_domain_for(main_url)
+        domains[domain] << id if domain.present?
+      end
     end
     duplicate_domain_groups = domains.select { |_domain, ids| ids.size > 1 }
 
@@ -80,5 +75,35 @@ namespace :data_quality do
     duplicate_domain_groups.first(10).each do |domain, ids|
       puts "  #{domain}: #{ids.size}"
     end
+  end
+
+  desc "Backfill company fingerprint and canonical domain fields. Defaults to dry-run; set DRY_RUN=false to write."
+  task backfill_identity: :environment do
+    dry_run = ENV.fetch("DRY_RUN", "true") != "false"
+    verbose = ENV.fetch("VERBOSE", "false") == "true"
+    changed = 0
+    examples = []
+
+    Company.find_each do |company|
+      canonical_domain = company.canonical_main_domain
+      fingerprint = company.calculated_fingerprint
+      next if company.canonical_domain == canonical_domain && company.fingerprint == fingerprint
+
+      changed += 1
+      if dry_run
+        line = "DRY RUN company_id=#{company.id} canonical_domain=#{canonical_domain.inspect} fingerprint=#{fingerprint.inspect}"
+        verbose ? puts(line) : examples << line if examples.size < 10
+      else
+        company.update_columns(
+          canonical_domain: canonical_domain,
+          fingerprint: fingerprint,
+          updated_at: company.updated_at
+        )
+      end
+    end
+
+    mode = dry_run ? "dry-run" : "write"
+    puts examples if dry_run && !verbose
+    puts "Backfill identity complete mode=#{mode} changed=#{changed}"
   end
 end
