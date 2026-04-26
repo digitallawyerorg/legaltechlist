@@ -1,0 +1,70 @@
+- content_for :title, "#{@pipeline_run.name} Agent Review"
+
+.d-flex.justify-content-between.align-items-start.mb-4
+    div
+        h1.h3.mb-1= @pipeline_run.name
+        p.text-muted.mb-0 Evidence and proposed corrections are review-only. Apply/reject controls will be added after review policy is settled.
+    = link_to "Back to Agent Reviews", custom_admin_agent_reviews_path, class: "btn btn-outline-secondary"
+
+.alert.alert-warning
+    strong No public writes:
+    |  this screen does not update company records, visibility, or published descriptions.
+
+.row.g-3
+    .col-lg-7
+        .card.border-0.shadow-sm.mb-3
+            .card-header.bg-white
+                h2.h5.mb-0 Linked Company
+            .card-body
+                - if @company
+                    .fw-semibold= link_to @company.name, custom_admin_company_review_path(@company)
+                    .text-muted.small= @company.main_url.presence || "Missing URL"
+                - else
+                    p.text-muted.mb-0 This agent output is not linked to a company.
+
+        .card.border-0.shadow-sm.mb-3
+            .card-header.bg-white
+                h2.h5.mb-0 Evidence
+            .card-body
+                - if @evidence.any?
+                    .list-group.list-group-flush
+                        - @evidence.each do |item|
+                            .list-group-item.px-0
+                                - if item.is_a?(Hash)
+                                    .fw-semibold= item["title"].presence || item["source"].presence || "Evidence item"
+                                    - if item["url"].present?
+                                        = link_to item["url"], item["url"], target: "_blank", rel: "noopener"
+                                    - if item["summary"].present?
+                                        p.mb-0.mt-2= item["summary"]
+                                - else
+                                    = item
+                - else
+                    p.text-muted.mb-0 No evidence recorded.
+
+        .card.border-0.shadow-sm
+            .card-header.bg-white
+                h2.h5.mb-0 Risks
+            .card-body
+                - if @risks.any?
+                    ul.mb-0
+                        - @risks.each do |risk|
+                            li= risk
+                - else
+                    p.text-muted.mb-0 No risks recorded.
+
+    .col-lg-5
+        .card.border-0.shadow-sm
+            .card-header.bg-white
+                h2.h5.mb-0 Proposed Corrections
+            .card-body
+                - if @proposed_corrections.present?
+                    dl.mb-0
+                        - @proposed_corrections.each do |field, value|
+                            dt= field.to_s.humanize
+                            dd
+                                - if value.is_a?(Hash) || value.is_a?(Array)
+                                    pre.bg-light.border.rounded.p-2.small= JSON.pretty_generate(value)
+                                - else
+                                    = value
+                - else
+                    p.text-muted.mb-0 No proposed corrections recorded.

@@ -1,0 +1,38 @@
+- content_for :title, "Agent Reviews"
+
+.d-flex.justify-content-between.align-items-start.mb-4
+    div
+        h1.h3.mb-1 Agent Reviews
+        p.text-muted.mb-0 Read-only review of agent evidence and proposed corrections. Nothing on this page writes to public company records.
+    = link_to "Pipeline Runs", custom_admin_pipeline_runs_path, class: "btn btn-outline-secondary"
+
+.card.border-0.shadow-sm
+    .table-responsive
+        table.table.table-hover.align-middle.mb-0
+            thead
+                tr
+                    th Review
+                    th Type
+                    th Agent
+                    th Status
+                    th Company
+                    th Created
+                    th
+            tbody
+                - @agent_reviews.each do |run|
+                    - company = Company.find_by(id: run.details&.dig("company_id"))
+                    tr
+                        td.fw-semibold= run.name
+                        td= run.run_type
+                        td= run.agent_name.presence || "Unassigned"
+                        td= run.status
+                        td= company&.name || "Not linked"
+                        td.small= run.created_at
+                        td.text-end= link_to "Review Output", custom_admin_agent_review_path(run), class: "btn btn-sm btn-primary"
+            - if @agent_reviews.empty?
+                tbody
+                    tr
+                        td.text-muted.text-center colspan="7" No agent review output has been logged yet.
+
+.py-3
+    = paginate @agent_reviews

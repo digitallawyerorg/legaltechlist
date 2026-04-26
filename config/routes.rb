@@ -9,6 +9,8 @@ Rails.application.routes.draw do
   get 'admin/review/companies/:id', to: 'admin/company_reviews#show', as: :custom_admin_company_review
   get 'admin/pipeline-runs', to: 'admin/pipeline_run_reviews#index', as: :custom_admin_pipeline_runs
   get 'admin/pipeline-runs/:id', to: 'admin/pipeline_run_reviews#show', as: :custom_admin_pipeline_run
+  get 'admin/agent-reviews', to: 'admin/agent_reviews#index', as: :custom_admin_agent_reviews
+  get 'admin/agent-reviews/:id', to: 'admin/agent_reviews#show', as: :custom_admin_agent_review
   ActiveAdmin.routes(self)
 
   # Resources
