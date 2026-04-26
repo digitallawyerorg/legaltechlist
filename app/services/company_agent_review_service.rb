@@ -1,6 +1,6 @@
 class CompanyAgentReviewService
   RUN_TYPE = "company_agent_review".freeze
-  AGENT_NAME = "CompanyEvidenceAgent+CompanyVerifierAgent".freeze
+  AGENT_NAME = "CompanyEvidenceAgent+CompanyVerifierAgent+DescriptionDraftAgent".freeze
 
   def self.call(company:, reviewer: nil, notes: nil)
     new(company: company, reviewer: reviewer, notes: notes).call
@@ -35,6 +35,12 @@ class CompanyAgentReviewService
   def details_payload
     evidence_payload = CompanyEvidenceAgent.call(company)
     verification_payload = CompanyVerifierAgent.call(company, evidence_payload: evidence_payload)
+    description_payload = DescriptionDraftAgent.call(company, evidence_payload: evidence_payload, verification_payload: verification_payload)
+    proposed_corrections = verification_payload["proposed_corrections"].merge(
+      "proposed_description" => description_payload["proposed_description"],
+      "description_rationale" => description_payload["rationale"],
+      "description_confidence" => description_payload["confidence"]
+    )
 
     {
       "company_id" => company.id,
@@ -44,9 +50,10 @@ class CompanyAgentReviewService
       "evidence" => evidence_payload["evidence"],
       "evidence_gaps" => evidence_payload["evidence_gaps"],
       "verification" => verification_payload,
+      "description_draft" => description_payload,
       "duplicate_signals" => verification_payload["duplicate_signals"],
       "taxonomy_signals" => verification_payload["taxonomy_signals"],
-      "proposed_corrections" => verification_payload["proposed_corrections"],
+      "proposed_corrections" => proposed_corrections,
       "risks" => verification_payload["risks"],
       "created_at" => Time.current.utc.iso8601,
       "completed_at" => Time.current.utc.iso8601

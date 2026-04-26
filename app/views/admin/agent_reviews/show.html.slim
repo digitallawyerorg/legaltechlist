@@ -29,6 +29,25 @@
                     p.text-muted.mb-0 This agent output is not linked to a company.
 
         .card.border-0.shadow-sm.mb-3
+            .card-header.bg-white.d-flex.justify-content-between.align-items-center
+                h2.h5.mb-0 Description Draft
+                span.badge.bg-warning.text-dark Review only
+            .card-body
+                - if @company
+                    .mb-3
+                        .text-uppercase.text-muted.small.fw-semibold Current description
+                        p.mb-0= @company.description.presence || "Blank"
+                    .mb-3
+                        .text-uppercase.text-muted.small.fw-semibold Proposed description
+                        p.mb-0.fw-semibold= @description_draft["proposed_description"].presence || @proposed_corrections["proposed_description"].presence || "No proposed description recorded."
+                    - if @description_draft["rationale"].present?
+                        .text-muted.small= @description_draft["rationale"]
+                    - if @description_draft["mode"].present?
+                        .text-muted.small= "Draft mode: #{@description_draft['mode']}"
+                - else
+                    p.text-muted.mb-0 This review is not linked to a company.
+
+        .card.border-0.shadow-sm.mb-3
             .card-header.bg-white
                 h2.h5.mb-0 Evidence
             .card-body

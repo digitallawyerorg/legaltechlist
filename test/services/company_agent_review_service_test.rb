@@ -11,12 +11,14 @@ class CompanyAgentReviewServiceTest < ActiveSupport::TestCase
 
     assert_equal "succeeded", @run.status
     assert_equal "company_agent_review", @run.run_type
-    assert_equal "CompanyEvidenceAgent+CompanyVerifierAgent", @run.agent_name
+    assert_equal "CompanyEvidenceAgent+CompanyVerifierAgent+DescriptionDraftAgent", @run.agent_name
     assert_equal company.id, @run.details["company_id"]
     assert_equal "agent_proposal_no_public_writes", @run.details["mode"]
     assert_not_empty @run.details["evidence"]
     assert_includes @run.details["verification"].keys, "verdict"
     assert_includes @run.details["verification"].keys, "quality_score"
+    assert_equal "deterministic_fallback", @run.details["description_draft"]["mode"]
+    assert_equal @run.details["description_draft"]["proposed_description"], @run.details["proposed_corrections"]["proposed_description"]
     assert_equal "needs_review", @run.details["proposed_corrections"]["quality_status"]
     assert_equal original_attributes, tracked_company_attributes(company.reload)
   end
@@ -29,6 +31,19 @@ class CompanyAgentReviewServiceTest < ActiveSupport::TestCase
 
     assert_includes run.details["risks"], "Weak or short description."
     assert_equal "Draft a new neutral, source-backed TechIndex description before marking reviewed.", run.details["proposed_corrections"]["description_review"]
+  end
+
+  test "description draft avoids marketing terms and remains proposal only" do
+    company = companies(:one)
+    company.update_columns(description: "The best leading revolutionary solution for legal teams.")
+    original_description = company.description
+
+    run = CompanyAgentReviewService.call(company: company)
+    proposed_description = run.details["proposed_corrections"]["proposed_description"]
+
+    assert proposed_description.present?
+    refute_match(/best|leading|revolutionary|cutting-edge|world-class|game-changing/i, proposed_description)
+    assert_equal original_description, company.reload.description
   end
 
   private

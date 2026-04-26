@@ -1,4 +1,5 @@
 ENV['RAILS_ENV'] ||= 'test'
+ENV["DESCRIPTION_DRAFTS_USE_LLM"] ||= "false"
 require File.expand_path('../../config/environment', __FILE__)
 require 'rails/test_help'
 

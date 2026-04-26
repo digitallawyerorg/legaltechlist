@@ -63,6 +63,7 @@ module Admin
       @proposed_corrections = @details["proposed_corrections"] || @details["proposed_changes"] || {}
       @safe_proposed_corrections = @proposed_corrections.slice(*SAFE_APPLY_FIELDS)
       @review_only_proposed_corrections = @proposed_corrections.except(*SAFE_APPLY_FIELDS)
+      @description_draft = @details["description_draft"] || {}
       @risks = Array(@details["risks"])
     end
 

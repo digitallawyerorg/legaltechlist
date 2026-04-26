@@ -92,7 +92,7 @@ class CustomAdminTest < ActionDispatch::IntegrationTest
 
   test "agent review pages show evidence and proposed corrections without writes" do
     sign_in admin_users(:one)
-    run = PipelineRun.create!(name: "Agent review sample", run_type: "company_review", status: "succeeded", agent_name: "CompanyVerifierAgent", records_processed: 1, details: { "company_id" => companies(:one).id, "evidence" => [{ "title" => "Company website", "url" => "https://example.com", "summary" => "Public website confirms the company exists." }], "proposed_corrections" => { "description" => "Neutral proposed description." }, "risks" => ["Needs human verification"] })
+    run = PipelineRun.create!(name: "Agent review sample", run_type: "company_review", status: "succeeded", agent_name: "CompanyVerifierAgent", records_processed: 1, details: { "company_id" => companies(:one).id, "evidence" => [{ "title" => "Company website", "url" => "https://example.com", "summary" => "Public website confirms the company exists." }], "description_draft" => { "proposed_description" => "ExampleCo provides legal technology software for law firms.", "mode" => "deterministic_fallback" }, "proposed_corrections" => { "proposed_description" => "ExampleCo provides legal technology software for law firms." }, "risks" => ["Needs human verification"] })
 
     get custom_admin_agent_reviews_path
     assert_response :success
@@ -102,6 +102,9 @@ class CustomAdminTest < ActionDispatch::IntegrationTest
     get custom_admin_agent_review_path(run)
     assert_response :success
     assert_select "h1", "Agent review sample"
+    assert_select "h2", "Description Draft"
+    assert_select "span", "Review only"
+    assert_select "p", text: "ExampleCo provides legal technology software for law firms."
     assert_select "h2", "Evidence"
     assert_select "h2", "Proposed Corrections"
     assert_equal companies(:one).description, companies(:one).reload.description
@@ -119,9 +122,9 @@ class CustomAdminTest < ActionDispatch::IntegrationTest
     sign_in admin_users(:one)
     company = companies(:one)
     original_description = company.description
-    run = PipelineRun.create!(name: "Agent review sample", run_type: "company_review", status: "succeeded", records_processed: 1, details: { "company_id" => company.id, "proposed_corrections" => { "quality_status" => "needs_review", "verification_verdict" => "needs_human_review", "quality_score" => 60, "description" => "Do not auto-apply this description." } })
+    run = PipelineRun.create!(name: "Agent review sample", run_type: "company_review", status: "succeeded", records_processed: 1, details: { "company_id" => company.id, "proposed_corrections" => { "quality_status" => "needs_review", "verification_verdict" => "needs_human_review", "quality_score" => 60, "proposed_description" => "Do not auto-apply this description." } })
 
-    post apply_custom_admin_agent_review_path(run), params: { fields: ["quality_status", "quality_score", "description"] }
+    post apply_custom_admin_agent_review_path(run), params: { fields: ["quality_status", "quality_score", "proposed_description"] }
 
     assert_redirected_to custom_admin_agent_review_path(run)
     company.reload

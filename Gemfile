@@ -90,3 +90,5 @@ gem 'ruby-openai'
 gem 'parallel'
 
 gem 'dotenv'
+
+gem "ruby_llm", "~> 1.14"
