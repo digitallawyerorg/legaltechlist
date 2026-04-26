@@ -1,0 +1,36 @@
+- content_for :title, "Quality Dashboard"
+
+.d-flex.justify-content-between.align-items-start.mb-4
+    div
+        h1.h3.mb-1 Quality Dashboard
+        p.text-muted.mb-0 Read-only quality metrics for data cleanup and future agent review workflows.
+    = link_to "Back to Admin Home", custom_admin_root_path, class: "btn btn-outline-secondary"
+
+h2.h5.mb-3 Company Data
+.row.g-3.mb-4
+    - @company_metrics.each do |metric|
+        .col-md-6.col-xl-4
+            .card.border-0.shadow-sm.h-100
+                .card-body
+                    .d-flex.justify-content-between.align-items-center
+                        .text-muted.small= metric[:label]
+                        span.badge class="text-bg-#{metric[:tone]}" Read-only
+                    .fs-3.fw-semibold.mt-2= number_with_delimiter(metric[:value])
+
+h2.h5.mb-3 Review Status
+.row.g-3.mb-4
+    - @review_metrics.each do |metric|
+        .col-md-6.col-xl-3
+            .card.border-0.shadow-sm.h-100
+                .card-body
+                    .text-muted.small= metric[:label]
+                    .fs-3.fw-semibold.mt-2= number_with_delimiter(metric[:value])
+
+h2.h5.mb-3 Pipeline Runs
+.row.g-3
+    - @pipeline_metrics.each do |metric|
+        .col-md-6.col-xl-4
+            .card.border-0.shadow-sm.h-100
+                .card-body
+                    .text-muted.small= metric[:label]
+                    .fs-3.fw-semibold.mt-2= number_with_delimiter(metric[:value])

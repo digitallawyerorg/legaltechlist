@@ -46,4 +46,6 @@
             .card-body
                 h2.h5 Next Up
                 p.text-muted.mb-3 Build the quality dashboard, company review pages, and read-only pipeline run UI here before replacing ActiveAdmin workflows.
-                = link_to "View ActiveAdmin companies", admin_companies_path, class: "btn btn-primary w-100"
+                .d-grid.gap-2
+                    = link_to "Open Quality Dashboard", custom_admin_quality_path, class: "btn btn-primary"
+                    = link_to "View ActiveAdmin companies", admin_companies_path, class: "btn btn-outline-secondary"
