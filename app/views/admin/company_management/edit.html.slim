@@ -1,0 +1,7 @@
+- content_for :title, "Edit #{@company.name}"
+
+.mb-4
+    h1.h3.mb-1= "Edit #{@company.name}"
+    p.text-muted.mb-0 Update company data from the custom admin.
+
+= render "form"

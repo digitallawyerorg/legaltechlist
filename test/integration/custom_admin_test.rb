@@ -82,4 +82,41 @@ class CustomAdminTest < ActionDispatch::IntegrationTest
     assert_select "h2", "Proposed Corrections"
     assert_equal companies(:one).description, companies(:one).reload.description
   end
+
+  test "custom resource pages support taxonomy CRUD" do
+    sign_in admin_users(:one)
+
+    get custom_admin_resources_path(resource: "categories")
+    assert_response :success
+    assert_select "h1", "Categories"
+
+    post custom_admin_resources_path(resource: "categories"), params: { category: { name: "New Category", description: "Review taxonomy" } }
+    assert_redirected_to custom_admin_resources_path(resource: "categories")
+    category = Category.find_by!(name: "New Category")
+
+    patch custom_admin_resource_record_path(resource: "categories", id: category.id), params: { category: { name: "Updated Category", description: "Updated taxonomy" } }
+    assert_redirected_to custom_admin_resources_path(resource: "categories")
+    assert_equal "Updated Category", category.reload.name
+  end
+
+  test "custom company management supports edit and export" do
+    sign_in admin_users(:one)
+    company = companies(:one)
+
+    get custom_admin_companies_path
+    assert_response :success
+    assert_select "h1", "Companies"
+
+    get edit_custom_admin_company_path(company)
+    assert_response :success
+    assert_select "h1", "Edit #{company.name}"
+
+    patch custom_admin_company_path(company), params: { company: { name: "Custom Managed Company", description: company.description, main_url: company.main_url, visible: company.visible, category_id: company.category_id, business_model_id: company.business_model_id, target_client_id: company.target_client_id, sub_category_id: company.sub_category_id } }
+    assert_redirected_to custom_admin_company_review_path(company)
+    assert_equal "Custom Managed Company", company.reload.name
+
+    get export_custom_admin_companies_csv_path
+    assert_response :success
+    assert_includes response.media_type, "text/csv"
+  end
 end

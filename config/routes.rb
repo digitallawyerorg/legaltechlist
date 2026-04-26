@@ -11,6 +11,20 @@ Rails.application.routes.draw do
   get 'admin/pipeline-runs/:id', to: 'admin/pipeline_run_reviews#show', as: :custom_admin_pipeline_run
   get 'admin/agent-reviews', to: 'admin/agent_reviews#index', as: :custom_admin_agent_reviews
   get 'admin/agent-reviews/:id', to: 'admin/agent_reviews#show', as: :custom_admin_agent_review
+  get 'admin/app/resources/:resource', to: 'admin/resources#index', as: :custom_admin_resources
+  get 'admin/app/resources/:resource/new', to: 'admin/resources#new', as: :new_custom_admin_resource
+  post 'admin/app/resources/:resource', to: 'admin/resources#create'
+  get 'admin/app/resources/:resource/:id/edit', to: 'admin/resources#edit', as: :edit_custom_admin_resource
+  patch 'admin/app/resources/:resource/:id', to: 'admin/resources#update', as: :custom_admin_resource_record
+  delete 'admin/app/resources/:resource/:id', to: 'admin/resources#destroy'
+  get 'admin/app/companies', to: 'admin/company_management#index', as: :custom_admin_companies
+  get 'admin/app/companies/new', to: 'admin/company_management#new', as: :new_custom_admin_company
+  post 'admin/app/companies', to: 'admin/company_management#create'
+  get 'admin/app/companies/upload', to: 'admin/company_management#upload', as: :upload_custom_admin_companies_csv
+  post 'admin/app/companies/import', to: 'admin/company_management#import', as: :import_custom_admin_companies_csv
+  get 'admin/app/companies/export', to: 'admin/company_management#export', as: :export_custom_admin_companies_csv
+  get 'admin/app/companies/:id/edit', to: 'admin/company_management#edit', as: :edit_custom_admin_company
+  patch 'admin/app/companies/:id', to: 'admin/company_management#update', as: :custom_admin_company
   ActiveAdmin.routes(self)
 
   # Resources

@@ -1,0 +1,29 @@
+- form_url = @record.persisted? ? custom_admin_resource_record_path(resource: @resource_key, id: @record.id) : custom_admin_resources_path(resource: @resource_key)
+- form_method = @record.persisted? ? :patch : :post
+
+= form_with model: @record, url: form_url, method: form_method, local: true do |f|
+    - if @record.errors.any?
+        .alert.alert-danger
+            h2.h6= "#{pluralize(@record.errors.count, 'error')} prevented this record from saving:"
+            ul.mb-0
+                - @record.errors.full_messages.each do |message|
+                    li= message
+
+    .card.border-0.shadow-sm
+        .card-body
+            - @fields.each do |field|
+                - next if @record.persisted? && @model == AdminUser && [:password, :password_confirmation].include?(field)
+                .mb-3
+                    = f.label field, class: "form-label"
+                    - if field == :description
+                        = f.text_area field, class: "form-control", rows: 4
+                    - elsif field == :category_id
+                        = f.collection_select field, Category.order(:name), :id, :name, { include_blank: true }, { class: "form-select" }
+                    - elsif [:password, :password_confirmation].include?(field)
+                        = f.password_field field, class: "form-control", autocomplete: "new-password"
+                    - else
+                        = f.text_field field, class: "form-control"
+
+            .d-flex.gap-2
+                = f.submit "Save", class: "btn btn-primary"
+                = link_to "Cancel", custom_admin_resources_path(resource: @resource_key), class: "btn btn-outline-secondary"

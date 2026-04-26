@@ -1,0 +1,90 @@
+- form_url = @company.persisted? ? custom_admin_company_path(@company) : custom_admin_companies_path
+- form_method = @company.persisted? ? :patch : :post
+
+= form_with model: @company, url: form_url, method: form_method, local: true do |f|
+    - if @company.errors.any?
+        .alert.alert-danger
+            h2.h6= "#{pluralize(@company.errors.count, 'error')} prevented this company from saving:"
+            ul.mb-0
+                - @company.errors.full_messages.each do |message|
+                    li= message
+
+    .card.border-0.shadow-sm.mb-3
+        .card-header.bg-white
+            h2.h5.mb-0 Core Details
+        .card-body
+            .row.g-3
+                .col-md-6
+                    = f.label :name, class: "form-label"
+                    = f.text_field :name, class: "form-control"
+                .col-md-6
+                    = f.label :main_url, class: "form-label"
+                    = f.text_field :main_url, class: "form-control"
+                .col-md-6
+                    = f.label :location, class: "form-label"
+                    = f.text_field :location, class: "form-control"
+                .col-md-3
+                    = f.label :founded_date, class: "form-label"
+                    = f.text_field :founded_date, class: "form-control"
+                .col-md-3
+                    = f.label :status, class: "form-label"
+                    = f.select :status, ["active", "inactive", "acquired"], { include_blank: true }, { class: "form-select" }
+                .col-12
+                    = f.label :description, class: "form-label"
+                    = f.text_area :description, class: "form-control", rows: 5
+                .col-md-4
+                    = f.label :category_id, "Category", class: "form-label"
+                    = f.collection_select :category_id, Category.order(:name), :id, :name, { include_blank: true }, { class: "form-select" }
+                .col-md-4
+                    = f.label :sub_category_id, "Subcategory", class: "form-label"
+                    = f.collection_select :sub_category_id, SubCategory.order(:name), :id, :name, { include_blank: true }, { class: "form-select" }
+                .col-md-4
+                    = f.label :business_model_id, "Business model", class: "form-label"
+                    = f.collection_select :business_model_id, BusinessModel.order(:name), :id, :name, { include_blank: true }, { class: "form-select" }
+                .col-md-4
+                    = f.label :target_client_id, "Target client", class: "form-label"
+                    = f.collection_select :target_client_id, TargetClient.order(:name), :id, :name, { include_blank: true }, { class: "form-select" }
+                .col-md-4
+                    = f.label :all_tags, "Tags", class: "form-label"
+                    = f.text_field :all_tags, class: "form-control"
+                .col-md-4
+                    .form-check.mt-4
+                        = f.check_box :visible, class: "form-check-input"
+                        = f.label :visible, class: "form-check-label"
+
+    .card.border-0.shadow-sm.mb-3
+        .card-header.bg-white
+            h2.h5.mb-0 Links And Metadata
+        .card-body
+            .row.g-3
+                - [:twitter_url, :angellist_url, :crunchbase_url, :linkedin_url, :facebook_url, :legalio_url, :logo_url, :contact_name, :contact_email, :employee_count, :founders, :headquarters_region, :source, :source_url].each do |field|
+                    .col-md-6
+                        = f.label field, class: "form-label"
+                        = f.text_field field, class: "form-control"
+                .col-md-4
+                    = f.label :funding_status, class: "form-label"
+                    = f.select :funding_status, ["Operating", "Seed", "Early Stage Venture", "Late Stage Venture", "Private Equity", "M&A"], { include_blank: true }, { class: "form-select" }
+                .col-md-4
+                    = f.label :total_funding_amount_usd, class: "form-label"
+                    = f.text_field :total_funding_amount_usd, class: "form-control"
+                .col-md-4
+                    = f.label :number_of_funding_rounds, class: "form-label"
+                    = f.number_field :number_of_funding_rounds, class: "form-control"
+
+    .card.border-0.shadow-sm.mb-3
+        .card-header.bg-white
+            h2.h5.mb-0 Quality Fields
+        .card-body
+            .row.g-3
+                - [:quality_status, :verification_verdict, :quality_score].each do |field|
+                    .col-md-4
+                        = f.label field, class: "form-label"
+                        = f.text_field field, class: "form-control"
+                - [:verified_at, :enriched_at, :quality_reviewed_at, :human_reviewed_at].each do |field|
+                    .col-md-6
+                        = f.label field, class: "form-label"
+                        = f.datetime_field field, class: "form-control"
+
+    .d-flex.gap-2
+        = f.submit "Save Company", class: "btn btn-primary"
+        = link_to "Cancel", custom_admin_companies_path, class: "btn btn-outline-secondary"

@@ -1,0 +1,15 @@
+- content_for :title, "Upload Companies CSV"
+
+.mb-4
+    h1.h3.mb-1 Upload Companies CSV
+    p.text-muted.mb-0 Imports use the existing CSV import service. Review imported records before relying on them publicly.
+
+.card.border-0.shadow-sm
+    .card-body
+        = form_with url: import_custom_admin_companies_csv_path, scope: :dump, local: true, multipart: true do |f|
+            .mb-3
+                = f.label :file, "CSV file", class: "form-label"
+                = f.file_field :file, class: "form-control", accept: ".csv"
+            .d-flex.gap-2
+                = f.submit "Import CSV", class: "btn btn-primary"
+                = link_to "Cancel", custom_admin_companies_path, class: "btn btn-outline-secondary"

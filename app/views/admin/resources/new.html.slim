@@ -1,0 +1,7 @@
+- content_for :title, "New #{@title.singularize}"
+
+.mb-4
+    h1.h3.mb-1= "New #{@title.singularize}"
+    p.text-muted.mb-0= "Create a #{@title.singularize.downcase} in the custom admin."
+
+= render "form"

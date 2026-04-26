@@ -1,0 +1,52 @@
+- content_for :title, @title
+
+.d-flex.justify-content-between.align-items-start.mb-4
+    div
+        h1.h3.mb-1= @title
+        p.text-muted.mb-0 Custom admin CRUD for resources previously managed in ActiveAdmin.
+    = link_to "New #{@title.singularize}", new_custom_admin_resource_path(resource: @resource_key), class: "btn btn-primary"
+
+.card.border-0.shadow-sm.mb-4
+    .card-body
+        .d-flex.flex-wrap.gap-2
+            - Admin::ResourcesController::RESOURCE_CONFIG.each do |key, config|
+                = link_to config[:title], custom_admin_resources_path(resource: key), class: "btn btn-sm #{key == @resource_key ? 'btn-primary' : 'btn-outline-secondary'}"
+
+.card.border-0.shadow-sm
+    .table-responsive
+        table.table.table-hover.align-middle.mb-0
+            thead
+                tr
+                    th ID
+                    th Name
+                    th Details
+                    th Updated
+                    th
+            tbody
+                - @records.each do |record|
+                    tr
+                        td= record.id
+                        td.fw-semibold= record.respond_to?(:email) ? record.email : record.name
+                        td
+                            - if record.respond_to?(:description)
+                                = truncate(record.description.to_s, length: 120)
+                            - elsif record.is_a?(SubCategory)
+                                = record.category&.name || "No category"
+                            - elsif record.is_a?(Tag)
+                                = "#{record.companies.count} companies"
+                            - elsif record.is_a?(AdminUser)
+                                = "Sign-ins: #{record.sign_in_count}"
+                            - else
+                                = "No details"
+                        td.small= record.updated_at
+                        td.text-end
+                            .d-inline-flex.gap-2
+                                = link_to "Edit", edit_custom_admin_resource_path(resource: @resource_key, id: record.id), class: "btn btn-sm btn-outline-primary"
+                                = button_to "Delete", custom_admin_resource_record_path(resource: @resource_key, id: record.id), method: :delete, class: "btn btn-sm btn-outline-danger", form: { data: { turbo_confirm: "Delete this record?" } }
+            - if @records.empty?
+                tbody
+                    tr
+                        td.text-muted.text-center colspan="5" No records found.
+
+.py-3
+    = paginate @records
