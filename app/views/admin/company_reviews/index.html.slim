@@ -14,37 +14,38 @@
                 = link_to "#{label} (#{number_with_delimiter(@queue_counts[key])})", custom_admin_company_reviews_path(queue: key), class: "btn btn-sm #{params[:queue] == key ? 'btn-primary' : 'btn-outline-secondary'}"
 
 .card.border-0.shadow-sm
-    .card-header.bg-white
+    .card-header.bg-white.d-flex.justify-content-between.align-items-center
         h2.h5.mb-0= @queue_label
+        span.text-muted.small= "#{number_with_delimiter(@companies.total_count)} records"
     .table-responsive
-        table.table.table-hover.align-middle.mb-0
+        table.table.table-sm.table-hover.align-middle.mb-0.admin-table
             thead
                 tr
                     th Company
-                    th URL
-                    th Category
-                    th Quality
-                    th Updated
-                    th
+                    th.admin-nowrap URL
+                    th.admin-nowrap Category
+                    th.admin-nowrap Quality
+                    th.admin-nowrap Updated
+                    th.admin-actions
             tbody
                 - @companies.each do |company|
                     tr
-                        td
+                        td.admin-description
                             .fw-semibold= company.name
-                            .text-muted.small= truncate(company.description.to_s, length: 120)
-                        td
+                            .text-muted.small= truncate(company.description.to_s, length: 180)
+                        td.admin-nowrap
                             - if company.main_url.present?
                                 = link_to company.canonical_domain.presence || company.canonical_main_domain || company.main_url, company.main_url, target: "_blank", rel: "noopener"
                             - else
                                 span.text-warning Missing
-                        td
+                        td.admin-nowrap
                             .small= company.category&.name || "Unknown"
                             .text-muted.small= company.business_model&.name || "Unknown"
-                        td
+                        td.admin-nowrap
                             .small= company.quality_status.presence || "Unreviewed"
                             .text-muted.small= company.verification_verdict.presence || "No verdict"
-                        td.small= company.updated_at&.to_date
-                        td.text-end
+                        td.small.admin-nowrap= company.updated_at&.to_date
+                        td.text-end.admin-actions
                             = link_to "Review", custom_admin_company_review_path(company), class: "btn btn-sm btn-primary"
             - if @companies.empty?
                 tbody

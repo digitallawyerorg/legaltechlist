@@ -7,28 +7,31 @@
     = link_to "Pipeline Runs", custom_admin_pipeline_runs_path, class: "btn btn-outline-secondary"
 
 .card.border-0.shadow-sm
+    .card-header.bg-white.d-flex.justify-content-between.align-items-center
+        h2.h5.mb-0 Review Output
+        span.text-muted.small= "#{number_with_delimiter(@agent_reviews.total_count)} records"
     .table-responsive
-        table.table.table-hover.align-middle.mb-0
+        table.table.table-sm.table-hover.align-middle.mb-0.admin-table
             thead
                 tr
                     th Review
-                    th Type
-                    th Agent
-                    th Status
-                    th Company
-                    th Created
-                    th
+                    th.admin-nowrap Type
+                    th.admin-nowrap Agent
+                    th.admin-nowrap Status
+                    th.admin-nowrap Company
+                    th.admin-nowrap Created
+                    th.admin-actions
             tbody
                 - @agent_reviews.each do |run|
                     - company = Company.find_by(id: run.details&.dig("company_id"))
                     tr
                         td.fw-semibold= run.name
-                        td= run.run_type
-                        td= run.agent_name.presence || "Unassigned"
-                        td= run.status
-                        td= company&.name || "Not linked"
-                        td.small= run.created_at
-                        td.text-end= link_to "Review Output", custom_admin_agent_review_path(run), class: "btn btn-sm btn-primary"
+                        td.admin-nowrap= run.run_type
+                        td.admin-nowrap= run.agent_name.presence || "Unassigned"
+                        td.admin-nowrap= run.status
+                        td.admin-nowrap= company&.name || "Not linked"
+                        td.small.admin-nowrap= run.created_at
+                        td.text-end.admin-actions= link_to "Review Output", custom_admin_agent_review_path(run), class: "btn btn-sm btn-primary"
             - if @agent_reviews.empty?
                 tbody
                     tr

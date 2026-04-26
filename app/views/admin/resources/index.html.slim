@@ -13,23 +13,26 @@
                 = link_to config[:title], custom_admin_resources_path(resource: key), class: "btn btn-sm #{key == @resource_key ? 'btn-primary' : 'btn-outline-secondary'}"
 
 .card.border-0.shadow-sm
+    .card-header.bg-white.d-flex.justify-content-between.align-items-center
+        h2.h5.mb-0= @title
+        span.text-muted.small= "#{number_with_delimiter(@records.total_count)} records"
     .table-responsive
-        table.table.table-hover.align-middle.mb-0
+        table.table.table-sm.table-hover.align-middle.mb-0.admin-table
             thead
                 tr
-                    th ID
+                    th.admin-nowrap ID
                     th Name
                     th Details
-                    th Updated
-                    th
+                    th.admin-nowrap Updated
+                    th.admin-actions
             tbody
                 - @records.each do |record|
                     tr
-                        td= record.id
-                        td.fw-semibold= record.respond_to?(:email) ? record.email : record.name
-                        td
+                        td.admin-nowrap= record.id
+                        td.fw-semibold.admin-nowrap= record.respond_to?(:email) ? record.email : record.name
+                        td.admin-description
                             - if record.respond_to?(:description)
-                                = truncate(record.description.to_s, length: 120)
+                                = truncate(record.description.to_s, length: 180)
                             - elsif record.is_a?(SubCategory)
                                 = record.category&.name || "No category"
                             - elsif record.is_a?(Tag)
@@ -38,8 +41,8 @@
                                 = "Sign-ins: #{record.sign_in_count}"
                             - else
                                 = "No details"
-                        td.small= record.updated_at
-                        td.text-end
+                        td.small.admin-nowrap= record.updated_at
+                        td.text-end.admin-actions
                             .d-inline-flex.gap-2
                                 = link_to "Edit", edit_custom_admin_resource_path(resource: @resource_key, id: record.id), class: "btn btn-sm btn-outline-primary"
                                 = button_to "Delete", custom_admin_resource_record_path(resource: @resource_key, id: record.id), method: :delete, class: "btn btn-sm btn-outline-danger", form: { data: { turbo_confirm: "Delete this record?" } }

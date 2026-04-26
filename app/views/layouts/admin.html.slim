@@ -7,6 +7,13 @@ html
         = csp_meta_tag
         link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
         link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+        style
+            | .admin-main { max-width: 1920px; }
+            | .admin-table { min-width: 1100px; }
+            | .admin-table thead th { position: sticky; top: 0; z-index: 1; background: #fff; white-space: nowrap; }
+            | .admin-table td, .admin-table th { vertical-align: middle; }
+            | .admin-table .admin-actions, .admin-table .admin-nowrap { white-space: nowrap; }
+            | .admin-table .admin-description { min-width: 360px; max-width: 720px; }
     body.bg-light
         nav.navbar.navbar-expand-lg.navbar-dark.bg-dark
             .container-fluid
@@ -36,7 +43,7 @@ html
                             span.text-white-50.small= current_admin_user.email
                             = link_to "Log out", destroy_admin_user_session_path, method: :delete, class: "btn btn-outline-light btn-sm"
 
-        main.container.py-4
+        main.container-fluid.admin-main.py-4.px-3.px-xl-4
             - if notice.present?
                 .alert.alert-success= notice
             - if alert.present?
