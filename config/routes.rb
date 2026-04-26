@@ -3,6 +3,7 @@ Rails.application.routes.draw do
 
   # Admin and Authentication
   devise_for :admin_users, ActiveAdmin::Devise.config
+  get 'admin/app', to: 'admin/app#show', as: :custom_admin_root
   ActiveAdmin.routes(self)
 
   # Resources

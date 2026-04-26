@@ -1,0 +1,49 @@
+- content_for :title, "TechIndex Admin"
+
+.d-flex.justify-content-between.align-items-start.mb-4
+    div
+        h1.h3.mb-1 TechIndex Admin
+        p.text-muted.mb-0 A custom admin workspace for quality review, pipeline logs, and future agent-assisted curation.
+    = link_to "Open ActiveAdmin", admin_root_path, class: "btn btn-outline-secondary"
+
+.row.g-3.mb-4
+    .col-md-6.col-xl-3
+        .card.border-0.shadow-sm.h-100
+            .card-body
+                .text-muted.small Total companies
+                .fs-3.fw-semibold= number_with_delimiter(@company_count)
+    .col-md-6.col-xl-3
+        .card.border-0.shadow-sm.h-100
+            .card-body
+                .text-muted.small Missing URLs
+                .fs-3.fw-semibold= number_with_delimiter(@missing_url_count)
+    .col-md-6.col-xl-3
+        .card.border-0.shadow-sm.h-100
+            .card-body
+                .text-muted.small Weak descriptions
+                .fs-3.fw-semibold= number_with_delimiter(@weak_description_count)
+    .col-md-6.col-xl-3
+        .card.border-0.shadow-sm.h-100
+            .card-body
+                .text-muted.small Duplicate-domain records
+                .fs-3.fw-semibold= number_with_delimiter(@duplicate_domain_count)
+
+.row.g-3
+    .col-lg-8
+        .card.border-0.shadow-sm
+            .card-body
+                h2.h5 Quality Review Workspace
+                p.text-muted This dashboard is the first custom admin surface. It keeps ActiveAdmin available while we build purpose-built review queues and agent evidence screens.
+                .list-group.list-group-flush
+                    .list-group-item.px-0.d-flex.justify-content-between
+                        span Pipeline runs logged
+                        strong= number_with_delimiter(@pipeline_run_count)
+                    .list-group-item.px-0.d-flex.justify-content-between
+                        span Agent review status
+                        strong Not enabled yet
+    .col-lg-4
+        .card.border-0.shadow-sm
+            .card-body
+                h2.h5 Next Up
+                p.text-muted.mb-3 Build the quality dashboard, company review pages, and read-only pipeline run UI here before replacing ActiveAdmin workflows.
+                = link_to "View ActiveAdmin companies", admin_companies_path, class: "btn btn-primary w-100"
