@@ -66,8 +66,10 @@
                         .border.rounded.p-3.h-100.bg-light
                             .admin-kicker Import safety
                             h3.h6.mb-2 Atlas candidates
-                            p.text-muted.small.mb-3 Review CSV candidates and duplicate matches before creating any company records.
-                            = link_to "Review CSV candidates", upload_custom_admin_companies_csv_path, class: "btn btn-sm btn-outline-primary"
+                            p.text-muted.small.mb-3 Review CSV candidates, queue editable proposals, and approve only invisible drafts.
+                            .d-flex.gap-2
+                                = link_to "Review CSV", upload_custom_admin_companies_csv_path, class: "btn btn-sm btn-outline-primary"
+                                = link_to "Proposal queue", custom_admin_company_proposals_path, class: "btn btn-sm btn-outline-secondary"
                     .col-md-6
                         .border.rounded.p-3.h-100.bg-light
                             .admin-kicker Audit trail
@@ -110,6 +112,9 @@
                     .list-group-item.px-0.d-flex.justify-content-between
                         span Duplicate-name records
                         strong= number_with_delimiter(@duplicate_name_count)
+                    .list-group-item.px-0.d-flex.justify-content-between
+                        span Candidate proposals
+                        strong= number_with_delimiter(@proposal_review_count)
                     .list-group-item.px-0.d-flex.justify-content-between
                         span Weak descriptions
                         strong= number_with_delimiter(@weak_description_count)

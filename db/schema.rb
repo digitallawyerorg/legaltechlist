@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.0].define(version: 2026_04_26_224500) do
+ActiveRecord::Schema[7.0].define(version: 2026_04_27_143100) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -132,6 +132,34 @@ ActiveRecord::Schema[7.0].define(version: 2026_04_26_224500) do
     t.index ["verified_at"], name: "index_companies_on_verified_at"
   end
 
+  create_table "company_proposals", force: :cascade do |t|
+    t.string "status", default: "pending", null: false
+    t.string "proposal_type", default: "atlas_candidate", null: false
+    t.string "source", default: "legaltechatlas_csv", null: false
+    t.string "source_identifier"
+    t.jsonb "source_payload", default: {}, null: false
+    t.jsonb "proposed_changes", default: {}, null: false
+    t.jsonb "final_changes", default: {}, null: false
+    t.jsonb "duplicate_signals", default: {}, null: false
+    t.jsonb "agent_details", default: {}, null: false
+    t.text "reviewer_notes"
+    t.text "rejection_reason"
+    t.bigint "admin_user_id"
+    t.bigint "company_id"
+    t.datetime "reviewed_at"
+    t.datetime "approved_at"
+    t.datetime "rejected_at"
+    t.datetime "enriched_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["admin_user_id"], name: "index_company_proposals_on_admin_user_id"
+    t.index ["company_id"], name: "index_company_proposals_on_company_id"
+    t.index ["proposal_type"], name: "index_company_proposals_on_proposal_type"
+    t.index ["source"], name: "index_company_proposals_on_source"
+    t.index ["source_identifier"], name: "index_company_proposals_on_source_identifier"
+    t.index ["status"], name: "index_company_proposals_on_status"
+  end
+
   create_table "pipeline_runs", force: :cascade do |t|
     t.string "name", null: false
     t.string "run_type", null: false
@@ -188,6 +216,8 @@ ActiveRecord::Schema[7.0].define(version: 2026_04_26_224500) do
   add_foreign_key "companies", "categories"
   add_foreign_key "companies", "sub_categories"
   add_foreign_key "companies", "target_clients"
+  add_foreign_key "company_proposals", "admin_users"
+  add_foreign_key "company_proposals", "companies"
   add_foreign_key "sub_categories", "categories"
   add_foreign_key "taggings", "companies"
   add_foreign_key "taggings", "tags"

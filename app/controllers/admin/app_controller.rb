@@ -7,6 +7,7 @@ module Admin
       @description_review_count = Company.description_review_candidates.count
       @duplicate_domain_count = Company.duplicate_domain_candidate_ids.count
       @duplicate_name_count = Company.duplicate_name_candidate_ids.count
+      @proposal_review_count = CompanyProposal.pending_review.count
       @pipeline_run_count = PipelineRun.count
       @failed_pipeline_run_count = PipelineRun.failed.count
       @recent_pipeline_runs = PipelineRun.recent.limit(5)

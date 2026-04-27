@@ -29,33 +29,41 @@
                     - if @candidate_import_summary["warning"].present?
                         .alert.alert-warning= @candidate_import_summary["warning"]
                     - if @candidate_import_candidates.any?
-                        .table-responsive
-                            table.table.table-sm.align-middle.mb-0
-                                thead
-                                    tr
-                                        th Candidate
-                                        th Website
-                                        th Status
-                                        th Matches
-                                        th Recommended action
-                                tbody
-                                    - @candidate_import_candidates.each do |candidate|
+                        = form_with url: custom_admin_pipeline_run_company_proposals_path(@pipeline_run), method: :post, local: true do
+                            .table-responsive
+                                table.table.table-sm.align-middle.mb-3
+                                    thead
                                         tr
-                                            td
-                                                .fw-semibold= candidate["name"]
-                                                .text-muted.small= candidate["location"]
-                                            td
-                                                - if candidate["website"].present?
-                                                    = link_to candidate["canonical_domain"].presence || candidate["website"], candidate["website"], target: "_blank", rel: "noopener"
-                                                - else
-                                                    span.text-muted Missing
-                                            td
-                                                - if candidate["status"] == "absent_candidate"
-                                                    span.badge.text-bg-success Absent candidate
-                                                - else
-                                                    span.badge.text-bg-warning Existing or duplicate
-                                            td.small= "#{Array(candidate['name_matches']).size} name / #{Array(candidate['domain_matches']).size} domain"
-                                            td.small= candidate["recommended_action"]
+                                            th Queue
+                                            th Candidate
+                                            th Website
+                                            th Status
+                                            th Matches
+                                            th Recommended action
+                                    tbody
+                                        - @candidate_import_candidates.each_with_index do |candidate, index|
+                                            tr
+                                                td
+                                                    - if candidate["status"] == "absent_candidate"
+                                                        = check_box_tag "candidate_indexes[]", index, false, id: "candidate_index_#{index}", class: "form-check-input"
+                                                    - else
+                                                        span.text-muted -
+                                                td
+                                                    .fw-semibold= candidate["name"]
+                                                    .text-muted.small= candidate["location"]
+                                                td
+                                                    - if candidate["website"].present?
+                                                        = link_to candidate["canonical_domain"].presence || candidate["website"], candidate["website"], target: "_blank", rel: "noopener"
+                                                    - else
+                                                        span.text-muted Missing
+                                                td
+                                                    - if candidate["status"] == "absent_candidate"
+                                                        span.badge.text-bg-success Absent candidate
+                                                    - else
+                                                        span.badge.text-bg-warning Existing or duplicate
+                                                td.small= "#{Array(candidate['name_matches']).size} name / #{Array(candidate['domain_matches']).size} domain"
+                                                td.small= candidate["recommended_action"]
+                            = submit_tag "Queue Selected Absent Candidates", class: "btn btn-primary", data: { turbo_confirm: "Create editable proposals for selected absent candidates without changing company records?" }
                     - else
                         p.text-muted.mb-0 No candidate rows recorded.
 

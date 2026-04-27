@@ -1,0 +1,107 @@
+- content_for :title, "#{@company_proposal.display_name} Proposal"
+
+.d-flex.justify-content-between.align-items-start.mb-4
+    div
+        h1.h3.mb-1= @company_proposal.display_name
+        p.text-muted.mb-0 Review, enrich, edit, reject, or approve this candidate into an invisible company draft.
+    .d-flex.gap-2
+        = link_to "Back to Proposals", custom_admin_company_proposals_path, class: "btn btn-outline-secondary"
+        = link_to "Edit Proposal", edit_custom_admin_company_proposal_path(@company_proposal), class: "btn btn-primary"
+
+- if @company_proposal.company
+    .alert.alert-success
+        strong Draft created:
+        = " "
+        = link_to @company_proposal.company.name, custom_admin_company_review_path(@company_proposal.company)
+        |  is invisible until you explicitly publish it.
+
+.row.g-3
+    .col-lg-7
+        .card.border-0.shadow-sm.mb-3
+            .card-header.bg-white.d-flex.justify-content-between.align-items-center
+                h2.h5.mb-0 Final Editable Fields
+                span.badge.text-bg-light= @company_proposal.status.humanize
+            .card-body
+                dl.row.mb-0
+                    - CompanyProposal::EDITABLE_COMPANY_FIELDS.each do |field|
+                        - value = @final_changes[field]
+                        - next if value.blank?
+                        dt.col-sm-4= field.humanize
+                        dd.col-sm-8= value
+
+        .card.border-0.shadow-sm.mb-3
+            .card-header.bg-white
+                h2.h5.mb-0 Agent Enrichment
+            .card-body
+                - if @agent_details.present?
+                    - description_draft = @agent_details["description_draft"] || {}
+                    - description_critic = @agent_details["description_critic"] || {}
+                    - if description_draft.present?
+                        .text-uppercase.text-muted.small.fw-semibold Proposed description
+                        p.fw-semibold= description_draft["proposed_description"]
+                        p.text-muted.small= description_draft["rationale"]
+                    - if description_critic.present?
+                        .text-uppercase.text-muted.small.fw-semibold Critic verdict
+                        p.mb-2= description_critic["verdict"].to_s.humanize
+                        - if Array(description_critic["issues"]).any?
+                            ul.mb-0
+                                - Array(description_critic["issues"]).each do |issue|
+                                    li= issue
+                        - else
+                            p.text-muted.mb-0 No deterministic critic issues recorded.
+                - else
+                    p.text-muted.mb-0 No enrichment has been run yet.
+
+        .card.border-0.shadow-sm
+            .card-header.bg-white
+                h2.h5.mb-0 Source Payload
+            .card-body
+                .alert.alert-warning Source descriptions are evidence only. Do not copy them into public TechIndex text.
+                pre.bg-light.border.rounded.p-3.small.mb-0= JSON.pretty_generate(@source_payload)
+
+    .col-lg-5
+        .card.border-0.shadow-sm.mb-3
+            .card-header.bg-white
+                h2.h5.mb-0 Review Actions
+            .card-body
+                .d-grid.gap-2
+                    = button_to "Run Proposal Enrichment", enrich_custom_admin_company_proposal_path(@company_proposal), method: :post, class: "btn btn-outline-primary", form: { data: { turbo_confirm: "Generate proposal-only enrichment without changing company records?" } }
+                    = link_to "Edit Final Fields", edit_custom_admin_company_proposal_path(@company_proposal), class: "btn btn-primary"
+                hr
+                = form_with url: approve_custom_admin_company_proposal_path(@company_proposal), method: :post, local: true do
+                    - if @company_proposal.duplicate_blocking?
+                        .alert.alert-warning
+                            strong Duplicate signals found.
+                            |  Approval is blocked unless you explicitly confirm the override.
+                        .form-check.mb-3
+                            = check_box_tag :duplicate_override, "1", false, class: "form-check-input", id: "duplicate_override"
+                            = label_tag :duplicate_override, "I reviewed duplicate signals and still want an invisible draft", class: "form-check-label"
+                    = submit_tag "Approve To Invisible Draft", class: "btn btn-success w-100", data: { turbo_confirm: "Create an invisible company draft from these final fields?" }, disabled: @company_proposal.company_id.present?
+                hr
+                = form_with url: reject_custom_admin_company_proposal_path(@company_proposal), method: :post, local: true do
+                    .mb-3
+                        = label_tag :rejection_reason, "Rejection reason", class: "form-label"
+                        = text_area_tag :rejection_reason, @company_proposal.rejection_reason, class: "form-control", rows: 3
+                    = submit_tag "Reject Proposal", class: "btn btn-outline-danger w-100", data: { turbo_confirm: "Reject this proposal without changing company data?" }
+
+        .card.border-0.shadow-sm
+            .card-header.bg-white
+                h2.h5.mb-0 Duplicate Signals
+            .card-body
+                - if @company_proposal.duplicate_blocking?
+                    .text-uppercase.text-muted.small.fw-semibold Name matches
+                    - if Array(@duplicate_signals["name_matches"]).any?
+                        ul
+                            - Array(@duplicate_signals["name_matches"]).each do |match|
+                                li= "#{match['name']} (#{match['canonical_domain'] || match['main_url']})"
+                    - else
+                        p.text-muted None
+                    .text-uppercase.text-muted.small.fw-semibold Domain matches
+                    - if Array(@duplicate_signals["domain_matches"]).any?
+                        ul.mb-0
+                            - Array(@duplicate_signals["domain_matches"]).each do |match|
+                                li= "#{match['name']} (#{match['canonical_domain'] || match['main_url']})"
+                    - else
+                        p.text-muted.mb-0 None
+                - else
+                    p.text-muted.mb-0 No duplicate signals recorded.

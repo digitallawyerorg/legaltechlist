@@ -19,6 +19,15 @@ module Admin
       @candidate_import_candidates = Array(@details["candidates"])
     end
 
+    def queue_candidate_proposals
+      pipeline_run = PipelineRun.find(params[:id])
+      proposals = CompanyProposalQueueService.call(pipeline_run: pipeline_run, candidate_indexes: params[:candidate_indexes], admin_user: current_admin_user)
+
+      redirect_to custom_admin_company_proposals_path, notice: "Queued #{proposals.size} candidate proposal#{'s' unless proposals.size == 1}. No company records were changed."
+    rescue ArgumentError => e
+      redirect_to custom_admin_pipeline_run_path(pipeline_run || params[:id]), alert: e.message
+    end
+
     private
 
     def pipeline_runs_scope

@@ -25,7 +25,6 @@ html
             | .admin-table .admin-description .text-muted { line-height: 1.4; }
             | .admin-table .admin-url { max-width: 420px; white-space: normal; }
             | .admin-table .admin-actions .btn { min-width: 4.5rem; }
-            | .admin-nav-label { color: #94a3b8; font-size: 0.68rem; font-weight: 700; letter-spacing: 0.08em; padding: 0.5rem 0.75rem 0.2rem; text-transform: uppercase; }
             | .admin-workflow-card { border-left: 0.25rem solid #cbd5e1; }
             | .admin-workflow-card.is-urgent { border-left-color: #dc3545; }
             | .admin-workflow-card.is-warning { border-left-color: #ffc107; }
@@ -38,15 +37,12 @@ html
                 button.navbar-toggler type="button" data-bs-toggle="collapse" data-bs-target="#customAdminNav" aria-controls="customAdminNav" aria-expanded="false" aria-label="Toggle navigation"
                     span.navbar-toggler-icon
                 #customAdminNav.collapse.navbar-collapse
-                    - admin_nav_items = [{ label: "Dashboard", path: custom_admin_root_path, group: "Operate" }, { label: "Review Queues", path: custom_admin_company_reviews_path, group: "Operate" }, { label: "Agent Runs", path: custom_admin_agent_reviews_path, group: "Operate" }, { label: "Pipeline Logs", path: custom_admin_pipeline_runs_path, group: "Operate" }, { label: "Companies", path: custom_admin_companies_path, group: "Data" }, { label: "Imports", path: upload_custom_admin_companies_csv_path, group: "Data" }, { label: "Taxonomy", path: custom_admin_resources_path(resource: "categories"), group: "Data" }, { label: "Quality", path: custom_admin_quality_path, group: "Reference" }, { label: "Public Site", path: root_path, group: "Reference" }]
+                    - admin_nav_items = [{ label: "Dashboard", path: custom_admin_root_path }, { label: "Review Queues", path: custom_admin_company_reviews_path }, { label: "Proposals", path: custom_admin_company_proposals_path }, { label: "Agent Runs", path: custom_admin_agent_reviews_path }, { label: "Pipeline Logs", path: custom_admin_pipeline_runs_path }, { label: "Companies", path: custom_admin_companies_path }, { label: "Imports", path: upload_custom_admin_companies_csv_path }, { label: "Taxonomy", path: custom_admin_resources_path(resource: "categories") }, { label: "Quality", path: custom_admin_quality_path }, { label: "Public Site", path: root_path }]
                     ul.navbar-nav.me-auto.mb-2.mb-lg-0
-                        - admin_nav_items.group_by { |item| item[:group] }.each do |group, items|
-                            li.nav-item.d-none.d-xl-flex.align-items-center
-                                span.admin-nav-label= group
-                            - items.each do |item|
-                                - active = request.path == item[:path] || (![custom_admin_root_path, root_path].include?(item[:path]) && request.path.start_with?(item[:path]))
-                                li.nav-item
-                                    = link_to item[:label], item[:path], class: "nav-link #{active ? 'active fw-semibold' : ''}", aria: { current: active ? "page" : nil }
+                        - admin_nav_items.each do |item|
+                            - active = request.path == item[:path] || (![custom_admin_root_path, root_path].include?(item[:path]) && request.path.start_with?(item[:path]))
+                            li.nav-item
+                                = link_to item[:label], item[:path], class: "nav-link #{active ? 'active fw-semibold' : ''}", aria: { current: active ? "page" : nil }
                     .d-flex.align-items-center.gap-3
                         - if current_admin_user
                             span.text-white-50.small= current_admin_user.email

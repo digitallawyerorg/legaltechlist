@@ -296,4 +296,63 @@ class CustomAdminTest < ActionDispatch::IntegrationTest
     assert_select ".alert", /Source descriptions must not be copied/
     assert_select "td", text: /New Atlas Candidate/
   end
+
+  test "candidate import review can queue absent candidates as editable proposals" do
+    sign_in admin_users(:one)
+    run = AtlasCandidateImportReviewService.call(file: Rails.root.join("test/fixtures/atlas_candidates.csv"), reviewer: "test@example.com", notes: "Queue proposals integration")
+    original_count = Company.count
+
+    assert_difference "CompanyProposal.count", 1 do
+      assert_no_difference "Company.count" do
+        post custom_admin_pipeline_run_company_proposals_path(run), params: { candidate_indexes: ["1"] }
+      end
+    end
+
+    proposal = CompanyProposal.order(:created_at).last
+    assert_redirected_to custom_admin_company_proposals_path
+    assert_equal original_count, Company.count
+    assert_equal "New Atlas Candidate", proposal.display_name
+    assert_nil proposal.final_changes["description"]
+  end
+
+  test "proposal admin workflow edits enriches and approves invisible company drafts" do
+    sign_in admin_users(:one)
+    proposal = CompanyProposal.create!(
+      status: "pending",
+      proposal_type: "atlas_candidate",
+      source: "legaltechatlas_csv",
+      source_identifier: "review-proposal.example",
+      source_payload: { "name" => "Review Proposal", "website" => "https://review-proposal.example", "source_description" => "Do not copy this source description.", "industries" => ["Legal Tech"] },
+      proposed_changes: { "name" => "Review Proposal", "main_url" => "https://review-proposal.example", "location" => "Chicago, IL", "founded_date" => "2024", "status" => "active", "source" => "LegalTechAtlas CSV", "source_url" => "https://review-proposal.example" },
+      final_changes: { "name" => "Review Proposal", "main_url" => "https://review-proposal.example", "location" => "Chicago, IL", "founded_date" => "2024", "status" => "active", "source" => "LegalTechAtlas CSV", "source_url" => "https://review-proposal.example" }
+    )
+
+    get custom_admin_company_proposals_path
+    assert_response :success
+    assert_select "h1", "Company Proposals"
+    assert_select "td", text: /Review Proposal/
+
+    get custom_admin_company_proposal_path(proposal)
+    assert_response :success
+    assert_select "h1", "Review Proposal"
+    assert_select "button", "Run Proposal Enrichment"
+
+    post enrich_custom_admin_company_proposal_path(proposal)
+    assert_redirected_to custom_admin_company_proposal_path(proposal)
+    assert_equal "ready_for_review", proposal.reload.status
+    assert proposal.final_changes["description"].present?
+
+    patch custom_admin_company_proposal_path(proposal), params: { company_proposal: { reviewer_notes: "Reviewed by admin.", final_changes: { name: "Review Proposal", main_url: "https://review-proposal.example", location: "Chicago, IL", founded_date: "2024", status: "active", description: "Review Proposal provides legal technology services for legal teams.", category_id: categories(:one).id, business_model_id: business_models(:one).id, target_client_id: target_clients(:one).id, source: "LegalTechAtlas CSV", source_url: "https://review-proposal.example" } } }
+    assert_redirected_to custom_admin_company_proposal_path(proposal)
+
+    assert_difference "Company.count", 1 do
+      post approve_custom_admin_company_proposal_path(proposal)
+    end
+
+    company = proposal.reload.company
+    assert_redirected_to custom_admin_company_review_path(company)
+    assert_not company.visible?
+    assert_equal "Review Proposal", company.name
+    assert_equal "Review Proposal provides legal technology services for legal teams.", company.description
+  end
 end

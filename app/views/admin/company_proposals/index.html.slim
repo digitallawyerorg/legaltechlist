@@ -1,0 +1,49 @@
+- content_for :title, "Company Proposals"
+
+.d-flex.justify-content-between.align-items-start.mb-4
+    div
+        h1.h3.mb-1 Company Proposals
+        p.text-muted.mb-0 Editable candidate proposals waiting for human review before invisible company drafts are created.
+    = link_to "Review CSV Candidates", upload_custom_admin_companies_csv_path, class: "btn btn-outline-primary"
+
+.card.border-0.shadow-sm.mb-4
+    .card-body
+        .d-flex.flex-wrap.gap-2
+            - @status_counts.each do |status, count|
+                = link_to "#{status.humanize} (#{number_with_delimiter(count)})", custom_admin_company_proposals_path(status: status), class: "btn btn-sm #{@status == status ? 'btn-primary' : 'btn-outline-secondary'}"
+
+.card.border-0.shadow-sm
+    .table-responsive
+        table.table.table-hover.align-middle.mb-0
+            thead
+                tr
+                    th Candidate
+                    th Status
+                    th Source
+                    th Duplicate signals
+                    th Draft company
+                    th Updated
+                    th
+            tbody
+                - @company_proposals.each do |proposal|
+                    tr
+                        td
+                            .fw-semibold= link_to proposal.display_name, custom_admin_company_proposal_path(proposal)
+                            .text-muted.small= proposal.final_changes["main_url"].presence || proposal.source_payload["website"].presence || "Missing website"
+                        td
+                            span.badge.text-bg-light= proposal.status.humanize
+                        td= proposal.source
+                        td.small= "#{Array(proposal.duplicate_signals['name_matches']).size} name / #{Array(proposal.duplicate_signals['domain_matches']).size} domain"
+                        td
+                            - if proposal.company
+                                = link_to proposal.company.name, custom_admin_company_review_path(proposal.company)
+                            - else
+                                span.text-muted None
+                        td.text-muted.small= time_ago_in_words(proposal.updated_at)
+                        td.text-end
+                            = link_to "Review", custom_admin_company_proposal_path(proposal), class: "btn btn-sm btn-outline-primary"
+                - if @company_proposals.empty?
+                    tr
+                        td.text-muted colspan="7" No proposals in this queue.
+
+= paginate @company_proposals

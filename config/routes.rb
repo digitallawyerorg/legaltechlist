@@ -14,6 +14,14 @@ Rails.application.routes.draw do
   post 'admin/review/companies/:id/duplicate-review', to: 'admin/company_reviews#create_duplicate_review', as: :custom_admin_company_duplicate_review
   get 'admin/pipeline-runs', to: 'admin/pipeline_run_reviews#index', as: :custom_admin_pipeline_runs
   get 'admin/pipeline-runs/:id', to: 'admin/pipeline_run_reviews#show', as: :custom_admin_pipeline_run
+  post 'admin/pipeline-runs/:id/company-proposals', to: 'admin/pipeline_run_reviews#queue_candidate_proposals', as: :custom_admin_pipeline_run_company_proposals
+  get 'admin/proposals', to: 'admin/company_proposals#index', as: :custom_admin_company_proposals
+  get 'admin/proposals/:id', to: 'admin/company_proposals#show', as: :custom_admin_company_proposal
+  get 'admin/proposals/:id/edit', to: 'admin/company_proposals#edit', as: :edit_custom_admin_company_proposal
+  patch 'admin/proposals/:id', to: 'admin/company_proposals#update'
+  post 'admin/proposals/:id/enrich', to: 'admin/company_proposals#enrich', as: :enrich_custom_admin_company_proposal
+  post 'admin/proposals/:id/approve', to: 'admin/company_proposals#approve', as: :approve_custom_admin_company_proposal
+  post 'admin/proposals/:id/reject', to: 'admin/company_proposals#reject', as: :reject_custom_admin_company_proposal
   get 'admin/agent-reviews', to: 'admin/agent_reviews#index', as: :custom_admin_agent_reviews
   get 'admin/agent-reviews/:id', to: 'admin/agent_reviews#show', as: :custom_admin_agent_review
   post 'admin/agent-reviews/:id/apply', to: 'admin/agent_reviews#apply', as: :apply_custom_admin_agent_review

@@ -1,0 +1,77 @@
+- content_for :title, "Edit #{@company_proposal.display_name} Proposal"
+
+.d-flex.justify-content-between.align-items-start.mb-4
+    div
+        h1.h3.mb-1= "Edit #{@company_proposal.display_name}"
+        p.text-muted.mb-0 Edit final approval fields. These changes stay on the proposal until approval creates an invisible company draft.
+    = link_to "Back to Proposal", custom_admin_company_proposal_path(@company_proposal), class: "btn btn-outline-secondary"
+
+= form_with model: @company_proposal, url: custom_admin_company_proposal_path(@company_proposal), method: :patch, local: true do |f|
+    - if @company_proposal.errors.any?
+        .alert.alert-danger
+            h2.h6= "#{pluralize(@company_proposal.errors.count, 'error')} prevented this proposal from saving:"
+            ul.mb-0
+                - @company_proposal.errors.full_messages.each do |message|
+                    li= message
+
+    .card.border-0.shadow-sm.mb-3
+        .card-header.bg-white
+            h2.h5.mb-0 Core Approval Fields
+        .card-body
+            .row.g-3
+                .col-md-6
+                    = label_tag "company_proposal_final_changes_name", "Name", class: "form-label"
+                    = text_field_tag "company_proposal[final_changes][name]", @final_changes["name"], class: "form-control"
+                .col-md-6
+                    = label_tag "company_proposal_final_changes_main_url", "Main URL", class: "form-label"
+                    = text_field_tag "company_proposal[final_changes][main_url]", @final_changes["main_url"], class: "form-control"
+                .col-md-6
+                    = label_tag "company_proposal_final_changes_location", "Location", class: "form-label"
+                    = text_field_tag "company_proposal[final_changes][location]", @final_changes["location"], class: "form-control"
+                .col-md-3
+                    = label_tag "company_proposal_final_changes_founded_date", "Founded year", class: "form-label"
+                    = text_field_tag "company_proposal[final_changes][founded_date]", @final_changes["founded_date"], class: "form-control"
+                .col-md-3
+                    = label_tag "company_proposal_final_changes_status", "Status", class: "form-label"
+                    = select_tag "company_proposal[final_changes][status]", options_for_select(["active", "inactive", "acquired"], @final_changes["status"]), include_blank: true, class: "form-select"
+                .col-12
+                    = label_tag "company_proposal_final_changes_description", "Description", class: "form-label"
+                    = text_area_tag "company_proposal[final_changes][description]", @final_changes["description"], class: "form-control", rows: 5
+
+    .card.border-0.shadow-sm.mb-3
+        .card-header.bg-white
+            h2.h5.mb-0 Taxonomy
+        .card-body
+            .row.g-3
+                .col-md-3
+                    = label_tag "company_proposal_final_changes_category_id", "Category", class: "form-label"
+                    = select_tag "company_proposal[final_changes][category_id]", options_from_collection_for_select(Category.order(:name), :id, :name, @final_changes["category_id"]), include_blank: true, class: "form-select"
+                .col-md-3
+                    = label_tag "company_proposal_final_changes_sub_category_id", "Subcategory", class: "form-label"
+                    = select_tag "company_proposal[final_changes][sub_category_id]", options_from_collection_for_select(SubCategory.order(:name), :id, :name, @final_changes["sub_category_id"]), include_blank: true, class: "form-select"
+                .col-md-3
+                    = label_tag "company_proposal_final_changes_business_model_id", "Business model", class: "form-label"
+                    = select_tag "company_proposal[final_changes][business_model_id]", options_from_collection_for_select(BusinessModel.order(:name), :id, :name, @final_changes["business_model_id"]), include_blank: true, class: "form-select"
+                .col-md-3
+                    = label_tag "company_proposal_final_changes_target_client_id", "Target client", class: "form-label"
+                    = select_tag "company_proposal[final_changes][target_client_id]", options_from_collection_for_select(TargetClient.order(:name), :id, :name, @final_changes["target_client_id"]), include_blank: true, class: "form-select"
+
+    .card.border-0.shadow-sm.mb-3
+        .card-header.bg-white
+            h2.h5.mb-0 Links And Funding
+        .card-body
+            .row.g-3
+                - ["crunchbase_url", "linkedin_url", "source", "source_url", "employee_count", "founders", "funding_status", "total_funding_amount_usd", "number_of_funding_rounds"].each do |field|
+                    .col-md-6
+                        = label_tag "company_proposal_final_changes_#{field}", field.humanize, class: "form-label"
+                        = text_field_tag "company_proposal[final_changes][#{field}]", @final_changes[field], class: "form-control"
+
+    .card.border-0.shadow-sm.mb-3
+        .card-header.bg-white
+            h2.h5.mb-0 Reviewer Notes
+        .card-body
+            = f.text_area :reviewer_notes, class: "form-control", rows: 4
+
+    .d-flex.gap-2
+        = f.submit "Save Proposal", class: "btn btn-primary"
+        = link_to "Cancel", custom_admin_company_proposal_path(@company_proposal), class: "btn btn-outline-secondary"
