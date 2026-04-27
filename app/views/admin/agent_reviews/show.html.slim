@@ -48,6 +48,32 @@
                     p.text-muted.mb-0 This review is not linked to a company.
 
         .card.border-0.shadow-sm.mb-3
+            .card-header.bg-white.d-flex.justify-content-between.align-items-center
+                h2.h5.mb-0 Description Critic
+                - critic_verdict = @description_critic["verdict"].presence || "not run"
+                - if critic_verdict == "pass"
+                    span.badge.bg-success= critic_verdict.humanize
+                - else
+                    span.badge.bg-warning.text-dark= critic_verdict.humanize
+            .card-body
+                - if @description_critic.present?
+                    - if @description_critic["rationale"].present?
+                        p.mb-3= @description_critic["rationale"]
+                    - if Array(@description_critic["issues"]).any?
+                        .text-uppercase.text-muted.small.fw-semibold Issues
+                        ul.mb-3
+                            - Array(@description_critic["issues"]).each do |issue|
+                                li= issue
+                    - else
+                        p.text-muted.mb-3 No critic issues recorded.
+                    - if @description_critic["suggested_revision"].present?
+                        .text-uppercase.text-muted.small.fw-semibold Suggested revision
+                        p.mb-3.fw-semibold= @description_critic["suggested_revision"]
+                    .text-muted.small= "Critic mode: #{@description_critic['mode']}" if @description_critic["mode"].present?
+                - else
+                    p.text-muted.mb-0 No critic output recorded.
+
+        .card.border-0.shadow-sm.mb-3
             .card-header.bg-white
                 h2.h5.mb-0 Evidence
             .card-body

@@ -11,7 +11,7 @@ class CompanyAgentReviewServiceTest < ActiveSupport::TestCase
 
     assert_equal "succeeded", @run.status
     assert_equal "company_agent_review", @run.run_type
-    assert_equal "CompanyEvidenceAgent+CompanyVerifierAgent+DescriptionDraftAgent", @run.agent_name
+    assert_equal "CompanyEvidenceAgent+CompanyVerifierAgent+DescriptionDraftAgent+DescriptionCriticAgent", @run.agent_name
     assert_equal company.id, @run.details["company_id"]
     assert_equal "agent_proposal_no_public_writes", @run.details["mode"]
     assert_not_empty @run.details["evidence"]
@@ -23,7 +23,11 @@ class CompanyAgentReviewServiceTest < ActiveSupport::TestCase
     assert_nil @run.details["description_draft"]["usage"]
     assert_nil @run.details["description_draft"]["estimated_cost_usd"]
     refute_match(/listed in TechIndex|included in TechIndex|TechIndex company/i, @run.details["description_draft"]["proposed_description"])
+    assert_equal "DescriptionCriticSchema", @run.details["description_critic"]["schema"]
+    assert_equal DescriptionCriticSchema::SCHEMA_VERSION, @run.details["description_critic"]["schema_version"]
+    assert_includes %w[pass revise reject], @run.details["description_critic"]["verdict"]
     assert_equal @run.details["description_draft"]["proposed_description"], @run.details["proposed_corrections"]["proposed_description"]
+    assert_equal @run.details["description_critic"]["verdict"], @run.details["proposed_corrections"]["description_critic_verdict"]
     assert_equal "needs_review", @run.details["proposed_corrections"]["quality_status"]
     assert_equal original_attributes, tracked_company_attributes(company.reload)
   end
@@ -58,6 +62,24 @@ class CompanyAgentReviewServiceTest < ActiveSupport::TestCase
 
     assert proposed_description.present?
     refute_match(/listed in TechIndex|included in TechIndex|TechIndex company/i, proposed_description)
+  end
+
+  test "description critic flags directory metadata phrasing" do
+    company = companies(:one)
+    evidence_payload = CompanyEvidenceAgent.call(company)
+    verification_payload = CompanyVerifierAgent.call(company, evidence_payload: evidence_payload)
+    description_payload = {
+      "proposed_description" => "#{company.name} supports litigation teams based on available directory metadata and associated social profiles.",
+      "rationale" => "Test weak phrasing.",
+      "warnings" => []
+    }
+
+    critique = DescriptionCriticAgent.call(company, evidence_payload: evidence_payload, verification_payload: verification_payload, description_payload: description_payload)
+
+    assert_equal "revise", critique["verdict"]
+    assert_includes critique["issues"], "Description uses directory-meta phrasing rather than describing the company."
+    assert_includes critique["issues"], "Description references weak or indirect evidence instead of company facts."
+    assert_equal company.description, company.reload.description
   end
 
   private

@@ -92,7 +92,7 @@ class CustomAdminTest < ActionDispatch::IntegrationTest
 
   test "agent review pages show evidence and proposed corrections without writes" do
     sign_in admin_users(:one)
-    run = PipelineRun.create!(name: "Agent review sample", run_type: "company_review", status: "succeeded", agent_name: "CompanyVerifierAgent", records_processed: 1, details: { "company_id" => companies(:one).id, "evidence" => [{ "title" => "Company website", "url" => "https://example.com", "summary" => "Public website confirms the company exists." }], "description_draft" => { "proposed_description" => "ExampleCo provides legal technology software for law firms.", "mode" => "deterministic_fallback" }, "proposed_corrections" => { "proposed_description" => "ExampleCo provides legal technology software for law firms." }, "risks" => ["Needs human verification"] })
+    run = PipelineRun.create!(name: "Agent review sample", run_type: "company_review", status: "succeeded", agent_name: "CompanyVerifierAgent", records_processed: 1, details: { "company_id" => companies(:one).id, "evidence" => [{ "title" => "Company website", "url" => "https://example.com", "summary" => "Public website confirms the company exists." }], "description_draft" => { "proposed_description" => "ExampleCo provides legal technology software for law firms.", "mode" => "deterministic_fallback" }, "description_critic" => { "verdict" => "revise", "issues" => ["Needs stronger evidence."], "rationale" => "The draft needs more support.", "suggested_revision" => "ExampleCo provides legal technology software for law firms.", "mode" => "deterministic_fallback" }, "proposed_corrections" => { "proposed_description" => "ExampleCo provides legal technology software for law firms.", "description_critic_verdict" => "revise" }, "risks" => ["Needs human verification"] })
 
     get custom_admin_agent_reviews_path
     assert_response :success
@@ -105,6 +105,8 @@ class CustomAdminTest < ActionDispatch::IntegrationTest
     assert_select "h2", "Description Draft"
     assert_select "span", "Review only"
     assert_select "p", text: "ExampleCo provides legal technology software for law firms."
+    assert_select "h2", "Description Critic"
+    assert_select "li", "Needs stronger evidence."
     assert_select "h2", "Evidence"
     assert_select "h2", "Proposed Corrections"
     assert_equal companies(:one).description, companies(:one).reload.description
