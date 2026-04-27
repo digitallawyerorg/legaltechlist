@@ -67,6 +67,7 @@ module Admin
       @description_draft = @details["description_draft"] || {}
       @description_critic = @details["description_critic"] || {}
       @review_coordinator = @details["review_coordinator"] || {}
+      @duplicate_review = @details["duplicate_review"] || {}
       @risks = Array(@details["risks"])
     end
 

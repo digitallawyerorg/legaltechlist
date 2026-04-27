@@ -6,6 +6,7 @@
         p.text-muted.mb-0 Read-first review queues for company quality, duplicates, and future agent suggestions.
     .d-flex.gap-2
         = button_to "Run Next Description Review", custom_admin_next_description_review_path, method: :post, class: "btn btn-warning", form: { data: { turbo_confirm: "Run a proposal-only agent review for the next description candidate?" } }
+        = button_to "Run Next Duplicate Review", custom_admin_next_duplicate_domain_review_path, method: :post, class: "btn btn-outline-warning", form: { data: { turbo_confirm: "Run a proposal-only duplicate-domain review for the next duplicate candidate?" } }
         = link_to "Quality Dashboard", custom_admin_quality_path, class: "btn btn-outline-secondary"
 
 .card.border-0.shadow-sm.mb-4

@@ -40,6 +40,22 @@ module Admin
       redirect_to custom_admin_agent_review_path(run), notice: "Description review created for #{company.name}."
     end
 
+    def create_duplicate_review
+      company = Company.find(params[:id])
+      run = DuplicateDomainReviewService.call(company: company, reviewer: current_admin_user.email, notes: "Triggered from custom company review page")
+
+      redirect_to custom_admin_agent_review_path(run), notice: "Duplicate-domain review created for #{company.name}."
+    end
+
+    def create_next_duplicate_domain_review
+      company = Company.duplicate_domain_candidates.order(updated_at: :asc).first
+      return redirect_to custom_admin_company_reviews_path(queue: "duplicate_domain"), alert: "No duplicate-domain candidates found." unless company
+
+      run = DuplicateDomainReviewService.call(company: company, reviewer: current_admin_user.email, notes: "Triggered from next duplicate-domain review queue")
+
+      redirect_to custom_admin_agent_review_path(run), notice: "Duplicate-domain review created for #{company.name}."
+    end
+
     private
 
     def review_scope

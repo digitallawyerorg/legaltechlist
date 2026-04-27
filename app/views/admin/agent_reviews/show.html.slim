@@ -61,6 +61,49 @@
 
         .card.border-0.shadow-sm.mb-3
             .card-header.bg-white.d-flex.justify-content-between.align-items-center
+                h2.h5.mb-0 Duplicate Review
+                - duplicate_recommendation = @duplicate_review["overall_recommendation"].presence || "not run"
+                - if duplicate_recommendation == "likely_duplicate_group"
+                    span.badge.bg-danger= duplicate_recommendation.humanize
+                - elsif duplicate_recommendation == "likely_distinct"
+                    span.badge.bg-success= duplicate_recommendation.humanize
+                - else
+                    span.badge.bg-warning.text-dark= duplicate_recommendation.humanize
+            .card-body
+                - if @duplicate_review.present?
+                    - if @duplicate_review["rationale"].present?
+                        p.mb-3= @duplicate_review["rationale"]
+                    - if Array(@duplicate_review["pair_reviews"]).any?
+                        .table-responsive.mb-3
+                            table.table.table-sm.align-middle.mb-0
+                                thead
+                                    tr
+                                        th Candidate
+                                        th Relationship
+                                        th Confidence
+                                        th Reasons
+                                tbody
+                                    - Array(@duplicate_review["pair_reviews"]).each do |review|
+                                        tr
+                                            td= review["candidate_company_id"]
+                                            td
+                                                span.badge.text-bg-light= review["relationship"].to_s.humanize
+                                            td= review["confidence"].to_s.humanize
+                                            td
+                                                ul.mb-0
+                                                    - Array(review["reasons"]).each do |reason|
+                                                        li= reason
+                    - if Array(@duplicate_review["unresolved_questions"]).any?
+                        .text-uppercase.text-muted.small.fw-semibold Unresolved questions
+                        ul.mb-3
+                            - Array(@duplicate_review["unresolved_questions"]).each do |question|
+                                li= question
+                    .text-muted.small= "Duplicate review mode: #{@duplicate_review['mode']}" if @duplicate_review["mode"].present?
+                - else
+                    p.text-muted.mb-0 No duplicate review output recorded.
+
+        .card.border-0.shadow-sm.mb-3
+            .card-header.bg-white.d-flex.justify-content-between.align-items-center
                 h2.h5.mb-0 Description Draft
                 span.badge.bg-warning.text-dark Review only
             .card-body
