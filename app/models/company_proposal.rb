@@ -1,5 +1,5 @@
 class CompanyProposal < ActiveRecord::Base
-  STATUSES = %w[pending ready_for_review needs_revision approved_to_draft rejected].freeze
+  STATUSES = %w[pending ready_for_review needs_revision approved_to_draft published rejected].freeze
   PROPOSAL_TYPES = %w[atlas_candidate].freeze
 
   belongs_to :admin_user, optional: true
@@ -13,6 +13,7 @@ class CompanyProposal < ActiveRecord::Base
   scope :recent, -> { order(created_at: :desc) }
   scope :pending_review, -> { where(status: %w[pending ready_for_review needs_revision]) }
   scope :approved_to_draft, -> { where(status: "approved_to_draft") }
+  scope :published, -> { where(status: "published") }
   scope :rejected, -> { where(status: "rejected") }
 
   EDITABLE_COMPANY_FIELDS = %w[

@@ -61,6 +61,33 @@ class CompanyProposalWorkflowTest < ActiveSupport::TestCase
     assert_equal "approved_to_draft", proposal.status
   end
 
+  test "approval can publish the company when requested" do
+    proposal = ready_proposal
+
+    company = CompanyProposalApprovalService.call(proposal: proposal, admin_user: admin_users(:one), publish: true)
+
+    assert company.visible?
+    assert_equal "published", proposal.reload.status
+  end
+
+  test "approval generates a description when editable description is blank" do
+    proposal = queued_proposal
+    proposal.update!(
+      final_changes: proposal.final_changes.merge(
+        "description" => nil,
+        "category_id" => categories(:one).id,
+        "business_model_id" => business_models(:one).id,
+        "target_client_id" => target_clients(:one).id
+      )
+    )
+
+    company = CompanyProposalApprovalService.call(proposal: proposal, admin_user: admin_users(:one))
+
+    assert company.description.present?
+    assert_not_equal proposal.source_payload["source_description"], company.description
+    assert_equal "approved_to_draft", proposal.reload.status
+  end
+
   test "duplicate proposals require explicit approval override" do
     proposal = ready_proposal
     proposal.update!(duplicate_signals: { "name_matches" => [{ "id" => companies(:one).id, "name" => companies(:one).name }], "domain_matches" => [] })

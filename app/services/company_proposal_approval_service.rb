@@ -3,17 +3,19 @@ class CompanyProposalApprovalService
     new(**kwargs).call
   end
 
-  def initialize(proposal:, admin_user:, duplicate_override: false)
+  def initialize(proposal:, admin_user:, duplicate_override: false, publish: false)
     @proposal = proposal
     @admin_user = admin_user
     @duplicate_override = duplicate_override
+    @publish = publish
   end
 
   def call
     validate_proposal!
+    ensure_description!
 
     company = Company.new(company_attributes)
-    company.visible = false
+    company.visible = publish
     company.quality_status = "needs_review"
     company.verification_verdict = "human_approved_candidate"
     company.human_reviewed_at = Time.current
@@ -23,7 +25,7 @@ class CompanyProposalApprovalService
     company.save!
 
     proposal.update!(
-      status: "approved_to_draft",
+      status: publish ? "published" : "approved_to_draft",
       company: company,
       admin_user: admin_user,
       reviewed_at: Time.current,
@@ -35,7 +37,7 @@ class CompanyProposalApprovalService
 
   private
 
-  attr_reader :proposal, :admin_user, :duplicate_override
+  attr_reader :proposal, :admin_user, :duplicate_override, :publish
 
   def validate_proposal!
     raise ArgumentError, "Rejected proposals cannot be approved" if proposal.rejected?
@@ -55,5 +57,12 @@ class CompanyProposalApprovalService
 
   def blank_to_nil(value)
     value.presence
+  end
+
+  def ensure_description!
+    return if proposal.final_changes["description"].present?
+
+    CompanyProposalEnrichmentService.call(proposal: proposal, admin_user: admin_user)
+    proposal.reload
   end
 end

@@ -9,6 +9,7 @@ module Admin
         "ready_for_review" => CompanyProposal.where(status: "ready_for_review").count,
         "needs_revision" => CompanyProposal.where(status: "needs_revision").count,
         "approved_to_draft" => CompanyProposal.approved_to_draft.count,
+        "published" => CompanyProposal.published.count,
         "rejected" => CompanyProposal.rejected.count
       }
     end
@@ -45,9 +46,11 @@ module Admin
 
     def approve
       load_proposal
-      company = CompanyProposalApprovalService.call(proposal: @company_proposal, admin_user: current_admin_user, duplicate_override: params[:duplicate_override] == "1")
+      publish = params[:publish] == "1"
+      company = CompanyProposalApprovalService.call(proposal: @company_proposal, admin_user: current_admin_user, duplicate_override: params[:duplicate_override] == "1", publish: publish)
 
-      redirect_to custom_admin_company_review_path(company), notice: "Invisible company draft created for #{company.name}. Review once more before publication."
+      notice = publish ? "#{company.name} was approved and published." : "Invisible company draft created for #{company.name}. Review once more before publication."
+      redirect_to custom_admin_company_review_path(company), notice: notice
     rescue ActiveRecord::RecordInvalid, ArgumentError => e
       redirect_to custom_admin_company_proposal_path(@company_proposal), alert: e.message
     end

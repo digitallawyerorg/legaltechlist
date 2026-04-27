@@ -312,7 +312,7 @@ class CustomAdminTest < ActionDispatch::IntegrationTest
     assert_redirected_to custom_admin_company_proposals_path
     assert_equal original_count, Company.count
     assert_equal "New Atlas Candidate", proposal.display_name
-    assert_nil proposal.final_changes["description"]
+    assert proposal.final_changes["description"].present?
   end
 
   test "proposal admin workflow edits enriches and approves invisible company drafts" do
@@ -346,12 +346,13 @@ class CustomAdminTest < ActionDispatch::IntegrationTest
     assert_redirected_to custom_admin_company_proposal_path(proposal)
 
     assert_difference "Company.count", 1 do
-      post approve_custom_admin_company_proposal_path(proposal)
+      post approve_custom_admin_company_proposal_path(proposal), params: { publish: "1" }
     end
 
     company = proposal.reload.company
     assert_redirected_to custom_admin_company_review_path(company)
-    assert_not company.visible?
+    assert company.visible?
+    assert_equal "published", proposal.status
     assert_equal "Review Proposal", company.name
     assert_equal "Review Proposal provides legal technology services for legal teams.", company.description
   end
