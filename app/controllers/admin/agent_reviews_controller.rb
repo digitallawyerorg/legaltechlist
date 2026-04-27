@@ -60,11 +60,13 @@ module Admin
       @details = @pipeline_run.details || {}
       @company = Company.find_by(id: @details["company_id"])
       @evidence = Array(@details["evidence"])
+      @tool_results = @details["tool_results"] || {}
       @proposed_corrections = @details["proposed_corrections"] || @details["proposed_changes"] || {}
       @safe_proposed_corrections = @proposed_corrections.slice(*SAFE_APPLY_FIELDS)
       @review_only_proposed_corrections = @proposed_corrections.except(*SAFE_APPLY_FIELDS)
       @description_draft = @details["description_draft"] || {}
       @description_critic = @details["description_critic"] || {}
+      @review_coordinator = @details["review_coordinator"] || {}
       @risks = Array(@details["risks"])
     end
 

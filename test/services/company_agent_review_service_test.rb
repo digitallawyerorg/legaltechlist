@@ -11,10 +11,13 @@ class CompanyAgentReviewServiceTest < ActiveSupport::TestCase
 
     assert_equal "succeeded", @run.status
     assert_equal "company_agent_review", @run.run_type
-    assert_equal "CompanyEvidenceAgent+CompanyVerifierAgent+DescriptionDraftAgent+DescriptionCriticAgent", @run.agent_name
+    assert_equal "CompanyEvidenceAgent+CompanyVerifierAgent+DescriptionDraftAgent+DescriptionCriticAgent+ReviewCoordinatorAgent", @run.agent_name
     assert_equal company.id, @run.details["company_id"]
     assert_equal "agent_proposal_no_public_writes", @run.details["mode"]
     assert_not_empty @run.details["evidence"]
+    assert_equal true, @run.details["tool_results"]["domain_normalization"]["read_only"]
+    assert_equal "example.com", @run.details["tool_results"]["domain_normalization"]["canonical_domain"]
+    assert_not_empty @run.details["tool_results"]["stored_source_lookup"]["sources"]
     assert_includes @run.details["verification"].keys, "verdict"
     assert_includes @run.details["verification"].keys, "quality_score"
     assert_equal "deterministic_fallback", @run.details["description_draft"]["mode"]
@@ -26,8 +29,12 @@ class CompanyAgentReviewServiceTest < ActiveSupport::TestCase
     assert_equal "DescriptionCriticSchema", @run.details["description_critic"]["schema"]
     assert_equal DescriptionCriticSchema::SCHEMA_VERSION, @run.details["description_critic"]["schema_version"]
     assert_includes %w[pass revise reject], @run.details["description_critic"]["verdict"]
+    assert_equal "ReviewCoordinatorSchema", @run.details["review_coordinator"]["schema"]
+    assert_equal ReviewCoordinatorSchema::SCHEMA_VERSION, @run.details["review_coordinator"]["schema_version"]
+    assert_includes ReviewCoordinatorAgent::STATUSES, @run.details["review_coordinator"]["status"]
     assert_equal @run.details["description_draft"]["proposed_description"], @run.details["proposed_corrections"]["proposed_description"]
     assert_equal @run.details["description_critic"]["verdict"], @run.details["proposed_corrections"]["description_critic_verdict"]
+    assert_equal @run.details["review_coordinator"]["status"], @run.details["proposed_corrections"]["coordinator_status"]
     assert_equal "needs_review", @run.details["proposed_corrections"]["quality_status"]
     assert_equal original_attributes, tracked_company_attributes(company.reload)
   end
@@ -79,6 +86,26 @@ class CompanyAgentReviewServiceTest < ActiveSupport::TestCase
     assert_equal "revise", critique["verdict"]
     assert_includes critique["issues"], "Description uses directory-meta phrasing rather than describing the company."
     assert_includes critique["issues"], "Description references weak or indirect evidence instead of company facts."
+    assert_equal company.description, company.reload.description
+  end
+
+  test "review coordinator guardrails prevent ready status when critic requires revision" do
+    company = companies(:one)
+    evidence_payload = CompanyEvidenceAgent.call(company)
+    verification_payload = CompanyVerifierAgent.call(company, evidence_payload: evidence_payload)
+    description_payload = { "proposed_description" => "A neutral draft.", "confidence" => "medium", "warnings" => [] }
+    critic_payload = {
+      "verdict" => "revise",
+      "issues" => ["Needs stronger evidence."],
+      "rationale" => "Critic requires revision.",
+      "suggested_revision" => "",
+      "confidence" => "high"
+    }
+
+    coordination = ReviewCoordinatorAgent.call(company, evidence_payload: evidence_payload, verification_payload: verification_payload, description_payload: description_payload, critic_payload: critic_payload)
+
+    assert_includes %w[needs_description_revision needs_more_evidence possible_duplicate do_not_publish], coordination["status"]
+    assert_includes coordination["guardrails"].map { |guardrail| guardrail["status"] }, "needs_description_revision"
     assert_equal company.description, company.reload.description
   end
 

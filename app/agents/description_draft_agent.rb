@@ -143,6 +143,7 @@ class DescriptionDraftAgent < RubyLLM::Agent
         status: company.status
       },
       evidence: Array(evidence_payload["evidence"]),
+      evidence_tools: evidence_payload["tool_results"] || {},
       evidence_gaps: Array(evidence_payload["evidence_gaps"]),
       verification: verification_payload.slice("verdict", "quality_score", "risks", "taxonomy_signals")
     }.to_json

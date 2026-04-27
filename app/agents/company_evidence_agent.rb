@@ -14,6 +14,7 @@ class CompanyEvidenceAgent
       "generated_at" => Time.current.utc.iso8601,
       "current_record" => current_record,
       "evidence" => evidence,
+      "tool_results" => tool_results,
       "evidence_gaps" => evidence_gaps
     }
   end
@@ -37,14 +38,9 @@ class CompanyEvidenceAgent
   end
 
   def evidence
-    [
-      evidence_item("Company website", company.main_url, "Primary website listed in TechIndex."),
-      evidence_item("Crunchbase", company.crunchbase_url, "Crunchbase profile listed in TechIndex."),
-      evidence_item("LinkedIn", company.linkedin_url, "LinkedIn profile listed in TechIndex."),
-      evidence_item("Source URL", company.source_url, "Source/provenance URL stored on the company record."),
-      evidence_item("Twitter/X", company.twitter_url, "Social profile listed in TechIndex."),
-      evidence_item("Facebook", company.facebook_url, "Social profile listed in TechIndex.")
-    ].compact
+    Array(stored_source_lookup["sources"]).map do |source|
+      evidence_item(source["label"].to_s.humanize, source["url"], "Stored #{source['label'].to_s.humanize.downcase} on the company record.")
+    end.compact
   end
 
   def evidence_item(title, url, summary)
@@ -65,5 +61,35 @@ class CompanyEvidenceAgent
     gaps << "No LinkedIn URL stored." if company.linkedin_url.blank?
     gaps << "No source/provenance URL stored." if company.source_url.blank?
     gaps
+  end
+
+  def tool_results
+    {
+      "domain_normalization" => domain_normalization,
+      "duplicate_lookup" => duplicate_lookup,
+      "stored_source_lookup" => stored_source_lookup,
+      "taxonomy_lookup" => taxonomy_lookup,
+      "web_evidence" => web_evidence
+    }
+  end
+
+  def domain_normalization
+    @domain_normalization ||= DomainNormalizationTool.new.call({ name: company.name, url: company.main_url })
+  end
+
+  def duplicate_lookup
+    @duplicate_lookup ||= DuplicateLookupTool.new.call({ company_id: company.id, name: company.name, url: company.main_url })
+  end
+
+  def stored_source_lookup
+    @stored_source_lookup ||= StoredSourceLookupTool.new.call({ company_id: company.id })
+  end
+
+  def taxonomy_lookup
+    @taxonomy_lookup ||= TaxonomyLookupTool.new.call({ company_id: company.id })
+  end
+
+  def web_evidence
+    @web_evidence ||= WebEvidenceTool.new.call({ company_id: company.id })
   end
 end

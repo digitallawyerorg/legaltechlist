@@ -1,6 +1,6 @@
 class CompanyAgentReviewService
   RUN_TYPE = "company_agent_review".freeze
-  AGENT_NAME = "CompanyEvidenceAgent+CompanyVerifierAgent+DescriptionDraftAgent+DescriptionCriticAgent".freeze
+  AGENT_NAME = "CompanyEvidenceAgent+CompanyVerifierAgent+DescriptionDraftAgent+DescriptionCriticAgent+ReviewCoordinatorAgent".freeze
 
   def self.call(company:, reviewer: nil, notes: nil)
     new(company: company, reviewer: reviewer, notes: notes).call
@@ -37,12 +37,14 @@ class CompanyAgentReviewService
     verification_payload = CompanyVerifierAgent.call(company, evidence_payload: evidence_payload)
     description_payload = DescriptionDraftAgent.call(company, evidence_payload: evidence_payload, verification_payload: verification_payload)
     critic_payload = DescriptionCriticAgent.call(company, evidence_payload: evidence_payload, verification_payload: verification_payload, description_payload: description_payload)
+    coordinator_payload = ReviewCoordinatorAgent.call(company, evidence_payload: evidence_payload, verification_payload: verification_payload, description_payload: description_payload, critic_payload: critic_payload)
     proposed_corrections = verification_payload["proposed_corrections"].merge(
       "proposed_description" => description_payload["proposed_description"],
       "description_rationale" => description_payload["rationale"],
       "description_confidence" => description_payload["confidence"],
       "description_critic_verdict" => critic_payload["verdict"],
-      "description_critic_issues" => critic_payload["issues"]
+      "description_critic_issues" => critic_payload["issues"],
+      "coordinator_status" => coordinator_payload["status"]
     )
 
     {
@@ -51,10 +53,12 @@ class CompanyAgentReviewService
       "notes" => notes,
       "mode" => "agent_proposal_no_public_writes",
       "evidence" => evidence_payload["evidence"],
+      "tool_results" => evidence_payload["tool_results"],
       "evidence_gaps" => evidence_payload["evidence_gaps"],
       "verification" => verification_payload,
       "description_draft" => description_payload,
       "description_critic" => critic_payload,
+      "review_coordinator" => coordinator_payload,
       "duplicate_signals" => verification_payload["duplicate_signals"],
       "taxonomy_signals" => verification_payload["taxonomy_signals"],
       "proposed_corrections" => proposed_corrections,
