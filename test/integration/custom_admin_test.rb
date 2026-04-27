@@ -262,8 +262,37 @@ class CustomAdminTest < ActionDispatch::IntegrationTest
     assert_redirected_to custom_admin_company_review_path(company)
     assert_equal "Custom Managed Company", company.reload.name
 
+    get upload_custom_admin_companies_csv_path
+    assert_response :success
+    assert_select "input[type=submit][value='Review Candidates Only']"
+
     get export_custom_admin_companies_csv_path
     assert_response :success
     assert_includes response.media_type, "text/csv"
+  end
+
+  test "candidate import review creates pipeline run without importing companies" do
+    sign_in admin_users(:one)
+    file = Rack::Test::UploadedFile.new(Rails.root.join("test/fixtures/atlas_candidates.csv"), "text/csv")
+    original_count = Company.count
+    original_attributes = companies(:one).attributes.slice("name", "description", "main_url", "visible", "quality_status", "verification_verdict", "quality_score", "canonical_domain", "fingerprint", "updated_at")
+
+    assert_difference "PipelineRun.count", 1 do
+      post review_import_candidates_custom_admin_companies_csv_path, params: { dump: { file: file } }
+    end
+
+    run = PipelineRun.order(:created_at).last
+    assert_redirected_to custom_admin_pipeline_run_path(run)
+    assert_equal "atlas_candidate_import_review", run.run_type
+    assert_equal "candidate_import_review_no_public_writes", run.details["mode"]
+    assert_equal 2, run.details["summary"]["reviewed_rows"]
+    assert_equal original_count, Company.count
+    assert_equal original_attributes, companies(:one).reload.attributes.slice("name", "description", "main_url", "visible", "quality_status", "verification_verdict", "quality_score", "canonical_domain", "fingerprint", "updated_at")
+
+    get custom_admin_pipeline_run_path(run)
+    assert_response :success
+    assert_select "h2", "Candidate Import Review"
+    assert_select ".alert", /Source descriptions must not be copied/
+    assert_select "td", text: /New Atlas Candidate/
   end
 end

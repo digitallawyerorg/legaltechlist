@@ -8,6 +8,57 @@
 
 .row.g-3
     .col-lg-8
+        - if @pipeline_run.run_type == "atlas_candidate_import_review"
+            .card.border-0.shadow-sm.mb-3
+                .card-header.bg-white
+                    h2.h5.mb-0 Candidate Import Review
+                .card-body
+                    .row.g-3.mb-3
+                        .col-sm-3
+                            .text-muted.small Reviewed
+                            .fw-semibold= number_with_delimiter(@candidate_import_summary["reviewed_rows"].to_i)
+                        .col-sm-3
+                            .text-muted.small Absent
+                            .fw-semibold= number_with_delimiter(@candidate_import_summary["absent_candidates"].to_i)
+                        .col-sm-3
+                            .text-muted.small Name matches
+                            .fw-semibold= number_with_delimiter(@candidate_import_summary["existing_name_matches"].to_i)
+                        .col-sm-3
+                            .text-muted.small Domain matches
+                            .fw-semibold= number_with_delimiter(@candidate_import_summary["existing_domain_matches"].to_i)
+                    - if @candidate_import_summary["warning"].present?
+                        .alert.alert-warning= @candidate_import_summary["warning"]
+                    - if @candidate_import_candidates.any?
+                        .table-responsive
+                            table.table.table-sm.align-middle.mb-0
+                                thead
+                                    tr
+                                        th Candidate
+                                        th Website
+                                        th Status
+                                        th Matches
+                                        th Recommended action
+                                tbody
+                                    - @candidate_import_candidates.each do |candidate|
+                                        tr
+                                            td
+                                                .fw-semibold= candidate["name"]
+                                                .text-muted.small= candidate["location"]
+                                            td
+                                                - if candidate["website"].present?
+                                                    = link_to candidate["canonical_domain"].presence || candidate["website"], candidate["website"], target: "_blank", rel: "noopener"
+                                                - else
+                                                    span.text-muted Missing
+                                            td
+                                                - if candidate["status"] == "absent_candidate"
+                                                    span.badge.text-bg-success Absent candidate
+                                                - else
+                                                    span.badge.text-bg-warning Existing or duplicate
+                                            td.small= "#{Array(candidate['name_matches']).size} name / #{Array(candidate['domain_matches']).size} domain"
+                                            td.small= candidate["recommended_action"]
+                    - else
+                        p.text-muted.mb-0 No candidate rows recorded.
+
         .card.border-0.shadow-sm
             .card-header.bg-white
                 h2.h5.mb-0 Details

@@ -14,6 +14,9 @@ module Admin
 
     def show
       @pipeline_run = PipelineRun.find(params[:id])
+      @details = @pipeline_run.details || {}
+      @candidate_import_summary = @details["summary"] || {}
+      @candidate_import_candidates = Array(@details["candidates"])
     end
 
     private

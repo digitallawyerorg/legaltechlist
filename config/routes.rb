@@ -30,6 +30,7 @@ Rails.application.routes.draw do
   post 'admin/app/companies', to: 'admin/company_management#create'
   get 'admin/app/companies/upload', to: 'admin/company_management#upload', as: :upload_custom_admin_companies_csv
   post 'admin/app/companies/import', to: 'admin/company_management#import', as: :import_custom_admin_companies_csv
+  post 'admin/app/companies/review-import-candidates', to: 'admin/company_management#review_import_candidates', as: :review_import_candidates_custom_admin_companies_csv
   get 'admin/app/companies/export', to: 'admin/company_management#export', as: :export_custom_admin_companies_csv
   get 'admin/app/companies/:id/edit', to: 'admin/company_management#edit', as: :edit_custom_admin_company
   patch 'admin/app/companies/:id', to: 'admin/company_management#update', as: :custom_admin_company

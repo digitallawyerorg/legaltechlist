@@ -45,6 +45,12 @@ module Admin
       redirect_to custom_admin_companies_path, notice: "CSV imported. Created: #{stats[:created]}, Updated: #{stats[:updated]}, Skipped: #{stats[:skipped]}, Errors: #{stats[:errors]}."
     end
 
+    def review_import_candidates
+      run = AtlasCandidateImportReviewService.call(file: params.require(:dump).require(:file), reviewer: current_admin_user.email, notes: "Triggered from custom CSV candidate review")
+
+      redirect_to custom_admin_pipeline_run_path(run), notice: "Candidate import review created. No company records were changed."
+    end
+
     def export
       csv = CSV.generate(encoding: Encoding::UTF_8.name) { |rows| ImportCsvToCompanyService.export(rows) }
       send_data csv, type: "text/csv; charset=utf-8; header=present", disposition: "attachment; filename=companies.csv"
