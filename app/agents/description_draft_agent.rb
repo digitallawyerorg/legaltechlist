@@ -1,4 +1,9 @@
-class DescriptionDraftAgent
+class DescriptionDraftAgent < RubyLLM::Agent
+  model "gpt-5.5"
+  instructions
+  schema DescriptionDraftSchema
+  temperature 0.2
+
   MARKETING_TERMS = %w[
     best
     cutting-edge
@@ -7,6 +12,8 @@ class DescriptionDraftAgent
     revolutionary
     world-class
   ].freeze
+
+  SCHEMA_VERSION = DescriptionDraftSchema::SCHEMA_VERSION
 
   def self.call(company, evidence_payload:, verification_payload:)
     new(company, evidence_payload: evidence_payload, verification_payload: verification_payload).call
@@ -20,25 +27,37 @@ class DescriptionDraftAgent
 
   def call
     draft_payload = llm_enabled? ? llm_draft : fallback_draft
+    proposed_description = sanitize_description(draft_payload.fetch("proposed_description"))
 
     {
       "agent" => self.class.name,
       "company_id" => company.id,
       "generated_at" => Time.current.utc.iso8601,
+      "schema" => "DescriptionDraftSchema",
+      "schema_version" => SCHEMA_VERSION,
       "mode" => draft_payload.fetch("mode"),
       "model" => draft_payload["model"],
-      "proposed_description" => sanitize_description(draft_payload.fetch("proposed_description")),
+      "proposed_description" => proposed_description,
       "rationale" => draft_payload["rationale"],
       "confidence" => draft_payload["confidence"],
+      "usage" => draft_payload["usage"],
+      "estimated_cost_usd" => draft_payload["estimated_cost_usd"],
       "source_limits" => source_limits,
-      "warnings" => warnings(draft_payload.fetch("proposed_description"))
+      "warnings" => warnings(proposed_description)
     }
   rescue StandardError => e
-    fallback_draft.merge(
+    draft_payload = fallback_draft
+    proposed_description = sanitize_description(draft_payload.fetch("proposed_description"))
+
+    draft_payload.merge(
       "agent" => self.class.name,
       "company_id" => company.id,
       "generated_at" => Time.current.utc.iso8601,
+      "schema" => "DescriptionDraftSchema",
+      "schema_version" => SCHEMA_VERSION,
       "mode" => "fallback_after_error",
+      "source_limits" => source_limits,
+      "warnings" => warnings(proposed_description),
       "error_class" => e.class.name,
       "error_message" => e.message
     )
@@ -55,37 +74,41 @@ class DescriptionDraftAgent
   end
 
   def llm_draft
-    model = ENV.fetch("RUBYLLM_DESCRIPTION_MODEL", ENV.fetch("RUBYLLM_DEFAULT_MODEL", "gpt-5-nano"))
-    chat = RubyLLM.chat(model: model)
-      .with_temperature(0.2)
-      .with_params(response_format: { type: "json_object" })
-
-    chat.with_instructions(description_instructions)
+    model = hard_model
+    chat = self.class.chat(model: model, provider: :openai, assume_model_exists: unknown_model?(model))
     response = chat.ask(description_prompt)
     parsed = parse_json_content(response.content)
 
     {
       "mode" => "ruby_llm",
-      "model" => model,
+      "model" => response.model_id.presence || model,
       "proposed_description" => parsed["proposed_description"],
       "rationale" => parsed["rationale"],
-      "confidence" => parsed["confidence"]
+      "confidence" => parsed["confidence"],
+      "usage" => usage_payload(response),
+      "estimated_cost_usd" => estimated_cost(response)
     }
   end
 
   def fallback_draft
-    description = "#{company.name} is listed in TechIndex as a legal technology company"
-    description += " in the #{company.category.name} category" if company.category&.name.present?
-    description += " with a #{company.business_model.name.downcase} business model" if company.business_model&.name.present?
-    description += " serving #{company.target_client.name.downcase}" if company.target_client&.name.present?
-    description += "."
+    segments = []
+    segments << "in #{company.category.name}" if company.category&.name.present?
+    segments << "with a #{company.business_model.name.downcase} business model" if company.business_model&.name.present?
+    segments << "serving #{company.target_client.name.downcase}" if company.target_client&.name.present?
+    description = if segments.any?
+      "#{company.name} provides or supports legal technology #{segments.to_sentence}."
+    else
+      "#{company.name} provides or supports legal technology services based on the current TechIndex record."
+    end
 
     {
       "mode" => "deterministic_fallback",
       "model" => nil,
       "proposed_description" => description,
       "rationale" => "Generated from current TechIndex taxonomy fields only because model-backed drafting was unavailable or disabled.",
-      "confidence" => "low"
+      "confidence" => "low",
+      "usage" => nil,
+      "estimated_cost_usd" => nil
     }
   end
 
@@ -97,15 +120,15 @@ class DescriptionDraftAgent
     { "proposed_description" => content.to_s, "rationale" => "Model returned non-JSON content.", "confidence" => "low" }
   end
 
-  def description_instructions
-    <<~TEXT
-      You draft neutral academic directory descriptions for Stanford CodeX TechIndex.
-      Return only JSON with keys: proposed_description, rationale, confidence.
-      The proposed_description must be one sentence, 25 to 45 words, objective, factual, and non-marketing.
-      Do not copy or lightly rewrite source/current descriptions.
-      Do not use superlatives or claims such as leading, best, revolutionary, cutting-edge, world-class, or game-changing.
-      If facts are thin, write conservatively and say the company is listed in TechIndex as operating in the known category.
-    TEXT
+  def hard_model
+    ENV.fetch("RUBYLLM_DESCRIPTION_MODEL", ENV.fetch("RUBYLLM_HARD_MODEL", "gpt-5.5"))
+  end
+
+  def unknown_model?(model)
+    RubyLLM.models.find(model)
+    false
+  rescue RubyLLM::ModelNotFoundError
+    true
   end
 
   def description_prompt
@@ -125,11 +148,37 @@ class DescriptionDraftAgent
     }.to_json
   end
 
+  def usage_payload(response)
+    {
+      "input_tokens" => response.input_tokens,
+      "output_tokens" => response.output_tokens,
+      "cached_tokens" => response.cached_tokens,
+      "cache_creation_tokens" => response.cache_creation_tokens,
+      "thinking_tokens" => response.thinking_tokens,
+      "total_tokens" => [response.input_tokens, response.output_tokens].compact.sum
+    }
+  end
+
+  def estimated_cost(response)
+    model_info = RubyLLM.models.find(response.model_id)
+    return unless model_info&.input_price_per_million && model_info&.output_price_per_million
+
+    input_tokens = response.input_tokens.to_i
+    output_tokens = response.output_tokens.to_i
+    input_cost = input_tokens * model_info.input_price_per_million / 1_000_000.0
+    output_cost = output_tokens * model_info.output_price_per_million / 1_000_000.0
+    (input_cost + output_cost).round(8)
+  rescue StandardError
+    nil
+  end
+
   def sanitize_description(description)
     cleaned = description.to_s.squish
     MARKETING_TERMS.each do |term|
       cleaned = cleaned.gsub(/\b#{Regexp.escape(term)}\b/i, "")
     end
+    cleaned = cleaned.gsub(/\b(?:is\s+)?(?:listed|included)\s+in\s+TechIndex\s+as\s+/i, "")
+    cleaned = cleaned.gsub(/\ba\s+TechIndex\s+company\b/i, "a legal technology company")
     cleaned.squish
   end
 
@@ -145,11 +194,16 @@ class DescriptionDraftAgent
     flagged = []
     flagged << "Draft is shorter than expected." if description.to_s.squish.split.size < 20
     flagged << "Draft may contain marketing language." if marketing_language?(description)
+    flagged << "Draft describes TechIndex rather than the company." if directory_meta_language?(description)
     flagged
   end
 
   def marketing_language?(description)
     text = description.to_s.downcase
     MARKETING_TERMS.any? { |term| text.include?(term) }
+  end
+
+  def directory_meta_language?(description)
+    description.to_s.match?(/\b(listed in TechIndex|included in TechIndex|TechIndex company)\b/i)
   end
 end

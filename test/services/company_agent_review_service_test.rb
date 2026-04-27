@@ -18,6 +18,11 @@ class CompanyAgentReviewServiceTest < ActiveSupport::TestCase
     assert_includes @run.details["verification"].keys, "verdict"
     assert_includes @run.details["verification"].keys, "quality_score"
     assert_equal "deterministic_fallback", @run.details["description_draft"]["mode"]
+    assert_equal "DescriptionDraftSchema", @run.details["description_draft"]["schema"]
+    assert_equal DescriptionDraftSchema::SCHEMA_VERSION, @run.details["description_draft"]["schema_version"]
+    assert_nil @run.details["description_draft"]["usage"]
+    assert_nil @run.details["description_draft"]["estimated_cost_usd"]
+    refute_match(/listed in TechIndex|included in TechIndex|TechIndex company/i, @run.details["description_draft"]["proposed_description"])
     assert_equal @run.details["description_draft"]["proposed_description"], @run.details["proposed_corrections"]["proposed_description"]
     assert_equal "needs_review", @run.details["proposed_corrections"]["quality_status"]
     assert_equal original_attributes, tracked_company_attributes(company.reload)
@@ -44,6 +49,15 @@ class CompanyAgentReviewServiceTest < ActiveSupport::TestCase
     assert proposed_description.present?
     refute_match(/best|leading|revolutionary|cutting-edge|world-class|game-changing/i, proposed_description)
     assert_equal original_description, company.reload.description
+  end
+
+  test "description draft avoids directory meta language" do
+    company = companies(:one)
+    run = CompanyAgentReviewService.call(company: company)
+    proposed_description = run.details["proposed_corrections"]["proposed_description"]
+
+    assert proposed_description.present?
+    refute_match(/listed in TechIndex|included in TechIndex|TechIndex company/i, proposed_description)
   end
 
   private
