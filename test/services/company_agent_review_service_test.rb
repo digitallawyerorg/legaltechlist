@@ -71,6 +71,17 @@ class CompanyAgentReviewServiceTest < ActiveSupport::TestCase
     refute_match(/listed in TechIndex|included in TechIndex|TechIndex company/i, proposed_description)
   end
 
+  test "description draft avoids source meta language when facts are thin" do
+    company = companies(:one)
+    company.update_columns(category_id: nil, business_model_id: nil, target_client_id: nil)
+
+    run = CompanyAgentReviewService.call(company: company)
+    proposed_description = run.details["proposed_corrections"]["proposed_description"]
+
+    assert proposed_description.present?
+    refute_match(/available records|directory metadata|stored profiles|associated social profiles|primary web presence|current TechIndex record|through its .* domain/i, proposed_description)
+  end
+
   test "description critic flags directory metadata phrasing" do
     company = companies(:one)
     evidence_payload = CompanyEvidenceAgent.call(company)
@@ -78,6 +89,24 @@ class CompanyAgentReviewServiceTest < ActiveSupport::TestCase
     description_payload = {
       "proposed_description" => "#{company.name} supports litigation teams based on available directory metadata and associated social profiles.",
       "rationale" => "Test weak phrasing.",
+      "warnings" => []
+    }
+
+    critique = DescriptionCriticAgent.call(company, evidence_payload: evidence_payload, verification_payload: verification_payload, description_payload: description_payload)
+
+    assert_equal "revise", critique["verdict"]
+    assert_includes critique["issues"], "Description uses directory-meta phrasing rather than describing the company."
+    assert_includes critique["issues"], "Description references weak or indirect evidence instead of company facts."
+    assert_equal company.description, company.reload.description
+  end
+
+  test "description critic flags source meta phrasing" do
+    company = companies(:one)
+    evidence_payload = CompanyEvidenceAgent.call(company)
+    verification_payload = CompanyVerifierAgent.call(company, evidence_payload: evidence_payload)
+    description_payload = {
+      "proposed_description" => "#{company.name} provides legal technology support through its example.com domain and primary web presence.",
+      "rationale" => "Test source meta phrasing.",
       "warnings" => []
     }
 

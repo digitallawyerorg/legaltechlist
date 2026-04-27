@@ -98,7 +98,7 @@ class DescriptionDraftAgent < RubyLLM::Agent
     description = if segments.any?
       "#{company.name} provides or supports legal technology #{segments.to_sentence}."
     else
-      "#{company.name} provides or supports legal technology services based on the current TechIndex record."
+      "#{company.name} provides or supports legal technology services."
     end
 
     {
@@ -180,6 +180,9 @@ class DescriptionDraftAgent < RubyLLM::Agent
     end
     cleaned = cleaned.gsub(/\b(?:is\s+)?(?:listed|included)\s+in\s+TechIndex\s+as\s+/i, "")
     cleaned = cleaned.gsub(/\ba\s+TechIndex\s+company\b/i, "a legal technology company")
+    cleaned = cleaned.gsub(/\b(?:based on|according to|identified in)\s+(?:available records|directory metadata|stored profiles|the current record|the current TechIndex record)\b/i, "")
+    cleaned = cleaned.gsub(/\b(?:through|via)\s+its\s+[\w.-]+\s+domain\b/i, "")
+    cleaned = cleaned.gsub(/\b(?:associated with|connected to)\s+(?:the\s+)?(?:website|domain|social profiles?)\b/i, "")
     cleaned.squish
   end
 
@@ -196,6 +199,7 @@ class DescriptionDraftAgent < RubyLLM::Agent
     flagged << "Draft is shorter than expected." if description.to_s.squish.split.size < 20
     flagged << "Draft may contain marketing language." if marketing_language?(description)
     flagged << "Draft describes TechIndex rather than the company." if directory_meta_language?(description)
+    flagged << "Draft may describe source metadata rather than company facts." if source_meta_language?(description)
     flagged
   end
 
@@ -206,5 +210,9 @@ class DescriptionDraftAgent < RubyLLM::Agent
 
   def directory_meta_language?(description)
     description.to_s.match?(/\b(listed in TechIndex|included in TechIndex|TechIndex company)\b/i)
+  end
+
+  def source_meta_language?(description)
+    description.to_s.match?(/\b(available records|directory metadata|stored profiles|associated social profiles|primary web presence|current record|through its [\w.-]+ domain|associated with the website)\b/i)
   end
 end

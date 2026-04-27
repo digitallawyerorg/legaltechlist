@@ -99,7 +99,7 @@ class DescriptionCriticAgent < RubyLLM::Agent
   def deterministic_issues
     description = proposed_description
     issues = []
-    issues << "Description uses directory-meta phrasing rather than describing the company." if directory_meta_language?(description)
+    issues << "Description uses directory-meta phrasing rather than describing the company." if directory_meta_language?(description) || source_meta_language?(description)
     issues << "Description contains marketing language or superlatives." if marketing_language?(description)
     issues << "Description is shorter than expected for public review." if description.split.size < 20
     issues << "Description references weak or indirect evidence instead of company facts." if weak_evidence_language?(description)
@@ -188,11 +188,15 @@ class DescriptionCriticAgent < RubyLLM::Agent
   end
 
   def weak_evidence_language?(description)
-    description.match?(/\b(based on available|associated social profiles|directory metadata|current TechIndex record)\b/i)
+    description.match?(/\b(based on available|associated social profiles|directory metadata|current TechIndex record|available records|stored profiles|primary web presence)\b/i)
   end
 
   def marketing_language?(description)
     text = description.downcase
     MARKETING_TERMS.any? { |term| text.include?(term) }
+  end
+
+  def source_meta_language?(description)
+    description.match?(/\b(available records|stored profiles|associated social profiles|primary web presence|through its [\w.-]+ domain|associated with the website|classification in)\b/i)
   end
 end
