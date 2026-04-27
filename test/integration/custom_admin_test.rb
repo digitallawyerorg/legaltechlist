@@ -331,6 +331,7 @@ class CustomAdminTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "h1", "Company Proposals"
     assert_select "td", text: /Review Proposal/
+    assert_select ".text-uppercase", text: /Ready/
 
     get custom_admin_company_proposal_path(proposal)
     assert_response :success
@@ -342,7 +343,8 @@ class CustomAdminTest < ActionDispatch::IntegrationTest
     assert_equal "ready_for_review", proposal.reload.status
     assert proposal.final_changes["description"].present?
 
-    patch custom_admin_company_proposal_path(proposal), params: { company_proposal: { reviewer_notes: "Reviewed by admin.", final_changes: { name: "Review Proposal", main_url: "https://review-proposal.example", location: "Chicago, IL", founded_date: "2024", status: "active", description: "Review Proposal provides legal technology services for legal teams.", category_id: categories(:one).id, business_model_id: business_models(:one).id, target_client_id: target_clients(:one).id, source: "LegalTechAtlas CSV", source_url: "https://review-proposal.example" } } }
+    reviewed_description = "Review Proposal develops workflow software for legal teams reviewing intake, matter information, and related operational records."
+    patch custom_admin_company_proposal_path(proposal), params: { company_proposal: { reviewer_notes: "Reviewed by admin.", final_changes: { name: "Review Proposal", main_url: "https://review-proposal.example", location: "Chicago, IL", founded_date: "2024", status: "active", description: reviewed_description, category_id: categories(:one).id, business_model_id: business_models(:one).id, target_client_id: target_clients(:one).id, source: "LegalTechAtlas CSV", source_url: "https://review-proposal.example" } } }
     assert_redirected_to custom_admin_company_proposal_path(proposal)
 
     assert_difference "Company.count", 1 do
@@ -354,6 +356,24 @@ class CustomAdminTest < ActionDispatch::IntegrationTest
     assert company.visible?
     assert_equal "published", proposal.status
     assert_equal "Review Proposal", company.name
-    assert_equal "Review Proposal provides legal technology services for legal teams.", company.description
+    assert_equal reviewed_description, company.description
+  end
+
+  test "proposal batch action marks selected proposals as needs revision" do
+    sign_in admin_users(:one)
+    proposal = CompanyProposal.create!(
+      status: "pending",
+      proposal_type: "atlas_candidate",
+      source: "legaltechatlas_csv",
+      source_identifier: "batch-review.example",
+      source_payload: { "name" => "Batch Review", "website" => "https://batch-review.example" },
+      proposed_changes: { "name" => "Batch Review", "main_url" => "https://batch-review.example" },
+      final_changes: { "name" => "Batch Review", "main_url" => "https://batch-review.example" }
+    )
+
+    post batch_custom_admin_company_proposals_path, params: { proposal_ids: [proposal.id], batch_action: "mark_needs_revision", status: "pending_review" }
+
+    assert_redirected_to custom_admin_company_proposals_path(status: "pending_review")
+    assert_equal "needs_revision", proposal.reload.status
   end
 end

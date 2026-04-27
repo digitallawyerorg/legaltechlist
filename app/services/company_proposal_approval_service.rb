@@ -11,8 +11,9 @@ class CompanyProposalApprovalService
   end
 
   def call
-    validate_proposal!
+    validate_base_proposal!
     ensure_description!
+    validate_proposal!
 
     company = Company.new(company_attributes)
     company.visible = publish
@@ -39,10 +40,18 @@ class CompanyProposalApprovalService
 
   attr_reader :proposal, :admin_user, :duplicate_override, :publish
 
-  def validate_proposal!
+  def validate_base_proposal!
     raise ArgumentError, "Rejected proposals cannot be approved" if proposal.rejected?
     raise ArgumentError, "Proposal has already created a company draft" if proposal.company_id.present?
+  end
+
+  def validate_proposal!
     raise ArgumentError, "Resolve duplicate signals or confirm override before approval" if proposal.duplicate_blocking? && !duplicate_override
+    raise ArgumentError, "Resolve publish blockers before publication: #{publish_blockers.to_sentence}" if publish && publish_blockers.any?
+  end
+
+  def publish_blockers
+    @publish_blockers ||= CompanyProposalQualityService.call(proposal)["blockers"]
   end
 
   def company_attributes

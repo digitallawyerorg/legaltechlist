@@ -12,10 +12,12 @@ module Admin
         "published" => CompanyProposal.published.count,
         "rejected" => CompanyProposal.rejected.count
       }
+      @review_cockpit_counts = review_cockpit_counts
     end
 
     def show
       load_proposal
+      @quality_report = CompanyProposalQualityService.call(@company_proposal)
     end
 
     def edit
@@ -55,6 +57,14 @@ module Admin
       redirect_to custom_admin_company_proposal_path(@company_proposal), alert: e.message
     end
 
+    def batch_update
+      proposals = CompanyProposal.where(id: Array(params[:proposal_ids]))
+      results = CompanyProposalBatchService.call(proposals: proposals, admin_user: current_admin_user, action: params[:batch_action], duplicate_override: params[:duplicate_override] == "1")
+      redirect_to custom_admin_company_proposals_path(status: params[:status]), notice: "#{results.size} proposal actions completed."
+    rescue ArgumentError, ActiveRecord::RecordInvalid => e
+      redirect_to custom_admin_company_proposals_path(status: params[:status]), alert: e.message
+    end
+
     def reject
       load_proposal
       @company_proposal.update!(
@@ -76,6 +86,19 @@ module Admin
       @final_changes = @company_proposal.editable_changes
       @duplicate_signals = @company_proposal.duplicate_signals || {}
       @agent_details = @company_proposal.agent_details || {}
+    end
+
+    def review_cockpit_counts
+      proposals = CompanyProposal.all.to_a
+      quality_reports = proposals.to_h { |proposal| [proposal.id, CompanyProposalQualityService.call(proposal)] }
+      {
+        "ready" => quality_reports.count { |_id, report| report["publish_ready"] },
+        "needs_revision" => CompanyProposal.where(status: "needs_revision").count,
+        "duplicate_blocked" => proposals.count(&:duplicate_blocking?),
+        "missing_taxonomy" => quality_reports.count { |_id, report| (report["missing_required_fields"] & %w[category_id business_model_id target_client_id]).any? },
+        "missing_description" => quality_reports.count { |_id, report| report["missing_required_fields"].include?("description") },
+        "published" => CompanyProposal.published.count
+      }
     end
 
     def proposals_scope

@@ -3,8 +3,16 @@
 .d-flex.justify-content-between.align-items-start.mb-4
     div
         h1.h3.mb-1 Company Proposals
-        p.text-muted.mb-0 Editable candidate proposals waiting for human review before invisible company drafts are created.
+        p.text-muted.mb-0 Review cockpit for Atlas candidates, enrichment evidence, duplicate warnings, and publish readiness.
     = link_to "Review CSV Candidates", upload_custom_admin_companies_csv_path, class: "btn btn-outline-primary"
+
+.row.g-3.mb-4
+    - @review_cockpit_counts.each do |label, count|
+        .col-6.col-lg-2
+            .card.border-0.shadow-sm.h-100
+                .card-body
+                    .text-uppercase.text-muted.small.fw-semibold= label.humanize
+                    .display-6.fw-semibold= number_with_delimiter(count)
 
 .card.border-0.shadow-sm.mb-4
     .card-body
@@ -12,38 +20,71 @@
             - @status_counts.each do |status, count|
                 = link_to "#{status.humanize} (#{number_with_delimiter(count)})", custom_admin_company_proposals_path(status: status), class: "btn btn-sm #{@status == status ? 'btn-primary' : 'btn-outline-secondary'}"
 
-.card.border-0.shadow-sm
-    .table-responsive
-        table.table.table-hover.align-middle.mb-0
-            thead
-                tr
-                    th Candidate
-                    th Status
-                    th Source
-                    th Duplicate signals
-                    th Draft company
-                    th Updated
-                    th
-            tbody
-                - @company_proposals.each do |proposal|
+= form_with url: batch_custom_admin_company_proposals_path, method: :post, local: true do
+    = hidden_field_tag :status, @status
+    .card.border-0.shadow-sm.mb-3
+        .card-body.d-flex.flex-wrap.align-items-center.gap-2
+            span.text-muted.small.fw-semibold Batch actions
+            = button_tag "Re-enrich selected", type: "submit", name: "batch_action", value: "reenrich", class: "btn btn-sm btn-outline-primary"
+            = button_tag "Mark needs revision", type: "submit", name: "batch_action", value: "mark_needs_revision", class: "btn btn-sm btn-outline-warning"
+            = button_tag "Publish gate-passing selected", type: "submit", name: "batch_action", value: "publish", class: "btn btn-sm btn-success", data: { turbo_confirm: "Only publish proposals that pass all readiness gates?" }
+
+    .card.border-0.shadow-sm
+        .table-responsive
+            table.table.table-hover.align-middle.mb-0
+                thead
                     tr
-                        td
-                            .fw-semibold= link_to proposal.display_name, custom_admin_company_proposal_path(proposal)
-                            .text-muted.small= proposal.final_changes["main_url"].presence || proposal.source_payload["website"].presence || "Missing website"
-                        td
-                            span.badge.text-bg-light= proposal.status.humanize
-                        td= proposal.source
-                        td.small= "#{Array(proposal.duplicate_signals['name_matches']).size} name / #{Array(proposal.duplicate_signals['domain_matches']).size} domain"
-                        td
-                            - if proposal.company
-                                = link_to proposal.company.name, custom_admin_company_review_path(proposal.company)
-                            - else
-                                span.text-muted None
-                        td.text-muted.small= time_ago_in_words(proposal.updated_at)
-                        td.text-end
-                            = link_to "Review", custom_admin_company_proposal_path(proposal), class: "btn btn-sm btn-outline-primary"
-                - if @company_proposals.empty?
-                    tr
-                        td.text-muted colspan="7" No proposals in this queue.
+                        th
+                        th Candidate
+                        th Readiness
+                        th Description
+                        th Taxonomy
+                        th Duplicate signals
+                        th Research
+                        th Draft company
+                        th Updated
+                        th
+                tbody
+                    - @company_proposals.each do |proposal|
+                        - quality = CompanyProposalQualityService.call(proposal)
+                        - missing = Array(quality["missing_required_fields"])
+                        - critic = proposal.agent_details.dig("description_critic", "verdict").presence || "missing"
+                        - research_results = Array(proposal.agent_details.dig("web_research", "results"))
+                        tr
+                            td= check_box_tag "proposal_ids[]", proposal.id, false, class: "form-check-input"
+                            td
+                                .fw-semibold= link_to proposal.display_name, custom_admin_company_proposal_path(proposal)
+                                .text-muted.small= proposal.final_changes["main_url"].presence || proposal.source_payload["website"].presence || "Missing website"
+                                span.badge.text-bg-light.mt-1= proposal.status.humanize
+                            td
+                                span.badge(class=(quality["publish_ready"] ? "text-bg-success" : "text-bg-warning"))= "#{quality['score']}%"
+                                - if Array(quality["blockers"]).any?
+                                    .small.text-muted= Array(quality["blockers"]).first
+                            td
+                                span.badge(class=(critic == "pass" ? "text-bg-success" : "text-bg-warning"))= critic.humanize
+                                .small.text-muted= missing.include?("description") ? "Missing description" : truncate(proposal.final_changes["description"].to_s, length: 90)
+                            td.small
+                                - taxonomy_missing = missing & ["category_id", "business_model_id", "target_client_id"]
+                                - if taxonomy_missing.any?
+                                    span.text-warning= "Missing #{taxonomy_missing.map(&:humanize).to_sentence}"
+                                - else
+                                    span.text-success Complete
+                            td.small= "#{Array(proposal.duplicate_signals['name_matches']).size} name / #{Array(proposal.duplicate_signals['domain_matches']).size} domain"
+                            td.small
+                                - if research_results.any?
+                                    span.text-success= "#{research_results.size} snippets"
+                                - else
+                                    span.text-muted No search evidence
+                            td
+                                - if proposal.company
+                                    = link_to proposal.company.name, custom_admin_company_review_path(proposal.company)
+                                - else
+                                    span.text-muted None
+                            td.text-muted.small= time_ago_in_words(proposal.updated_at)
+                            td.text-end
+                                = link_to "Review", custom_admin_company_proposal_path(proposal), class: "btn btn-sm btn-outline-primary"
+                    - if @company_proposals.empty?
+                        tr
+                            td.text-muted colspan="10" No proposals in this queue.
 
 = paginate @company_proposals

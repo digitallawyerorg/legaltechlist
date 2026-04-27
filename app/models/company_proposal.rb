@@ -50,6 +50,14 @@ class CompanyProposal < ActiveRecord::Base
     Array(duplicate_signals["name_matches"]).any? || Array(duplicate_signals["domain_matches"]).any?
   end
 
+  def quality_report
+    CompanyProposalQualityService.call(self)
+  end
+
+  def publish_ready?
+    quality_report["publish_ready"]
+  end
+
   def approved_to_draft?
     status == "approved_to_draft"
   end

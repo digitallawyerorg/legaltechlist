@@ -11,12 +11,14 @@ class CompanyProposalEnrichmentService
   end
 
   def call
+    @research_payload = CompanyProposalResearchService.call(proposal: proposal)
     final_changes = proposal.final_changes.merge(enriched_changes)
+    agent_payload = agent_details(final_changes)
     proposal.update!(
       status: "ready_for_review",
       final_changes: final_changes,
       proposed_changes: proposal.proposed_changes.merge(enriched_changes),
-      agent_details: agent_details(final_changes),
+      agent_details: agent_payload.merge("quality" => CompanyProposalQualityService.call(proposal.tap { |record| record.final_changes = final_changes; record.agent_details = agent_payload })),
       admin_user: admin_user,
       enriched_at: Time.current
     )
@@ -99,7 +101,7 @@ class CompanyProposalEnrichmentService
         "Admin review and editing are required before creating an invisible company draft.",
         "Final publication requires a separate visible toggle."
       ],
-      "web_research" => web_research,
+      "web_research" => research_payload,
       "description_draft" => {
         "proposed_description" => final_changes["description"],
         "confidence" => "low",
@@ -130,26 +132,9 @@ class CompanyProposalEnrichmentService
     {
       candidate: source_payload.slice("name", "website", "location", "industries", "operating_status", "company_type", "founded_date", "funding_amount_usd", "number_of_funding_rounds", "employee_count", "founders"),
       source_evidence: source_evidence,
-      web_research: web_research,
+      web_research: research_payload,
       instruction: "Return JSON with key proposed_description. Draft one neutral, academic directory sentence of 18-32 words. Use concrete product/function language grounded only in evidence. Do not copy source descriptions. Avoid marketing language, source-meta phrasing, customer counts, unverifiable superlatives, and the phrase 'provides or supports'."
     }.to_json
-  end
-
-  def web_research
-    @web_research ||= begin
-      if ENV["BRAVE_SEARCH_API_KEY"].present?
-        brave_search
-      elsif ENV["SERPAPI_API_KEY"].present?
-        serpapi_search
-      else
-        {
-          "mode" => "disabled_no_search_api_key",
-          "query" => research_query,
-          "results" => [],
-          "note" => "No web-search API key configured; enrichment used stored source evidence from the candidate row."
-        }
-      end
-    end
   end
 
   def llm_enabled?
@@ -179,6 +164,10 @@ class CompanyProposalEnrichmentService
     }.compact
   end
 
+  def research_payload
+    @research_payload ||= CompanyProposalResearchService.call(proposal: proposal)
+  end
+
   def source_text
     [
       source_payload["source_description"],
@@ -188,52 +177,11 @@ class CompanyProposalEnrichmentService
   end
 
   def description_rationale
-    if Array(web_research["results"]).any?
-      "Drafted from candidate source evidence and web-search snippets, then filtered for neutral academic tone."
+    if Array(research_payload["results"]).any? || research_payload["summary"].present?
+      "Drafted from candidate source evidence and OpenAI Responses API web-search research, then filtered for neutral academic tone."
     else
-      "Drafted from candidate source evidence because no web-search API key is configured."
+      "Drafted from candidate source evidence because web search was unavailable."
     end
-  end
-
-  def research_query
-    [display_name, source_payload["website"], "legal technology"].compact_blank.join(" ")
-  end
-
-  def brave_search
-    response = Faraday.get("https://api.search.brave.com/res/v1/web/search") do |request|
-      request.params["q"] = research_query
-      request.params["count"] = 5
-      request.headers["Accept"] = "application/json"
-      request.headers["X-Subscription-Token"] = ENV["BRAVE_SEARCH_API_KEY"]
-      request.options.timeout = 8
-      request.options.open_timeout = 4
-    end
-    parsed = JSON.parse(response.body)
-    { "mode" => "brave_search", "query" => research_query, "results" => Array(parsed.dig("web", "results")).first(5).map { |result| search_result_payload(result["title"], result["url"], result["description"]) } }
-  rescue StandardError => e
-    { "mode" => "brave_search_error", "query" => research_query, "results" => [], "error" => e.class.name }
-  end
-
-  def serpapi_search
-    response = Faraday.get("https://serpapi.com/search.json") do |request|
-      request.params["q"] = research_query
-      request.params["api_key"] = ENV["SERPAPI_API_KEY"]
-      request.params["num"] = 5
-      request.options.timeout = 8
-      request.options.open_timeout = 4
-    end
-    parsed = JSON.parse(response.body)
-    { "mode" => "serpapi", "query" => research_query, "results" => Array(parsed["organic_results"]).first(5).map { |result| search_result_payload(result["title"], result["link"], result["snippet"]) } }
-  rescue StandardError => e
-    { "mode" => "serpapi_error", "query" => research_query, "results" => [], "error" => e.class.name }
-  end
-
-  def search_result_payload(title, url, snippet)
-    {
-      "title" => title.to_s.squish,
-      "url" => url,
-      "snippet" => snippet.to_s.squish
-    }.compact
   end
 
   def number_of_funding_rounds

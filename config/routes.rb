@@ -16,6 +16,7 @@ Rails.application.routes.draw do
   get 'admin/pipeline-runs/:id', to: 'admin/pipeline_run_reviews#show', as: :custom_admin_pipeline_run
   post 'admin/pipeline-runs/:id/company-proposals', to: 'admin/pipeline_run_reviews#queue_candidate_proposals', as: :custom_admin_pipeline_run_company_proposals
   get 'admin/proposals', to: 'admin/company_proposals#index', as: :custom_admin_company_proposals
+  post 'admin/proposals/batch', to: 'admin/company_proposals#batch_update', as: :batch_custom_admin_company_proposals
   get 'admin/proposals/:id', to: 'admin/company_proposals#show', as: :custom_admin_company_proposal
   get 'admin/proposals/:id/edit', to: 'admin/company_proposals#edit', as: :edit_custom_admin_company_proposal
   patch 'admin/proposals/:id', to: 'admin/company_proposals#update'

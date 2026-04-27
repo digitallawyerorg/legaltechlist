@@ -18,6 +18,34 @@
         - else
             |  is invisible until you explicitly publish it.
 
+.card.border-0.shadow-sm.mb-3
+    .card-body
+        .d-flex.flex-wrap.justify-content-between.align-items-start.gap-3
+            div
+                .text-uppercase.text-muted.small.fw-semibold Required before publish
+                h2.h5.mb-1= @quality_report["publish_ready"] ? "Ready to publish" : "Needs review before publishing"
+                p.text-muted.mb-0= "Completeness score: #{@quality_report['score']}%"
+            span.badge.fs-6(class=(@quality_report["publish_ready"] ? "text-bg-success" : "text-bg-warning"))= @quality_report["publish_ready"] ? "Publish ready" : "Blocked"
+        .row.g-2.mt-3
+            - CompanyProposalQualityService::REQUIRED_FIELDS.each do |field|
+                - present = @final_changes[field].present?
+                .col-md-3
+                    .border.rounded.p-2.h-100(class=(present ? "bg-light" : "border-warning"))
+                        .small.fw-semibold= field.humanize
+                        .small(class=(present ? "text-success" : "text-warning"))= present ? "Complete" : "Missing"
+        - if Array(@quality_report["blockers"]).any?
+            .alert.alert-warning.mt-3.mb-0
+                strong Publish blockers:
+                ul.mb-0
+                    - Array(@quality_report["blockers"]).each do |blocker|
+                        li= blocker
+        - elsif Array(@quality_report["warnings"]).any?
+            .alert.alert-info.mt-3.mb-0
+                strong Review warnings:
+                ul.mb-0
+                    - Array(@quality_report["warnings"]).each do |warning|
+                        li= warning
+
 .row.g-3
     .col-lg-7
         .card.border-0.shadow-sm.mb-3
@@ -46,7 +74,7 @@
                         p.text-muted.small= description_draft["rationale"]
                     - if web_research.present?
                         .text-uppercase.text-muted.small.fw-semibold Research basis
-                        p.text-muted.small.mb-2= web_research["note"].presence || "Web research mode: #{web_research['mode']}"
+                        p.text-muted.small.mb-2= web_research["note"].presence || web_research["summary"].presence || "Web research mode: #{web_research['mode']}"
                         - if Array(web_research["results"]).any?
                             ul.small.mb-3
                                 - Array(web_research["results"]).each do |result|
@@ -93,12 +121,10 @@
                         .form-check.mb-3
                             = check_box_tag :duplicate_override, "1", false, class: "form-check-input", id: "duplicate_override"
                             = label_tag :duplicate_override, "I reviewed duplicate signals and still want to approve this proposal", class: "form-check-label"
-                    .form-check.mb-3
-                        = check_box_tag :publish, "1", false, class: "form-check-input", id: "publish"
-                        = label_tag :publish, "Publish immediately after approval", class: "form-check-label"
                     p.text-muted.small The description in Final Editable Fields will be used. If it is blank, a conservative draft will be generated before approval.
                     .d-grid.gap-2
-                        = submit_tag "Approve", class: "btn btn-success w-100", data: { turbo_confirm: "Approve this proposal using the final editable fields?" }, disabled: @company_proposal.company_id.present?
+                        = button_tag "Approve draft", type: "submit", name: "publish", value: "0", class: "btn btn-outline-success w-100", data: { turbo_confirm: "Approve this proposal as an invisible draft?" }, disabled: @company_proposal.company_id.present?
+                        = button_tag "Publish", type: "submit", name: "publish", value: "1", class: "btn btn-success w-100", data: { turbo_confirm: "Publish this proposal to the public site?" }, disabled: @company_proposal.company_id.present? || !@quality_report["publish_ready"]
                 hr
                 = form_with url: reject_custom_admin_company_proposal_path(@company_proposal), method: :post, local: true do
                     .mb-3

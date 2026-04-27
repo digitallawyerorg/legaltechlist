@@ -41,7 +41,7 @@ class CompanyProposalWorkflowTest < ActiveSupport::TestCase
     assert_no_match(/provides or supports/i, proposal.final_changes["description"])
     assert_equal "CompanyProposalEnrichmentService", proposal.agent_details["agent"]
     assert_includes %w[pass revise], proposal.agent_details["description_critic"]["verdict"]
-    assert_equal "disabled_no_search_api_key", proposal.agent_details["web_research"]["mode"]
+    assert_equal "disabled_no_responses_web_search", proposal.agent_details["web_research"]["mode"]
   end
 
   test "proposal enrichment drafts stronger descriptions from source evidence" do
@@ -96,6 +96,26 @@ class CompanyProposalWorkflowTest < ActiveSupport::TestCase
 
     assert company.visible?
     assert_equal "published", proposal.reload.status
+  end
+
+  test "publish is blocked when quality gates fail" do
+    proposal = queued_proposal
+
+    assert_no_difference "Company.count" do
+      assert_raises(ArgumentError) do
+        CompanyProposalApprovalService.call(proposal: proposal, admin_user: admin_users(:one), publish: true)
+      end
+    end
+  end
+
+  test "batch publish only publishes gate-passing proposals" do
+    proposal = ready_proposal
+
+    results = CompanyProposalBatchService.call(proposals: CompanyProposal.where(id: proposal.id), admin_user: admin_users(:one), action: "publish")
+
+    assert_equal "published", proposal.reload.status
+    assert_equal 1, results.size
+    assert_equal proposal.company_id, results.first["company_id"]
   end
 
   test "approval generates a description when editable description is blank" do
