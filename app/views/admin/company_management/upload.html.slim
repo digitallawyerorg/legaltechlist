@@ -12,5 +12,12 @@
                 = f.file_field :file, class: "form-control", accept: ".csv"
             .d-flex.gap-2
                 = f.submit "Review Candidates Only", class: "btn btn-warning", formaction: review_import_candidates_custom_admin_companies_csv_path, data: { turbo_confirm: "Create a review-only candidate import report without changing company records?" }
-                = f.submit "Import CSV", class: "btn btn-outline-danger", data: { turbo_confirm: "This uses the legacy importer and may create or update company records. Continue only after candidate review." }
                 = link_to "Cancel", custom_admin_companies_path, class: "btn btn-outline-secondary"
+            .accordion.mt-4 id="legacyImportDanger"
+                .accordion-item.border-danger
+                    h2.accordion-header id="legacyImportHeading"
+                        button.accordion-button.collapsed.text-danger type="button" data-bs-toggle="collapse" data-bs-target="#legacyImportCollapse" aria-expanded="false" aria-controls="legacyImportCollapse" Legacy importer danger zone
+                    #legacyImportCollapse.accordion-collapse.collapse aria-labelledby="legacyImportHeading" data-bs-parent="#legacyImportDanger"
+                        .accordion-body
+                            p.text-muted.small This legacy importer can create or update public company records. Use it only after reviewing candidates and confirming the import is intentional.
+                            = f.submit "Import CSV", class: "btn btn-outline-danger", data: { turbo_confirm: "This uses the legacy importer and may create or update company records. Continue only after candidate review." }

@@ -3,49 +3,128 @@
 .d-flex.justify-content-between.align-items-start.mb-4
     div
         h1.h3.mb-1 TechIndex Admin
-        p.text-muted.mb-0 A custom admin workspace for quality review, pipeline logs, and future agent-assisted curation.
-    = link_to "Manage Companies", custom_admin_companies_path, class: "btn btn-outline-secondary"
+        p.text-muted.mb-0 Maintenance cockpit for Stanford CodeX TechIndex quality review, agent runs, imports, and safe data curation.
+    .d-flex.gap-2
+        = link_to "Review Queues", custom_admin_company_reviews_path, class: "btn btn-primary"
+        = link_to "Companies", custom_admin_companies_path, class: "btn btn-outline-secondary"
 
 .row.g-3.mb-4
     .col-md-6.col-xl-3
-        .card.border-0.shadow-sm.h-100
+        .card.border-0.shadow-sm.h-100.admin-workflow-card.is-good
             .card-body
+                .admin-kicker Public directory
                 .text-muted.small Total companies
                 .fs-3.fw-semibold= number_with_delimiter(@company_count)
+                .text-muted.small All currently visible.
     .col-md-6.col-xl-3
-        .card.border-0.shadow-sm.h-100
+        .card.border-0.shadow-sm.h-100.admin-workflow-card.is-warning
             .card-body
+                .admin-kicker Evidence gaps
                 .text-muted.small Missing URLs
                 .fs-3.fw-semibold= number_with_delimiter(@missing_url_count)
+                = link_to "Open queue", custom_admin_company_reviews_path(queue: "missing_url"), class: "small"
     .col-md-6.col-xl-3
-        .card.border-0.shadow-sm.h-100
+        .card.border-0.shadow-sm.h-100.admin-workflow-card.is-warning
             .card-body
-                .text-muted.small Weak descriptions
-                .fs-3.fw-semibold= number_with_delimiter(@weak_description_count)
+                .admin-kicker Description quality
+                .text-muted.small Review candidates
+                .fs-3.fw-semibold= number_with_delimiter(@description_review_count)
+                = link_to "Run next review", custom_admin_company_reviews_path(queue: "description_review"), class: "small"
     .col-md-6.col-xl-3
-        .card.border-0.shadow-sm.h-100
+        .card.border-0.shadow-sm.h-100.admin-workflow-card.is-urgent
             .card-body
+                .admin-kicker Duplicate risk
                 .text-muted.small Duplicate-domain records
                 .fs-3.fw-semibold= number_with_delimiter(@duplicate_domain_count)
+                = link_to "Open duplicate queue", custom_admin_company_reviews_path(queue: "duplicate_domain"), class: "small"
 
 .row.g-3
-    .col-lg-8
-        .card.border-0.shadow-sm
+    .col-xl-7
+        .card.border-0.shadow-sm.mb-3
+            .card-header.bg-white.d-flex.justify-content-between.align-items-center
+                h2.h5.mb-0 Today's Maintenance
+                span.badge.text-bg-light Proposal-only
             .card-body
-                h2.h5 Quality Review Workspace
-                p.text-muted This dashboard is the custom admin home for purpose-built review queues, resource management, pipeline logs, and agent evidence screens.
+                .row.g-3
+                    .col-md-6
+                        .border.rounded.p-3.h-100.bg-light
+                            .admin-kicker First priority
+                            h3.h6.mb-2 Description review
+                            p.text-muted.small.mb-3 Review weak, short, marketing, or source-meta descriptions before homepage/data expansion.
+                            .d-grid.gap-2
+                                = link_to "Open description queue", custom_admin_company_reviews_path(queue: "description_review"), class: "btn btn-sm btn-outline-primary"
+                                = button_to "Run Next Description Review", custom_admin_next_description_review_path, method: :post, class: "btn btn-sm btn-warning w-100", form: { data: { turbo_confirm: "Run a proposal-only agent review for the next description candidate?" } }
+                    .col-md-6
+                        .border.rounded.p-3.h-100.bg-light
+                            .admin-kicker Second priority
+                            h3.h6.mb-2 Duplicate review
+                            p.text-muted.small.mb-3 Resolve domain/name overlap before importing or expanding public records.
+                            .d-grid.gap-2
+                                = link_to "Open duplicate queue", custom_admin_company_reviews_path(queue: "duplicate_domain"), class: "btn btn-sm btn-outline-primary"
+                                = button_to "Run Next Duplicate Review", custom_admin_next_duplicate_domain_review_path, method: :post, class: "btn btn-sm btn-outline-warning w-100", form: { data: { turbo_confirm: "Run a proposal-only duplicate-domain review for the next duplicate candidate?" } }
+                    .col-md-6
+                        .border.rounded.p-3.h-100.bg-light
+                            .admin-kicker Import safety
+                            h3.h6.mb-2 Atlas candidates
+                            p.text-muted.small.mb-3 Review CSV candidates and duplicate matches before creating any company records.
+                            = link_to "Review CSV candidates", upload_custom_admin_companies_csv_path, class: "btn btn-sm btn-outline-primary"
+                    .col-md-6
+                        .border.rounded.p-3.h-100.bg-light
+                            .admin-kicker Audit trail
+                            h3.h6.mb-2 Pipeline health
+                            p.text-muted.small.mb-3 Watch failed runs and recent agent output before trusting batch workflows.
+                            .d-flex.gap-2
+                                = link_to "Pipeline logs", custom_admin_pipeline_runs_path, class: "btn btn-sm btn-outline-primary"
+                                = link_to "Agent reviews", custom_admin_agent_reviews_path, class: "btn btn-sm btn-outline-secondary"
+
+        .card.border-0.shadow-sm
+            .card-header.bg-white
+                h2.h5.mb-0 Recent Agent Reviews
+            .card-body
+                - if @recent_agent_reviews.any?
+                    .list-group.list-group-flush
+                        - @recent_agent_reviews.each do |run|
+                            = link_to custom_admin_agent_review_path(run), class: "list-group-item list-group-item-action px-0 d-flex justify-content-between align-items-start" do
+                                span
+                                    .fw-semibold= run.name
+                                    .text-muted.small= "#{run.run_type.humanize} · #{run.status}"
+                                span.text-muted.small= time_ago_in_words(run.created_at)
+                - else
+                    p.text-muted.mb-0 No agent reviews yet.
+    .col-xl-5
+        .card.border-0.shadow-sm.mb-3
+            .card-header.bg-white.d-flex.justify-content-between.align-items-center
+                h2.h5.mb-0 System Health
+                - if @failed_pipeline_run_count.positive?
+                    span.badge.text-bg-danger= "#{@failed_pipeline_run_count} failed"
+                - else
+                    span.badge.text-bg-success Healthy
+            .card-body
                 .list-group.list-group-flush
                     .list-group-item.px-0.d-flex.justify-content-between
                         span Pipeline runs logged
                         strong= number_with_delimiter(@pipeline_run_count)
                     .list-group-item.px-0.d-flex.justify-content-between
-                        span Agent review status
-                        strong Not enabled yet
-    .col-lg-4
+                        span Failed runs
+                        strong class="#{@failed_pipeline_run_count.positive? ? 'text-danger' : 'text-success'}"= number_with_delimiter(@failed_pipeline_run_count)
+                    .list-group-item.px-0.d-flex.justify-content-between
+                        span Duplicate-name records
+                        strong= number_with_delimiter(@duplicate_name_count)
+                    .list-group-item.px-0.d-flex.justify-content-between
+                        span Weak descriptions
+                        strong= number_with_delimiter(@weak_description_count)
+
         .card.border-0.shadow-sm
+            .card-header.bg-white
+                h2.h5.mb-0 Recent Pipeline Runs
             .card-body
-                h2.h5 Next Up
-                p.text-muted.mb-3 Use the custom admin to review data quality, manage companies, inspect pipeline logs, and prepare future agent-assisted curation.
-                .d-grid.gap-2
-                    = link_to "Open Quality Dashboard", custom_admin_quality_path, class: "btn btn-primary"
-                    = link_to "Manage Companies", custom_admin_companies_path, class: "btn btn-outline-secondary"
+                - if @recent_pipeline_runs.any?
+                    .list-group.list-group-flush
+                        - @recent_pipeline_runs.each do |run|
+                            = link_to custom_admin_pipeline_run_path(run), class: "list-group-item list-group-item-action px-0 d-flex justify-content-between align-items-start" do
+                                span
+                                    .fw-semibold= run.name
+                                    .text-muted.small= "#{run.run_type.humanize} · #{run.records_processed} records"
+                                span.badge class="text-bg-#{run.status == 'failed' ? 'danger' : 'secondary'}"= run.status
+                - else
+                    p.text-muted.mb-0 No pipeline runs yet.

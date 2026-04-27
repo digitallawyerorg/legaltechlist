@@ -16,7 +16,8 @@ class CustomAdminTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "h1", "TechIndex Admin"
-    assert_select "a", "Manage Companies"
+    assert_select "a", "Review Queues"
+    assert_select "h2", "Today's Maintenance"
   end
 
   test "quality dashboard is available to signed-in admin users" do

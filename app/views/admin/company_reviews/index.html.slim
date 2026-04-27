@@ -11,6 +11,18 @@
 
 .card.border-0.shadow-sm.mb-4
     .card-body
+        - queue_cards = [{ key: "description_review", label: "Description review", tone: "warning", action: "Run next description review", path: custom_admin_company_reviews_path(queue: "description_review") }, { key: "duplicate_domain", label: "Duplicate domains", tone: "danger", action: "Resolve duplicate risk", path: custom_admin_company_reviews_path(queue: "duplicate_domain") }, { key: "missing_url", label: "Missing URLs", tone: "warning", action: "Find evidence", path: custom_admin_company_reviews_path(queue: "missing_url") }, { key: "needs_review", label: "Needs review", tone: "info", action: "Inspect records", path: custom_admin_company_reviews_path(queue: "needs_review") }]
+        .row.g-3.mb-3
+            - queue_cards.each do |queue_card|
+                .col-md-6.col-xl-3
+                    = link_to queue_card[:path], class: "text-decoration-none text-reset" do
+                        .card.h-100.border-0.bg-light.admin-workflow-card class="#{queue_card[:tone] == 'danger' ? 'is-urgent' : 'is-warning'}"
+                            .card-body
+                                .d-flex.justify-content-between.align-items-start
+                                    div
+                                        .admin-kicker= queue_card[:action]
+                                        .fw-semibold= queue_card[:label]
+                                    span.badge class="text-bg-#{queue_card[:tone]}"= number_with_delimiter(@queue_counts[queue_card[:key]])
         .d-flex.flex-wrap.gap-2
             = link_to "All companies", custom_admin_company_reviews_path, class: "btn btn-sm #{params[:queue].blank? ? 'btn-primary' : 'btn-outline-secondary'}"
             - Admin::CompanyReviewsController::QUEUES.each do |key, label|

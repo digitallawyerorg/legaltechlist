@@ -89,7 +89,7 @@ module Admin
       domain = @company.canonical_domain.presence || @company.canonical_main_domain
       return Company.none if domain.blank?
 
-      Company.where(canonical_domain: domain).where.not(id: @company.id).order(:name)
+      Company.where.not(id: @company.id).where.not(main_url: [nil, ""]).order(:name).select { |company| (company.canonical_domain.presence || company.canonical_main_domain) == domain }
     end
 
     def duplicate_name_companies
