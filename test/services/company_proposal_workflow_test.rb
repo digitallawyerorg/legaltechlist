@@ -38,8 +38,36 @@ class CompanyProposalWorkflowTest < ActiveSupport::TestCase
     assert_equal "ready_for_review", proposal.status
     assert proposal.final_changes["description"].present?
     assert_not_equal proposal.source_payload["source_description"], proposal.final_changes["description"]
+    assert_no_match(/provides or supports/i, proposal.final_changes["description"])
     assert_equal "CompanyProposalEnrichmentService", proposal.agent_details["agent"]
     assert_includes %w[pass revise], proposal.agent_details["description_critic"]["verdict"]
+    assert_equal "disabled_no_search_api_key", proposal.agent_details["web_research"]["mode"]
+  end
+
+  test "proposal enrichment drafts stronger descriptions from source evidence" do
+    proposal = CompanyProposal.create!(
+      status: "pending",
+      proposal_type: "atlas_candidate",
+      source: "legaltechatlas_csv",
+      source_identifier: "august-law-test",
+      source_payload: {
+        "name" => "August",
+        "website" => "https://www.august.law",
+        "industries" => ["Artificial Intelligence (AI)", "Developer Platform", "Legal"],
+        "source_description" => "August is a configurable legal AI platform designed specifically for law firms and legal professionals.",
+        "full_source_description" => "August specializes in configurable legal AI platforms tailored for law firms and legal professionals."
+      },
+      proposed_changes: { "name" => "August", "main_url" => "https://www.august.law" },
+      final_changes: { "name" => "August", "main_url" => "https://www.august.law" }
+    )
+
+    CompanyProposalEnrichmentService.call(proposal: proposal, admin_user: admin_users(:one))
+
+    description = proposal.reload.final_changes["description"]
+    assert_match(/legal AI software/i, description)
+    assert_match(/law firms/i, description)
+    assert_no_match(/provides or supports/i, description)
+    assert_not_equal proposal.source_payload["source_description"], description
   end
 
   test "approval creates an invisible company draft from final fields" do

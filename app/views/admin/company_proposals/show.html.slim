@@ -39,10 +39,24 @@
                 - if @agent_details.present?
                     - description_draft = @agent_details["description_draft"] || {}
                     - description_critic = @agent_details["description_critic"] || {}
+                    - web_research = @agent_details["web_research"] || {}
                     - if description_draft.present?
                         .text-uppercase.text-muted.small.fw-semibold Proposed description
                         p.fw-semibold= description_draft["proposed_description"]
                         p.text-muted.small= description_draft["rationale"]
+                    - if web_research.present?
+                        .text-uppercase.text-muted.small.fw-semibold Research basis
+                        p.text-muted.small.mb-2= web_research["note"].presence || "Web research mode: #{web_research['mode']}"
+                        - if Array(web_research["results"]).any?
+                            ul.small.mb-3
+                                - Array(web_research["results"]).each do |result|
+                                    li
+                                        - if result["url"].present?
+                                            = link_to result["title"].presence || result["url"], result["url"], target: "_blank", rel: "noopener"
+                                        - else
+                                            = result["title"]
+                                        - if result["snippet"].present?
+                                            .text-muted= result["snippet"]
                     - if description_critic.present?
                         .text-uppercase.text-muted.small.fw-semibold Critic verdict
                         p.mb-2= description_critic["verdict"].to_s.humanize

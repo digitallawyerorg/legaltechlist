@@ -22,6 +22,9 @@ class AtlasCandidateImportReviewServiceTest < ActiveSupport::TestCase
     assert_equal "existing_or_possible_duplicate", @run.details["candidates"].first["status"]
     assert_equal "absent_candidate", @run.details["candidates"].last["status"]
     assert_equal "Do not copy into TechIndex. Use only as evidence for a new neutral description after human review.", @run.details["candidates"].last["source_description_policy"]
+    assert_equal "New full source description must not be copied.", @run.details["candidates"].last["full_source_description"]
+    assert_equal "11-50", @run.details["candidates"].last["employee_count"]
+    assert_equal "2", @run.details["candidates"].last["number_of_funding_rounds"]
   end
 
   test "rejects limits above max limit" do
