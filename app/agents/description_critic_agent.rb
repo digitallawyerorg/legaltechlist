@@ -89,7 +89,7 @@ class DescriptionCriticAgent < RubyLLM::Agent
       "verdict" => verdict,
       "issues" => issues,
       "rationale" => issues.any? ? "Deterministic checks found description quality issues requiring human review." : "No deterministic description quality issues were found.",
-      "suggested_revision" => issues.any? ? fallback_revision : nil,
+      "suggested_revision" => issues.any? ? fallback_revision.to_s : "",
       "confidence" => issues.any? ? "medium" : "low",
       "usage" => nil,
       "estimated_cost_usd" => nil
@@ -107,10 +107,11 @@ class DescriptionCriticAgent < RubyLLM::Agent
   end
 
   def fallback_revision
-    segments = []
-    segments << "in #{company.category.name}" if company.category&.name.present?
-    segments << "serving #{company.target_client.name.downcase}" if company.target_client&.name.present?
-    return "#{company.name} provides or supports legal technology #{segments.to_sentence}." if segments.any?
+    category = company.category&.name
+    target_client = company.target_client&.name&.downcase
+    return "#{company.name} provides or supports legal technology in #{category} for #{target_client}." if category.present? && target_client.present?
+    return "#{company.name} provides or supports legal technology in #{category}." if category.present?
+    return "#{company.name} provides or supports legal technology for #{target_client}." if target_client.present?
 
     nil
   end
