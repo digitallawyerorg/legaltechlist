@@ -4,7 +4,9 @@
     div
         h1.h3.mb-1 Company Review
         p.text-muted.mb-0 Read-first review queues for company quality, duplicates, and future agent suggestions.
-    = link_to "Quality Dashboard", custom_admin_quality_path, class: "btn btn-outline-secondary"
+    .d-flex.gap-2
+        = button_to "Run Next Description Review", custom_admin_next_description_review_path, method: :post, class: "btn btn-warning", form: { data: { turbo_confirm: "Run a proposal-only agent review for the next description candidate?" } }
+        = link_to "Quality Dashboard", custom_admin_quality_path, class: "btn btn-outline-secondary"
 
 .card.border-0.shadow-sm.mb-4
     .card-body

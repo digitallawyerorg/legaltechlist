@@ -7,6 +7,7 @@ Rails.application.routes.draw do
   get 'admin/app', to: 'admin/app#show', as: :custom_admin_root
   get 'admin/quality', to: 'admin/quality#index', as: :custom_admin_quality
   get 'admin/review/companies', to: 'admin/company_reviews#index', as: :custom_admin_company_reviews
+  post 'admin/review/companies/next-description-review', to: 'admin/company_reviews#create_next_description_review', as: :custom_admin_next_description_review
   get 'admin/review/companies/:id', to: 'admin/company_reviews#show', as: :custom_admin_company_review
   post 'admin/review/companies/:id/agent-review', to: 'admin/company_reviews#create_agent_review', as: :custom_admin_company_agent_review
   get 'admin/pipeline-runs', to: 'admin/pipeline_run_reviews#index', as: :custom_admin_pipeline_runs

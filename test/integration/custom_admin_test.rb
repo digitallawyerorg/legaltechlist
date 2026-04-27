@@ -37,7 +37,21 @@ class CustomAdminTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "h1", "Company Review"
+    assert_select "button", "Run Next Description Review"
+    assert_select "a", /Description review/
     assert_select "a", "Review"
+  end
+
+  test "description review queue is available to signed-in admin users" do
+    sign_in admin_users(:one)
+    company = companies(:one)
+    company.update_columns(description: "Short")
+
+    get custom_admin_company_reviews_path(queue: "description_review")
+
+    assert_response :success
+    assert_select "h2", "Description review"
+    assert_select "td", text: /#{Regexp.escape(company.name)}/
   end
 
   test "company review show is available to signed-in admin users" do
@@ -72,6 +86,30 @@ class CustomAdminTest < ActionDispatch::IntegrationTest
     assert_equal "company_agent_review", run.run_type
     assert_equal "agent_proposal_no_public_writes", run.details["mode"]
     assert_equal company.id, run.details["company_id"]
+    assert_equal original_attributes, company.reload.attributes.slice("name", "description", "main_url", "visible", "quality_status", "verification_verdict", "quality_score", "canonical_domain", "fingerprint", "updated_at")
+  end
+
+  test "next description review action requires authentication" do
+    post custom_admin_next_description_review_path
+
+    assert_redirected_to new_admin_user_session_path
+  end
+
+  test "next description review action creates review output without changing company" do
+    sign_in admin_users(:one)
+    company = companies(:one)
+    company.update_columns(description: "Short", updated_at: 1.day.ago)
+    original_attributes = company.reload.attributes.slice("name", "description", "main_url", "visible", "quality_status", "verification_verdict", "quality_score", "canonical_domain", "fingerprint", "updated_at")
+
+    assert_difference "PipelineRun.count", 1 do
+      post custom_admin_next_description_review_path
+    end
+
+    run = PipelineRun.order(:created_at).last
+    assert_redirected_to custom_admin_agent_review_path(run)
+    assert_equal "company_agent_review", run.run_type
+    assert_equal company.id, run.details["company_id"]
+    assert_equal "Triggered from next description review queue", run.details["notes"]
     assert_equal original_attributes, company.reload.attributes.slice("name", "description", "main_url", "visible", "quality_status", "verification_verdict", "quality_score", "canonical_domain", "fingerprint", "updated_at")
   end
 

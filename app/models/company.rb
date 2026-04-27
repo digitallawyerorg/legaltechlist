@@ -34,6 +34,7 @@ class Company < ActiveRecord::Base
   scope :publicly_visible, -> { where(visible: true) }
   scope :missing_main_url, -> { where(main_url: [nil, ""]) }
   scope :weak_description, -> { where("description IS NULL OR LENGTH(TRIM(description)) < 40") }
+  scope :description_review_candidates, -> { where(description_review_candidate_condition) }
   scope :needs_review, -> { where(quality_status: "needs_review") }
   scope :verified_quality, -> { where(quality_status: "verified") }
   scope :rejected_quality, -> { where(quality_status: "rejected") }
@@ -106,6 +107,23 @@ class Company < ActiveRecord::Base
     end
 
     grouped.except(nil).values.select { |group| group.size > 1 }.flatten(1).map(&:first)
+  end
+
+  def self.description_review_candidate_condition
+    <<~SQL.squish
+      description IS NULL
+      OR LENGTH(TRIM(description)) < 80
+      OR description ILIKE '%leading%'
+      OR description ILIKE '%best%'
+      OR description ILIKE '%revolutionary%'
+      OR description ILIKE '%cutting-edge%'
+      OR description ILIKE '%world-class%'
+      OR description ILIKE '%game-changing%'
+      OR description ILIKE '%listed in TechIndex%'
+      OR description ILIKE '%included in TechIndex%'
+      OR description ILIKE '%directory metadata%'
+      OR description ILIKE '%based on available%'
+    SQL
   end
 
   def normalized_name
