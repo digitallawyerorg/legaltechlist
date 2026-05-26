@@ -597,7 +597,7 @@ class StaticPagesController < ApplicationController
 
     respond_to do |format|
         format.html
-        format.csv { send_data generate_country_distribution_csv, filename: "country_distribution.csv" }
+        format.csv { send_data generate_country_distribution_csv, filename: "country_distribution.csv", type: "text/csv; charset=utf-8", disposition: "attachment" }
         format.xlsx { send_data generate_country_distribution_xlsx, filename: "country_distribution.xlsx" }
         format.png { head :ok } # Just return a success status for PNG downloads (handled by JavaScript)
     end

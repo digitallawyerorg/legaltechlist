@@ -50,23 +50,23 @@ class Company < ActiveRecord::Base
   geocoded_by :location
   after_validation :geocode, if: ->(obj) { obj.location.present? && obj.location_changed? && !obj.skip_geocoding }
 
-	include PgSearch
-	pg_search_scope :search,
-                  	:against => :name,
-                  	:using => {
-                    	:tsearch => {:prefix => true}
+  include PgSearch::Model
+  pg_search_scope :search,
+                  against: :name,
+                  using: {
+                    tsearch: { prefix: true }
                   }
 
-	def self.text_search(query)
-		if query.present?
-			search(query)
-		else
-			all
-		end
-	end
+  def self.text_search(query)
+    if query.present?
+      search(query)
+    else
+      all
+    end
+  end
 
   def self.tagged_with(name)
-    Tag.find_by_name!(name).companies
+    Tag.find_by!(name: name).companies
   end
 
   def self.normalized_name_value(value)

@@ -3,10 +3,11 @@ source 'https://rubygems.org'
 ruby '3.2.6'
 
 # Core
-gem 'rails', '~> 7.0.8'
+gem 'rails', '~> 8.0.0'
 gem 'pg', '~> 1.5.4'
 gem 'puma'
 gem 'webpacker', '~> 5.4'
+gem 'sprockets-rails'
 
 # Admin and Authentication
 gem 'devise', '~> 4.9'
@@ -55,7 +56,7 @@ gem 'recaptcha', require: 'recaptcha/rails'
 
 group :development, :test do
   gem 'byebug', '~> 11.1.3'
-  gem 'spring', '2.0.2'
+  gem 'minitest', '~> 5.25'
   gem 'rails-controller-testing'
 end
 
@@ -65,6 +66,7 @@ group :development do
 end
 
 gem 'json', '~> 2.6'
+gem 'csv'
 
 gem 'bootsnap', '>= 1.4.4', require: false
 

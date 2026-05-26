@@ -14,11 +14,11 @@
               i.fas.fa-image.me-2
               | Download as Image (PNG)
           li
-            = link_to url_for(format: :csv), class: "dropdown-item" do
+            = link_to url_for(format: :csv), class: "dropdown-item", data: { turbo: false } do
               i.fas.fa-file-csv.me-2
               | Download as CSV
           li
-            = link_to url_for(format: :xlsx), class: "dropdown-item" do
+            = link_to url_for(format: :xlsx), class: "dropdown-item", data: { turbo: false } do
               i.fas.fa-file-excel.me-2
               | Download as Excel
     .border.p-3
@@ -27,39 +27,70 @@
       = table
 
 javascript:
+  function triggerDownload(href, filename) {
+    const link = document.createElement('a');
+    link.download = filename;
+    link.href = href;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  }
+
+  function downloadSvg(svg, filename) {
+    const svgData = new XMLSerializer().serializeToString(svg);
+    const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+    const svgUrl = URL.createObjectURL(svgBlob);
+    const image = new Image();
+    const width = svg.viewBox.baseVal.width || svg.getBoundingClientRect().width;
+    const height = svg.viewBox.baseVal.height || svg.getBoundingClientRect().height;
+
+    image.onload = function() {
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const context = canvas.getContext('2d');
+      context.fillStyle = '#ffffff';
+      context.fillRect(0, 0, width, height);
+      context.drawImage(image, 0, 0, width, height);
+      URL.revokeObjectURL(svgUrl);
+      triggerDownload(canvas.toDataURL('image/png'), filename);
+    };
+
+    image.onerror = function() {
+      URL.revokeObjectURL(svgUrl);
+      alert("Could not download chart. Please try again or right-click to save.");
+    };
+
+    image.src = svgUrl;
+  }
+
   function downloadChart(chartId) {
     const chart = document.getElementById(chartId);
-    const link = document.createElement('a');
-    link.download = '#{download_filename}.png';
+    const filename = '#{download_filename}.png';
 
-    // Check if this is a Chart.js chart or a Google Chart
-    if (chart.toBase64Image) {
-      // Chart.js chart
-      link.href = chart.toBase64Image('image/png', 1.0);
-      link.click();
+    if (!chart) {
+      alert("Could not find the chart to download.");
+      return;
+    }
+
+    const chartkickChart = window.Chartkick && Chartkick.charts && Chartkick.charts[chartId];
+    const chartObject = chartkickChart && chartkickChart.getChartObject && chartkickChart.getChartObject();
+
+    if (chartObject && chartObject.getImageURI) {
+      triggerDownload(chartObject.getImageURI(), filename);
+      return;
+    }
+
+    const canvas = chart.querySelector('canvas');
+    if (canvas) {
+      triggerDownload(canvas.toDataURL('image/png'), filename);
+      return;
+    }
+
+    const svg = chart.querySelector('svg');
+    if (svg) {
+      downloadSvg(svg, filename);
     } else {
-      // Google Chart - use the Google Charts API to get the PNG
-      const googleChart = document.querySelector(`#${chartId} div`);
-      if (googleChart && googleChart.__chartjs__) {
-        const chartObj = googleChart.__chartjs__;
-        link.href = chartObj.toBase64Image('image/png', 1.0);
-        link.click();
-      } else if (googleChart) {
-        // Try to use html2canvas as fallback for Google Charts
-        html2canvas(googleChart).then(canvas => {
-          link.href = canvas.toDataURL('image/png');
-          link.click();
-        });
-      } else {
-        // Fallback to AJAX request
-        fetch(`${window.location.pathname}.png`)
-          .then(() => {
-            alert("Please right-click on the chart and use 'Save image as...' to download the chart");
-          })
-          .catch(error => {
-            console.error("Error downloading chart:", error);
-            alert("Could not download chart. Please try again or right-click to save.");
-          });
-      }
+      alert("Could not download chart. Please try again or right-click to save.");
     }
   }
