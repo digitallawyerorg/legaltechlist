@@ -17,7 +17,7 @@ xml.rss :version => "2.0" do
           xml.title ""
         end
         xml.author "Legal Tech List"
-        xml.pubDate company.created_at.to_s(:rfc822)
+        xml.pubDate company.created_at.rfc822
 
         xml.link "#{request.protocol}#{request.host}:#{request.port}/companies/" + company.id.to_s # + "-" + company.name
         xml.guid company.id
