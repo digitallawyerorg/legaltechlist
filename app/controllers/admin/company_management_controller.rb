@@ -63,6 +63,20 @@ module Admin
       end
     end
 
+    def destroy
+      company = Company.find(params[:id])
+      company_name = company.name
+
+      Company.transaction do
+        CompanyProposal.where(company_id: company.id).update_all(company_id: nil, updated_at: Time.current)
+        company.destroy!
+      end
+
+      redirect_to custom_admin_companies_path, notice: "#{company_name} was deleted."
+    rescue ActiveRecord::RecordNotDestroyed, ActiveRecord::InvalidForeignKey => e
+      redirect_to custom_admin_company_review_path(company), alert: "Could not delete #{company_name}: #{e.message}"
+    end
+
     def upload
     end
 

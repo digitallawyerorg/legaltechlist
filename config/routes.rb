@@ -43,9 +43,10 @@ Rails.application.routes.draw do
   get 'admin/app/companies/export', to: 'admin/company_management#export', as: :export_custom_admin_companies_csv
   get 'admin/app/companies/:id/edit', to: 'admin/company_management#edit', as: :edit_custom_admin_company
   patch 'admin/app/companies/:id', to: 'admin/company_management#update', as: :custom_admin_company
+  delete 'admin/app/companies/:id', to: 'admin/company_management#destroy'
 
   # Resources
-  resources :companies
+  resources :companies, except: [:destroy]
   root to: 'static_pages#home'
 
   # Company filters

@@ -9,6 +9,9 @@
         = link_to "Edit Company", edit_custom_admin_company_path(@company), class: "btn btn-primary"
         = button_to "Run Agent Review", custom_admin_company_agent_review_path(@company), method: :post, class: "btn btn-warning", form: { data: { turbo_confirm: "Run a proposal-only agent review for this company?" } }
         = button_to "Run Duplicate Review", custom_admin_company_duplicate_review_path(@company), method: :post, class: "btn btn-outline-warning", form: { data: { turbo_confirm: "Run a proposal-only duplicate-domain review for this company?" } }
+        = button_to custom_admin_company_path(@company), method: :delete, class: "btn btn-outline-danger", form: { data: { turbo_confirm: "Delete #{@company.name}? This permanently removes the company record from TechIndex." } } do
+            i.fas.fa-trash-alt.me-1
+            | Delete
 
 .row.g-3
     .col-lg-8

@@ -96,6 +96,7 @@ class CustomAdminTest < ActionDispatch::IntegrationTest
     assert_select "a", "Edit Company"
     assert_select "button", "Run Agent Review"
     assert_select "button", "Run Duplicate Review"
+    assert_select "button", "Delete"
   end
 
   test "company agent review action requires authentication" do
@@ -291,6 +292,8 @@ class CustomAdminTest < ActionDispatch::IntegrationTest
     assert_select "input[name='q']"
     assert_select "select[name='visibility']"
     assert_select "select[name='review_signal']"
+    assert_select "form[action='#{custom_admin_company_path(company)}'][method='post'] input[name='_method'][value='delete']"
+    assert_select "button", "Delete"
 
     companies(:two).update_columns(visible: false)
     get custom_admin_companies_path(visibility: "hidden")
@@ -317,6 +320,29 @@ class CustomAdminTest < ActionDispatch::IntegrationTest
     get export_custom_admin_companies_csv_path
     assert_response :success
     assert_includes response.media_type, "text/csv"
+  end
+
+  test "company deletion is admin-only and removes the company record" do
+    company = companies(:one)
+
+    delete company_path(company)
+    assert_response :not_found
+    assert Company.exists?(company.id)
+
+    delete custom_admin_company_path(company)
+    assert_redirected_to new_admin_user_session_path
+    assert Company.exists?(company.id)
+
+    sign_in admin_users(:one)
+    proposal = CompanyProposal.create!(status: "approved_to_draft", proposal_type: "atlas_candidate", source: "test", source_identifier: "delete-test", company: company)
+
+    assert_difference "Company.count", -1 do
+      delete custom_admin_company_path(company)
+    end
+
+    assert_redirected_to custom_admin_companies_path
+    assert_not Company.exists?(company.id)
+    assert_nil proposal.reload.company_id
   end
 
   test "candidate import review creates pipeline run without importing companies" do

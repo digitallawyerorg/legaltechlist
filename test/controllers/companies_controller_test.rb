@@ -83,11 +83,11 @@ class CompaniesControllerTest < ActionController::TestCase
     assert_redirected_to company_path(assigns(:company))
   end
 
-  test "should destroy company" do
-    assert_difference('Company.count', -1) do
-      delete :destroy, params: { id: @company }
+  test "public company destroy route is not available" do
+    assert_no_difference('Company.count') do
+      assert_raises(ActionController::UrlGenerationError) do
+        delete :destroy, params: { id: @company }
+      end
     end
-
-    assert_redirected_to companies_path
   end
 end
