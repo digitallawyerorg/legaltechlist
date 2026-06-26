@@ -9,29 +9,67 @@ html
         link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
         style
             | .admin-main { width: 100%; }
+            | .admin-navbar { min-height: 2.5rem; }
+            | .admin-navbar .navbar-brand { font-size: 0.92rem; padding-bottom: 0.2rem; padding-top: 0.2rem; }
+            | .admin-navbar .nav-link { font-size: 0.78rem; padding: 0.35rem 0.55rem; }
+            | .admin-navbar .btn-sm { --bs-btn-font-size: 0.72rem; --bs-btn-padding-y: 0.15rem; --bs-btn-padding-x: 0.45rem; }
+            | .admin-navbar .navbar-text, .admin-navbar .small { font-size: 0.72rem; }
             | .admin-main .card { border-radius: 0.85rem; }
             | .admin-main .card-header { border-bottom-color: #e8edf3; padding: 1rem 1.25rem; }
+            | .admin-main .admin-compact-card .card-header { padding: 0.65rem 0.9rem; }
+            | .admin-main .admin-compact-card .card-body { padding: 0.8rem 0.9rem; }
             | .admin-main .table-responsive { border-radius: 0 0 0.85rem 0.85rem; }
             | .admin-table { min-width: 1280px; font-size: 0.9rem; }
             | .admin-table thead th { position: sticky; top: 0; z-index: 1; background: #f8fafc; color: #475569; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.04em; padding: 0.85rem 1rem; text-transform: uppercase; white-space: nowrap; }
             | .admin-table tbody td { border-top-color: #edf2f7; padding: 0.9rem 1rem; }
+            | .admin-table.is-compact { font-size: 0.82rem; }
+            | .admin-table.is-compact thead th { padding: 0.55rem 0.8rem; }
+            | .admin-table.is-compact tbody td { padding: 0.72rem 0.8rem; }
             | .admin-table tbody tr:nth-child(even) { background: #fcfdff; }
             | .admin-table tbody tr:hover { background: #f5f9ff; }
             | .admin-table td, .admin-table th { vertical-align: middle; }
             | .admin-table a:not(.btn) { text-decoration: none; overflow-wrap: anywhere; }
             | .admin-table .admin-actions, .admin-table .admin-nowrap { white-space: nowrap; }
-            | .admin-table .admin-description { min-width: 420px; max-width: 760px; }
-            | .admin-table .admin-description .fw-semibold { color: #111827; font-size: 0.95rem; margin-bottom: 0.2rem; }
-            | .admin-table .admin-description .text-muted { line-height: 1.4; }
+            | .admin-table .admin-description { min-width: 360px; max-width: 680px; width: 38%; }
+            | .admin-table .admin-description .fw-semibold { color: #111827; font-size: 0.9rem; margin-bottom: 0.15rem; }
+            | .admin-table .admin-description .text-muted { color: #64748b !important; line-height: 1.35; }
             | .admin-table .admin-url { max-width: 420px; white-space: normal; }
             | .admin-table .admin-actions .btn { min-width: 4.5rem; }
+            | .admin-table .admin-actions .btn-icon { min-width: 2.35rem; }
+            | .admin-table .admin-primary-link { color: inherit; display: block; text-decoration: none !important; }
+            | .admin-table .admin-primary-link:hover .fw-semibold { color: #0d6efd; text-decoration: underline; }
+            | .admin-company-cell { align-items: center; display: flex; gap: 0.6rem; min-width: 0; }
+            | .admin-company-logo { background: #fff; border: 1px solid #e2e8f0; border-radius: 0.45rem; flex: 0 0 auto; height: 2.25rem; object-fit: contain; padding: 0.18rem; width: 2.25rem; }
+            | .admin-company-copy { min-width: 0; }
+            | .admin-table .admin-cell-primary { color: #0f172a; font-weight: 500; }
+            | .admin-table .admin-cell-secondary { color: #64748b; font-size: 0.72rem; }
+            | .admin-table .admin-status-pill { border-radius: 999px; font-size: 0.68rem; font-weight: 700; padding: 0.18rem 0.42rem; }
+            | .admin-table .admin-quality { color: #0f172a; font-size: 0.72rem; font-weight: 700; }
             | .admin-workflow-card { border-left: 0.25rem solid #cbd5e1; }
             | .admin-workflow-card.is-urgent { border-left-color: #dc3545; }
             | .admin-workflow-card.is-warning { border-left-color: #ffc107; }
             | .admin-workflow-card.is-good { border-left-color: #198754; }
             | .admin-kicker { color: #64748b; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+            | .admin-metric-strip { display: grid; gap: 0.5rem; grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr)); }
+            | .admin-metric { background: #fff; border: 1px solid #edf2f7; border-radius: 0.65rem; padding: 0.55rem 0.7rem; }
+            | .admin-metric-label { color: #64748b; font-size: 0.68rem; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase; }
+            | .admin-metric-value { color: #0f172a; font-size: 1.05rem; font-weight: 700; line-height: 1.2; }
+            | .admin-filter-toolbar { align-items: center; display: flex; flex-wrap: wrap; gap: 0.4rem; }
+            | .admin-filter-toolbar .form-control, .admin-filter-toolbar .form-select { border-color: #e2e8f0; border-radius: 999px; font-size: 0.76rem; min-height: 1.95rem; padding-bottom: 0.25rem; padding-top: 0.25rem; }
+            | .admin-filter-search { flex: 1 1 12rem; max-width: 16rem; min-width: 10rem; }
+            | .admin-filter-select { flex: 1 1 8.5rem; max-width: 12rem; min-width: 7.5rem; }
+            | .admin-filter-select.is-wide { flex-basis: 10rem; max-width: 13rem; }
+            | .admin-table-summary { align-items: center; display: flex; flex-wrap: wrap; gap: 0.85rem; }
+            | .admin-table-summary-item { color: #64748b; font-size: 0.75rem; white-space: nowrap; }
+            | .admin-table-summary-item strong { color: #0f172a; font-size: 0.82rem; }
+            | .admin-issue-chip { border-radius: 999px; display: inline-flex; font-size: 0.66rem; font-weight: 600; line-height: 1; padding: 0.14rem 0.35rem; }
+            | .admin-issue-chip.is-warning { background: transparent; color: #c2410c; padding-left: 0; }
+            | .admin-issue-chip.is-danger { background: transparent; color: #b91c1c; padding-left: 0; }
+            | .admin-issue-chip.is-muted { background: transparent; color: #64748b; padding-left: 0; }
+            | .admin-actions .dropdown-menu form { margin: 0; }
+            | .admin-actions .dropdown-item { font-size: 0.82rem; text-align: left; width: 100%; }
     body.bg-light
-        nav.navbar.navbar-expand-lg.navbar-dark.bg-dark
+        nav.navbar.navbar-expand-lg.navbar-dark.bg-dark.admin-navbar.py-1
             .container-fluid
                 = link_to "TechIndex Admin", custom_admin_root_path, class: "navbar-brand"
                 button.navbar-toggler type="button" data-bs-toggle="collapse" data-bs-target="#customAdminNav" aria-controls="customAdminNav" aria-expanded="false" aria-label="Toggle navigation"
@@ -48,10 +86,11 @@ html
                             = link_to "Public Site", root_path, class: "nav-link"
                     .d-flex.align-items-center.gap-3
                         - if current_admin_user
+                            = link_to "New Company", new_custom_admin_company_path, class: "btn btn-primary btn-sm"
                             span.text-white-50.small= current_admin_user.email
                             = button_to "Log out", destroy_admin_user_session_path, method: :delete, class: "btn btn-outline-light btn-sm", form: { class: "d-inline" }
 
-        main.container-fluid.admin-main.py-4.px-3.px-xl-4
+        main.container-fluid.admin-main.py-3.px-3.px-xl-4
             - if notice.present?
                 .alert.alert-success= notice
             - if alert.present?

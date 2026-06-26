@@ -288,7 +288,7 @@ class CustomAdminTest < ActionDispatch::IntegrationTest
     get custom_admin_companies_path
     assert_response :success
     assert_select "h1", "Companies"
-    assert_select "h2", "Company Filters"
+    assert_select ".admin-filter-toolbar"
     assert_select "input[name='q']"
     assert_select "select[name='visibility']"
     assert_select "select[name='review_signal']"

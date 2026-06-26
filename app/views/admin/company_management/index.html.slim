@@ -1,63 +1,48 @@
 - content_for :title, "Companies"
 
-.d-flex.justify-content-between.align-items-start.mb-4
-    div
-        h1.h3.mb-1 Companies
-        p.text-muted.mb-0 Canonical company records, taxonomy, visibility, data quality, imports, and export.
-    .d-flex.gap-2
-        = link_to "Upload CSV", upload_custom_admin_companies_csv_path, class: "btn btn-outline-secondary"
-        = link_to "Export CSV", export_custom_admin_companies_csv_path, class: "btn btn-outline-secondary"
-        = link_to "New Company", new_custom_admin_company_path, class: "btn btn-primary"
-
-.row.g-3.mb-4
-    - [{ label: "Total", value: @company_summary_counts[:total], tone: "light" }, { label: "Visible", value: @company_summary_counts[:visible], tone: "success" }, { label: "Hidden", value: @company_summary_counts[:hidden], tone: "secondary" }, { label: "Missing URLs", value: @company_summary_counts[:missing_url], tone: "warning" }, { label: "Weak descriptions", value: @company_summary_counts[:weak_description], tone: "warning" }, { label: "Duplicate domains", value: @company_summary_counts[:duplicate_domain], tone: "danger" }, { label: "Needs review", value: @company_summary_counts[:needs_review], tone: "info" }, { label: "Unknown taxonomy", value: @company_summary_counts[:unknown_taxonomy], tone: "warning" }].each do |summary|
-        .col-6.col-md-3.col-xl-2
-            .card.border-0.shadow-sm.h-100
-                .card-body.py-3
-                    .text-muted.small.fw-semibold= summary[:label]
-                    .fs-4.fw-semibold= number_with_delimiter(summary[:value])
-
-.card.border-0.shadow-sm.mb-4
-    .card-header.bg-white.d-flex.justify-content-between.align-items-center
-        h2.h5.mb-0 Company Filters
-        - if @active_filter_count.positive?
-            = link_to "Clear #{pluralize(@active_filter_count, 'filter')}", custom_admin_companies_path, class: "btn btn-sm btn-outline-secondary"
-    .card-body
-        = form_with url: custom_admin_companies_path, method: :get, local: true do
-            .row.g-3
-                .col-md-6.col-xl-3
-                    = label_tag :q, "Search", class: "form-label"
-                    = search_field_tag :q, @filters[:q], class: "form-control", placeholder: "Name, description, location"
-                .col-md-6.col-xl-3
-                    = label_tag :visibility, "Visibility", class: "form-label"
-                    = select_tag :visibility, options_for_select([["All visibility", ""], ["Visible", "visible"], ["Hidden", "hidden"]], @filters[:visibility]), class: "form-select"
-                .col-md-6.col-xl-3
-                    = label_tag :category_id, "Category", class: "form-label"
-                    = select_tag :category_id, options_from_collection_for_select(@categories, :id, :name, @filters[:category_id]), include_blank: "All categories", class: "form-select"
-                .col-md-6.col-xl-3
-                    = label_tag :business_model_id, "Business model", class: "form-label"
-                    = select_tag :business_model_id, options_from_collection_for_select(@business_models, :id, :name, @filters[:business_model_id]), include_blank: "All business models", class: "form-select"
-                .col-md-6.col-xl-3
-                    = label_tag :target_client_id, "Target client", class: "form-label"
-                    = select_tag :target_client_id, options_from_collection_for_select(@target_clients, :id, :name, @filters[:target_client_id]), include_blank: "All target clients", class: "form-select"
-                .col-md-6.col-xl-3
-                    = label_tag :quality_status, "Quality status", class: "form-label"
-                    = select_tag :quality_status, options_for_select(@quality_statuses.map { |status| [status.to_s.humanize, status] }, @filters[:quality_status]), include_blank: "All quality statuses", class: "form-select"
-                .col-md-6.col-xl-3
-                    = label_tag :review_signal, "Review signal", class: "form-label"
-                    = select_tag :review_signal, options_for_select(@review_signal_options.map { |key, label| [label, key] }, @filters[:review_signal]), include_blank: "All review signals", class: "form-select"
-                .col-md-6.col-xl-3
-                    = label_tag :updated_since, "Updated", class: "form-label"
-                    = select_tag :updated_since, options_for_select(@updated_since_options.map { |days, label| [label, days] }, @filters[:updated_since]), include_blank: "Any time", class: "form-select"
-                .col-12
-                    = submit_tag "Apply Filters", class: "btn btn-primary"
-
-.card.border-0.shadow-sm
-    .card-header.bg-white.d-flex.justify-content-between.align-items-center
-        h2.h5.mb-0 Company Records
-        span.text-muted.small= "#{number_with_delimiter(@companies.total_count)} records"
+.card.border-0.shadow-sm.admin-compact-card
+    .card-header.bg-white
+        .d-flex.flex-wrap.justify-content-between.align-items-center.gap-2
+            h1.h4.mb-0 Companies
+            .d-flex.gap-2
+                = link_to "Upload CSV", upload_custom_admin_companies_csv_path, class: "btn btn-sm btn-outline-secondary"
+                = link_to "Export CSV", export_custom_admin_companies_csv_path, class: "btn btn-sm btn-outline-secondary"
+    .card-body.border-bottom
+        = form_with url: custom_admin_companies_path, method: :get, local: true, html: { class: "admin-filter-toolbar" } do
+            = search_field_tag :q, @filters[:q], class: "form-control form-control-sm admin-filter-search", placeholder: "Search companies", aria: { label: "Search companies" }
+            = select_tag :visibility, options_for_select([["All visibility", ""], ["Visible", "visible"], ["Hidden", "hidden"]], @filters[:visibility]), class: "form-select form-select-sm admin-filter-select", aria: { label: "Visibility" }
+            = select_tag :category_id, options_from_collection_for_select(@categories, :id, :name, @filters[:category_id]), include_blank: "All categories", class: "form-select form-select-sm admin-filter-select", aria: { label: "Category" }
+            = select_tag :business_model_id, options_from_collection_for_select(@business_models, :id, :name, @filters[:business_model_id]), include_blank: "All business models", class: "form-select form-select-sm admin-filter-select is-wide", aria: { label: "Business model" }
+            = select_tag :target_client_id, options_from_collection_for_select(@target_clients, :id, :name, @filters[:target_client_id]), include_blank: "All target clients", class: "form-select form-select-sm admin-filter-select is-wide", aria: { label: "Target client" }
+            = select_tag :quality_status, options_for_select(@quality_statuses.map { |status| [status.to_s.humanize, status] }, @filters[:quality_status]), include_blank: "All quality statuses", class: "form-select form-select-sm admin-filter-select is-wide", aria: { label: "Quality status" }
+            = select_tag :review_signal, options_for_select(@review_signal_options.map { |key, label| [label, key] }, @filters[:review_signal]), include_blank: "All review signals", class: "form-select form-select-sm admin-filter-select is-wide", aria: { label: "Review signal" }
+            = select_tag :updated_since, options_for_select(@updated_since_options.map { |days, label| [label, days] }, @filters[:updated_since]), include_blank: "Any time", class: "form-select form-select-sm admin-filter-select", aria: { label: "Updated" }
+            = submit_tag "Apply", class: "btn btn-sm btn-primary rounded-pill px-3"
+            - if @active_filter_count.positive?
+                = link_to "Reset", custom_admin_companies_path, class: "btn btn-sm btn-link text-muted text-decoration-none"
+    .card-header.bg-white.d-flex.flex-wrap.justify-content-end.align-items-center.gap-2
+        .admin-table-summary
+            - visible_percent = @company_summary_counts[:total].positive? ? ((@company_summary_counts[:visible].to_f / @company_summary_counts[:total]) * 100).round : 0
+            span.admin-table-summary-item
+                | Visible 
+                strong= "#{visible_percent}%"
+            span.admin-table-summary-item
+                | Missing URLs 
+                strong= number_with_delimiter(@company_summary_counts[:missing_url])
+            span.admin-table-summary-item
+                | Weak descriptions 
+                strong= number_with_delimiter(@company_summary_counts[:weak_description])
+            span.admin-table-summary-item
+                | Duplicate domains 
+                strong= number_with_delimiter(@company_summary_counts[:duplicate_domain])
+            span.admin-table-summary-item
+                | Unknown taxonomy 
+                strong= number_with_delimiter(@company_summary_counts[:unknown_taxonomy])
+            span.admin-table-summary-item
+                | Records 
+                strong= number_with_delimiter(@companies.total_count)
     .table-responsive
-        table.table.table-hover.align-middle.mb-0.admin-table
+        table.table.table-hover.align-middle.mb-0.admin-table.is-compact
             thead
                 tr
                     th Company
@@ -70,36 +55,60 @@
                     th.admin-actions
             tbody
                 - @companies.each do |company|
+                    - description_text = company.description.to_s.strip
+                    - taxonomy_unknown = company.category.blank? || company.category&.name == "Unknown" || company.business_model.blank? || company.business_model&.name == "Unknown" || company.target_client.blank? || company.target_client&.name == "Unknown"
+                    - issue_chips = []
+                    - issue_chips << { label: "Missing URL", tone: "warning" } if company.main_url.blank?
+                    - issue_chips << { label: "Weak description", tone: "warning" } if description_text.length < 40
+                    - issue_chips << { label: "Duplicate domain", tone: "danger" } if @duplicate_domain_company_ids.include?(company.id)
+                    - issue_chips << { label: "Duplicate name", tone: "danger" } if @duplicate_name_company_ids.include?(company.id)
+                    - issue_chips << { label: "Unknown taxonomy", tone: "muted" } if taxonomy_unknown
                     tr
                         td.admin-description
-                            .fw-semibold= company.name
-                            .text-muted.small= truncate(company.description.to_s, length: 180)
+                            = link_to custom_admin_company_review_path(company), class: "admin-primary-link", aria: { label: "Review #{company.name}" } do
+                                .admin-company-cell
+                                    = image_tag company.logo, class: "admin-company-logo", alt: "#{company.name} logo", loading: "lazy"
+                                    .admin-company-copy
+                                        .fw-semibold= company.name
+                                        .admin-cell-secondary= truncate(description_text, length: 90)
+                                        - if issue_chips.any?
+                                            .d-flex.flex-wrap.gap-2.mt-1
+                                                - issue_chips.each do |issue|
+                                                    span.admin-issue-chip class="is-#{issue[:tone]}"= issue[:label]
                         td.admin-url
                             - if company.main_url.present?
                                 = link_to company.canonical_domain.presence || company.canonical_main_domain || company.main_url, company.main_url, target: "_blank", rel: "noopener"
                             - else
-                                span.text-warning Missing
-                        td.admin-nowrap= company.category&.name || "Unknown"
-                        td.admin-nowrap= company.business_model&.name || "Unknown"
+                                span.admin-cell-secondary Missing
                         td.admin-nowrap
-                            span.badge class="#{company.quality_status.present? ? 'text-bg-info' : 'text-bg-light text-dark'}"= company.quality_status.presence || "Unreviewed"
-                            .text-muted.small= company.verification_verdict.presence || "No verdict"
+                            .admin-cell-primary= company.category&.name || "Unknown"
+                            .admin-cell-secondary= company.target_client&.name || "Unknown"
+                        td.admin-nowrap
+                            .admin-cell-primary= company.business_model&.name || "Unknown"
+                        td.admin-nowrap
+                            .admin-quality= company.quality_status.presence&.humanize || "Unreviewed"
+                            .admin-cell-secondary= company.verification_verdict.presence&.humanize || "No verdict"
                         td.admin-nowrap
                             - if company.visible?
-                                span.badge.text-bg-success Yes
+                                span.admin-status-pill.text-bg-success Visible
                             - else
-                                span.badge.text-bg-secondary No
+                                span.admin-status-pill.text-bg-secondary Hidden
                         td.small.admin-nowrap= company.updated_at&.to_date
                         td.text-end.admin-actions
-                            .d-inline-flex.gap-2
-                                = link_to "Review", custom_admin_company_review_path(company), class: "btn btn-sm btn-outline-secondary"
-                                = link_to "Edit", edit_custom_admin_company_path(company), class: "btn btn-sm btn-primary"
-                                = button_to custom_admin_company_path(company), method: :delete, class: "btn btn-sm btn-outline-danger", form: { data: { turbo_confirm: "Delete #{company.name}? This permanently removes the company record from TechIndex." } }, title: "Delete #{company.name}" do
-                                    i.fas.fa-trash-alt.me-1
-                                    | Delete
+                            .d-inline-flex.gap-2.justify-content-end
+                                = link_to "Review", custom_admin_company_review_path(company), class: "btn btn-sm btn-outline-primary px-3"
+                                .dropdown
+                                    button.btn.btn-sm.btn-light.border.btn-icon type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Company actions"
+                                        i.fas.fa-ellipsis-h
+                                    .dropdown-menu.dropdown-menu-end
+                                        = link_to edit_custom_admin_company_path(company), class: "dropdown-item" do
+                                            i.fas.fa-pen.me-2
+                                            | Edit
+                                        = button_to custom_admin_company_path(company), method: :delete, class: "dropdown-item text-danger", form: { data: { turbo_confirm: "Delete #{company.name}? This permanently removes the company record from TechIndex." } }, title: "Delete #{company.name}" do
+                                            i.fas.fa-trash-alt.me-2
+                                            | Delete
                 - if @companies.empty?
                     tr
                         td.text-muted.text-center colspan="8" No companies match these filters.
-
-.py-3
-    = paginate @companies
+    .card-footer.bg-white.py-2
+        = paginate @companies

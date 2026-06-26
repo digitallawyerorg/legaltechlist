@@ -29,6 +29,8 @@ module Admin
       @updated_since_options = UPDATED_SINCE_OPTIONS
       @company_summary_counts = company_summary_counts
       @active_filter_count = active_filter_count
+      @duplicate_domain_company_ids = Company.duplicate_domain_candidate_ids
+      @duplicate_name_company_ids = Company.duplicate_name_candidate_ids
       @companies = filtered_companies.page(params[:page]).per(25)
     end
 

@@ -3,7 +3,6 @@
 .d-flex.justify-content-between.align-items-start.mb-4
     div
         h1.h3.mb-1= @company.name
-        p.text-muted.mb-0 Company review page with custom-admin editing. Apply/reject workflows for agent proposals will come later.
     .d-flex.gap-2
         = link_to "Back to Review Queue", custom_admin_company_reviews_path, class: "btn btn-outline-secondary"
         = link_to "Edit Company", edit_custom_admin_company_path(@company), class: "btn btn-primary"
