@@ -2,9 +2,20 @@
 
 .d-flex.justify-content-between.align-items-start.mb-4
     div
-        h1.h3.mb-1 Company Proposals
-        p.text-muted.mb-0 Review cockpit for Atlas candidates, enrichment evidence, duplicate warnings, and publish readiness.
+        h1.h3.mb-1 New Candidate Review
+        p.text-muted.mb-0 Staged Atlas candidates, enrichment evidence, duplicate warnings, and publish readiness.
     = link_to "Review CSV Candidates", upload_custom_admin_companies_csv_path, class: "btn btn-outline-primary"
+
+.card.border-0.shadow-sm.mb-4
+    .card-body
+        .d-flex.flex-wrap.align-items-center.justify-content-between.gap-3
+            div
+                .admin-kicker Review workspace
+                .fw-semibold Existing records and new candidates stay separate until a human approves a write.
+            .nav.nav-pills
+                = link_to "Existing Companies", custom_admin_company_reviews_path, class: "nav-link"
+                = link_to "New Candidates", custom_admin_company_proposals_path, class: "nav-link active"
+                = link_to "Upload CSV", upload_custom_admin_companies_csv_path, class: "nav-link"
 
 .row.g-3.mb-4
     - @review_cockpit_counts.each do |label, count|

@@ -2,12 +2,23 @@
 
 .d-flex.justify-content-between.align-items-start.mb-4
     div
-        h1.h3.mb-1 Company Review
-        p.text-muted.mb-0 Read-first review queues for company quality, duplicates, and future agent suggestions.
+        h1.h3.mb-1 Review
+        p.text-muted.mb-0 Existing-company queues for quality, duplicate, and evidence triage.
     .d-flex.gap-2
         = button_to "Run Next Description Review", custom_admin_next_description_review_path, method: :post, class: "btn btn-warning", form: { data: { turbo_confirm: "Run a proposal-only agent review for the next description candidate?" } }
         = button_to "Run Next Duplicate Review", custom_admin_next_duplicate_domain_review_path, method: :post, class: "btn btn-outline-warning", form: { data: { turbo_confirm: "Run a proposal-only duplicate-domain review for the next duplicate candidate?" } }
         = link_to "Quality Dashboard", custom_admin_quality_path, class: "btn btn-outline-secondary"
+
+.card.border-0.shadow-sm.mb-4
+    .card-body
+        .d-flex.flex-wrap.align-items-center.justify-content-between.gap-3
+            div
+                .admin-kicker Review workspace
+                .fw-semibold Existing records and new candidates stay separate until a human approves a write.
+            .nav.nav-pills
+                = link_to "Existing Companies", custom_admin_company_reviews_path, class: "nav-link active"
+                = link_to "New Candidates", custom_admin_company_proposals_path, class: "nav-link"
+                = link_to "Upload CSV", upload_custom_admin_companies_csv_path, class: "nav-link"
 
 .card.border-0.shadow-sm.mb-4
     .card-body

@@ -5,7 +5,7 @@
         h1.h3.mb-1 TechIndex Admin
         p.text-muted.mb-0 Maintenance cockpit for Stanford CodeX TechIndex quality review, agent runs, imports, and safe data curation.
     .d-flex.gap-2
-        = link_to "Review Queues", custom_admin_company_reviews_path, class: "btn btn-primary"
+        = link_to "Review", custom_admin_company_reviews_path, class: "btn btn-primary"
         = link_to "Companies", custom_admin_companies_path, class: "btn btn-outline-secondary"
 
 .row.g-3.mb-4
@@ -76,7 +76,7 @@
                             h3.h6.mb-2 Pipeline health
                             p.text-muted.small.mb-3 Watch failed runs and recent agent output before trusting batch workflows.
                             .d-flex.gap-2
-                                = link_to "Pipeline logs", custom_admin_pipeline_runs_path, class: "btn btn-sm btn-outline-primary"
+                                = link_to "Activity", custom_admin_pipeline_runs_path, class: "btn btn-sm btn-outline-primary"
                                 = link_to "Agent reviews", custom_admin_agent_reviews_path, class: "btn btn-sm btn-outline-secondary"
 
         .card.border-0.shadow-sm

@@ -1,8 +1,17 @@
 module Admin
   class PipelineRunReviewsController < BaseController
+    AGENT_REVIEW_RUN_TYPES = %w[company_agent_review duplicate_domain_review].freeze
+
     def index
+      @activity = params[:activity].presence || "all"
       @status = params[:status].presence
       @pipeline_runs = pipeline_runs_scope.page(params[:page]).per(25)
+      @activity_counts = {
+        "all" => PipelineRun.count,
+        "agent_reviews" => PipelineRun.where(run_type: AGENT_REVIEW_RUN_TYPES).count,
+        "import_reviews" => PipelineRun.where(run_type: "atlas_candidate_import_review").count,
+        "failed" => PipelineRun.failed.count
+      }
       @status_counts = {
         "all" => PipelineRun.count,
         "running" => PipelineRun.running.count,
@@ -32,7 +41,13 @@ module Admin
     private
 
     def pipeline_runs_scope
-      scope = PipelineRun.recent
+      scope = case @activity
+              when "agent_reviews" then PipelineRun.where(run_type: AGENT_REVIEW_RUN_TYPES)
+              when "import_reviews" then PipelineRun.where(run_type: "atlas_candidate_import_review")
+              when "failed" then PipelineRun.failed
+              else PipelineRun.all
+              end
+      scope = scope.recent
       return scope if @status.blank? || @status == "all"
 
       scope.where(status: @status)

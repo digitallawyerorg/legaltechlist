@@ -1,16 +1,37 @@
-- content_for :title, "Pipeline Runs"
+- content_for :title, "Activity"
 
 .d-flex.justify-content-between.align-items-start.mb-4
     div
-        h1.h3.mb-1 Pipeline Runs
-        p.text-muted.mb-0 Durable logs for imports, audits, and future agent-assisted curation.
+        h1.h3.mb-1 Activity
+        p.text-muted.mb-0 Durable run history for imports, audits, and agent-assisted curation.
     = link_to "Back to Admin Home", custom_admin_root_path, class: "btn btn-outline-secondary"
+
+.card.border-0.shadow-sm.mb-4
+    .card-body
+        .d-flex.flex-wrap.align-items-center.justify-content-between.gap-3
+            div
+                .admin-kicker Activity workspace
+                .fw-semibold Agent review output is a focused view of the same pipeline run audit trail.
+            .nav.nav-pills
+                = link_to "All Runs", custom_admin_pipeline_runs_path, class: "nav-link #{@activity == 'all' ? 'active' : ''}"
+                = link_to "Agent Reviews", custom_admin_agent_reviews_path, class: "nav-link"
+                = link_to "Import Reviews", custom_admin_pipeline_runs_path(activity: "import_reviews"), class: "nav-link #{@activity == 'import_reviews' ? 'active' : ''}"
+                = link_to "Failures", custom_admin_pipeline_runs_path(activity: "failed"), class: "nav-link #{@activity == 'failed' ? 'active' : ''}"
+
+.row.g-3.mb-4
+    - [["All runs", @activity_counts["all"], custom_admin_pipeline_runs_path], ["Agent reviews", @activity_counts["agent_reviews"], custom_admin_agent_reviews_path], ["Import reviews", @activity_counts["import_reviews"], custom_admin_pipeline_runs_path(activity: "import_reviews")], ["Failures", @activity_counts["failed"], custom_admin_pipeline_runs_path(activity: "failed")]].each do |label, count, path|
+        .col-6.col-lg-3
+            = link_to path, class: "text-decoration-none text-reset" do
+                .card.border-0.shadow-sm.h-100
+                    .card-body
+                        .text-muted.small.fw-semibold= label
+                        .display-6.fw-semibold= number_with_delimiter(count)
 
 .card.border-0.shadow-sm.mb-4
     .card-body
         .d-flex.flex-wrap.gap-2
             - @status_counts.each do |status, count|
-                = link_to "#{status.titleize} (#{number_with_delimiter(count)})", custom_admin_pipeline_runs_path(status: status), class: "btn btn-sm #{(@status.presence || 'all') == status ? 'btn-primary' : 'btn-outline-secondary'}"
+                = link_to "#{status.titleize} (#{number_with_delimiter(count)})", custom_admin_pipeline_runs_path(activity: @activity, status: status), class: "btn btn-sm #{(@status.presence || 'all') == status ? 'btn-primary' : 'btn-outline-secondary'}"
 
 .card.border-0.shadow-sm
     .card-header.bg-white.d-flex.justify-content-between.align-items-center
@@ -30,6 +51,7 @@
                     th.admin-actions
             tbody
                 - @pipeline_runs.each do |run|
+                    - review_path = Admin::PipelineRunReviewsController::AGENT_REVIEW_RUN_TYPES.include?(run.run_type) ? custom_admin_agent_review_path(run) : custom_admin_pipeline_run_path(run)
                     tr
                         td.fw-semibold= run.name
                         td.admin-nowrap= run.run_type
@@ -39,7 +61,7 @@
                         td.admin-nowrap= number_with_delimiter(run.records_processed)
                         td.small.admin-nowrap= run.started_at
                         td.small.admin-nowrap= run.finished_at
-                        td.text-end.admin-actions= link_to "View", custom_admin_pipeline_run_path(run), class: "btn btn-sm btn-primary"
+                        td.text-end.admin-actions= link_to (Admin::PipelineRunReviewsController::AGENT_REVIEW_RUN_TYPES.include?(run.run_type) ? "Review Output" : "View"), review_path, class: "btn btn-sm btn-primary"
             - if @pipeline_runs.empty?
                 tbody
                     tr

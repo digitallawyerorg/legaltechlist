@@ -1,8 +1,19 @@
 - content_for :title, "Upload Companies CSV"
 
 .mb-4
-    h1.h3.mb-1 Upload Companies CSV
+    h1.h3.mb-1 Upload Candidate CSV
     p.text-muted.mb-0 Review Atlas/Crunchbase CSV candidates before importing. Source descriptions are evidence only and must not be copied into public TechIndex text.
+
+.card.border-0.shadow-sm.mb-4
+    .card-body
+        .d-flex.flex-wrap.align-items-center.justify-content-between.gap-3
+            div
+                .admin-kicker Review workspace
+                .fw-semibold Uploads create candidate review reports first; company writes remain human-approved.
+            .nav.nav-pills
+                = link_to "Existing Companies", custom_admin_company_reviews_path, class: "nav-link"
+                = link_to "New Candidates", custom_admin_company_proposals_path, class: "nav-link"
+                = link_to "Upload CSV", upload_custom_admin_companies_csv_path, class: "nav-link active"
 
 .card.border-0.shadow-sm
     .card-body
