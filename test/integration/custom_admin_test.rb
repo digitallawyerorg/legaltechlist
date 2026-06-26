@@ -9,6 +9,18 @@ class CustomAdminTest < ActionDispatch::IntegrationTest
     assert_redirected_to new_admin_user_session_path
   end
 
+  test "admin login page uses centered styled form" do
+    get new_admin_user_session_path
+
+    assert_response :success
+    assert_select ".min-vh-100.d-flex.align-items-center"
+    assert_select ".card .card-body h1", "TechIndex Admin"
+    assert_select "form[action='#{admin_user_session_path}'][method='post']"
+    assert_select "input.form-control[name='admin_user[email]']"
+    assert_select "input.form-control[name='admin_user[password]']"
+    assert_select "input.btn.btn-dark[type='submit'][value='Log in']"
+  end
+
   test "custom admin dashboard is available to signed-in admin users" do
     sign_in admin_users(:one)
 
@@ -17,7 +29,20 @@ class CustomAdminTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "h1", "TechIndex Admin"
     assert_select "a", "Review Queues"
+    assert_select "form[action='#{destroy_admin_user_session_path}'][method='post'] input[name='_method'][value='delete']"
+    assert_select "button.btn.btn-outline-light[type='submit']", "Log out"
     assert_select "h2", "Today's Maintenance"
+  end
+
+  test "admin logout signs out with delete request" do
+    sign_in admin_users(:one)
+
+    delete destroy_admin_user_session_path
+
+    assert_redirected_to root_path
+
+    get custom_admin_root_path
+    assert_redirected_to new_admin_user_session_path
   end
 
   test "quality dashboard is available to signed-in admin users" do

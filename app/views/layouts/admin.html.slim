@@ -46,7 +46,7 @@ html
                     .d-flex.align-items-center.gap-3
                         - if current_admin_user
                             span.text-white-50.small= current_admin_user.email
-                            = link_to "Log out", destroy_admin_user_session_path, method: :delete, class: "btn btn-outline-light btn-sm"
+                            = button_to "Log out", destroy_admin_user_session_path, method: :delete, class: "btn btn-outline-light btn-sm", form: { class: "d-inline" }
 
         main.container-fluid.admin-main.py-4.px-3.px-xl-4
             - if notice.present?

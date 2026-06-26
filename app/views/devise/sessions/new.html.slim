@@ -1,0 +1,27 @@
+.bg-light.min-vh-100.d-flex.align-items-center.py-5
+    .container
+        .row.justify-content-center
+            .col-12.col-sm-10.col-md-7.col-lg-5.col-xl-4
+                .card.border-0.shadow-sm
+                    .card-body.p-4.p-md-5
+                        .text-center.mb-4
+                            .d-inline-flex.align-items-center.justify-content-center.rounded-circle.bg-dark.text-white.mb-3 style="width: 56px; height: 56px;"
+                                i.fas.fa-lock
+                            h1.h3.fw-bold.mb-1 TechIndex Admin
+                            p.text-muted.mb-0 Sign in to manage the directory.
+
+                        = form_for(resource, as: resource_name, url: session_path(resource_name), html: { class: "admin-login-form" }) do |f|
+                            .mb-3
+                                = f.label :email, class: "form-label fw-semibold"
+                                = f.email_field :email, autofocus: true, autocomplete: "email", class: "form-control form-control-lg", placeholder: "admin@example.com"
+                            .mb-3
+                                = f.label :password, class: "form-label fw-semibold"
+                                = f.password_field :password, autocomplete: "current-password", class: "form-control form-control-lg", placeholder: "Password"
+                            - if devise_mapping.rememberable?
+                                .form-check.mb-4
+                                    = f.check_box :remember_me, class: "form-check-input"
+                                    = f.label :remember_me, class: "form-check-label"
+                            = f.submit "Log in", class: "btn btn-dark btn-lg w-100"
+
+                        .text-center.mt-4
+                            = render "devise/shared/links"
