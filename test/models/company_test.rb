@@ -133,5 +133,13 @@ class CompanyTest < ActiveSupport::TestCase
     company.update!(logo_url: "https://img.logo.dev/example.com?token=pk_test")
 
     assert_match %r{\Ahttps://placehold\.co/}, company.logo
+    assert company.logo_placeholder?
+  end
+
+  test "logo_placeholder is false when stored logo exists" do
+    company = companies(:one)
+    CompanyLogo.create!(company: company, data: "\x89PNG\r\n\x1a\n".b, content_type: "image/png")
+
+    refute company.logo_placeholder?
   end
 end

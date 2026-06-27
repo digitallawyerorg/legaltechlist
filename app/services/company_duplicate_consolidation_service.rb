@@ -65,6 +65,20 @@ class CompanyDuplicateConsolidationService
   end
 
   def consolidate_group(domain, companies)
+    if companies.any? { |company| company.status.to_s == "acquired" }
+      return {
+        "domain" => domain,
+        "keeper_id" => nil,
+        "keeper_name" => nil,
+        "company_ids" => companies.map(&:id),
+        "deleted_company_ids" => [],
+        "merged_fields" => {},
+        "transferred_associations" => {},
+        "dry_run" => dry_run,
+        "skipped" => "acquired_company_present"
+      }
+    end
+
     keeper = companies.max_by { |company| [keeper_score(company), -company.id] }
     duplicates = companies.reject { |company| company.id == keeper.id }
     merged_fields = duplicates.each_with_object({}) { |duplicate, fields| fields[duplicate.id] = merge_fields(keeper, duplicate) }
@@ -137,6 +151,7 @@ class CompanyDuplicateConsolidationService
   def delete_duplicate!(duplicate, keeper)
     transfer_taggings!(duplicate, keeper)
     transfer_company_business_models!(duplicate, keeper)
+    transfer_company_target_clients!(duplicate, keeper)
     CompanyProposal.where(company_id: duplicate.id).update_all(company_id: keeper.id, updated_at: Time.current)
     CompanyImportRow.where(company_id: duplicate.id).update_all(company_id: keeper.id, updated_at: Time.current)
     transfer_active_storage_attachments!(duplicate, keeper)
@@ -157,6 +172,12 @@ class CompanyDuplicateConsolidationService
     merged_ids = (keeper.business_model_ids + duplicate.business_model_ids).uniq
     keeper.business_model_ids = merged_ids if merged_ids.any?
     duplicate.company_business_models.delete_all
+  end
+
+  def transfer_company_target_clients!(duplicate, keeper)
+    merged_ids = (keeper.target_client_ids + duplicate.target_client_ids).uniq
+    keeper.target_client_ids = merged_ids if merged_ids.any?
+    duplicate.company_target_clients.delete_all
   end
 
   def transfer_active_storage_attachments!(duplicate, keeper)

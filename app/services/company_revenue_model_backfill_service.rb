@@ -19,17 +19,22 @@ class CompanyRevenueModelBackfillService
     new(**kwargs).call
   end
 
-  def initialize(company:, dry_run: true, min_confidence: HIGH_CONFIDENCE, overwrite_unknown_only: true)
+  def initialize(company:, dry_run: true, min_confidence: HIGH_CONFIDENCE, overwrite_unknown_only: true, overwrite_other_only: false)
     @company = company
     @dry_run = dry_run
     @min_confidence = min_confidence
     @overwrite_unknown_only = overwrite_unknown_only
+    @overwrite_other_only = overwrite_other_only
   end
 
   def call
     current_names = company.revenue_model_names
     return skip_result("human_reviewed") if company.human_reviewed_at.present?
-    return skip_result("already_classified") if overwrite_unknown_only && current_names.any? && !current_names.intersect?(%w[Unknown])
+    if overwrite_other_only
+      return skip_result("not_other") unless current_names == ["Other"]
+    elsif overwrite_unknown_only && current_names.any? && !current_names.intersect?(%w[Unknown Other])
+      return skip_result("already_classified")
+    end
 
     suggestion = CompanyProposalTaxonomySuggestionService.call(
       source_payload: source_payload,
@@ -72,7 +77,7 @@ class CompanyRevenueModelBackfillService
 
   private
 
-  attr_reader :company, :dry_run, :min_confidence, :overwrite_unknown_only
+  attr_reader :company, :dry_run, :min_confidence, :overwrite_unknown_only, :overwrite_other_only
 
   def source_payload
     {

@@ -97,7 +97,9 @@ namespace :taxonomy do
     limit = ENV["LIMIT"]&.to_i
     min_confidence = ENV.fetch("MIN_CONFIDENCE", CompanyRevenueModelBackfillService::HIGH_CONFIDENCE.to_s).to_f
     overwrite_unknown_only = ENV.fetch("OVERWRITE_UNKNOWN_ONLY", "true") != "false"
+    overwrite_other_only = ENV.fetch("OVERWRITE_OTHER_ONLY", "false") != "false"
     scope = Company.publicly_visible.includes(:business_models, :tags, :category, :target_client).order(:id)
+    scope = scope.joins(:company_business_models).where(company_business_models: { business_model_id: BusinessModel.find_by(name: "Other")&.id }).distinct if overwrite_other_only
     scope = scope.limit(limit) if limit.present?
 
     counts = Hash.new(0)
@@ -106,7 +108,8 @@ namespace :taxonomy do
         company: company,
         dry_run: dry_run,
         min_confidence: min_confidence,
-        overwrite_unknown_only: overwrite_unknown_only
+        overwrite_unknown_only: overwrite_unknown_only,
+        overwrite_other_only: overwrite_other_only
       )
       counts[result["action"]] += 1
       next unless result["action"].in?(%w[would_apply applied needs_review])
@@ -205,7 +208,10 @@ namespace :taxonomy do
       next if records.empty?
 
       if company.target_client_id != records.first.id
-        company.target_client_id = records.first.id unless dry_run
+        unless dry_run
+          company.target_client_id = records.first.id
+          company.save!(validate: false)
+        end
         backfilled += 1
       end
 
@@ -229,7 +235,7 @@ namespace :taxonomy do
 
     counts = Hash.new(0)
     scope.find_each do |company|
-      result = CompanyUnknownCategoryResolverService.call(company: company, dry_run: dry_run)
+      result = CompanyUnknownCategoryResolverService.call(company: company, dry_run: dry_run, min_confidence: ENV.fetch("MIN_CONFIDENCE", CompanyUnknownCategoryResolverService::HIGH_CONFIDENCE.to_s).to_f)
       counts[result["action"]] += 1
       next unless result["action"].in?(%w[would_resolve resolved])
 
@@ -314,6 +320,52 @@ namespace :taxonomy do
     end
 
     puts "apply_category_migration complete mode=#{dry_run ? 'dry-run' : 'write'} counts=#{counts.inspect}"
+  end
+
+  desc "Export remaining Unknown categories to CSV for human review."
+  task export_unknown_categories: :environment do
+    path = Rails.root.join("tmp", "unknown_categories_#{Time.current.strftime('%Y%m%d')}.csv")
+    CSV.open(path, "w") do |csv|
+      csv << %w[company_id name main_url description target_client suggested_category confidence mode action tags]
+      Company.unknown_category.includes(:category, :target_client, :tags).order(:id).find_each do |company|
+        result = CompanyUnknownCategoryResolverService.call(company: company, dry_run: true, min_confidence: 0.0)
+        csv << [
+          company.id,
+          company.name,
+          company.main_url,
+          company.description.to_s.truncate(500),
+          company.target_client&.name,
+          result["suggested_category"] || result["to_category"],
+          result["confidence"],
+          result["mode"],
+          result["action"],
+          company.tags.map(&:name).join("; ")
+        ]
+      end
+    end
+
+    puts "export_unknown_categories complete path=#{path} rows=#{Company.unknown_category.count}"
+  end
+
+  desc "Remove unused non-canonical BusinessModel records. DRY_RUN=false to write."
+  task retire_legacy_business_models: :environment do
+    dry_run = ENV.fetch("DRY_RUN", "true") != "false"
+    canonical = MethodologyHelper::REVENUE_MODEL_NAMES + ["Unknown"]
+    removed = 0
+
+    BusinessModel.where.not(name: canonical).find_each do |model|
+      next if CompanyBusinessModel.exists?(business_model_id: model.id) || Company.exists?(business_model_id: model.id)
+
+      if dry_run
+        puts "DRY RUN delete #{model.name} id=#{model.id}"
+      else
+        model.destroy!
+        puts "deleted #{model.name}"
+      end
+      removed += 1
+    end
+
+    puts "retire_legacy_business_models complete mode=#{dry_run ? 'dry-run' : 'write'} removed=#{removed}"
   end
 
   desc "Sync legacy business_model_id from M2M revenue models. DRY_RUN=false to write."

@@ -56,18 +56,23 @@ css:
         width: 4.5rem;
     }
 
-    .company-show-page .company-logo-frame img {
-        height: 100%;
-        object-fit: contain;
-        padding: 0.5rem;
-        width: 100%;
-    }
-
     .company-show-page .company-logo-placeholder {
         color: #8c1515;
         font-family: edict, "edict Fallback", Georgia, Cambria, "Times New Roman", Times, serif;
         font-size: 1.75rem;
         font-weight: 700;
+    }
+
+    .company-show-page .company-logo-image {
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 0.85rem;
+        display: block;
+        flex: 0 0 4.5rem;
+        height: 4.5rem;
+        object-fit: contain;
+        padding: 0.5rem;
+        width: 4.5rem;
     }
 
     .company-show-page .company-show-title {
@@ -463,7 +468,11 @@ css:
 - funding_display = (if funding_amount >= 1_000_000_000 then "$#{(funding_amount / 1_000_000_000).round(1).to_s.sub(/\.0$/, '')}B" elsif funding_amount >= 1_000_000 then "$#{(funding_amount / 1_000_000).round}M" elsif funding_amount.positive? then number_to_currency(funding_amount, precision: 0) else nil end)
 - founded_display = (@company.founded_date.present? && @company.founded_date != "0000") ? @company.founded_date : "-"
 - headquarters_display = (@company.location.present? && @company.location != "Nowhere") ? format_location(@company.location) : "-"
-- key_facts = [{ label: "Status", icon: "fa-solid fa-circle-check", value: status_label }, { label: "Founded", icon: "fa-regular fa-calendar", value: founded_display }, { label: "Headquarters", icon: "fa-solid fa-location-dot", value: headquarters_display }, { label: "Total funding", icon: "fa-solid fa-dollar-sign", value: funding_display.presence || "-" }]
+- target_market_names = (@company.target_clients.any? ? @company.target_clients : Array(@company.target_client).compact).map(&:name).uniq.reject { |name| name.blank? || name == "Unknown" }
+- target_market_display = target_market_names.any? ? target_market_names.to_sentence : "-"
+- revenue_model_names = @company.revenue_model_names.reject { |name| name.blank? || name == "Unknown" }
+- revenue_model_display = revenue_model_names.any? ? revenue_model_names.to_sentence : "-"
+- key_facts = [{ label: "Status", icon: "fa-solid fa-circle-check", value: status_label }, { label: "Founded", icon: "fa-regular fa-calendar", value: founded_display }, { label: "Headquarters", icon: "fa-solid fa-location-dot", value: headquarters_display }, { label: "Target market", icon: "fa-solid fa-bullseye", value: target_market_display }, { label: "Revenue model", icon: "fa-solid fa-coins", value: revenue_model_display }, { label: "Total funding", icon: "fa-solid fa-dollar-sign", value: funding_display.presence || "-" }]
 - source_links = []
 - source_links << { label: "Website", icon: "fa-solid fa-globe", icon_color: "#2563eb", url: website_url, host: short_host_for.call(website_url) } if website_url.present?
 - source_links << { label: "LinkedIn", icon: "fa-brands fa-linkedin", icon_color: "#0a66c2", url: @company.linkedin_url, host: short_host_for.call(@company.linkedin_url) } if @company.linkedin_url.present? && @company.linkedin_url != "n/a"
@@ -494,11 +503,11 @@ css:
 
         .company-hero
             .company-hero-main
-                .company-logo-frame
-                    - if @company.company_logo.present? || (@company.logo_url.present? && !@company.logo_dev_url?(@company.logo_url))
-                        = image_tag @company.logo, alt: "#{@company.name} logo"
-                    - else
+                - if @company.logo_placeholder?
+                    .company-logo-frame
                         .company-logo-placeholder= @company.name.to_s.first
+                - else
+                    = image_tag @company.logo, alt: "#{@company.name} logo", class: "company-logo-image"
                 div
                     h1.company-show-title= @company.name
                     - if website_url.present?

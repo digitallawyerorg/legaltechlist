@@ -21,16 +21,11 @@ class ImportCsvToCompanyService
           target_client = raw_row["target_client"] || raw_row["suggested_target_client"] || "Unknown"
           category = raw_row["Category"] || raw_row["suggested_category"] || "Unknown"
 
-          # Get category and subcategory
-          catName = category.to_s.split('-').first.to_s.strip
-          catName = "Unknown" if catName.blank?
-          subCatName = category.to_s.split('-')[1].to_s.strip
-
-          # Create or find associated records
-          cat = Category.where(:name => catName).first_or_create!
-          sub = SubCategory.where(:name => subCatName, :category => cat).first_or_create! if subCatName.present?
-          biz = BusinessModel.where(:name => business_model).first_or_create!
-          trg = TargetClient.where(:name => target_client).first_or_create!
+          cat = TaxonomyNormalizationService.find_category(category) || Category.find_by(name: "Unknown")
+          revenue_models = TaxonomyNormalizationService.find_revenue_models(business_model)
+          revenue_models = [BusinessModel.find_by(name: "Other")].compact if revenue_models.empty?
+          target_clients = TaxonomyNormalizationService.find_target_clients(target_client)
+          trg = target_clients.first || TargetClient.find_by(name: "Unknown")
 
           # Find existing company
           company = Company.where("TRIM(name) = ?", name.strip).first
@@ -64,9 +59,8 @@ class ImportCsvToCompanyService
             founded_date: row["founded_date"],
             visible: true, # All imported companies are verified
             category: cat,
-            sub_category: sub,
             target_client: trg,
-            business_model: biz,
+            business_model: revenue_models.first,
             description: description,
             main_url: row["main_url"],
             twitter_url: row["twitter_url"],
@@ -91,6 +85,8 @@ class ImportCsvToCompanyService
               company.assign_attributes(attributes)
               company.skip_geocoding = true
               company.save!
+              company.business_model_ids = revenue_models.map(&:id)
+              company.target_client_ids = target_clients.map(&:id)
               company.all_tags = raw_row["suggested_tags"].to_s if raw_row["suggested_tags"].present?
               stats[:updated] += 1
             else
@@ -100,6 +96,8 @@ class ImportCsvToCompanyService
             company = Company.new(attributes)
             company.skip_geocoding = true
             company.save!
+            company.business_model_ids = revenue_models.map(&:id)
+            company.target_client_ids = target_clients.map(&:id)
             company.all_tags = raw_row["suggested_tags"].to_s if raw_row["suggested_tags"].present?
             stats[:created] += 1
           end

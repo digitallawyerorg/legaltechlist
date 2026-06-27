@@ -4,15 +4,16 @@ class CompanyProposalTaxonomySuggestionService
   HIGH_CONFIDENCE = 0.8
 
   CATEGORY_RULES = [
+    ["eDiscovery & Investigations", /\b(ediscovery|e-discovery|electronically stored information|\besi\b|digital forensics|forensic)\b/i],
+    ["Legal Operations / ELM", /\b(legal operations|matter management|e-?billing|enterprise legal management|\belm\b|legal spend)\b/i],
+    ["Access to Justice & Public Sector", /\b(access to justice|legal aid|pro bono|self-represented|pro se|court self-help)\b/i],
     ["Analytics & Insights", /\b(analytics?|insights?|metrics?|dashboard|reporting|benchmark|intelligence|data analysis|trend)\b/i],
     ["Contract Management", /\b(contract|clm|redlin|negotiat|agreement)\b/i],
     ["Litigation & Dispute Resolution", /\b(litigation|dispute|case|court|claims?)\b/i],
     ["Compliance & Risk", /\b(compliance|regulatory|risk|policy|audit)\b/i],
     ["Document Management and Automation", /\b(document|automation|workflow|intake)\b/i],
-    ["Document Management", /\b(document|automation|workflow|intake)\b/i],
     ["Knowledge & Research", /\b(research|knowledge|search|retrieval|rag)\b/i],
-    ["Legal Research", /\b(research|knowledge|search|retrieval|rag)\b/i],
-    ["Practice Management", /\b(practice management|matter|billing|operations)\b/i],
+    ["Practice Management", /\b(practice management|calendaring|time tracking|client intake)\b/i],
     ["IP Management", /\b(ip|intellectual property|patent|trademark)\b/i],
     ["Marketplace and ALSPs", /\b(marketplace|alsp|legal service|service provider)\b/i]
   ].freeze
@@ -32,10 +33,10 @@ class CompanyProposalTaxonomySuggestionService
   TARGET_CLIENT_RULES = [
     ["Corporate Legal", /\b(in-house|corporate legal|legal departments?|legal operations|general counsel)\b/i],
     ["Law Firms", /\b(law firms?|lawyers?|attorneys?|litigation lawyers?|legal professionals?)\b/i],
-    ["Legal Service Providers", /\b(legal service providers?|alsp|service providers?)\b/i],
+    ["Legal Service Providers", /\b(legal service providers?|alsp)\b/i],
     ["Government", /\b(government|public sector|agency|court|regulator)\b/i],
     ["Consumers", /\b(individuals?|consumers?|self-represented|pro se|b2c)\b/i],
-    ["Companies", /\b(enterprise|businesses?|companies|organizations?|legal teams?)\b/i]
+    ["Corporate Legal", /\b(in-house|corporate legal|legal departments?|legal operations|general counsel|enterprise|businesses?|companies|organizations?|legal teams?)\b/i]
   ].freeze
 
   def self.call(**kwargs)

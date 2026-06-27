@@ -189,7 +189,7 @@ class CompaniesController < ApplicationController
 
     # Use callbacks to share common setup or constraints between actions.
     def set_company
-      scope = action_name == "show" ? Company.includes(:category, :sub_category, :business_model, :target_client, :tags) : Company
+      scope = action_name == "show" ? Company.includes(:category, :sub_category, :business_model, :business_models, :company_logo, :target_client, :target_clients, :tags) : Company
       @company = scope.find(params[:id])
     end
 

@@ -312,6 +312,10 @@ class Company < ActiveRecord::Base
     end
   end
 
+  def logo_placeholder?
+    company_logo.blank? && (logo_url.blank? || logo_dev_url?(logo_url))
+  end
+
   def self.logo_dev_url?(url)
     return false if url.blank?
 
