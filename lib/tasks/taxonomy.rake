@@ -136,7 +136,7 @@ namespace :taxonomy do
     puts "companies_visible: #{Company.publicly_visible.count}"
     puts "unknown_category: #{Company.unknown_category.count}"
     puts "unknown_target_client: #{Company.unknown_target_client.count}"
-    puts "unknown_revenue_model: #{Company.joins(:company_business_models).where(business_models: { name: 'Unknown' }).distinct.count}"
+    puts "unknown_revenue_model: #{Company.joins(company_business_models: :business_model).where(business_models: { name: 'Unknown' }).distinct.count}"
     puts "legacy_unknown_revenue_fk: #{Company.joins(:business_model).where(business_models: { name: 'Unknown' }).count}"
     puts "no_m2m_revenue: #{Company.left_joins(:company_business_models).where(company_business_models: { id: nil }).where(business_model_id: nil).count}"
     puts "untagged_visible: #{Company.publicly_visible.left_joins(:taggings).where(taggings: { id: nil }).count}"
