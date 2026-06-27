@@ -1471,11 +1471,11 @@ class StaticPagesController < ApplicationController
   end
 
   def extract_country(location)
-    LocationCountryResolver.country_name_for(location)
+    ::LocationCountryResolver.country_name_for(location)
   end
 
   def normalize_country_name(country)
-    LocationCountryResolver.normalize_country_name(country)
+    ::LocationCountryResolver.normalize_country_name(country)
   end
 
   def generate_country_distribution_csv
