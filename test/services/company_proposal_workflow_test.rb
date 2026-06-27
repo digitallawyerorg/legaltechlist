@@ -118,9 +118,13 @@ class CompanyProposalWorkflowTest < ActiveSupport::TestCase
     assert_equal proposal.company_id, results.first["company_id"]
   end
 
-  test "quality report ignores blank web evidence placeholders" do
+  test "quality report counts source evidence when web evidence is blank" do
     proposal = ready_proposal
     proposal.update!(
+      source_payload: proposal.source_payload.merge(
+        "crunchbase_url" => "https://www.crunchbase.com/organization/source-backed-test",
+        "source_description" => "Source-backed test develops legal workflow software."
+      ),
       agent_details: {
         "web_research" => { "results" => [{}] },
         "description_critic" => { "verdict" => "pass" }
@@ -130,7 +134,8 @@ class CompanyProposalWorkflowTest < ActiveSupport::TestCase
     quality = CompanyProposalQualityService.call(proposal)
 
     assert_equal 0, quality["usable_web_evidence_count"]
-    assert_includes quality["warnings"], "No usable web-search evidence is attached."
+    assert_operator quality["usable_source_evidence_count"], :>, 0
+    assert_not_includes quality["warnings"], "No usable source or web evidence is attached."
   end
 
   test "approval generates a description when editable description is blank" do

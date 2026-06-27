@@ -17,6 +17,7 @@ class CompanyProposalQualityService
       "blockers" => blockers,
       "warnings" => warnings,
       "usable_web_evidence_count" => usable_web_results.size,
+      "usable_source_evidence_count" => usable_source_evidence_count,
       "checked_at" => Time.current.utc.iso8601
     }
   end
@@ -47,7 +48,7 @@ class CompanyProposalQualityService
 
   def warnings
     values = []
-    values << "No usable web-search evidence is attached." if usable_web_results.empty?
+    values << "No usable source or web evidence is attached." if usable_web_results.empty? && usable_source_evidence_count.zero?
     values << "No enrichment critic verdict is recorded." if proposal.agent_details.dig("description_critic", "verdict").blank?
     values << "Taxonomy was not auto-accepted." if taxonomy_suggestion.present? && !taxonomy_suggestion["accepted"]
     values
@@ -90,5 +91,17 @@ class CompanyProposalQualityService
     @usable_web_results ||= Array(proposal.agent_details.dig("web_research", "results")).select do |result|
       result["url"].present? || result["title"].present? || result["snippet"].present?
     end
+  end
+
+  def usable_source_evidence_count
+    @usable_source_evidence_count ||= [
+      proposal.source_payload["crunchbase_url"],
+      proposal.source_payload["linkedin_url"],
+      proposal.source_payload["source_description"],
+      proposal.source_payload["full_source_description"],
+      changes["crunchbase_url"],
+      changes["linkedin_url"],
+      changes["source_url"]
+    ].compact_blank.size
   end
 end
