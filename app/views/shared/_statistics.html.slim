@@ -5,15 +5,12 @@
     .stats-index-grid
         = render partial: "shared/stats_index_card", locals: { path: statistics_total_companies_path, title: "Ecosystem Growth", description: "Cumulative and annual growth of the legal tech ecosystem", sparkline_variant: 1 }
         = render partial: "shared/stats_index_card", locals: { path: statistics_category_evolution_5_years_path, title: "Category Evolution", description: "Growth patterns across legal tech segments over time", sparkline_variant: 3 }
-        = render partial: "shared/stats_index_card", locals: { path: statistics_country_distribution_path, title: "Country Distribution", description: "Geographic distribution of legal tech companies by country", sparkline_variant: 2 }
-        = render partial: "shared/stats_index_card", locals: { path: statistics_funding_by_category_path, title: "Funding by Category", description: "Distribution of venture capital across legal tech segments", sparkline_variant: 3 }
-        = render partial: "shared/stats_index_card", locals: { path: statistics_target_client_path, title: "Target Client Insights", description: "Market focus and client segment analysis", sparkline_variant: 2 }
-        = render partial: "shared/stats_index_card", locals: { path: statistics_funding_stages_path, title: "Funding Stage Progression", description: "Investment patterns across company lifecycles", sparkline_variant: 1 }
-        = render partial: "shared/stats_index_card", locals: { path: statistics_tag_distribution_path, title: "Tag Distribution", description: "Technology focus areas in the legal tech ecosystem", sparkline_variant: 3 }
-        = render partial: "shared/stats_index_card", locals: { path: statistics_ai_trends_path, title: "AI Trends", description: "Growth of AI-focused legal tech companies over time", sparkline_variant: 1 }
-        = render partial: "shared/stats_index_card", locals: { path: statistics_innovation_hubs_path, title: "Innovation Hubs", description: "Regional technology specialization and innovation patterns", sparkline_variant: 2 }
-        = render partial: "shared/stats_index_card", locals: { path: statistics_exit_patterns_path, title: "Exit Patterns", description: "Analysis of successful exits and market timing", sparkline_variant: 1 }
-        = render partial: "shared/stats_index_card", locals: { path: statistics_founders_journey_path, title: "Founder's Journey", description: "Company lifecycle patterns and success factors", sparkline_variant: 2 }
+        = render partial: "shared/stats_index_card", locals: { path: statistics_country_distribution_path, title: "Geography & Hubs", description: "Country distribution and regional innovation hubs across the ecosystem", sparkline_variant: 2 }
+        = render partial: "shared/stats_index_card", locals: { path: statistics_tag_distribution_path, title: "Technology Themes", description: "Dominant technology tags and emerging themes in legal tech", sparkline_variant: 3 }
+        = render partial: "shared/stats_index_card", locals: { path: statistics_target_client_path, title: "Market Focus", description: "Target client segments and go-to-market focus areas", sparkline_variant: 2 }
+        = render partial: "shared/stats_index_card", locals: { path: statistics_ai_trends_path, title: "AI in Legal Tech", description: "Rise of AI-focused companies in the legal tech landscape", sparkline_variant: 1 }
+        = render partial: "shared/stats_index_card", locals: { path: statistics_funding_by_category_path, title: "Funding Landscape", description: "Venture capital by category; companies with disclosed funding only", sparkline_variant: 3 }
+        = render partial: "shared/stats_index_card", locals: { path: statistics_business_model_path, title: "Business Model Insights", description: "SaaS, marketplace, and other monetization patterns across the ecosystem", sparkline_variant: 4 }
 - if embedded
     == stats_index_cards
 - else

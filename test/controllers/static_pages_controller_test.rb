@@ -9,6 +9,12 @@ class StaticPagesControllerTest < ActionController::TestCase
   test "should get statistics" do
     get :statistics
     assert_response :success
+    assert_select ".stats-index-card", count: 8
+  end
+
+  test "should get business_model" do
+    get :business_model
+    assert_response :success
   end
 
   test "should get country_distribution with geo chart" do

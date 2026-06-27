@@ -318,6 +318,68 @@ class StaticPagesController < ApplicationController
     redirect_to statistics_funding_concentration_path(format: :csv)
   end
 
+  def business_model
+    @companies = Company.where(visible: true)
+                       .where('founded_date >= ? AND founded_date <= ? AND founded_date ~ ?',
+                             '2000',
+                             Time.current.year.to_s,
+                             '^\d{4}$')
+                       .includes(:business_model)
+                       .to_a
+
+    model_counts = Hash.new(0)
+    model_companies = Hash.new { |h, k| h[k] = [] }
+
+    @companies.each do |company|
+      next if company.business_model&.name.blank?
+
+      model_name = company.business_model.name
+      model_counts[model_name] += 1
+      model_companies[model_name] << company
+    end
+
+    total_companies = @companies.count.to_f
+    @model_metrics = []
+    @model_data = {}
+
+    model_counts.each do |model_name, count|
+      next if count < 10
+
+      companies_for_model = model_companies[model_name]
+      total_funding = companies_for_model.sum { |c| c.total_funding_amount_usd.to_f }
+      avg_funding = companies_for_model.any? ? (total_funding / companies_for_model.size) : 0
+
+      @model_metrics << {
+        model: model_name,
+        count: count,
+        percentage: (count.to_f / total_companies * 100).round(1),
+        avg_funding: avg_funding
+      }
+      @model_data[model_name] = count
+    end
+
+    @model_metrics.sort_by! { |m| -m[:count] }
+    @model_data = @model_data.sort_by { |_, count| -count }.to_h
+
+    respond_to do |format|
+      format.html
+      format.csv do
+        csv_data = CSV.generate do |csv|
+          csv << ["Business Model", "Companies", "Percentage", "Average Funding"]
+          @model_metrics.each do |metrics|
+            csv << [
+              metrics[:model],
+              metrics[:count],
+              metrics[:percentage],
+              metrics[:avg_funding].round(2)
+            ]
+          end
+        end
+        send_data csv_data, filename: "business_model_analysis_#{Time.current.strftime('%Y%m%d')}.csv"
+      end
+    end
+  end
+
   def target_client
     @companies = Company.where(visible: true)
                        .where('founded_date >= ? AND founded_date <= ? AND founded_date ~ ?',
@@ -467,6 +529,10 @@ class StaticPagesController < ApplicationController
   def download_target_client
     send_data generate_csv(@client_metrics, ['Target Client', 'Companies', 'Percentage', 'Average Funding']),
              filename: "target_client_analysis_#{Time.current.strftime('%Y%m%d')}.csv"
+  end
+
+  def download_business_model
+    redirect_to statistics_business_model_path(format: :csv)
   end
 
   def funding_stages

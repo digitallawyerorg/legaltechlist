@@ -91,6 +91,8 @@ Rails.application.routes.draw do
   get 'statistics/country_distribution', to: 'static_pages#country_distribution', as: :statistics_country_distribution
   get 'statistics/target_client', to: 'static_pages#target_client', as: :statistics_target_client
   get 'statistics/target_client/download', to: 'static_pages#download_target_client', as: :download_target_client
+  get 'statistics/business_model', to: 'static_pages#business_model', as: :statistics_business_model
+  get 'statistics/business_model/download', to: 'static_pages#download_business_model', as: :download_business_model
   get 'statistics/funding_stages', to: 'static_pages#funding_stages', as: :statistics_funding_stages
   get 'statistics/funding_stages/download', to: 'static_pages#download_funding_stages', as: :download_funding_stages
   get 'statistics/funding_efficiency', to: 'static_pages#funding_efficiency', as: :statistics_funding_efficiency

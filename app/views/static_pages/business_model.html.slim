@@ -1,0 +1,18 @@
+- chart_options = { height: 620, library: { chart: { style: { fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial" } }, plotOptions: { bar: { dataLabels: { enabled: true, format: "{point.y}" } } }, xAxis: { title: { text: "Business Model" } }, yAxis: { title: { text: "Number of Companies" } } } }
+- table_html = capture do
+    .table-responsive
+        table.table.table-hover.align-middle#businessModelTable
+            thead
+                tr
+                    th Business Model
+                    th.text-end Companies
+                    th.text-end Percentage
+                    th.text-end Avg Funding
+            tbody
+                - @model_metrics.each do |data|
+                    tr
+                        td= data[:model]
+                        td.text-end= data[:count]
+                        td.text-end= number_to_percentage(data[:percentage], precision: 1)
+                        td.text-end= number_to_currency(data[:avg_funding], precision: 0)
+= render partial: "shared/stats_chart_page", locals: { title: "Business Model Insights", subtitle: "How legal tech companies monetize and deliver value", chart: bar_chart(@model_data, colors: ["#8c1515"], **chart_options), table: table_html, csv_path: download_business_model_path(format: :csv), table_title: "Business model breakdown" }
