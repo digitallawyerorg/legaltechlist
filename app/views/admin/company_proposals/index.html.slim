@@ -45,7 +45,7 @@
                         th
                 tbody
                     - @company_proposals.each do |proposal|
-                        - quality = CompanyProposalQualityService.call(proposal)
+                        - quality = @proposal_quality_reports.fetch(proposal.id) { proposal.cached_quality_report.presence || CompanyProposalQualityService.call(proposal) }
                         - missing = Array(quality["missing_required_fields"])
                         - critic = proposal.agent_details.dig("description_critic", "verdict").presence || "missing"
                         - research_results = Array(proposal.agent_details.dig("web_research", "results"))

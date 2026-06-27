@@ -18,22 +18,19 @@ module CompaniesHelper
   end
   
   def related_company_list(company)
-    @tags = company.all_tags.split(",")
-    
-    # find all the companies that are tagged
-    @companies ||= Array.new
-    
-    @tags.each do |tag|
-      puts "Find tag: #{tag}"
-      @found = Company.tagged_with(tag.strip)
-      @found.each do |f|
-        if f.id != company.id
-          @companies.push f
-        end
-      end
-    end
-    
-    yield(@companies.sort_by(&:name).sample(5))
+    tag_ids = company.tags.map(&:id)
+    return yield([]) if tag_ids.empty?
+
+    related_companies = Company.publicly_visible
+                               .joins(:tags)
+                               .includes(:tags)
+                               .where(tags: { id: tag_ids })
+                               .where.not(id: company.id)
+                               .distinct
+                               .order(:name)
+                               .limit(5)
+
+    yield(related_companies.to_a)
   end
   
 end

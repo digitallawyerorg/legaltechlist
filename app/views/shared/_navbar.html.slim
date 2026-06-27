@@ -36,4 +36,4 @@ nav.navbar.navbar-expand-lg.navbar-dark.bg-dark.fixed-top
             = form_with url: companies_path, method: :get, local: true, html: { class: "public-nav-search" } do
                 .public-nav-search-field
                     i.fa.fa-search.public-nav-search-icon aria-hidden="true"
-                    = search_field_tag :query, params[:query], class: "form-control", placeholder: "Search #{number_with_delimiter(Company.where(visible: true).count)} companies", aria: { label: "Search companies" }
+                    = search_field_tag :query, params[:query], class: "form-control", placeholder: "Search #{number_with_delimiter(visible_company_count)} companies", aria: { label: "Search companies" }

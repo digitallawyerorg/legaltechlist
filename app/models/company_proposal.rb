@@ -54,6 +54,10 @@ class CompanyProposal < ActiveRecord::Base
     CompanyProposalQualityService.call(self)
   end
 
+  def cached_quality_report
+    agent_details.is_a?(Hash) ? agent_details["quality"] : nil
+  end
+
   def publish_ready?
     quality_report["publish_ready"]
   end

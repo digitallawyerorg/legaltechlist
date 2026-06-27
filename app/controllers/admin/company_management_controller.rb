@@ -27,10 +27,10 @@ module Admin
       @quality_statuses = Company.where.not(quality_status: [nil, ""]).distinct.order(:quality_status).pluck(:quality_status)
       @review_signal_options = REVIEW_SIGNALS
       @updated_since_options = UPDATED_SINCE_OPTIONS
-      @company_summary_counts = company_summary_counts
-      @active_filter_count = active_filter_count
       @duplicate_domain_company_ids = Company.duplicate_domain_candidate_ids
       @duplicate_name_company_ids = Company.duplicate_name_candidate_ids
+      @company_summary_counts = company_summary_counts(duplicate_domain_count: @duplicate_domain_company_ids.count, duplicate_name_count: @duplicate_name_company_ids.count)
+      @active_filter_count = active_filter_count
       @companies = filtered_companies.page(params[:page]).per(25)
     end
 
@@ -132,15 +132,15 @@ module Admin
       end
     end
 
-    def company_summary_counts
+    def company_summary_counts(duplicate_domain_count:, duplicate_name_count:)
       {
         total: Company.count,
         visible: Company.where(visible: true).count,
         hidden: Company.where(visible: false).count,
         missing_url: Company.missing_main_url.count,
         weak_description: Company.weak_description.count,
-        duplicate_domain: Company.duplicate_domain_candidate_ids.count,
-        duplicate_name: Company.duplicate_name_candidate_ids.count,
+        duplicate_domain: duplicate_domain_count,
+        duplicate_name: duplicate_name_count,
         needs_review: Company.needs_review.count,
         unknown_taxonomy: Company.left_joins(:category, :business_model, :target_client).where("categories.id IS NULL OR categories.name = :unknown OR business_models.id IS NULL OR business_models.name = :unknown OR target_clients.id IS NULL OR target_clients.name = :unknown", unknown: "Unknown").count
       }

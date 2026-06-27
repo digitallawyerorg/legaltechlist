@@ -93,21 +93,39 @@ class Company < ActiveRecord::Base
   end
 
   def self.duplicate_name_candidate_ids
-    rows = where.not(name: [nil, ""]).pluck(:id, :name)
-    grouped = rows.group_by { |_id, name| normalized_name_value(name) }
-    grouped.values.select { |group| group.size > 1 }.flatten(1).map(&:first)
+    duplicate_candidate_cache[:name] ||= begin
+      rows = where.not(name: [nil, ""]).pluck(:id, :name)
+      grouped = rows.group_by { |_id, name| normalized_name_value(name) }
+      grouped.values.select { |group| group.size > 1 }.flatten(1).map(&:first)
+    end
   end
 
   def self.duplicate_domain_candidate_ids
-    columns = column_names.include?("canonical_domain") ? [:id, :main_url, :canonical_domain] : [:id, :main_url]
-    rows = where.not(main_url: [nil, ""]).pluck(*columns)
+    duplicate_candidate_cache[:domain] ||= begin
+      stored_ids = if column_names.include?("canonical_domain")
+        duplicate_domains = where.not(canonical_domain: [nil, ""]).group(:canonical_domain).having("COUNT(*) > 1").select(:canonical_domain)
+        where(canonical_domain: duplicate_domains).pluck(:id)
+      else
+        []
+      end
 
-    grouped = rows.group_by do |row|
-      _id, main_url, stored_domain = row
-      stored_domain.presence || canonical_domain_for(main_url)
+      fallback_scope = column_names.include?("canonical_domain") ? where(canonical_domain: [nil, ""]) : all
+      rows = fallback_scope.where.not(main_url: [nil, ""]).pluck(:id, :main_url)
+      grouped = rows.group_by { |_id, main_url| canonical_domain_for(main_url) }
+      fallback_ids = grouped.except(nil).values.select { |group| group.size > 1 }.flatten(1).map(&:first)
+
+      (stored_ids + fallback_ids).uniq
     end
+  end
 
-    grouped.except(nil).values.select { |group| group.size > 1 }.flatten(1).map(&:first)
+  def self.duplicate_candidate_cache
+    store = ActiveSupport::IsolatedExecutionState[:company_duplicate_candidate_ids] ||= {}
+    cache_key = [maximum(:updated_at)&.utc&.iso8601(6), count]
+    if store[:cache_key] != cache_key
+      store.clear
+      store[:cache_key] = cache_key
+    end
+    store
   end
 
   def self.description_review_candidate_condition

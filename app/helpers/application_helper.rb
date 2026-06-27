@@ -1,4 +1,10 @@
 module ApplicationHelper
+  def visible_company_count
+    Rails.cache.fetch("companies/visible_count/#{Company.maximum(:updated_at)&.to_i}", expires_in: 10.minutes) do
+      Company.where(visible: true).count
+    end
+  end
+
   def category_icon(category_name)
     case category_name.downcase
     when /analytics/ then 'fa fa-chart-bar'

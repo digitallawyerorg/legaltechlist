@@ -89,6 +89,9 @@ module Admin
       domain = @company.canonical_domain.presence || @company.canonical_main_domain
       return Company.none if domain.blank?
 
+      stored_matches = Company.where(canonical_domain: domain).where.not(id: @company.id)
+      return stored_matches.order(:name) if @company.canonical_domain.present?
+
       Company.where.not(id: @company.id).where.not(main_url: [nil, ""]).order(:name).select { |company| (company.canonical_domain.presence || company.canonical_main_domain) == domain }
     end
 

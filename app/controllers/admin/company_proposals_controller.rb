@@ -3,6 +3,7 @@ module Admin
     def index
       @status = params[:status].presence || "pending_review"
       @company_proposals = proposals_scope.recent.page(params[:page]).per(25)
+      @proposal_quality_reports = proposal_quality_reports_for(@company_proposals)
       @status_counts = proposal_filter_counts
       @review_cockpit_counts = review_cockpit_counts
     end
@@ -82,14 +83,13 @@ module Admin
     end
 
     def review_cockpit_counts
-      proposals = CompanyProposal.all.to_a
-      quality_reports = proposals.to_h { |proposal| [proposal.id, CompanyProposalQualityService.call(proposal)] }
+      quality_reports = proposal_quality_reports_for(CompanyProposal.all)
       {
         "ready" => quality_reports.count { |_id, report| report["publish_ready"] },
         "needs_revision" => CompanyProposal.where(status: "needs_revision").count,
-        "duplicate_blocked" => proposals.count(&:duplicate_blocking?),
-        "missing_taxonomy" => quality_reports.count { |_id, report| (report["missing_required_fields"] & %w[category_id business_model_id target_client_id]).any? },
-        "missing_description" => quality_reports.count { |_id, report| report["missing_required_fields"].include?("description") },
+        "duplicate_blocked" => duplicate_scope.count,
+        "missing_taxonomy" => quality_reports.count { |_id, report| (Array(report["missing_required_fields"]) & %w[category_id business_model_id target_client_id]).any? },
+        "missing_description" => quality_reports.count { |_id, report| Array(report["missing_required_fields"]).include?("description") },
         "published" => CompanyProposal.published.count
       }
     end
@@ -134,7 +134,13 @@ module Admin
     end
 
     def ready_proposal_ids
-      @ready_proposal_ids ||= CompanyProposal.pending_review.to_a.select(&:publish_ready?).map(&:id)
+      @ready_proposal_ids ||= proposal_quality_reports_for(CompanyProposal.pending_review).select { |_id, report| report["publish_ready"] }.keys
+    end
+
+    def proposal_quality_reports_for(scope)
+      Array(scope).each_with_object({}) do |proposal, reports|
+        reports[proposal.id] = proposal.cached_quality_report.presence || CompanyProposalQualityService.call(proposal)
+      end
     end
 
     def proposal_notes_params

@@ -19,11 +19,7 @@
                     .card-body
                         .d-flex.gap-4.align-items-start.mb-4
                             - if @company.logo_url.present?
-                                - Rails.logger.debug "Logo URL in view: #{@company.logo_url}"
-                                = image_tag @company.logo_url, 
-                                    class: "rounded bg-light", 
-                                    style: "width: 80px; height: 80px; object-fit: contain;",
-                                    alt: "#{@company.name} logo"
+                                = image_tag @company.logo_url, class: "rounded bg-light", style: "width: 80px; height: 80px; object-fit: contain;", alt: "#{@company.name} logo"
                             .flex-grow-1
                                 h1.mb-0
                                     = @company.name
@@ -60,7 +56,7 @@
 
                             .col-md-3.text-secondary.mt-3 Tags
                             .col-md-9.mt-3
-                                - if @company.tags.present? && @company.tags != "n/a" && @company.tags.count > 0
+                                - if @company.tags.any?
                                     = raw tag_links(@company.all_tags)
                                 - else
                                     span.text-secondary No tags yet
@@ -97,7 +93,7 @@
                         | Help us maintain this page by 
                         = link_to 'suggesting an update', edit_company_path(@company), class: "text-decoration-none"
 
-        - if @company.tags.count > 0
+        - if @company.tags.any?
             .col-md-12.mt-4
                 .card.border
                     .card-body

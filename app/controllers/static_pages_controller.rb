@@ -24,43 +24,24 @@ class StaticPagesController < ApplicationController
 
   def home
   	@tags = Tag.limit(50)
+    @home_category_counts = Rails.cache.fetch("home/visible_category_counts/#{Company.maximum(:updated_at)&.to_i}/#{Category.maximum(:updated_at)&.to_i}", expires_in: 10.minutes) do
+      Category.where.not(name: "Unknown")
+              .where.not(id: [12, 13, 14])
+              .left_joins(:companies)
+              .where(companies: { visible: true })
+              .group("categories.id")
+              .count
+    end
+    @home_categories = Category.where.not(name: "Unknown")
+                               .where.not(id: [12, 13, 14])
+                               .to_a
+                               .sort_by { |category| -@home_category_counts.fetch(category.id, 0) }
   end
 
   def about
   end
 
   def statistics
-  	if params[:founded_date]
-  		@companies = Company.where(visible: true, founded_date: params[:founded_date]).all
-  	else
-  		@companies = Company.where(visible: true)
-  	end
-
-  	# Filter companies from year 2000 onwards and only valid years
-  	@companies = @companies.where('founded_date >= ? AND founded_date <= ? AND founded_date ~ ?',
-  								 '2000',
-  								 Time.current.year.to_s,
-  								 '^\d{4}$')
-
-  	# Get unique years from 2000 onwards, sorted, only valid years
-  	@years = Company.where(visible: true)
-  				 .where('founded_date >= ? AND founded_date <= ? AND founded_date ~ ?',
-  							'2000',
-  							Time.current.year.to_s,
-  							'^\d{4}$')
-  				 .distinct
-  				 .pluck(:founded_date)
-  				 .sort
-  				 .reject(&:blank?)
-
-    # Get tag data for word cloud
-    @tags = Tag.joins(:companies)
-              .where(companies: { visible: true })
-              .group('tags.id, tags.name')
-              .having('COUNT(companies.id) > 2')
-              .order('COUNT(companies.id) DESC')
-              .limit(50)
-              .select('tags.*, COUNT(companies.id) as count')
   end
 
   def total_companies
@@ -166,27 +147,16 @@ class StaticPagesController < ApplicationController
   end
 
   def companies_founded
-    # Get all companies with valid founding dates
-    all_companies = Company.where(visible: true)
-                          .where('founded_date ~ ?', '^\d{4}$')
+    counts_by_year = visible_company_counts_by_year
+    pre_2000_count = counts_by_year.sum { |year, count| year < 2000 ? count : 0 }
 
-    # Get pre-2000 companies count
-    pre_2000_count = all_companies.count { |c| c.founded_date.to_i < 2000 }
-
-    # Get companies founded from 2000 onwards
-    @table_data = Company.where(visible: true)
-                        .where('founded_date >= ? AND founded_date <= ? AND founded_date ~ ?',
-                             '2000',
-                             Time.current.year.to_s,
-                             '^\d{4}$')
-                        .group(:founded_date)
-                        .order(:founded_date)
-                        .count
-                        .map do |year, count|
+    @table_data = counts_by_year.select { |year, _count| year.between?(2000, Time.current.year) }
+                                .sort
+                                .map do |year, count|
       {
         year: year,
         new_companies: count,
-        growth_rate: calculate_growth_rate(year, count)
+        growth_rate: calculate_growth_rate_from_counts(year, count, counts_by_year)
       }
     end
 
@@ -209,6 +179,11 @@ class StaticPagesController < ApplicationController
   end
 
   def category_evolution
+    cache_key = "statistics/category_evolution/#{Company.maximum(:updated_at)&.to_i}/#{Category.maximum(:updated_at)&.to_i}"
+    if (cached_data = Rails.cache.read(cache_key))
+      @table_data = cached_data[:table_data]
+      @summary_data = cached_data[:summary_data]
+    else
     # Get all companies with their categories and founding years
     companies = Company.includes(:category)
                       .where('founded_date >= ? AND founded_date <= ? AND founded_date ~ ?',
@@ -270,6 +245,9 @@ class StaticPagesController < ApplicationController
             growth_rate: growth_rate,
             market_share: (data[:total_companies] / total_companies.to_f) * 100
         }
+    end
+
+    Rails.cache.write(cache_key, { table_data: @table_data, summary_data: @summary_data }, expires_in: 10.minutes)
     end
 
     respond_to do |format|
@@ -1422,6 +1400,12 @@ class StaticPagesController < ApplicationController
                           .count
 
     previous_count > 0 ? ((count - previous_count) / previous_count.to_f * 100) : 0
+  end
+
+  def calculate_growth_rate_from_counts(year, count, counts_by_year)
+    previous_count = counts_by_year.fetch(year.to_i - 1, 0)
+
+    previous_count.positive? ? ((count - previous_count) / previous_count.to_f * 100) : 0
   end
 
   def calculate_avg_funding(companies)
