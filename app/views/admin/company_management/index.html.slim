@@ -4,9 +4,26 @@
     .card-header.bg-white
         .d-flex.flex-wrap.justify-content-between.align-items-center.gap-2
             h1.h4.mb-0 Companies
-            .d-flex.gap-2
-                = link_to "Upload CSV", upload_custom_admin_companies_csv_path, class: "btn btn-sm btn-outline-secondary"
-                = link_to "Export CSV", export_custom_admin_companies_csv_path, class: "btn btn-sm btn-outline-secondary"
+            .admin-table-summary
+                - visible_percent = @company_summary_counts[:total].positive? ? ((@company_summary_counts[:visible].to_f / @company_summary_counts[:total]) * 100).round : 0
+                span.admin-table-summary-item
+                    | Visible 
+                    = link_to "#{visible_percent}%", custom_admin_companies_path(visibility: "visible"), aria: { label: "Show visible companies" }
+                span.admin-table-summary-item
+                    | Missing URLs 
+                    = link_to number_with_delimiter(@company_summary_counts[:missing_url]), custom_admin_companies_path(review_signal: "missing_url"), aria: { label: "Show companies missing URLs" }
+                span.admin-table-summary-item
+                    | Weak descriptions 
+                    = link_to number_with_delimiter(@company_summary_counts[:weak_description]), custom_admin_companies_path(review_signal: "weak_description"), aria: { label: "Show companies with weak descriptions" }
+                span.admin-table-summary-item
+                    | Duplicate domains 
+                    = link_to number_with_delimiter(@company_summary_counts[:duplicate_domain]), custom_admin_companies_path(review_signal: "duplicate_domain"), aria: { label: "Show duplicate domain candidates" }
+                span.admin-table-summary-item
+                    | Unknown taxonomy 
+                    = link_to number_with_delimiter(@company_summary_counts[:unknown_taxonomy]), custom_admin_companies_path(review_signal: "unknown_taxonomy"), aria: { label: "Show companies with unknown taxonomy" }
+                span.admin-table-summary-item
+                    | Records 
+                    = link_to number_with_delimiter(@company_summary_counts[:total]), custom_admin_companies_path, aria: { label: "Show all companies" }
     .card-body.border-bottom
         = form_with url: custom_admin_companies_path, method: :get, local: true, html: { class: "admin-filter-toolbar" } do
             = search_field_tag :q, @filters[:q], class: "form-control form-control-sm admin-filter-search", placeholder: "Search companies", aria: { label: "Search companies" }
@@ -18,29 +35,18 @@
             = select_tag :review_signal, options_for_select(@review_signal_options.map { |key, label| [label, key] }, @filters[:review_signal]), include_blank: "All review signals", class: "form-select form-select-sm admin-filter-select is-wide", aria: { label: "Review signal" }
             = select_tag :updated_since, options_for_select(@updated_since_options.map { |days, label| [label, days] }, @filters[:updated_since]), include_blank: "Any time", class: "form-select form-select-sm admin-filter-select", aria: { label: "Updated" }
             = submit_tag "Apply", class: "btn btn-sm btn-primary rounded-pill px-3"
+            .dropdown
+                button.btn.btn-sm.btn-light.border.btn-icon.rounded-pill type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Company list actions"
+                    i.fas.fa-ellipsis-h
+                .dropdown-menu.dropdown-menu-end
+                    = link_to upload_custom_admin_companies_csv_path, class: "dropdown-item" do
+                        i.fas.fa-upload.me-2
+                        | Upload CSV
+                    = link_to export_custom_admin_companies_csv_path, class: "dropdown-item" do
+                        i.fas.fa-download.me-2
+                        | Export CSV
             - if @active_filter_count.positive?
                 = link_to "Reset", custom_admin_companies_path, class: "btn btn-sm btn-link text-muted text-decoration-none"
-    .card-header.bg-white.d-flex.flex-wrap.justify-content-end.align-items-center.gap-2
-        .admin-table-summary
-            - visible_percent = @company_summary_counts[:total].positive? ? ((@company_summary_counts[:visible].to_f / @company_summary_counts[:total]) * 100).round : 0
-            span.admin-table-summary-item
-                | Visible 
-                strong= "#{visible_percent}%"
-            span.admin-table-summary-item
-                | Missing URLs 
-                strong= number_with_delimiter(@company_summary_counts[:missing_url])
-            span.admin-table-summary-item
-                | Weak descriptions 
-                strong= number_with_delimiter(@company_summary_counts[:weak_description])
-            span.admin-table-summary-item
-                | Duplicate domains 
-                strong= number_with_delimiter(@company_summary_counts[:duplicate_domain])
-            span.admin-table-summary-item
-                | Unknown taxonomy 
-                strong= number_with_delimiter(@company_summary_counts[:unknown_taxonomy])
-            span.admin-table-summary-item
-                | Records 
-                strong= number_with_delimiter(@companies.total_count)
     .table-responsive
         table.table.table-hover.align-middle.mb-0.admin-table.is-compact
             thead
@@ -95,18 +101,19 @@
                                 span.admin-status-pill.text-bg-secondary Hidden
                         td.small.admin-nowrap= company.updated_at&.to_date
                         td.text-end.admin-actions
-                            .d-inline-flex.gap-2.justify-content-end
-                                = link_to "Review", custom_admin_company_review_path(company), class: "btn btn-sm btn-outline-primary px-3"
-                                .dropdown
-                                    button.btn.btn-sm.btn-light.border.btn-icon type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Company actions"
-                                        i.fas.fa-ellipsis-h
-                                    .dropdown-menu.dropdown-menu-end
-                                        = link_to edit_custom_admin_company_path(company), class: "dropdown-item" do
-                                            i.fas.fa-pen.me-2
-                                            | Edit
-                                        = button_to custom_admin_company_path(company), method: :delete, class: "dropdown-item text-danger", form: { data: { turbo_confirm: "Delete #{company.name}? This permanently removes the company record from TechIndex." } }, title: "Delete #{company.name}" do
-                                            i.fas.fa-trash-alt.me-2
-                                            | Delete
+                            .dropdown
+                                button.btn.btn-sm.btn-light.border.btn-icon type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Company actions"
+                                    i.fas.fa-ellipsis-h
+                                .dropdown-menu.dropdown-menu-end
+                                    = link_to custom_admin_company_review_path(company), class: "dropdown-item" do
+                                        i.fas.fa-eye.me-2
+                                        | Review
+                                    = link_to edit_custom_admin_company_path(company), class: "dropdown-item" do
+                                        i.fas.fa-pen.me-2
+                                        | Edit
+                                    = button_to custom_admin_company_path(company), method: :delete, class: "dropdown-item text-danger", form: { data: { turbo_confirm: "Delete #{company.name}? This permanently removes the company record from TechIndex." } }, title: "Delete #{company.name}" do
+                                        i.fas.fa-trash-alt.me-2
+                                        | Delete
                 - if @companies.empty?
                     tr
                         td.text-muted.text-center colspan="8" No companies match these filters.

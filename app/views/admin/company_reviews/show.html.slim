@@ -1,4 +1,9 @@
 - content_for :title, "#{@company.name} Review"
+- blank_value = "Blank"
+- field_value = ->(value) { value.present? ? value : blank_value }
+- link_value = ->(value) { value.present? ? link_to(value, value, target: "_blank", rel: "noopener") : blank_value }
+- date_value = ->(value) { value.present? ? value : blank_value }
+- currency_value = ->(value) { value.present? ? number_to_currency(value, precision: 0) : blank_value }
 
 .d-flex.justify-content-between.align-items-start.mb-4
     div
@@ -16,27 +21,98 @@
     .col-lg-8
         .card.border-0.shadow-sm.mb-3
             .card-header.bg-white
-                h2.h5.mb-0 Public Record
+                h2.h5.mb-0 Core Data
             .card-body
                 dl.row.mb-0
                     dt.col-sm-3 Name
-                    dd.col-sm-9= @company.name
+                    dd.col-sm-9= field_value.call(@company.name)
                     dt.col-sm-3 Website
-                    dd.col-sm-9
-                        - if @company.main_url.present?
-                            = link_to @company.main_url, @company.main_url, target: "_blank", rel: "noopener"
-                        - else
-                            span.text-warning Missing
+                    dd.col-sm-9= link_value.call(@company.main_url)
+                    dt.col-sm-3 Location
+                    dd.col-sm-9= field_value.call(@company.location)
+                    dt.col-sm-3 Founded
+                    dd.col-sm-9= field_value.call(@company.founded_date)
+                    dt.col-sm-3 Status
+                    dd.col-sm-9= field_value.call(@company.status)
+                    dt.col-sm-3 Visible
+                    dd.col-sm-9= @company.visible? ? "Yes" : "No"
                     dt.col-sm-3 Description
-                    dd.col-sm-9= @company.description
+                    dd.col-sm-9= field_value.call(@company.description)
                     dt.col-sm-3 Category
-                    dd.col-sm-9= @company.category&.name || "Unknown"
+                    dd.col-sm-9= field_value.call(@company.category&.name)
+                    dt.col-sm-3 Subcategory
+                    dd.col-sm-9= field_value.call(@company.sub_category&.name)
                     dt.col-sm-3 Business model
-                    dd.col-sm-9= @company.business_model&.name || "Unknown"
+                    dd.col-sm-9= field_value.call(@company.business_model&.name)
                     dt.col-sm-3 Target client
-                    dd.col-sm-9= @company.target_client&.name || "Unknown"
+                    dd.col-sm-9= field_value.call(@company.target_client&.name)
+                    dt.col-sm-3 Tags
+                    dd.col-sm-9= @company.tags.any? ? @company.tags.map(&:name).join(", ") : blank_value
 
-        .card.border-0.shadow-sm
+        .card.border-0.shadow-sm.mb-3
+            .card-header.bg-white
+                h2.h5.mb-0 Links
+            .card-body
+                dl.row.mb-0
+                    dt.col-sm-3 Twitter
+                    dd.col-sm-9= link_value.call(@company.twitter_url)
+                    dt.col-sm-3 AngelList
+                    dd.col-sm-9= link_value.call(@company.angellist_url)
+                    dt.col-sm-3 Crunchbase
+                    dd.col-sm-9= link_value.call(@company.crunchbase_url)
+                    dt.col-sm-3 LinkedIn
+                    dd.col-sm-9= link_value.call(@company.linkedin_url)
+                    dt.col-sm-3 Facebook
+                    dd.col-sm-9= link_value.call(@company.facebook_url)
+                    dt.col-sm-3 Legal.io
+                    dd.col-sm-9= link_value.call(@company.legalio_url)
+                    dt.col-sm-3 Logo URL
+                    dd.col-sm-9= link_value.call(@company.logo_url)
+
+        .card.border-0.shadow-sm.mb-3
+            .card-header.bg-white
+                h2.h5.mb-0 People And Funding
+            .card-body
+                dl.row.mb-0
+                    dt.col-sm-3 Contact name
+                    dd.col-sm-9= field_value.call(@company.contact_name)
+                    dt.col-sm-3 Contact email
+                    dd.col-sm-9= field_value.call(@company.contact_email)
+                    dt.col-sm-3 Employee count
+                    dd.col-sm-9= field_value.call(@company.employee_count)
+                    dt.col-sm-3 Founders
+                    dd.col-sm-9= field_value.call(@company.founders)
+                    dt.col-sm-3 Headquarters region
+                    dd.col-sm-9= field_value.call(@company.headquarters_region)
+                    dt.col-sm-3 Funding status
+                    dd.col-sm-9= field_value.call(@company.funding_status)
+                    dt.col-sm-3 Total funding
+                    dd.col-sm-9= currency_value.call(@company.total_funding_amount_usd)
+                    dt.col-sm-3 Funding rounds
+                    dd.col-sm-9= field_value.call(@company.number_of_funding_rounds)
+                    dt.col-sm-3 Exit date
+                    dd.col-sm-9= date_value.call(@company.exit_date)
+
+        .card.border-0.shadow-sm.mb-3
+            .card-header.bg-white
+                h2.h5.mb-0 Source And Events
+            .card-body
+                dl.row.mb-0
+                    dt.col-sm-3 Source
+                    dd.col-sm-9= field_value.call(@company.source)
+                    dt.col-sm-3 Source URL
+                    dd.col-sm-9= link_value.call(@company.source_url)
+                    dt.col-sm-3 CodeX presenter
+                    dd.col-sm-9= @company.codex_presenter.nil? ? blank_value : (@company.codex_presenter? ? "Yes" : "No")
+                    dt.col-sm-3 CodeX presentation
+                    dd.col-sm-9= date_value.call(@company.codex_presentation_date)
+                    dt.col-sm-3 Latitude
+                    dd.col-sm-9= field_value.call(@company.latitude)
+                    dt.col-sm-3 Longitude
+                    dd.col-sm-9= field_value.call(@company.longitude)
+
+    .col-lg-4
+        .card.border-0.shadow-sm.mb-3
             .card-header.bg-white
                 h2.h5.mb-0 Duplicate Signals
             .card-body
@@ -56,26 +132,44 @@
                 - else
                     p.text-muted.mb-0 No other companies share this normalized name.
 
-    .col-lg-4
         .card.border-0.shadow-sm.mb-3
             .card-header.bg-white
                 h2.h5.mb-0 Quality Metadata
             .card-body
-                .mb-2
-                    .text-muted.small Status
-                    .fw-semibold= @company.quality_status.presence || "Unreviewed"
-                .mb-2
-                    .text-muted.small Verdict
-                    .fw-semibold= @company.verification_verdict.presence || "No verdict"
-                .mb-2
-                    .text-muted.small Score
-                    .fw-semibold= @company.quality_score.presence || "No score"
-                .mb-2
-                    .text-muted.small Canonical domain
-                    .fw-semibold= @company.canonical_domain.presence || @company.canonical_main_domain || "Missing"
-                .mb-0
-                    .text-muted.small Human reviewed
-                    .fw-semibold= @company.human_reviewed_at&.to_date || "No"
+                dl.mb-0
+                    dt.text-muted.small Status
+                    dd.fw-semibold= field_value.call(@company.quality_status)
+                    dt.text-muted.small Verdict
+                    dd.fw-semibold= field_value.call(@company.verification_verdict)
+                    dt.text-muted.small Score
+                    dd.fw-semibold= field_value.call(@company.quality_score)
+                    dt.text-muted.small Quality review JSON
+                    dd
+                        pre.bg-light.border.rounded.p-2.small.mb-2= JSON.pretty_generate(@company.quality_review || {})
+                    dt.text-muted.small Verified at
+                    dd.fw-semibold= date_value.call(@company.verified_at)
+                    dt.text-muted.small Enriched at
+                    dd.fw-semibold= date_value.call(@company.enriched_at)
+                    dt.text-muted.small Quality reviewed at
+                    dd.fw-semibold= date_value.call(@company.quality_reviewed_at)
+                    dt.text-muted.small Human reviewed at
+                    dd.fw-semibold= date_value.call(@company.human_reviewed_at)
+
+        .card.border-0.shadow-sm.mb-3
+            .card-header.bg-white
+                h2.h5.mb-0 System Metadata
+            .card-body
+                dl.mb-0
+                    dt.text-muted.small ID
+                    dd.fw-semibold= @company.id
+                    dt.text-muted.small Canonical domain
+                    dd.fw-semibold= field_value.call(@company.canonical_domain.presence || @company.canonical_main_domain)
+                    dt.text-muted.small Fingerprint
+                    dd.fw-semibold.text-break= field_value.call(@company.fingerprint)
+                    dt.text-muted.small Created at
+                    dd.fw-semibold= date_value.call(@company.created_at)
+                    dt.text-muted.small Updated at
+                    dd.fw-semibold= date_value.call(@company.updated_at)
 
         .card.border-0.shadow-sm
             .card-header.bg-white

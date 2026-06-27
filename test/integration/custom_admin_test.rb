@@ -92,7 +92,11 @@ class CustomAdminTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "h1", companies(:one).name
-    assert_select "h2", "Public Record"
+    assert_select "h2", "Core Data"
+    assert_select "h2", "Links"
+    assert_select "h2", "People And Funding"
+    assert_select "h2", "Source And Events"
+    assert_select "h2", "System Metadata"
     assert_select "a", "Edit Company"
     assert_select "button", "Run Agent Review"
     assert_select "button", "Run Duplicate Review"
@@ -292,6 +296,7 @@ class CustomAdminTest < ActionDispatch::IntegrationTest
     assert_select "input[name='q']"
     assert_select "select[name='visibility']"
     assert_select "select[name='review_signal']"
+    assert_select "a[href='#{custom_admin_companies_path(review_signal: 'missing_url')}']"
     assert_select "form[action='#{custom_admin_company_path(company)}'][method='post'] input[name='_method'][value='delete']"
     assert_select "button", "Delete"
 
