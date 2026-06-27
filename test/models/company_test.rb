@@ -77,6 +77,22 @@ class CompanyTest < ActiveSupport::TestCase
     assert_includes Company.duplicate_name_candidates, duplicate
   end
 
+  test "duplicate name candidates preserve accented characters" do
+    first = companies(:one).dup
+    first.name = "Lega"
+    first.main_url = "https://lega.ai"
+    first.save!
+
+    second = companies(:one).dup
+    second.name = "Legaü"
+    second.main_url = "https://legau.pt"
+    second.save!
+
+    assert_not_equal first.normalized_name, second.normalized_name
+    assert_not_includes Company.duplicate_name_candidates, first
+    assert_not_includes Company.duplicate_name_candidates, second
+  end
+
   test "duplicate domain candidates use canonical domains" do
     duplicate = companies(:one).dup
     duplicate.name = "Duplicate Domain Company"

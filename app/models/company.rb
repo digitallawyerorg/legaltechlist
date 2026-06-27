@@ -71,7 +71,7 @@ class Company < ActiveRecord::Base
   end
 
   def self.normalized_name_value(value)
-    value.to_s.downcase.gsub(/[^a-z0-9]+/, " ").squish
+    value.to_s.downcase.gsub(/[^\p{Alnum}]+/, " ").squish
   end
 
   def self.canonical_domain_for(url)
