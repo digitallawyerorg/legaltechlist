@@ -64,32 +64,7 @@ class StaticPagesController < ApplicationController
   end
 
   def total_companies
-    @companies = Company.where(visible: true)
-                       .where('founded_date ~ ?', '^\d{4}$')
-
-    # Get pre-2000 companies count
-    pre_2000_count = @companies.count { |c| c.founded_date.to_i < 2000 }
-
-    # Calculate cumulative totals and new companies by year
-    @table_data = (2000..Time.current.year).map do |year|
-      # Include pre-2000 companies in the total count
-      total = pre_2000_count + @companies.count { |c| c.founded_date.to_i <= year && c.founded_date.to_i >= 2000 }
-      new_companies = @companies.count { |c| c.founded_date.to_i == year }
-
-      # For growth rate, we need to consider the previous year's total including pre-2000 companies
-      prev_total = year > 2000 ?
-        (pre_2000_count + @companies.count { |c| c.founded_date.to_i <= (year - 1) && c.founded_date.to_i >= 2000 }) :
-        pre_2000_count
-
-      growth_rate = prev_total > 0 ? ((total - prev_total) / prev_total.to_f * 100) : 0
-
-      {
-        year: year,
-        total_companies: total,
-        new_companies: new_companies,
-        growth_rate: growth_rate
-      }
-    end
+    @table_data = total_companies_table_data(start_year: 2000, end_year: Time.current.year)
 
     # Prepare chart data
     @chart_data = {
@@ -139,31 +114,9 @@ class StaticPagesController < ApplicationController
   end
 
   def total_companies_all_time
-    @companies = Company.where(visible: true)
-                       .where('founded_date ~ ?', '^\d{4}$')
-
-    # Find the earliest founding year
-    earliest_year = @companies.pluck(:founded_date).map(&:to_i).min
-    earliest_year = [earliest_year, 1975].max # Ensure we don't go too far back
-
-    # Calculate cumulative totals and new companies by year
-    @table_data = (earliest_year..Time.current.year).map do |year|
-      total = @companies.count { |c| c.founded_date.to_i <= year }
-      new_companies = @companies.count { |c| c.founded_date.to_i == year }
-
-      # For growth rate, we need to consider the previous year's total
-      prev_total = year > earliest_year ?
-        @companies.count { |c| c.founded_date.to_i <= (year - 1) } : 0
-
-      growth_rate = prev_total > 0 ? ((total - prev_total) / prev_total.to_f * 100) : 0
-
-      {
-        year: year,
-        total_companies: total,
-        new_companies: new_companies,
-        growth_rate: growth_rate
-      }
-    end
+    counts_by_year = visible_company_counts_by_year
+    earliest_year = [counts_by_year.keys.min || 1975, 1975].max
+    @table_data = total_companies_table_data(start_year: earliest_year, end_year: Time.current.year, counts_by_year: counts_by_year)
 
     # Prepare chart data
     @chart_data = {
@@ -1433,6 +1386,34 @@ class StaticPagesController < ApplicationController
   end
 
   private
+
+  def visible_company_counts_by_year
+    Rails.cache.fetch("statistics/visible_company_counts_by_year/#{Company.maximum(:updated_at)&.to_i}", expires_in: 10.minutes) do
+      Company.where(visible: true)
+             .where("founded_date ~ ?", "^\\d{4}$")
+             .group(:founded_date)
+             .count
+             .transform_keys(&:to_i)
+    end
+  end
+
+  def total_companies_table_data(start_year:, end_year:, counts_by_year: visible_company_counts_by_year)
+    running_total = counts_by_year.sum { |year, count| year < start_year ? count : 0 }
+
+    (start_year..end_year).map do |year|
+      new_companies = counts_by_year.fetch(year, 0)
+      previous_total = running_total
+      running_total += new_companies
+      growth_rate = previous_total.positive? ? ((running_total - previous_total) / previous_total.to_f * 100) : 0
+
+      {
+        year: year,
+        total_companies: running_total,
+        new_companies: new_companies,
+        growth_rate: growth_rate
+      }
+    end
+  end
 
   def calculate_growth_rate(year, count)
     previous_year = (year.to_i - 1).to_s
