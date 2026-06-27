@@ -13,12 +13,14 @@ css:
     .company-filter-link.is-active { background: #f6e5e5; color: #8c1515; font-weight: 800; }
     .company-filter-count { color: #a3a09a; flex: 0 0 auto; font-size: 0.76rem; font-weight: 600; letter-spacing: 0.04em; margin-left: 0.75rem; }
     .company-filter-link.is-active .company-filter-count { color: #a3a09a; }
-    .company-main { padding: 1rem; }
-    .company-toolbar { align-items: center; display: flex; flex-wrap: wrap; gap: 0.6rem; justify-content: space-between; margin-bottom: 0.7rem; }
-    .company-results-title { color: #111827; font-size: 0.95rem; font-weight: 700; margin: 0; }
-    .company-results-meta { color: #8c1515; font-size: 0.76rem; font-weight: 700; margin-right: 0.35rem; }
-    .company-search { max-width: 20rem; }
-    .company-search .form-control, .company-sort { border-color: #ded7ca; font-size: 0.78rem; min-height: 2rem; }
+    .company-main { padding: 0.7rem 1rem 1rem; }
+    .company-toolbar { align-items: center; display: grid; gap: 0.65rem; grid-template-columns: minmax(18rem, 1fr) auto; margin-bottom: 0.1rem; }
+    .company-search { min-width: 0; }
+    .company-search-field { position: relative; }
+    .company-search-icon { color: #9ca3af; font-size: 0.82rem; left: 0.95rem; position: absolute; top: 50%; transform: translateY(-50%); }
+    .company-search .form-control { background: rgba(255, 255, 255, 0.86); border-color: #ded7ca; border-radius: 0.55rem; font-size: 0.9rem; min-height: 2.85rem; padding-left: 2.3rem; }
+    .company-search .form-control:focus { border-color: #cbbfae; box-shadow: 0 0 0 0.15rem rgba(140, 21, 21, 0.08); }
+    .company-sort { border-color: #ded7ca; border-radius: 0.55rem; font-size: 0.9rem; min-height: 2.85rem; min-width: 10.25rem; }
     .company-table-card { background: #fff; border: 1px solid #e5dfd5; border-radius: 0.6rem; overflow: hidden; }
     .company-table { font-size: 0.82rem; margin-bottom: 0; min-width: 980px; }
     .company-table thead th { background: #faf8f3; border-bottom: 1px solid #e5dfd5; color: #6b7280; font-size: 0.66rem; font-weight: 800; letter-spacing: 0.05em; padding: 0.58rem 0.75rem; text-transform: uppercase; white-space: nowrap; }
@@ -32,13 +34,17 @@ css:
     .company-pill { background: #f6f1e7; border: 1px solid #e6ddce; border-radius: 999px; color: #6b6258; display: inline-flex; font-size: 0.68rem; font-weight: 700; padding: 0.12rem 0.45rem; white-space: nowrap; }
     .company-status { background: #e8f5ef; color: #047857; }
     .company-muted { color: #9ca3af; }
-    .company-pagination { padding: 0.75rem; }
-    @media (max-width: 900px) { .company-shell { grid-template-columns: 1fr; } .company-sidebar { border-right: 0; border-bottom: 1px solid #ded7ca; } }
+    .company-pagination { align-items: center; display: flex; gap: 0.75rem; justify-content: space-between; padding: 0.7rem 0.75rem; }
+    .company-pagination-count { color: #8b8379; font-size: 0.76rem; font-weight: 600; }
+    .company-pagination .pagination { margin-bottom: 0; }
+    @media (max-width: 900px) { .company-shell { grid-template-columns: 1fr; } .company-sidebar { border-right: 0; border-bottom: 1px solid #ded7ca; } .company-toolbar { grid-template-columns: 1fr; } }
 
 - active_params = request.query_parameters.symbolize_keys
 - clear_params = active_params.except(:category, :status, :location, :query, :page)
 - selected_category = params[:category].presence
 - selected_status = params[:status].to_s.strip.downcase.presence
+- result_start = @companies.empty? ? 0 : @companies.offset_value + 1
+- result_end = @companies.offset_value + @companies.length
 
 .public-company-index
     .company-shell
@@ -78,25 +84,20 @@ css:
 
         main.company-main
             .company-toolbar
-                div
-                    span.company-results-meta Result
-                    h1.company-results-title.d-inline= "Showing #{@companies.offset_value + 1}-#{@companies.offset_value + @companies.length} of #{number_with_delimiter(@total_count)} companies"
-                .d-flex.flex-wrap.align-items-center.gap-2
-                    = form_with url: companies_path, method: :get, local: true, html: { class: "company-search" } do
-                        = hidden_field_tag :category, params[:category] if params[:category].present?
-                        = hidden_field_tag :status, params[:status] if params[:status].present?
-                        = hidden_field_tag :location, params[:location] if params[:location].present?
-                        = hidden_field_tag :sort, params[:sort] if params[:sort].present?
-                        .input-group.input-group-sm
-                            = search_field_tag :query, params[:query], class: "form-control", placeholder: "Search companies"
-                            button.btn.btn-outline-secondary type="submit"
-                                i.fa.fa-search
-                    = form_with url: companies_path, method: :get, local: true do
-                        = hidden_field_tag :query, params[:query] if params[:query].present?
-                        = hidden_field_tag :category, params[:category] if params[:category].present?
-                        = hidden_field_tag :status, params[:status] if params[:status].present?
-                        = hidden_field_tag :location, params[:location] if params[:location].present?
-                        = select_tag :sort, options_for_select(@sort_options, params[:sort].presence || "founded_desc"), class: "form-select form-select-sm company-sort", onchange: "this.form.submit()", aria: { label: "Sort companies" }
+                = form_with url: companies_path, method: :get, local: true, html: { class: "company-search" } do
+                    = hidden_field_tag :category, params[:category] if params[:category].present?
+                    = hidden_field_tag :status, params[:status] if params[:status].present?
+                    = hidden_field_tag :location, params[:location] if params[:location].present?
+                    = hidden_field_tag :sort, params[:sort] if params[:sort].present?
+                    .company-search-field
+                        i.fa.fa-search.company-search-icon aria-hidden="true"
+                        = search_field_tag :query, params[:query], class: "form-control", placeholder: "Search companies by name, category, or location", aria: { label: "Search companies" }
+                = form_with url: companies_path, method: :get, local: true do
+                    = hidden_field_tag :query, params[:query] if params[:query].present?
+                    = hidden_field_tag :category, params[:category] if params[:category].present?
+                    = hidden_field_tag :status, params[:status] if params[:status].present?
+                    = hidden_field_tag :location, params[:location] if params[:location].present?
+                    = select_tag :sort, options_for_select(@sort_options, params[:sort].presence || "updated_desc"), class: "form-select form-select-sm company-sort", onchange: "this.form.submit()", aria: { label: "Sort companies" }
 
             .company-table-card
                 .table-responsive
@@ -133,4 +134,5 @@ css:
                                 tr
                                     td.text-center.company-muted py="4" colspan="6" No companies match these filters.
                 .company-pagination
+                    .company-pagination-count= "Showing #{result_start}-#{result_end} of #{number_with_delimiter(@total_count)} companies"
                     = paginate @companies
