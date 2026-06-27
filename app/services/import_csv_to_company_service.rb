@@ -190,13 +190,7 @@ class ImportCsvToCompanyService
     private
 
     def clean_location(location)
-      return nil if location.blank?
-
-      # Extract city and country, removing special characters
-      parts = location.split(',').map { |part| part.strip.gsub(/[^\p{L}\p{N}\s,]/, '') }
-      return parts.first if parts.size == 1
-
-      [parts.first, parts.last].join(', ')
+      LocationCountryResolver.format_for_display(location)
     end
 
     def clean_date(date_string)

@@ -97,9 +97,6 @@ Rails.application.configure do
   # Do not dump schema after migrations.
   config.active_record.dump_schema_after_migration = false
 
-  # Analytics
-  GA.tracker = "UA-176105565-1"
-
   # Twitter settings
   config.twitter_publish = false
   config.twitter_user = 'CodeXStanford'

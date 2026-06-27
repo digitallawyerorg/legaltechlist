@@ -8,15 +8,7 @@ module CompaniesHelper
       link_to(tag, companies_path(tag: tag), class: 'tag-link')
     end.compact.join(' ').html_safe
   end
-  
-  def tag_cloud(tags, classes)
-    max = tags.sort_by(&:count).last
-    tags.each do |tag|
-      index = tag.count.to_f / max.count * (classes.size - 1)
-      yield(tag, classes[index.round])
-    end
-  end
-  
+
   US_STATE_CODES = %w[
     AL AK AZ AR CA CO CT DE FL GA HI ID IL IN IA KS KY LA ME MD MA MI MN MS MO MT
     NE NV NH NJ NM NY NC ND OH OK OR PA RI SC SD TN TX UT VT VA WA WV WI WY DC
@@ -50,7 +42,9 @@ module CompaniesHelper
     'united states' => 'US', 'united states of america' => 'US', 'usa' => 'US', 'us' => 'US', 'u.s.' => 'US',
     'u.s.a.' => 'US', 'uruguay' => 'UY', 'uzbekistan' => 'UZ', 'venezuela' => 'VE', 'vietnam' => 'VN',
     'viet nam' => 'VN', 'zimbabwe' => 'ZW', 'holland' => 'NL', 'the netherlands' => 'NL', 'republic of ireland' => 'IE',
-    'brasil' => 'BR', 'deutschland' => 'DE', 'españa' => 'ES', 'espana' => 'ES', 'suisse' => 'CH', 'schweiz' => 'CH'
+    'brasil' => 'BR', 'deutschland' => 'DE', 'españa' => 'ES', 'espana' => 'ES', 'suisse' => 'CH', 'schweiz' => 'CH',
+    'ivory coast' => 'CI', "cote d'ivoire" => 'CI', 'channel islands' => 'GB',
+    'honduras' => 'HN', 'seychelles' => 'SC', 'zambia' => 'ZM', 'liechtenstein' => 'LI'
   }.freeze
 
   def format_location(location)
@@ -66,18 +60,7 @@ module CompaniesHelper
   end
 
   def location_country_iso_code(location)
-    return if location.blank?
-
-    parts = location.to_s.split(',').map { |part| part.strip }.reject(&:blank?)
-    return if parts.empty?
-
-    country_token = normalize_country_token(parts.last)
-    return 'US' if parts.size >= 2 && country_token.match?(/\A[a-z]{2}\z/) && US_STATE_CODES.include?(country_token.upcase)
-
-    iso_code = COUNTRY_ISO_CODES[country_token]
-    return iso_code if iso_code.present?
-
-    nil
+    LocationCountryResolver.iso_code_for(location)
   end
 
   def country_flag_emoji(iso_code)

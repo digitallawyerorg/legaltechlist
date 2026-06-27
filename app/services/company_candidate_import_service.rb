@@ -247,7 +247,7 @@ class CompanyCandidateImportService
   end
 
   def location_value(candidate)
-    candidate["location"].to_s.split(",").first(2).join(", ").presence
+    LocationCountryResolver.format_for_display(candidate["location"])
   end
 
   def founded_year(value)

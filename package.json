@@ -31,8 +31,8 @@
     "webpack-dev-server": "^5.1.0"
   },
   "scripts": {
-    "build": "webpack --config config/webpack/webpack.config.js",
-    "start": "webpack serve --config config/webpack/webpack.config.js"
+    "build": "echo 'Public assets load from CDN; no webpack build required.'",
+    "start": "echo 'No frontend dev server configured.'"
   },
   "resolutions": {
     "@babel/helpers": "^7.26.10",
