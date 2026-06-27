@@ -1,122 +1,132 @@
-require 'httparty'
-require 'open-uri'
-require 'aws-sdk-s3'
-require 'active_storage'
+require "cgi"
+require "net/http"
+require "uri"
 
 class LogoFetcherService
-  include HTTParty
-  base_uri 'https://company.clearbit.com/v1/domains'
+  Result = Struct.new(:checked, :updated, :skipped_existing, :skipped_no_domain, :skipped_unverified, :errors, :examples, keyword_init: true)
 
-  def self.fetch_and_save_logos
-    # Keep track of API calls and results
-    total = Company.where(visible: true).count
-    processed = 0
-    success = 0
-    errors = 0
+  DEFAULT_LIMIT = 100
+  DEFAULT_SIZE = 128
+  VERIFY_TIMEOUT_SECONDS = 8
+  PLACEHOLDER_HOSTS = ["placehold.co"].freeze
 
-    Company.where(visible: true).find_each do |company|
-      processed += 1
-      puts "Processing #{company.name} (#{processed}/#{total})"
+  def self.backfill_missing_logos(scope: Company.publicly_visible, dry_run: true, limit: DEFAULT_LIMIT, provider: nil, logger: $stdout, verifier: nil)
+    new(scope: scope, dry_run: dry_run, limit: limit, provider: provider, logger: logger, verifier: verifier).backfill_missing_logos
+  end
+
+  def initialize(scope:, dry_run:, limit:, provider:, logger:, verifier:)
+    @scope = scope
+    @dry_run = dry_run
+    @limit = limit
+    @provider = provider&.to_sym
+    @logger = logger
+    @verifier = verifier || method(:verified_image_url?)
+  end
+
+  def backfill_missing_logos
+    result = Result.new(checked: 0, updated: 0, skipped_existing: 0, skipped_no_domain: 0, skipped_unverified: 0, errors: 0, examples: [])
+
+    companies_to_check.find_each do |company|
+      result.checked += 1
 
       begin
-        # Skip if company already has a logo
-        if company.logo_url.present?
-          puts "- Already has logo, skipping"
+        unless replaceable_logo?(company.logo_url)
+          result.skipped_existing += 1
           next
         end
 
-        # Try to get domain info from Clearbit
-        domain_info = find_domain(company.name)
-        next unless domain_info
-
-        # Get logo URL from response
-        logo_url = domain_info['logo']
-        next unless logo_url
-
-        # Generate filename
-        filename = "#{company.id}-#{Time.now.to_i}.png"
-        
-        if Rails.env.production?
-          # Upload to S3/Bucketeer
-          s3_url = upload_to_s3(logo_url, filename)
-          company.update(logo_url: s3_url)
-        else
-          # Save locally in development
-          logos_dir = Rails.root.join('public', 'logos')
-          FileUtils.mkdir_p(logos_dir)
-          file_path = logos_dir.join(filename)
-          local_url = download_image(logo_url, file_path)
-          company.update(logo_url: local_url)
+        domain = Company.canonical_domain_for(company.main_url)
+        unless domain
+          result.skipped_no_domain += 1
+          next
         end
 
-        success += 1
-        puts "- Logo saved successfully"
+        logo_url = verified_candidate_for(domain)
+        unless logo_url
+          result.skipped_unverified += 1
+          next
+        end
 
-        # Sleep to respect rate limits
-        sleep(1)
-
+        company.update!(logo_url: logo_url) unless @dry_run
+        result.updated += 1
+        result.examples << { id: company.id, name: company.name, domain: domain, logo_url: logo_url } if result.examples.size < 10
+        log("#{mode_label} #{company.id} #{company.name} -> #{logo_url}")
       rescue => e
-        errors += 1
-        Rails.logger.error("Error processing #{company.name}: #{e.message}")
-        puts "- Error: #{e.message}"
+        result.errors += 1
+        Rails.logger.debug("Logo backfill error for company #{company.id}: #{e.class} #{e.message}") if defined?(Rails)
+        log("ERROR #{company.id} #{company.name}: #{e.class} #{e.message}")
       end
     end
 
-    # Return statistics
-    {
-      total: total,
-      processed: processed,
-      success: success,
-      errors: errors
-    }
+    result
   end
 
   private
 
-  def self.find_domain(company_name)
-    options = {
-      basic_auth: { username: ENV['CLEARBIT_API_KEY'], password: '' },
-      query: { name: company_name }
-    }
+  attr_reader :provider
 
-    response = get("/find", options)
-    if response.success?
-      response.parsed_response
+  def companies_to_check
+    relation = @scope.order(:id)
+    @limit.present? ? relation.limit(@limit.to_i) : relation
+  end
+
+  def replaceable_logo?(logo_url)
+    return true if logo_url.blank?
+
+    host = URI.parse(logo_url).host
+    PLACEHOLDER_HOSTS.include?(host)
+  rescue URI::InvalidURIError
+    true
+  end
+
+  def verified_candidate_for(domain)
+    candidate_urls(domain).find { |url| @verifier.call(url) }
+  end
+
+  def candidate_urls(domain)
+    case provider
+    when :logo_dev
+      logo_dev_candidate(domain) ? [logo_dev_candidate(domain)] : []
+    when :duckduckgo
+      [duckduckgo_candidate(domain)]
     else
-      Rails.logger.error("Clearbit API Error for #{company_name}: #{response.body}")
-      nil
+      [logo_dev_candidate(domain), duckduckgo_candidate(domain)].compact
     end
   end
 
-  def self.upload_to_s3(url, filename)
-    begin
-      downloaded_image = URI.open(url)
-      blob = ActiveStorage::Blob.create_and_upload!(
-        io: downloaded_image,
-        filename: filename,
-        content_type: 'image/png'
-      )
-      
-      # Return the URL
-      Rails.application.routes.url_helpers.rails_blob_url(blob, only_path: true)
-    rescue => e
-      Rails.logger.error("Logo upload error for #{filename}: #{e.message}")
-      raise e
+  def logo_dev_candidate(domain)
+    token = ENV["LOGO_DEV_PUBLISHABLE_KEY"].presence
+    return nil unless token
+
+    "https://img.logo.dev/#{CGI.escape(domain)}?token=#{CGI.escape(token)}&size=#{DEFAULT_SIZE}&format=png&fallback=404"
+  end
+
+  def duckduckgo_candidate(domain)
+    "https://icons.duckduckgo.com/ip3/#{CGI.escape(domain)}.ico"
+  end
+
+  def verified_image_url?(url)
+    uri = URI.parse(url)
+    response = request(uri, Net::HTTP::Head)
+    response = request(uri, Net::HTTP::Get) if response.is_a?(Net::HTTPMethodNotAllowed)
+
+    response.is_a?(Net::HTTPSuccess) && response["content-type"].to_s.start_with?("image/")
+  rescue URI::InvalidURIError, SocketError, Timeout::Error, Errno::ECONNREFUSED, Net::OpenTimeout, Net::ReadTimeout
+    false
+  end
+
+  def request(uri, request_class)
+    Net::HTTP.start(uri.host, uri.port, use_ssl: uri.scheme == "https", open_timeout: VERIFY_TIMEOUT_SECONDS, read_timeout: VERIFY_TIMEOUT_SECONDS) do |http|
+      request = request_class.new(uri)
+      http.request(request)
     end
   end
 
-  def self.download_image(url, file_path)
-    URI.open(url) do |image|
-      File.open(file_path, 'wb') do |file|
-        file.write(image.read)
-      end
-    end
-    
-    # Return the full URL including host in development
-    if Rails.env.development?
-      "#{ENV['APP_HOST']}/logos/#{File.basename(file_path)}"
-    else
-      "/logos/#{File.basename(file_path)}"
-    end
+  def mode_label
+    @dry_run ? "DRY RUN" : "UPDATED"
+  end
+
+  def log(message)
+    @logger.puts(message) if @logger
   end
 end
