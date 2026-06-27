@@ -51,6 +51,18 @@ class CompanyImportWorkerServiceTest < ActiveSupport::TestCase
     assert_equal "completed", row.reload.status
   end
 
+  test "loop entrypoint calls drain without recursing" do
+    worker = CompanyImportWorkerService.new(sleep_seconds: 1)
+    calls = 0
+    worker.define_singleton_method(:drain) do
+      calls += 1
+      raise "stop loop"
+    end
+
+    assert_raises(RuntimeError) { worker.loop }
+    assert_equal 1, calls
+  end
+
   private
 
   def with_import_csv
