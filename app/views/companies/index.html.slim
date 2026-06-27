@@ -33,7 +33,7 @@ css:
 - active_params = request.query_parameters.symbolize_keys
 - clear_params = active_params.except(:category, :status, :location, :query, :page)
 - selected_category = params[:category].presence
-- selected_status = params[:status].presence
+- selected_status = params[:status].to_s.strip.downcase.presence
 
 .public-company-index
     .company-shell

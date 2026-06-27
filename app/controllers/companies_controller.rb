@@ -17,7 +17,7 @@ class CompaniesController < ApplicationController
       # Filters
       @companies = @companies.where(category_id: params[:category]) if params[:category].present?
       @companies = @companies.where("location ILIKE ?", "%#{params[:location]}%") if params[:location].present?
-      @companies = @companies.where(status: params[:status]) if params[:status].present?
+      @companies = @companies.where("LOWER(TRIM(status)) = ?", normalized_status_param) if normalized_status_param.present?
 
       # Sorting
       case params[:sort] || 'founded_desc'
@@ -156,7 +156,11 @@ class CompaniesController < ApplicationController
     end
 
     def status_counts
-      @base_companies.where.not(status: [nil, ""]).group(:status).order(:status).count
+      @base_companies.where.not(status: [nil, ""]).group("LOWER(TRIM(status))").order("LOWER(TRIM(status))").count
+    end
+
+    def normalized_status_param
+      params[:status].to_s.strip.downcase.presence
     end
 
     # Use callbacks to share common setup or constraints between actions.

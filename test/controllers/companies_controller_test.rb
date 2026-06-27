@@ -48,6 +48,19 @@ class CompaniesControllerTest < ActionController::TestCase
     assert_select ".company-filter-link.is-active", text: /Active/
   end
 
+  test "index combines status facet variants case-insensitively" do
+    @company.update_columns(status: "active")
+    companies(:two).update_columns(status: "Active")
+
+    get :index, params: { status: "active" }
+
+    assert_response :success
+    assert_includes assigns(:companies), @company
+    assert_includes assigns(:companies), companies(:two)
+    assert_equal 2, assigns(:status_counts)["active"]
+    assert_equal ["active"], assigns(:status_counts).keys
+  end
+
   test "should get new" do
     get :new
     assert_response :success

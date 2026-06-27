@@ -24,6 +24,15 @@ class CompanyTest < ActiveSupport::TestCase
     assert_equal first, second
   end
 
+  test "status is normalized before validation" do
+    company = companies(:one).dup
+    company.name = "Status Normalization Company"
+    company.status = " Active "
+    company.save!
+
+    assert_equal "active", company.status
+  end
+
   test "missing main URL scope finds blank URLs" do
     company = companies(:one).dup
     company.name = "Missing URL Company"

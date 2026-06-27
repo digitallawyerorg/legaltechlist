@@ -6,6 +6,7 @@ class Company < ActiveRecord::Base
 
   before_update :publish_tweet, :if => :visible_changed?
   before_update :publish_to_list, :if => :visible_changed?
+  before_validation :normalize_status
 
   has_many :taggings,  dependent: :destroy
   has_many :tags, through: :taggings
@@ -136,6 +137,10 @@ class Company < ActiveRecord::Base
 
   def calculated_fingerprint
     self.class.fingerprint_for(name, main_url)
+  end
+
+  def normalize_status
+    self.status = status.to_s.strip.downcase.presence
   end
 
   def all_tags=(names)
