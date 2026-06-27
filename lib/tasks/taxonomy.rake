@@ -226,6 +226,77 @@ namespace :taxonomy do
     puts "normalize_target_clients complete mode=#{dry_run ? 'dry-run' : 'write'} renamed=#{renamed} backfilled=#{backfilled}"
   end
 
+  desc "Remap companies off compound TargetClient records. DRY_RUN=false to write."
+  task consolidate_compound_target_clients: :environment do
+    dry_run = ENV.fetch("DRY_RUN", "true") != "false"
+    remapped = 0
+    removed = 0
+
+    TargetClient.where("name LIKE '%,%'").find_each do |compound|
+      canonical_records = TaxonomyNormalizationService.canonical_target_client_names(compound.name).filter_map { |name| TargetClient.find_by(name: name) }
+      next if canonical_records.empty?
+
+      Company.where(target_client_id: compound.id).find_each do |company|
+        remapped += 1
+        unless dry_run
+          company.target_client_id = canonical_records.first.id
+          company.save!(validate: false)
+          canonical_records.each do |target_client|
+            CompanyTargetClient.find_or_create_by!(company_id: company.id, target_client_id: target_client.id)
+          end
+        end
+      end
+
+      next if dry_run
+      next if Company.where(target_client_id: compound.id).exists?
+      next if CompanyTargetClient.where(target_client_id: compound.id).exists?
+
+      compound.destroy!
+      removed += 1
+    end
+
+    puts "consolidate_compound_target_clients complete mode=#{dry_run ? 'dry-run' : 'write'} remapped=#{remapped} removed=#{removed}"
+  end
+
+  desc "Resolve Unknown target clients via rules/LLM. DRY_RUN=false to write."
+  task resolve_unknown_target_clients: :environment do
+    dry_run = ENV.fetch("DRY_RUN", "true") != "false"
+    min_confidence = ENV.fetch("MIN_CONFIDENCE", "0.65").to_f
+    counts = Hash.new(0)
+
+    Company.unknown_target_client.includes(:target_client).find_each do |company|
+      suggestion = CompanyProposalTaxonomySuggestionService.call(
+        source_payload: {
+          "name" => company.name,
+          "website" => company.main_url,
+          "source_description" => company.description,
+          "industries" => [company.category&.name].compact
+        },
+        final_changes: {}
+      )
+
+      client_name = suggestion.dig("target_client", "name")
+      confidence = suggestion.dig("target_client", "confidence").to_f
+      target_client = TaxonomyNormalizationService.find_target_client(client_name)
+
+      if target_client.blank? || confidence < min_confidence
+        counts["skipped"] += 1
+        next
+      end
+
+      counts["resolved"] += 1
+      unless dry_run
+        company.target_client_id = target_client.id
+        company.target_client_ids = [target_client.id]
+        company.save!(validate: false)
+      end
+
+      puts "resolved company_id=#{company.id} #{company.name} -> #{target_client.name} confidence=#{confidence}"
+    end
+
+    puts "resolve_unknown_target_clients complete mode=#{dry_run ? 'dry-run' : 'write'} counts=#{counts.inspect}"
+  end
+
   desc "Resolve Unknown primary categories via rules/LLM. DRY_RUN=false to write. LIMIT=N optional."
   task resolve_unknown_categories: :environment do
     dry_run = ENV.fetch("DRY_RUN", "true") != "false"
