@@ -184,6 +184,8 @@ class CompanyProposalWorkflowTest < ActiveSupport::TestCase
     duplicate_proposal = CompanyProposal.find_by!(source_identifier: "example.com")
     assert_nil duplicate_proposal.company
     assert duplicate_proposal.duplicate_blocking?
+    assert duplicate_proposal.final_changes["description"].present?
+    assert duplicate_proposal.agent_details["taxonomy_suggestion"].present?
   end
 
   test "candidate import is idempotent by source identifier" do

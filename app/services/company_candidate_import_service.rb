@@ -34,17 +34,22 @@ class CompanyCandidateImportService
 
   def process_candidate(candidate, index)
     proposal = upsert_proposal(candidate, index)
-    return result_payload(candidate, index, proposal, "needs_duplicate_review", "Duplicate or existing-record signal found.") if proposal.duplicate_blocking?
+    return result_payload(candidate, index, proposal, "already_published", "Company is already published.") if proposal.status == "published" || proposal.company&.visible?
 
-    CompanyProposalEnrichmentService.call(proposal: proposal, admin_user: admin_user)
+    CompanyProposalEnrichmentService.call(proposal: proposal, admin_user: admin_user) if enrichment_needed?(proposal)
     proposal.reload
 
     quality = CompanyProposalQualityService.call(proposal)
+    return result_payload(candidate, index, proposal, "needs_duplicate_review", "Duplicate or existing-record signal found.") if proposal.duplicate_blocking?
     return result_payload(candidate, index, proposal, "needs_review", Array(quality["blockers"]).first) unless auto_draft_ready?(proposal, quality)
     return result_payload(candidate, index, proposal, "already_drafted", "Proposal already has a company draft.") if proposal.company_id.present?
 
     company = create_hidden_draft!(proposal)
     result_payload(candidate, index, proposal.reload, "auto_drafted", "Invisible company draft created.", company)
+  rescue StandardError => e
+    result_payload(candidate, index, defined?(proposal) ? proposal : nil, "errored", e.message).merge(
+      "error_class" => e.class.name
+    )
   end
 
   def upsert_proposal(candidate, index)
@@ -98,6 +103,18 @@ class CompanyCandidateImportService
     quality["publish_ready"] &&
       proposal.agent_details.dig("taxonomy_suggestion", "accepted") &&
       !proposal.duplicate_blocking?
+  end
+
+  def enrichment_needed?(proposal)
+    changes = proposal.final_changes || {}
+    details = proposal.agent_details || {}
+
+    changes["description"].blank? ||
+      changes["category_id"].blank? ||
+      changes["business_model_id"].blank? ||
+      changes["target_client_id"].blank? ||
+      details["taxonomy_suggestion"].blank? ||
+      details["description_critic"].blank?
   end
 
   def proposed_changes(candidate)
@@ -156,6 +173,8 @@ class CompanyCandidateImportService
       "already_drafted" => results.count { |result| result["action"] == "already_drafted" },
       "needs_review" => results.count { |result| result["action"] == "needs_review" },
       "needs_duplicate_review" => results.count { |result| result["action"] == "needs_duplicate_review" },
+      "already_published" => results.count { |result| result["action"] == "already_published" },
+      "errored" => results.count { |result| result["action"] == "errored" },
       "created_at" => Time.current.utc.iso8601
     }
   end

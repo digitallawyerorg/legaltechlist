@@ -1,3 +1,5 @@
+require "timeout"
+
 class CompanyProposalResearchService
   def self.call(**kwargs)
     new(**kwargs).call
@@ -10,7 +12,7 @@ class CompanyProposalResearchService
   def call
     return disabled_payload unless responses_web_search_enabled?
 
-    response = responses_chat.ask(research_prompt)
+    response = Timeout.timeout(llm_timeout_seconds) { responses_chat.ask(research_prompt) }
     output = response.raw&.body&.fetch("output", []) || []
     citations = RubyLLM::ResponsesAPI::BuiltInTools.extract_citations(output.flat_map { |item| Array(item["content"]) })
     search_calls = RubyLLM::ResponsesAPI::BuiltInTools.parse_web_search_results(output)
@@ -47,6 +49,10 @@ class CompanyProposalResearchService
 
   def research_model
     ENV.fetch("RUBYLLM_RESEARCH_MODEL", ENV.fetch("RUBYLLM_HARD_MODEL", "gpt-5.5"))
+  end
+
+  def llm_timeout_seconds
+    ENV.fetch("PROPOSAL_RESEARCH_TIMEOUT_SECONDS", "45").to_i
   end
 
   def research_prompt

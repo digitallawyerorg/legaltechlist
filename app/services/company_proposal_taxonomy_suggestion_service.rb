@@ -1,3 +1,5 @@
+require "timeout"
+
 class CompanyProposalTaxonomySuggestionService
   HIGH_CONFIDENCE = 0.8
 
@@ -83,7 +85,8 @@ class CompanyProposalTaxonomySuggestionService
     return unless llm_enabled?
 
     chat = RubyLLM.chat(model: llm_model, provider: :openai, assume_model_exists: true)
-    parsed = JSON.parse(chat.ask(llm_prompt).content.to_s)
+    response = Timeout.timeout(llm_timeout_seconds) { chat.ask(llm_prompt) }
+    parsed = JSON.parse(response.content.to_s)
     parsed.merge("mode" => "ruby_llm")
   rescue StandardError
     nil
@@ -97,6 +100,10 @@ class CompanyProposalTaxonomySuggestionService
 
   def llm_model
     ENV.fetch("RUBYLLM_TAXONOMY_MODEL", ENV.fetch("RUBYLLM_HARD_MODEL", "gpt-5.5"))
+  end
+
+  def llm_timeout_seconds
+    ENV.fetch("PROPOSAL_TAXONOMY_TIMEOUT_SECONDS", "45").to_i
   end
 
   def llm_prompt

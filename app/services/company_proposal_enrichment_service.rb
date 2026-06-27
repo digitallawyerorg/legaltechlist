@@ -1,3 +1,5 @@
+require "timeout"
+
 class CompanyProposalEnrichmentService
   MARKETING_TERMS = DescriptionDraftAgent::MARKETING_TERMS
 
@@ -55,7 +57,7 @@ class CompanyProposalEnrichmentService
     return unless llm_enabled?
 
     chat = RubyLLM.chat(model: hard_model, provider: :openai, assume_model_exists: true)
-    response = chat.ask(description_prompt)
+    response = Timeout.timeout(llm_timeout_seconds) { chat.ask(description_prompt) }
     parsed = parse_json_content(response.content)
     parsed["proposed_description"]
   rescue StandardError
@@ -153,6 +155,10 @@ class CompanyProposalEnrichmentService
 
   def hard_model
     ENV.fetch("RUBYLLM_DESCRIPTION_MODEL", ENV.fetch("RUBYLLM_HARD_MODEL", "gpt-5.5"))
+  end
+
+  def llm_timeout_seconds
+    ENV.fetch("PROPOSAL_DESCRIPTION_TIMEOUT_SECONDS", "45").to_i
   end
 
   def display_name
