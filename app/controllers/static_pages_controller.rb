@@ -475,7 +475,7 @@ class StaticPagesController < ApplicationController
                       .where('founded_date >= ? AND founded_date <= ? AND founded_date ~ ?',
                             '2000',
                             Time.current.year.to_s,
-                            '^\d{4}$')
+                            FOUR_DIGIT_YEAR_REGEX)
 
     # Group companies by country and calculate metrics
     country_metrics = {}
@@ -1365,6 +1365,174 @@ class StaticPagesController < ApplicationController
 
   private
 
+  FOUR_DIGIT_YEAR_REGEX = "^[0-9]{4}$"
+
+  COUNTRY_ALIASES = {
+    "USA" => "United States",
+    "United States" => "United States",
+    "US" => "United States",
+    "U.S." => "United States",
+    "U.S.A." => "United States",
+    "UK" => "United Kingdom",
+    "United Kingdom" => "United Kingdom",
+    "Great Britain" => "United Kingdom",
+    "England" => "United Kingdom",
+    "UAE" => "United Arab Emirates",
+    "U.A.E." => "United Arab Emirates",
+    "The Netherlands" => "Netherlands",
+    "Russian Federation" => "Russia",
+    "Slovakia Slovak Republic" => "Slovakia",
+    "Hong Kong China" => "Hong Kong",
+    "Germany" => "Germany",
+    "Hong Kong" => "Hong Kong",
+    "South Africa" => "South Africa",
+    "Taiwan" => "Taiwan",
+    "Uruguay" => "Uruguay",
+    "Venezuela" => "Venezuela",
+    "Vietnam" => "Vietnam",
+    "NA - South Africa" => "South Africa",
+    "NA - Uruguay" => "Uruguay",
+    "NA - Venezuela" => "Venezuela",
+    "NA - Vietnam" => "Vietnam"
+  }.freeze
+
+  ADMINISTRATIVE_REGION_COUNTRIES = {
+    "CA" => "United States",
+    "Alabama" => "United States",
+    "Alaska" => "United States",
+    "Arizona" => "United States",
+    "Arkansas" => "United States",
+    "California" => "United States",
+    "Colorado" => "United States",
+    "Connecticut" => "United States",
+    "Delaware" => "United States",
+    "District of Columbia" => "United States",
+    "Florida" => "United States",
+    "Georgia" => "United States",
+    "Illinois" => "United States",
+    "Indiana" => "United States",
+    "Kentucky" => "United States",
+    "Maine" => "United States",
+    "Maryland" => "United States",
+    "Massachusetts" => "United States",
+    "Michigan" => "United States",
+    "Missouri" => "United States",
+    "Montana" => "United States",
+    "New Jersey" => "United States",
+    "New York" => "United States",
+    "North Carolina" => "United States",
+    "Ohio" => "United States",
+    "Oregon" => "United States",
+    "Pennsylvania" => "United States",
+    "South Carolina" => "United States",
+    "Tennessee" => "United States",
+    "Texas" => "United States",
+    "Utah" => "United States",
+    "Virginia" => "United States",
+    "Washington" => "United States",
+    "Alberta" => "Canada",
+    "British Columbia" => "Canada",
+    "Ontario" => "Canada",
+    "Quebec" => "Canada",
+    "Saskatchewan" => "Canada",
+    "Andhra Pradesh" => "India",
+    "Assam" => "India",
+    "Bihar" => "India",
+    "Chandigarh" => "India",
+    "Delhi" => "India",
+    "Haryana" => "India",
+    "Karnataka" => "India",
+    "Kerala" => "India",
+    "Madhya Pradesh" => "India",
+    "Maharashtra" => "India",
+    "Orissa" => "India",
+    "Punjab" => "India",
+    "Rajasthan" => "India",
+    "Tamil Nadu" => "India",
+    "Telangana" => "India",
+    "West Bengal" => "India",
+    "New South Wales" => "Australia",
+    "South Australia" => "Australia",
+    "Victoria" => "Australia",
+    "Auckland" => "New Zealand",
+    "Christchurch 8011" => "New Zealand",
+    "Berlin" => "Germany",
+    "Bayern" => "Germany",
+    "Baden-Wurttemberg" => "Germany",
+    "Hamburg" => "Germany",
+    "Niedersachsen" => "Germany",
+    "Nordrhein-Westfalen" => "Germany",
+    "Noord-Holland" => "Netherlands",
+    "Limburg" => "Netherlands",
+    "Utrecht" => "Netherlands",
+    "Flevoland" => "Netherlands",
+    "Lombardia" => "Italy",
+    "Liguria" => "Italy",
+    "Marche" => "Italy",
+    "Piemonte" => "Italy",
+    "Sicilia" => "Italy",
+    "Andalucia" => "Spain",
+    "Galicia" => "Spain",
+    "Madrid" => "Spain",
+    "Region Metropolitana" => "Chile",
+    "Sao Paulo" => "Brazil",
+    "Lisboa" => "Portugal",
+    "Bucuresti" => "Romania",
+    "Ile-de-France" => "France",
+    "Poitou-Charentes" => "France",
+    "Rhone-Alpes" => "France",
+    "Mazowieckie" => "Poland",
+    "Harjumaa" => "Estonia",
+    "Vorumaa" => "Estonia",
+    "Dublin" => "Ireland",
+    "Cork" => "Ireland",
+    "Wexford" => "Ireland",
+    "Skane Lan" => "Sweden",
+    "Vastra Gotaland" => "Sweden",
+    "Schwyz" => "Switzerland",
+    "Vaud" => "Switzerland",
+    "Zurich" => "Switzerland",
+    "Federal Capital Territory" => "Nigeria",
+    "Lagos" => "Nigeria",
+    "Al Jizah" => "Egypt",
+    "Al Kuwayt" => "Kuwait",
+    "Ar Riyad" => "Saudi Arabia",
+    "Makkah" => "Saudi Arabia",
+    "Ankara" => "Turkey",
+    "Istanbul" => "Turkey",
+    "Jalisco" => "Mexico",
+    "Quintana Roo" => "Mexico",
+    "Jakarta Raya" => "Indonesia",
+    "Jawa Barat" => "Indonesia",
+    "Chiba" => "Japan",
+    "Tokyo" => "Japan",
+    "Pusan-jikhalsi" => "South Korea",
+    "Hlavni mesto Praha" => "Czech Republic",
+    "L'vivs'ka Oblast'" => "Ukraine",
+    "Ljubljana Urban Commune" => "Slovenia",
+    "Vilniaus Apskritis" => "Lithuania",
+    "Vojvodina" => "Serbia",
+    "Cesu" => "Latvia",
+    "Grand Casablanca" => "Morocco",
+    "San Jose" => "Costa Rica",
+    "Tacloban" => "Philippines",
+    "Manila" => "Philippines",
+    "Lima" => "Peru"
+  }.freeze
+
+  UK_ADMINISTRATIVE_AREAS = [
+    "Aberdeen City", "Barking and Dagenham", "Bath and North East Somerset", "Belfast", "Birmingham", "Brighton and Hove",
+    "Bristol", "Buckinghamshire", "Caerphilly", "Cardiff", "Cheshire", "Cheshire East", "Cornwall", "Coventry",
+    "Derby", "Dublin", "East Sussex", "Essex", "Fermanagh", "Glasgow City", "Hampshire", "Harrow", "Havering",
+    "Herefordshire", "Hertford", "Hillingdon", "Kent", "Kingston upon Hull", "Kirklees", "Lancashire", "Leeds",
+    "Liverpool", "Manchester", "Middlesbrough", "Milton Keynes", "Newcastle upon Tyne", "Newport", "Norfolk",
+    "North Ayrshire", "North Lincolnshire", "North Yorkshire", "Northamptonshire", "Nottingham", "Oxfordshire",
+    "Reading", "Redbridge", "Richmond upon Thames", "Rochdale", "Solihull", "Somerset", "South Lanarkshire",
+    "South Tyneside", "Southampton", "Staffordshire", "Stirling", "Stockport", "Stockton-on-Tees", "Suffolk",
+    "Telford and Wrekin", "Warrington", "Warwickshire", "West Lothian", "West Sussex", "Wigan", "Wiltshire",
+    "Wolverhampton", "Worcestershire"
+  ].freeze
+
   def visible_company_counts_by_year
     Rails.cache.fetch("statistics/visible_company_counts_by_year/#{Company.maximum(:updated_at)&.to_i}", expires_in: 10.minutes) do
       Company.where(visible: true)
@@ -1719,22 +1887,25 @@ class StaticPagesController < ApplicationController
   end
 
   def extract_country(location)
-    return nil unless location
-    # Split on comma and take the last part, which is typically the country
-    parts = location.split(',').map(&:strip)
-    country = parts.last
+    return nil if location.blank?
 
-    # Handle common variations
-    case country
-    when 'USA', 'United States', 'US', 'U.S.', 'U.S.A.'
-        'United States'
-    when 'UK', 'United Kingdom', 'Great Britain'
-        'United Kingdom'
-    when 'UAE', 'U.A.E.'
-        'United Arab Emirates'
-    else
-        country
-    end
+    parts = location.to_s.split(",").map { |part| part.squish }.reject(&:blank?)
+    country = parts.last
+    return nil if country.blank?
+
+    normalize_country_name(country)
+  end
+
+  def normalize_country_name(country)
+    normalized_country = country.to_s.squish
+    without_crunchbase_prefix = normalized_country.sub(/\ANA\s*-\s*/i, "")
+    without_trailing_digits = without_crunchbase_prefix.sub(/\d+\z/, "")
+
+    COUNTRY_ALIASES[without_crunchbase_prefix] ||
+      COUNTRY_ALIASES[without_trailing_digits] ||
+      ADMINISTRATIVE_REGION_COUNTRIES[without_crunchbase_prefix] ||
+      (UK_ADMINISTRATIVE_AREAS.include?(without_crunchbase_prefix) ? "United Kingdom" : nil) ||
+      without_crunchbase_prefix
   end
 
   def generate_country_distribution_csv
