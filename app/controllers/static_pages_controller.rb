@@ -939,137 +939,35 @@ class StaticPagesController < ApplicationController
   end
 
   def category_evolution_5_years
-    # Step 1: Get raw data from database - filter out Unknown category
-    raw_data = Company.joins(:category)
-                     .where(visible: true)
-                     .where("founded_date ~ '^[0-9]{4}$'")
-                     .where("CAST(founded_date AS INTEGER) >= 2000")
-                     .where.not(categories: { name: 'Unknown' })
-                     .group("categories.name", "CAST(founded_date AS INTEGER)")
-                     .count
-
-    # Step 2: Organize data by time period and calculate cumulative totals
-    time_periods = {}
-
-    # Define time periods
-    periods = [
-      "2005-2009",
-      "2010-2014",
-      "2015-2019",
-      "2020-2024",
-      "2025-2029"
-    ]
-
-    # Get all unique categories
-    all_categories = raw_data.keys.map { |(category, _)| category }.uniq
-
-    # Define a consistent color palette for categories
-    category_colors = {}
-    color_palette = [
-      "#8c1515", # Stanford Cardinal Red (keep this one)
-      "#2986cc", # Muted Blue
-      "#8e5fa2", # Muted Purple
-      "#d55e00", # Muted Orange/Red
-      "#37a4a6", # Muted Teal
-      "#5a865a", # Muted Green
-      "#ae6a59", # Muted Coral
-      "#5b9bd5", # Steel Blue
-      "#6b6b8d", # Slate Blue
-      "#c67171"  # Muted Red
-    ]
-
-    all_categories.each_with_index do |category, index|
-      category_colors[category] = color_palette[index % color_palette.length]
+    cached = Rails.cache.fetch(
+      "statistics/category_evolution_5_years/#{company_cache_version}/#{category_cache_version}",
+      expires_in: 10.minutes
+    ) do
+      build_category_evolution_yearly_metrics
     end
 
-    # Store category totals by year
-    category_by_year = {}
-    all_categories.each do |category|
-      category_by_year[category] = {}
-    end
-
-    # Fill in raw yearly counts
-    raw_data.each do |(category, year), count|
-      category_by_year[category][year] = count
-    end
-
-    # Calculate cumulative totals for each period
-    periods.each_with_index do |period, period_index|
-      time_periods[period] = {}
-
-      # Adjust the start year calculation since we're starting at 2005
-      start_year = 2005 + (period_index * 5)
-      end_year = start_year + 4
-
-      all_categories.each do |category|
-        # Sum all companies from this category up through this period
-        time_periods[period][category] = 0
-
-        # Count all companies founded from 2000 up through the end of this period
-        (2000..end_year).each do |year|
-          time_periods[period][category] += category_by_year[category].fetch(year, 0)
-        end
-      end
-    end
-
-    # Step 3: Prepare data for charts
-    @period_data = {}
-    @max_count = 0
-
-    periods.each do |period|
-      # Sort categories by count (descending) within each period
-      period_categories = time_periods[period].sort_by { |_, count| -count }.to_h
-
-      # Update max count for records
-      max_in_period = period_categories.values.max || 0
-      @max_count = max_in_period if max_in_period > @max_count
-
-      # Store all categories for this period (we'll take top 9 in the view)
-      @period_data[period] = period_categories
-    end
-
-    # Round max count up to nearest 50 for cleaner y-axis
-    @max_count = ((@max_count / 50.0).ceil * 50)
-
-    # Store colors for consistent rendering
-    @category_colors = category_colors
-
-    # Prepare stacked chart data for backward compatibility
-    @chart_data = @period_data.map do |period, categories|
-      {
-        name: period,
-        data: categories
-      }
-    end
+    @table_data = cached[:table_data]
+    @summary_data = cached[:summary_data]
+    @category_limit = category_evolution_limit_param
+    limit = @category_limit == "all" ? @table_data.size : @category_limit.to_i
+    @chart_series = @table_data.first(limit)
   end
 
   def download_category_evolution_5_years
-    # First ensure we have the data
-    category_evolution_5_years if @period_data.nil?
+    category_evolution_5_years if @table_data.nil?
 
-    # Create CSV data from period data
+    years = (@table_data.first&.dig(:yearly_data)&.keys || []).sort
     csv_data = CSV.generate do |csv|
-      # Header row with periods
-      csv << ['Category'] + @period_data.keys.to_a
-
-      # Get all categories that appear in any period
-      all_categories = @period_data.values.flat_map(&:keys).uniq
-
-      # For each category, create a row with its count in each period
-      all_categories.each do |category|
-        row = [category]
-        @period_data.each do |period, data|
-          row << (data[category] || 0)
-        end
-        csv << row
+      csv << ["Category"] + years
+      @table_data.each do |data|
+        csv << [data[:category]] + years.map { |year| data[:yearly_data][year] || 0 }
       end
     end
 
-    # Send the CSV data
     send_data csv_data,
-              filename: "category_evolution_5_years_#{Time.current.strftime('%Y%m%d')}.csv",
-              type: 'text/csv',
-              disposition: 'attachment'
+              filename: "category_evolution_#{Time.current.strftime('%Y%m%d')}.csv",
+              type: "text/csv",
+              disposition: "attachment"
   end
 
   def funding_by_category
@@ -1169,9 +1067,18 @@ class StaticPagesController < ApplicationController
   private
 
   GROWTH_VIEWS = %w[cumulative annual].freeze
+  CATEGORY_EVOLUTION_LIMITS = [8, 12, "all"].freeze
 
   def growth_view_param
     params[:view].presence_in(GROWTH_VIEWS) || "cumulative"
+  end
+
+  def category_evolution_limit_param
+    value = params[:categories].presence || "8"
+    return "all" if value == "all"
+
+    limit = value.to_i
+    CATEGORY_EVOLUTION_LIMITS.include?(limit) ? limit.to_s : "8"
   end
 
   def maturity_base_scope
@@ -1236,6 +1143,65 @@ class StaticPagesController < ApplicationController
       highest_success: category_metrics.max_by { |_, m| m[:success_rate] }&.first,
       optimal_rounds: category_metrics.max_by { |_, m| m[:efficiency_score] }&.last&.dig(:avg_rounds)
     }
+  end
+
+  def build_category_evolution_yearly_metrics
+    companies = Company.includes(:category)
+                      .where(visible: true)
+                      .where("founded_date >= ? AND founded_date <= ? AND founded_date ~ ?",
+                             "2000",
+                             Time.current.year.to_s,
+                             FOUR_DIGIT_YEAR_REGEX)
+                      .where.not(category_id: nil)
+
+    start_year = 2000
+    end_year = Time.current.year
+    years = (start_year..end_year).map(&:to_s)
+
+    categories = Category.where.not(name: "Unknown")
+    category_data = {}
+
+    categories.each do |category|
+      category_data[category.id] = {
+        category: category.name,
+        yearly_data: years.index_with { 0 },
+        total_companies: 0
+      }
+    end
+
+    companies.each do |company|
+      next if company.category.name == "Unknown"
+
+      year = company.founded_date.to_i
+      category_id = company.category_id
+
+      (year..end_year).each do |y|
+        category_data[category_id][:yearly_data][y.to_s] += 1
+      end
+      category_data[category_id][:total_companies] += 1
+    end
+
+    total_companies = category_data.values.sum { |d| d[:total_companies] }
+    table_data = category_data.values.sort_by { |d| -d[:total_companies] }
+
+    summary_data = table_data.map do |data|
+      prev_year = (end_year - 1).to_s
+      current_year = end_year.to_s
+      growth_rate = if data[:yearly_data][prev_year].positive?
+        ((data[:yearly_data][current_year] - data[:yearly_data][prev_year]) / data[:yearly_data][prev_year].to_f) * 100
+      else
+        0
+      end
+
+      {
+        category: data[:category],
+        total_companies: data[:total_companies],
+        growth_rate: growth_rate,
+        market_share: (data[:total_companies] / total_companies.to_f) * 100
+      }
+    end
+
+    { table_data: table_data, summary_data: summary_data }
   end
 
   def build_tag_distribution_metrics

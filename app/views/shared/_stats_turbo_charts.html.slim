@@ -1,0 +1,38 @@
+javascript:
+    (function() {
+        function bootChartkick() {
+            if (window.Chartkick) {
+                window.dispatchEvent(new Event("chartkick:load"));
+            }
+        }
+
+        function refreshStatsCharts() {
+            if (document.documentElement.hasAttribute("data-turbo-preview")) return;
+
+            var geoChart = document.getElementById("country-distribution-chart");
+            if (geoChart && window.google && window.google.charts) {
+                window.google.charts.load("current", { packages: ["geochart"], callback: bootChartkick });
+                return;
+            }
+
+            if (geoChart) {
+                var attempts = 0;
+                var timer = window.setInterval(function() {
+                    attempts += 1;
+                    if (window.google && window.google.charts) {
+                        window.clearInterval(timer);
+                        window.google.charts.load("current", { packages: ["geochart"], callback: bootChartkick });
+                    } else if (attempts > 100) {
+                        window.clearInterval(timer);
+                    }
+                }, 50);
+                return;
+            }
+
+            bootChartkick();
+        }
+
+        document.addEventListener("turbo:load", refreshStatsCharts);
+        document.addEventListener("turbo:render", refreshStatsCharts);
+        document.addEventListener("turbolinks:load", refreshStatsCharts);
+    })();

@@ -336,16 +336,13 @@ html
         / Font Awesome
         link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
 
-        - chartkick_page = controller_name == "static_pages" && !%w[home about statistics country_distribution tag_distribution].include?(action_name)
-        - google_geo_page = controller_name == "static_pages" && action_name == "country_distribution"
-        - google_core_page = controller_name == "static_pages" && action_name == "tag_distribution"
-        - if chartkick_page
-            script defer="" src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"
-            script defer="" src="https://cdn.jsdelivr.net/npm/chartkick@5.0.1/dist/chartkick.js"
-        - if google_geo_page
-            script defer="" src="https://cdn.jsdelivr.net/npm/chartkick@5.0.1/dist/chartkick.js"
-        - if google_geo_page || google_core_page
-            script defer="" src="https://www.gstatic.com/charts/loader.js"
+        - stats_chart_page = controller_name == "static_pages" && !%w[home about statistics].include?(action_name)
+        - google_chart_page = controller_name == "static_pages" && action_name == "country_distribution"
+        - if stats_chart_page
+            script defer="" data-turbo-track="reload" src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"
+            script defer="" data-turbo-track="reload" src="https://cdn.jsdelivr.net/npm/chartkick@5.0.1/dist/chartkick.js"
+        - if google_chart_page
+            script defer="" data-turbo-track="reload" src="https://www.gstatic.com/charts/loader.js"
         - if google_analytics_id.present?
             script async="" src="https://www.googletagmanager.com/gtag/js?id=#{google_analytics_id}"
             javascript:
@@ -360,5 +357,7 @@ html
             = yield
         = render "shared/footer"
         = render "shared/company_search_modal"
+        = render "shared/stats_turbo_charts"
+        script defer="" data-turbo-track="reload" src="https://cdn.jsdelivr.net/npm/@hotwired/turbo@8.0.23/dist/turbo.min.js"
         script defer="" src="https://code.jquery.com/jquery-3.7.1.min.js"
         script defer="" src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"

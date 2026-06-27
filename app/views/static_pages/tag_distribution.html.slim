@@ -1,93 +1,22 @@
 - content_for :title, "Tag Distribution"
 - content_for :description, "Dominant technology tags and themes among visible legal tech companies in the CodeX TechIndex."
-= render partial: "shared/stats_styles"
-.stats-page
-    .stats-page-inner
-        = link_to statistics_path, class: "stats-page-back" do
-            i.fas.fa-arrow-left
-            | All statistics
-        .stats-chart-card
-            .stats-chart-header
-                div
-                    h1.stats-chart-title Tag Distribution
-                    p.stats-chart-subtitle Technology focus areas in the legal tech ecosystem
-                .stats-chart-controls
-                    = render partial: "shared/stats_export_dropdown", locals: { download_handler: "downloadTagChart()", csv_path: download_tag_distribution_path(format: :csv) }
-            .stats-chart-body
-                div#tag-chart style="width: 100%; height: min(65vh, 620px);"
-        .stats-table-card
-            .stats-table-card-header
-                h2.stats-table-title Tag breakdown
-            .stats-table-card-body
-                .table-responsive
-                    table.table.table-hover.align-middle#tagDistributionTable
-                        thead
-                            tr
-                                th Tag
-                                th Companies
-                                th.text-end Percentage
-                                th.text-end Average Funding
-                        tbody
-                            - @tag_metrics.each do |metric|
-                                tr
-                                    td= metric[:name]
-                                    td= metric[:count]
-                                    td.text-end= number_to_percentage(metric[:percentage], precision: 1)
-                                    td.text-end= number_to_currency(metric[:avg_funding], precision: 0)
-        = render partial: "shared/stats_methodology", locals: { show_funding_caveat: true }
-
-javascript:
-    google.charts.load('current', {packages: ['corechart']});
-    google.charts.setOnLoadCallback(drawTagChart);
-
-    function drawTagChart() {
-        var rawData = #{raw(@tag_metrics.sort_by { |m| -m[:count] }.first(50).map { |m| [m[:name], m[:count]] }.to_json)};
-
-        var data = [['Tag', 'Companies']];
-        rawData.forEach(function(row) {
-            data.push(row);
-        });
-
-        var dataTable = google.visualization.arrayToDataTable(data);
-
-        var options = {
-            backgroundColor: 'transparent',
-            colors: ['#8c1515'],
-            chartArea: {
-                left: 75,
-                top: 20,
-                width: '100%',
-                height: '75%'
-            },
-            legend: { position: 'none' },
-            hAxis: {
-                slantedText: true,
-                slantedTextAngle: 45,
-                textStyle: { fontSize: 10 }
-            },
-            vAxis: {
-                title: 'Number of Companies',
-                minValue: 0,
-                textStyle: { fontSize: 12 }
-            },
-            bar: { groupWidth: '80%' }
-        };
-
-        var chart = new google.visualization.ColumnChart(document.getElementById('tag-chart'));
-        chart.draw(dataTable, options);
-
-        window.addEventListener('resize', function() {
-            chart.draw(dataTable, options);
-        });
-    }
-
-    function downloadTagChart() {
-        var chart = document.getElementById('tag-chart');
-        var canvas = chart.getElementsByTagName('canvas')[0];
-        if (canvas) {
-            var link = document.createElement('a');
-            link.download = 'tag_distribution.png';
-            link.href = canvas.toDataURL('image/png');
-            link.click();
-        }
-    }
+- chart_id = "tag-distribution-chart"
+- chart_data = @tag_metrics.sort_by { |m| -m[:count] }.first(25).map { |m| [m[:name], m[:count]] }
+- table_html = capture do
+    .table-responsive
+        table.table.table-hover.align-middle#tagDistributionTable
+            thead
+                tr
+                    th Tag
+                    th Companies
+                    th.text-end Percentage
+                    th.text-end Average Funding
+            tbody
+                - @tag_metrics.each do |metric|
+                    tr
+                        td= metric[:name]
+                        td= metric[:count]
+                        td.text-end= number_to_percentage(metric[:percentage], precision: 1)
+                        td.text-end= number_to_currency(metric[:avg_funding], precision: 0)
+- chart_html = column_chart(chart_data, height: 620, colors: ["#8c1515"], id: chart_id, library: { plugins: { legend: { display: false } }, scales: { x: { grid: { display: false }, ticks: { maxRotation: 60, minRotation: 45, font: { size: 11 } } }, y: { min: 0, grid: { display: true, drawBorder: false }, ticks: { font: { size: 12 }, precision: 0 } } } })
+= render partial: "shared/stats_chart_page", locals: { title: "Tag Distribution", subtitle: "Top technology tags by company count (tags with more than 8 companies)", chart: chart_html, table: table_html, chart_id: chart_id, download_filename: "tag_distribution", csv_path: download_tag_distribution_path(format: :csv), table_title: "Tag breakdown", show_funding_caveat: true }

@@ -1,35 +1,13 @@
-- content_for :title, "Category Evolution Over 5-Year Increments"
-- content_for :description, "Cumulative legal tech companies by category through each five-year period, based on visible CodeX TechIndex profiles founded since 2000."
-= render partial: "shared/stats_styles"
-.stats-page
-    .stats-page-inner
-        = link_to statistics_path, class: "stats-page-back" do
-            i.fas.fa-arrow-left
-            | All statistics
-        .stats-chart-card
-            .stats-chart-header
-                div
-                    h1.stats-chart-title Category Evolution Over 5-Year Increments
-                    p.stats-chart-subtitle Cumulative companies by category through each period (not new companies per period alone)
-                .stats-chart-controls
-                    = render partial: "shared/stats_export_dropdown", locals: { csv_path: download_category_evolution_5_years_path(format: :csv) }
-        .stats-legend-card
-            .d-flex.flex-wrap.justify-content-center.gap-3
-                - top_categories = {}
-                - @period_data.each do |_, categories|
-                    - categories.sort_by { |_, count| -count }.first(9).each do |category, _|
-                        - top_categories[category] = @category_colors[category] if !top_categories.key?(category)
-                - top_categories.to_a.sort_by { |c| c[0] }.each do |category, color|
-                    .d-flex.align-items-center.me-2.mb-1
-                        .rounded-circle.me-2 style="width: 12px; height: 12px; background-color: #{color};"
-                        span.fs-sm= category
-        .stats-period-grid
-            - @period_data.each do |period, categories|
-                .stats-period-card
-                    .stats-period-card-body
-                        - chart_data = categories.sort_by { |_, count| -count }.first(9).map { |category, count| [category, count] }.to_h
-                        - custom_colors = chart_data.keys.map { |category| @category_colors[category] }
-                        - period_chart_id = "chart-#{period.parameterize}"
-                        = column_chart chart_data, height: 280, colors: custom_colors, id: period_chart_id, library: { plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { min: 0, max: @max_count, ticks: { stepSize: 50, precision: 0 } } } }
-                    .stats-period-card-footer= period
-        = render partial: "shared/stats_methodology"
+- content_for :title, "Category Evolution"
+- content_for :description, "Cumulative growth of legal tech companies by category since 2000, based on visible CodeX TechIndex profiles."
+- chart_id = "category-evolution-chart"
+- year_range = "2000 – #{Date.current.year}"
+- limit_8_path = statistics_category_evolution_5_years_path(categories: 8)
+- limit_12_path = statistics_category_evolution_5_years_path(categories: 12)
+- limit_all_path = statistics_category_evolution_5_years_path(categories: "all")
+- view_dropdown_html = capture do
+    = render partial: "shared/stats_category_limit_dropdown", locals: { current_limit: @category_limit, limit_8_url: limit_8_path, limit_12_url: limit_12_path, limit_all_url: limit_all_path }
+- table_html = capture do
+    = render partial: "shared/data_table", locals: { headers: ["Category", "Total Companies", "Growth Rate", "Market Share"], rows: @summary_data.map { |data| [data[:category], data[:total_companies], content_tag(:span, class: growth_rate_class(data[:growth_rate])) { growth_rate_content(data[:growth_rate]) }, "#{data[:market_share].round(1)}%"] } }
+- chart_html = line_chart(@chart_series.map { |d| { name: d[:category], data: d[:yearly_data].sort.map { |year, count| [year, count] } } }, height: 620, colors: ["#8c1515", "#175e54", "#2986cc", "#8e5fa2", "#d55e00", "#37a4a6", "#5a865a", "#ae6a59", "#5b9bd5", "#6b6b8d", "#c67171", "#820000"], library: { plugins: { legend: { position: "bottom" } }, scales: { x: { grid: { display: true, drawBorder: false }, ticks: { font: { size: 12 }, maxRotation: 0 } }, y: { min: 0, grid: { display: true, drawBorder: false }, ticks: { font: { size: 12 } } } }, interaction: { intersect: false, mode: "index" } }, id: chart_id)
+= render partial: "shared/stats_chart_page", locals: { title: "Category Evolution", subtitle: "Cumulative companies by category (#{year_range})", chart: chart_html, table: table_html, chart_id: chart_id, download_filename: "category_evolution", csv_path: download_category_evolution_5_years_path(format: :csv), view_dropdown: view_dropdown_html, table_title: "Category breakdown" }

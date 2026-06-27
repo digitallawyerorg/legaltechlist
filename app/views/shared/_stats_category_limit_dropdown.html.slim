@@ -1,0 +1,20 @@
+/ locals: current_limit, limit_8_url, limit_12_url, limit_all_url
+.dropdown
+    button.stats-export-btn.dropdown-toggle type="button" data-bs-toggle="dropdown" aria-expanded="false"
+        - if current_limit == "all"
+            | All categories
+        - elsif current_limit.to_s == "12"
+            | Top 12 categories
+        - else
+            | Top 8 categories
+        i.fas.fa-chevron-down.ms-1 style="font-size:0.65rem"
+    ul.dropdown-menu.dropdown-menu-end
+        li
+            = link_to limit_8_url, class: "dropdown-item #{'active' if current_limit.to_s == '8'}" do
+                | Top 8 categories
+        li
+            = link_to limit_12_url, class: "dropdown-item #{'active' if current_limit.to_s == '12'}" do
+                | Top 12 categories
+        li
+            = link_to limit_all_url, class: "dropdown-item #{'active' if current_limit == 'all'}" do
+                | All categories

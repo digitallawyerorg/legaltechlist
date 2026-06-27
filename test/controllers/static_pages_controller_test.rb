@@ -120,4 +120,34 @@ class StaticPagesControllerTest < ActionController::TestCase
     assert_includes @response.body, "stats-geo-nav"
   end
 
+  test "should get category_evolution_5_years with cumulative line chart" do
+    get :category_evolution_5_years
+    assert_response :success
+    assert_includes @response.body, "category-evolution-chart"
+    assert_includes @response.body, "LineChart"
+    assert_includes @response.body, "Top 8 categories"
+  end
+
+  test "should get category_evolution_5_years with all categories" do
+    get :category_evolution_5_years, params: { categories: "all" }
+    assert_response :success
+    assert_includes @response.body, "All categories"
+  end
+
+  test "should get tag_distribution with column chart" do
+    get :tag_distribution
+    assert_response :success
+    assert_includes @response.body, "tag-distribution-chart"
+    assert_includes @response.body, "ColumnChart"
+    assert_includes @response.body, "chart.js"
+  end
+
+  test "statistics pages include turbo chart bootstrap" do
+    get :tag_distribution
+    assert_response :success
+    assert_includes @response.body, "turbo.min.js"
+    assert_includes @response.body, "chartkick:load"
+    assert_includes @response.body, 'data-turbo-track="reload"'
+  end
+
 end
