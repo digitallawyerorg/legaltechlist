@@ -63,7 +63,7 @@
     "yaml": "^1.10.3"
   },
   "engines": {
-    "node": "20.x",
+    "node": "24.x",
     "yarn": "1.22.22"
   },
   "license": "MIT"

@@ -13,8 +13,5 @@ Rails.application.config.assets.precompile += %w(
   application.js
 )
 
-# Enable compiling assets on deploy
-Rails.application.config.assets.compile = true
-
 # Initialize configuration defaults
 Rails.application.config.assets.initialize_on_precompile = false
