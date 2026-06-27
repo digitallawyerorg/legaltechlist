@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_06_27_010400) do
+ActiveRecord::Schema[8.0].define(version: 2026_06_27_033512) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -158,6 +158,28 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_27_010400) do
     t.index ["source"], name: "index_company_proposals_on_source"
     t.index ["source_identifier"], name: "index_company_proposals_on_source_identifier"
     t.index ["status"], name: "index_company_proposals_on_status"
+  end
+
+  create_table "models", force: :cascade do |t|
+    t.string "model_id", null: false
+    t.string "name", null: false
+    t.string "provider", null: false
+    t.string "family"
+    t.datetime "model_created_at"
+    t.integer "context_window"
+    t.integer "max_output_tokens"
+    t.date "knowledge_cutoff"
+    t.jsonb "modalities", default: {}
+    t.jsonb "capabilities", default: []
+    t.jsonb "pricing", default: {}
+    t.jsonb "metadata", default: {}
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["capabilities"], name: "index_models_on_capabilities", using: :gin
+    t.index ["family"], name: "index_models_on_family"
+    t.index ["modalities"], name: "index_models_on_modalities", using: :gin
+    t.index ["provider", "model_id"], name: "index_models_on_provider_and_model_id", unique: true
+    t.index ["provider"], name: "index_models_on_provider"
   end
 
   create_table "pipeline_runs", force: :cascade do |t|

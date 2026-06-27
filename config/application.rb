@@ -5,6 +5,12 @@ require 'rails/all'
 # you've limited to :test, :development, or :production.
 Bundler.require(*Rails.groups)
 
+if defined?(RubyLLM)
+  RubyLLM.configure do |config|
+    config.use_new_acts_as = true
+  end
+end
+
 module Legaltechlist
   class Application < Rails::Application
     # Initialize configuration defaults for Rails 8.
