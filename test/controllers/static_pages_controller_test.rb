@@ -11,6 +11,15 @@ class StaticPagesControllerTest < ActionController::TestCase
     assert_response :success
   end
 
+  test "should get country_distribution with geo chart" do
+    get :country_distribution
+    assert_response :success
+    assert_includes @response.body, "country-distribution-chart"
+    assert_includes @response.body, "Chartkick"
+    assert_includes @response.body, "GeoChart"
+    assert_includes @response.body, "gstatic.com/charts/loader.js"
+  end
+
   test "should get total_companies cumulative view" do
     get :total_companies
     assert_response :success
