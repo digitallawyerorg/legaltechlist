@@ -1,12 +1,25 @@
 css:
+    html {
+        height: 100%;
+    }
+
     html,
     body {
-        background: #f5f3ee;
+        background: #f3efe6;
         font-family: "Source Sans 3", "Source Sans 3 Fallback", "Helvetica Neue", helvetica, arial, sans-serif;
     }
 
+    body {
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+    }
+
     .public-page {
-        background: #f5f3ee;
+        background: #f3efe6;
+        display: flex;
+        flex: 1 0 auto;
+        flex-direction: column;
     }
 
     .public-page h1,
@@ -17,7 +30,7 @@ css:
 
     .public-page .bg-body,
     .public-page .bg-body-tertiary {
-        background-color: #f5f3ee !important;
+        background-color: #f3efe6 !important;
     }
 
     .public-nav-search {
@@ -133,35 +146,105 @@ css:
     }
 
     .public-footer {
-        background: #212529 !important;
-        border-top: 1px solid rgba(255, 255, 255, 0.12);
+        background: #2a2723 !important;
+        border-top: 1px solid #f3efe6;
         color: rgba(255, 255, 255, 0.72);
+        flex-shrink: 0;
+        margin-top: auto;
         min-height: 0 !important;
-        padding: 0.85rem 0;
+        padding: 3rem 0 1.5rem;
     }
 
-    .public-footer-brand {
-        color: rgba(255, 255, 255, 0.86);
-        font-size: 0.8rem;
-        font-weight: 600;
-        white-space: nowrap;
+    .public-footer-main {
+        align-items: flex-start;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 2.5rem;
+        justify-content: space-between;
+        margin-bottom: 2.5rem;
     }
 
-    .public-footer-note {
-        color: rgba(255, 255, 255, 0.62);
+    .public-footer-brand-block {
+        max-width: 34rem;
+    }
+
+    .public-footer-title {
+        color: rgba(255, 255, 255, 0.94);
+        font-family: edict, "edict Fallback", Georgia, Cambria, "Times New Roman", Times, serif;
+        font-size: 1.35rem;
+        font-weight: 500;
+        margin-bottom: 0.85rem;
+    }
+
+    .public-footer-copy {
+        color: rgba(255, 255, 255, 0.58);
+        font-size: 0.82rem;
+        line-height: 1.65;
+        margin: 0;
+        max-width: 32rem;
+    }
+
+    .public-footer-nav-title {
+        color: rgba(255, 255, 255, 0.42);
         font-size: 0.68rem;
-        line-height: 1.45;
-        max-width: 58rem;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        margin-bottom: 0.85rem;
+        text-transform: uppercase;
     }
 
-    .public-footer a {
-        color: rgba(255, 255, 255, 0.82);
+    .public-footer-links {
+        display: grid;
+        gap: 0.55rem;
+        list-style: none;
+        margin: 0;
+        padding: 0;
+    }
+
+    .public-footer-links a {
+        color: rgba(255, 255, 255, 0.72);
+        font-size: 0.82rem;
         text-decoration: none;
     }
 
-    .public-footer a:hover {
+    .public-footer-links a:hover {
         color: #fff;
         text-decoration: underline;
+    }
+
+    .public-footer-bottom {
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+        color: rgba(255, 255, 255, 0.38);
+        font-size: 0.72rem;
+        padding-top: 1.25rem;
+    }
+
+    .public-footer-disclaimer {
+        color: rgba(255, 255, 255, 0.38);
+        font-size: 0.68rem;
+        line-height: 1.55;
+        margin: 0.75rem 0 0;
+        max-width: 58rem;
+    }
+
+    .public-footer-disclaimer a {
+        color: rgba(255, 255, 255, 0.52);
+        text-decoration: none;
+    }
+
+    .public-footer-disclaimer a:hover {
+        color: rgba(255, 255, 255, 0.72);
+        text-decoration: underline;
+    }
+
+    @media (max-width: 767.98px) {
+        .public-footer {
+            padding: 2.25rem 0 1.25rem;
+        }
+
+        .public-footer-main {
+            margin-bottom: 1.75rem;
+        }
     }
 
 doctype html

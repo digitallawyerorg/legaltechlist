@@ -1,6 +1,6 @@
 css:
-    .public-company-index { background: #f5f3ee; min-height: calc(100vh - 60px); }
-    .company-shell { display: grid; grid-template-columns: 15.5rem minmax(0, 1fr); min-height: calc(100vh - 60px); }
+    .public-company-index { flex: 1; min-height: 100%; }
+    .company-shell { display: grid; grid-template-columns: 15.5rem minmax(0, 1fr); min-height: 100%; }
     .company-sidebar { background: #eee9df; border-right: 1px solid #ded7ca; padding: 1.25rem 1rem; }
     .company-sidebar-heading { align-items: center; display: flex; justify-content: space-between; margin-bottom: 1.15rem; }
     .company-sidebar-title { color: #3f3933; font-size: 0.76rem; font-weight: 900; letter-spacing: 0.14em; text-transform: uppercase; }
@@ -134,7 +134,7 @@ css:
                                     td data-label="Category"
                                         span.company-pill= company.category&.name || "Uncategorized"
                                     td data-label="Founded"= company.founded_date.presence || "N/A"
-                                    td data-label="HQ"= company.location.presence || "N/A"
+                                    td data-label="HQ"= company.location.present? ? format_location(company.location) : "N/A"
                                     td data-label="Funding"
                                         - if company.total_funding_amount_usd.present? && company.total_funding_amount_usd.positive?
                                             = number_to_currency(company.total_funding_amount_usd, precision: 0)

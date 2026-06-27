@@ -17,6 +17,17 @@ module CompaniesHelper
     end
   end
   
+  def format_location(location)
+    location.to_s.gsub(/\bUnited States\b/i, "USA")
+  end
+
+  def website_display_label(url)
+    value = url.to_s.strip
+    return if value.blank? || value == "n/a"
+
+    value.sub(%r{\Ahttps?://}i, "").split("/").first.to_s
+  end
+
   def related_company_list(company)
     tag_ids = company.tags.map(&:id)
     return yield([]) if tag_ids.empty?

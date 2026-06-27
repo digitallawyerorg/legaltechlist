@@ -1,116 +1,580 @@
-- if flash[:notice]
-	div class="alert alert-success"
-		= flash[:notice]
+css:
+    .company-show-page {
+        color: #241f1a;
+        display: flex;
+        flex: 1;
+        flex-direction: column;
+        min-height: 100%;
+        padding-bottom: 3.5rem;
+    }
 
-.bg-body-tertiary.border-bottom
-    .container.py-3
-        .d-flex.justify-content-between.align-items-center
-            nav aria-label="breadcrumb"
-                ol.breadcrumb.mb-0
-                    li.breadcrumb-item
-                        = link_to "Companies", companies_path, class: "text-decoration-none"
-                    li.breadcrumb-item.active= @company.name
-            = link_to 'Suggest Update', edit_company_path(@company), class: "btn btn-primary"
+    .company-show-page .company-show-container {
+        flex: 1;
+        max-width: 920px;
+    }
 
-    .container
-        .row.g-4
-            .col-md-12
-                .card.border
-                    .card-body
-                        .d-flex.gap-4.align-items-start.mb-4
-                            - if @company.logo_url.present?
-                                = image_tag @company.logo_url, class: "rounded bg-light", style: "width: 80px; height: 80px; object-fit: contain;", alt: "#{@company.name} logo"
-                            .flex-grow-1
-                                h1.mb-0
-                                    = @company.name
-                                p.lead.text-secondary.mb-0
-                                    = @company.description
-                        
-                        hr.mb-4
-                        
-                        .row
-                            .col-md-3.text-secondary Status
-                            .col-md-9
-                                - case @company.status
-                                - when 'active'
-                                    span.badge.bg-success Active
-                                - when 'inactive'
-                                    span.badge.bg-danger Inactive
-                                - when 'acquired'
-                                    span.badge.bg-info Acquired
+    .company-show-page .company-back-link {
+        color: #8c1515;
+        display: inline-block;
+        font-size: 0.88rem;
+        font-weight: 600;
+        margin-bottom: 1.75rem;
+        text-decoration: none;
+    }
 
-                            - if @company.category&.name != "Unknown"
-                                .col-md-3.text-secondary.mt-3 Category
-                                .col-md-9.mt-3= @company.category&.name
-                                - if @company.sub_category&.name.present?
-                                    .col-md-3.text-secondary.mt-3 Sub-Category
-                                    .col-md-9.mt-3= @company.sub_category&.name
+    .company-show-page .company-back-link:hover {
+        color: #6f1111;
+        text-decoration: underline;
+    }
 
-                            - if @company.location.present? && @company.location != "Nowhere"
-                                .col-md-3.text-secondary.mt-3 Headquarters
-                                .col-md-9.mt-3= @company.location
+    .company-show-page .company-hero {
+        align-items: flex-start;
+        display: flex;
+        gap: 1.25rem;
+        justify-content: space-between;
+        margin-bottom: 2.5rem;
+    }
 
-                            - if @company.founded_date.present? && @company.founded_date != "0000"
-                                .col-md-3.text-secondary.mt-3 Founded
-                                .col-md-9.mt-3= @company.founded_date
+    .company-show-page .company-hero-main {
+        align-items: flex-start;
+        display: flex;
+        flex: 1;
+        gap: 1.25rem;
+        min-width: 0;
+    }
 
-                            .col-md-3.text-secondary.mt-3 Tags
-                            .col-md-9.mt-3
-                                - if @company.tags.any?
-                                    = raw tag_links(@company.all_tags)
-                                - else
-                                    span.text-secondary No tags yet
+    .company-show-page .company-logo-frame {
+        align-items: center;
+        background: #fce8e8;
+        border: 1px solid rgba(140, 21, 21, 0.12);
+        border-radius: 0.85rem;
+        display: flex;
+        flex: 0 0 4.5rem;
+        height: 4.5rem;
+        justify-content: center;
+        overflow: hidden;
+        width: 4.5rem;
+    }
 
-                            - if @company.target_client.present? && @company.target_client.name != "Unknown"
-                                .col-md-3.text-secondary.mt-3 Target Market
-                                .col-md-9.mt-3= @company.target_client.name
+    .company-show-page .company-logo-frame img {
+        height: 100%;
+        object-fit: contain;
+        padding: 0.5rem;
+        width: 100%;
+    }
 
-                            - if @company.business_model.present? && @company.business_model.name != "Unknown"
-                                .col-md-3.text-secondary.mt-3 Business Model
-                                .col-md-9.mt-3= @company.business_model.name
+    .company-show-page .company-logo-placeholder {
+        color: #8c1515;
+        font-family: edict, "edict Fallback", Georgia, Cambria, "Times New Roman", Times, serif;
+        font-size: 1.75rem;
+        font-weight: 700;
+    }
 
-                            .col-md-3.text-secondary.mt-3 Website
-                            .col-md-9.mt-3
-                                - if @company.main_url.present? && @company.main_url != "n/a"
-                                    = link_to @company.main_url, @company.main_url.include?("http") ? @company.main_url : "http://#{@company.main_url}", class: "text-decoration-none"
-                                - else
-                                    span.text-secondary Unknown
+    .company-show-page .company-show-title {
+        color: #2b2926;
+        font-family: edict, "edict Fallback", Georgia, Cambria, "Times New Roman", Times, serif;
+        font-size: clamp(2rem, 4vw, 2.75rem);
+        font-weight: 500;
+        letter-spacing: -0.02em;
+        line-height: 1.05;
+        margin-bottom: 0;
+    }
 
-							.col-md-3.text-secondary.mt-3 Social
-							.col-md-9.mt-3
-								.d-flex.gap-3
-									- if @company.twitter_url.present? && @company.twitter_url != 'n/a'
-										= link_to @company.twitter_url.include?("@") ? "https://twitter.com/#{@company.twitter_url[1..-1]}" : @company.twitter_url, class: "text-decoration-none", target: "_blank" do
-											i.fab.fa-twitter.fa-lg
-									- if @company.linkedin_url.present? && @company.linkedin_url != 'n/a'
-										= link_to @company.linkedin_url, class: "text-decoration-none", target: "_blank" do
-											i.fab.fa-linkedin.fa-lg
-									- if @company.facebook_url.present? && @company.facebook_url != 'n/a'
-										= link_to @company.facebook_url, class: "text-decoration-none", target: "_blank" do
-											i.fab.fa-facebook.fa-lg
+    .company-show-page .company-hero-website {
+        align-items: center;
+        color: #8c1515;
+        display: inline-flex;
+        font-size: 0.88rem;
+        font-weight: 600;
+        gap: 0.4rem;
+        margin-top: 0.55rem;
+        text-decoration: none;
+    }
 
-                    .card-footer.text-center.text-secondary
-                        | Help us maintain this page by 
-                        = link_to 'suggesting an update', edit_company_path(@company), class: "text-decoration-none"
+    .company-show-page .company-hero-website:hover {
+        color: #6f1111;
+        text-decoration: underline;
+    }
 
-        - if @company.tags.any?
-            .col-md-12.mt-4
-                .card.border
-                    .card-body
-                        h3.mb-4 Related Companies
-                        - related_company_list @company do |related_companies|
-                            - related_companies.each do |related|
-                                hr.mb-4 class=('mt-4' unless related == related_companies.first)
-                                h4= link_to related.name, company_path(related), class: "text-decoration-none"
-                                p.mb-3= related.description
-                                .d-flex.gap-2
-                                    i.fa.fa-tags.text-secondary
-                                    = raw tag_links(related.all_tags)
+    .company-show-page .company-about-tags {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.55rem 0.85rem;
+        margin-top: 1rem;
+    }
 
-        - if @company.twitter_name.present?
-            .col-md-12.mt-4
-                .card.border
-                    .card-body
-                        a.twitter-timeline href="https://twitter.com/#{@company.twitter_name}" 
-                            | Tweets from #{@company.twitter_name}
-                        script async="async" src="//platform.twitter.com/widgets.js" charset="utf-8"
+    .company-show-page .company-about-category {
+        align-items: center;
+        background: #f3e2e2;
+        border-radius: 999px;
+        color: #8c1515;
+        display: inline-flex;
+        font-size: 0.78rem;
+        font-weight: 600;
+        gap: 0.45rem;
+        padding: 0.42rem 0.75rem;
+    }
+
+    .company-show-page .company-about-category-dot {
+        background: #8c1515;
+        border-radius: 999px;
+        flex: 0 0 0.4rem;
+        height: 0.4rem;
+        width: 0.4rem;
+    }
+
+    .company-show-page .company-about-keyword {
+        background: #ece7da;
+        border-radius: 999px;
+        color: #8a857a;
+        display: inline-flex;
+        font-size: 0.78rem;
+        font-weight: 400;
+        padding: 0.38rem 0.7rem;
+        text-decoration: none;
+    }
+
+    .company-show-page a.company-about-keyword:hover {
+        background: #e6e1d5;
+        color: #6f6a60;
+    }
+
+    .company-show-page .company-visit-btn {
+        align-items: center;
+        background: #8c1515;
+        border: 0;
+        border-radius: 0.65rem;
+        color: #fff;
+        display: inline-flex;
+        flex-shrink: 0;
+        font-size: 0.88rem;
+        font-weight: 600;
+        gap: 0.45rem;
+        padding: 0.65rem 1rem;
+        text-decoration: none;
+        white-space: nowrap;
+    }
+
+    .company-show-page .company-visit-btn:hover {
+        background: #6f1111;
+        color: #fff;
+    }
+
+    .company-show-page .company-section {
+        margin-bottom: 2.5rem;
+    }
+
+    .company-show-page .company-section-label {
+        color: #8b8379;
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        margin-bottom: 0.85rem;
+        text-transform: uppercase;
+    }
+
+    .company-show-page .company-key-facts-list {
+        display: grid;
+        gap: 0.85rem;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .company-show-page .company-key-fact-card {
+        align-items: center;
+        background: #f0ebe3;
+        border: 1px solid #e1dccf;
+        border-radius: 0.85rem;
+        display: flex;
+        gap: 0.85rem;
+        padding: 1rem 1.1rem;
+    }
+
+    .company-show-page .company-key-fact-icon {
+        align-items: center;
+        background: #ece7da;
+        border: 0;
+        border-radius: 0.55rem;
+        color: #6b6258;
+        display: flex;
+        flex: 0 0 2.35rem;
+        height: 2.35rem;
+        justify-content: center;
+        width: 2.35rem;
+    }
+
+    .company-show-page .company-key-fact-icon i {
+        font-size: 0.82rem;
+    }
+
+    .company-show-page .company-key-fact-copy {
+        min-width: 0;
+    }
+
+    .company-show-page .company-key-fact-label {
+        color: #8b8379;
+        font-size: 0.68rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        margin-bottom: 0.2rem;
+        text-transform: uppercase;
+    }
+
+    .company-show-page .company-key-fact-value {
+        color: #2b2926;
+        font-size: 0.98rem;
+        font-weight: 700;
+        line-height: 1.25;
+    }
+
+    .company-show-page .company-show-body {
+        color: #3f3933;
+        font-family: edict, "edict Fallback", Georgia, Cambria, "Times New Roman", Times, serif;
+        font-size: 1.08rem;
+        line-height: 1.75;
+        margin-bottom: 0;
+    }
+
+    .company-show-page .company-source-list {
+        border-top: 1px solid #e1dccf;
+    }
+
+    .company-show-page .company-source-row {
+        align-items: center;
+        border-bottom: 1px solid #e1dccf;
+        color: inherit;
+        display: grid;
+        gap: 0.85rem;
+        grid-template-columns: 2rem 7.5rem minmax(0, 1fr) 1.25rem;
+        padding: 0.95rem 0;
+        text-decoration: none;
+    }
+
+    .company-show-page .company-source-row:hover {
+        color: inherit;
+    }
+
+    .company-show-page .company-source-row:hover .company-source-label {
+        color: #8c1515;
+    }
+
+    .company-show-page .company-source-icon {
+        align-items: center;
+        background: #ece7da;
+        border: 0;
+        border-radius: 0.55rem;
+        display: flex;
+        height: 2rem;
+        justify-content: center;
+        width: 2rem;
+    }
+
+    .company-show-page .company-source-icon i {
+        font-size: 0.82rem;
+    }
+
+    .company-show-page .company-source-label {
+        color: #241f1a;
+        font-size: 0.92rem;
+        font-weight: 700;
+    }
+
+    .company-show-page .company-source-host {
+        color: #9a9288;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-size: 0.82rem;
+        justify-self: start;
+    }
+
+    .company-show-page .company-source-arrow {
+        color: #b7afa4;
+        font-size: 0.82rem;
+        justify-self: end;
+        line-height: 1;
+    }
+
+    .company-show-page .company-reference-list {
+        display: grid;
+        gap: 0.85rem;
+        list-style: none;
+        margin: 0;
+        padding: 0;
+    }
+
+    .company-show-page .company-reference-item {
+        color: #3f3933;
+        font-size: 0.92rem;
+        line-height: 1.6;
+    }
+
+    .company-show-page .company-reference-index {
+        color: #8c1515;
+        font-weight: 700;
+        margin-right: 0.35rem;
+    }
+
+    .company-show-page .company-citation-header {
+        align-items: center;
+        display: flex;
+        gap: 1rem;
+        justify-content: space-between;
+        margin-bottom: 0.75rem;
+    }
+
+    .company-show-page .company-copy-citation {
+        background: transparent;
+        border: 0;
+        color: #8c1515;
+        font-size: 0.82rem;
+        font-weight: 600;
+        padding: 0;
+    }
+
+    .company-show-page .company-copy-citation:hover {
+        color: #6f1111;
+        text-decoration: underline;
+    }
+
+    .company-show-page .company-citation-box {
+        background: rgba(255, 255, 255, 0.72);
+        border: 1px solid rgba(36, 31, 26, 0.08);
+        border-radius: 0.85rem;
+        color: #3f3933;
+        font-size: 0.92rem;
+        line-height: 1.65;
+        padding: 1rem 1.15rem;
+    }
+
+    .company-show-page .company-related-grid {
+        display: grid;
+        gap: 0.85rem;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .company-show-page .company-related-card {
+        align-items: flex-start;
+        background: #fff;
+        border: 1px solid rgba(36, 31, 26, 0.1);
+        border-radius: 0.85rem;
+        color: inherit;
+        display: flex;
+        gap: 0.8rem;
+        padding: 0.95rem;
+        text-decoration: none;
+    }
+
+    .company-show-page .company-related-card:hover {
+        border-color: rgba(140, 21, 21, 0.25);
+        color: inherit;
+    }
+
+    .company-show-page .company-related-avatar {
+        align-items: center;
+        border-radius: 0.55rem;
+        color: #1f2937;
+        display: flex;
+        flex: 0 0 2.35rem;
+        font-size: 0.95rem;
+        font-weight: 700;
+        height: 2.35rem;
+        justify-content: center;
+        width: 2.35rem;
+    }
+
+    .company-show-page .company-related-name {
+        color: #241f1a;
+        font-size: 0.92rem;
+        font-weight: 700;
+        line-height: 1.25;
+        margin-bottom: 0.15rem;
+    }
+
+    .company-show-page .company-related-category {
+        color: #8b8379;
+        font-size: 0.78rem;
+        line-height: 1.35;
+    }
+
+    .company-show-page .company-maintainer-note {
+        border-top: 1px solid rgba(36, 31, 26, 0.08);
+        color: #8b8379;
+        font-size: 0.78rem;
+        margin-top: 1rem;
+        padding-top: 1.5rem;
+    }
+
+    .company-show-page .company-maintainer-note a {
+        color: #8c1515;
+        text-decoration: none;
+    }
+
+    .company-show-page .company-maintainer-note a:hover {
+        text-decoration: underline;
+    }
+
+    @media (max-width: 767.98px) {
+        .company-show-page .company-hero {
+            flex-direction: column;
+        }
+
+        .company-show-page .company-key-facts-list {
+            grid-template-columns: 1fr;
+        }
+
+        .company-show-page .company-related-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .company-show-page .company-source-row {
+            gap: 0.65rem;
+            grid-template-columns: 2rem 5.5rem minmax(0, 1fr) 1.25rem;
+        }
+    }
+
+- website_url = (@company.main_url.present? && @company.main_url != "n/a") ? (@company.main_url.include?("http") ? @company.main_url : "http://#{@company.main_url}") : nil
+- twitter_url = (@company.twitter_url.present? && @company.twitter_url != "n/a") ? (@company.twitter_url.include?("@") ? "https://twitter.com/#{@company.twitter_url[1..-1]}" : @company.twitter_url) : nil
+- status_label = @company.status.present? ? @company.status.titleize : "Unknown"
+- short_host_for = ->(url) { normalized = url.to_s.strip; normalized = "http://#{normalized}" unless normalized.match?(%r{\Ahttps?://}i); URI.parse(normalized).host.to_s.sub(/\Awww\./i, '') rescue url.to_s.gsub(%r{\Ahttps?://(www\.)?}i, '').split('/').first.to_s }
+- funding_amount = @company.total_funding_amount_usd.to_f
+- funding_display = (if funding_amount >= 1_000_000_000 then "$#{(funding_amount / 1_000_000_000).round(1).to_s.sub(/\.0$/, '')}B" elsif funding_amount >= 1_000_000 then "$#{(funding_amount / 1_000_000).round}M" elsif funding_amount.positive? then number_to_currency(funding_amount, precision: 0) else nil end)
+- founded_display = (@company.founded_date.present? && @company.founded_date != "0000") ? @company.founded_date : "-"
+- headquarters_display = (@company.location.present? && @company.location != "Nowhere") ? format_location(@company.location) : "-"
+- key_facts = [{ label: "Status", icon: "fa-solid fa-circle-check", value: status_label }, { label: "Founded", icon: "fa-regular fa-calendar", value: founded_display }, { label: "Headquarters", icon: "fa-solid fa-location-dot", value: headquarters_display }, { label: "Total funding", icon: "fa-solid fa-dollar-sign", value: funding_display.presence || "-" }]
+- source_links = []
+- source_links << { label: "Website", icon: "fa-solid fa-globe", icon_color: "#2563eb", url: website_url, host: short_host_for.call(website_url) } if website_url.present?
+- source_links << { label: "LinkedIn", icon: "fa-brands fa-linkedin", icon_color: "#0a66c2", url: @company.linkedin_url, host: short_host_for.call(@company.linkedin_url) } if @company.linkedin_url.present? && @company.linkedin_url != "n/a"
+- source_links << { label: "Crunchbase", icon: "fa-solid fa-chart-line", icon_color: "#047857", url: @company.crunchbase_url, host: short_host_for.call(@company.crunchbase_url) } if @company.crunchbase_url.present? && @company.crunchbase_url != "n/a"
+- source_links << { label: "Legal.io", icon: "fa-solid fa-briefcase", icon_color: "#8c1515", url: @company.legalio_url, host: short_host_for.call(@company.legalio_url) } if @company.legalio_url.present? && @company.legalio_url != "n/a"
+- source_links << { label: "X/Twitter", icon: "fa-brands fa-x-twitter", icon_color: "#111827", url: twitter_url, host: short_host_for.call(twitter_url) } if twitter_url.present?
+- source_links << { label: "Facebook", icon: "fa-brands fa-facebook", icon_color: "#1877f2", url: @company.facebook_url, host: short_host_for.call(@company.facebook_url) } if @company.facebook_url.present? && @company.facebook_url != "n/a"
+- source_links << { label: "AngelList", icon: "fa-solid fa-seedling", icon_color: "#047857", url: @company.angellist_url, host: short_host_for.call(@company.angellist_url) } if @company.angellist_url.present? && @company.angellist_url != "n/a"
+- accessed_on = Date.current.strftime("%B %-d, %Y")
+- academic_refs = []
+- academic_refs << "#{@company.name}. \"#{@company.name}.\" Official website. #{website_url} (accessed #{accessed_on})." if website_url.present?
+- academic_refs << "#{@company.name}. LinkedIn company profile. #{@company.linkedin_url} (accessed #{accessed_on})." if @company.linkedin_url.present? && @company.linkedin_url != "n/a"
+- academic_refs << "#{@company.name}. Crunchbase company profile. #{@company.crunchbase_url} (accessed #{accessed_on})." if @company.crunchbase_url.present? && @company.crunchbase_url != "n/a"
+- academic_refs << "#{@company.name}. #{@company.source} record. #{@company.source_url.presence || 'TechIndex internal record'} (accessed #{accessed_on})." if @company.source.present?
+- reviewed_at = @company.human_reviewed_at || @company.quality_reviewed_at || @company.updated_at
+- reviewed_label = reviewed_at.strftime("%B %Y")
+- citation_text = "Stanford Center for Legal Informatics (CodeX), CodeX TechIndex, #{@company.name}, #{company_url(@company)} (last visited #{accessed_on})."
+- related_avatar_colors = ["#dbeafe", "#fce7f3", "#dcfce7", "#fef3c7", "#ede9fe"]
+
+.company-show-page
+    .container.company-show-container.py-4.py-lg-5
+        - if flash[:notice]
+            .alert.alert-success.mb-4= flash[:notice]
+
+        = link_to companies_path, class: "company-back-link" do
+            | ← All solutions
+
+        .company-hero
+            .company-hero-main
+                .company-logo-frame
+                    - if @company.logo_url.present?
+                        = image_tag @company.logo_url, alt: "#{@company.name} logo"
+                    - else
+                        .company-logo-placeholder= @company.name.to_s.first
+                div
+                    h1.company-show-title= @company.name
+                    - if website_url.present?
+                        = link_to website_url, class: "company-hero-website", target: "_blank", rel: "noopener" do
+                            i.fa-solid.fa-globe aria-hidden="true"
+                            = website_display_label(@company.main_url)
+            - if website_url.present?
+                = link_to website_url, class: "company-visit-btn", target: "_blank", rel: "noopener" do
+                    | Visit website
+                    i.fa-solid.fa-arrow-right aria-hidden="true"
+
+        section.company-section
+            .company-section-label About
+            - if @company.description.present?
+                p.company-show-body= @company.description
+            - else
+                p.company-show-body.text-secondary No description has been added for this company yet.
+            - if (@company.category&.name.present? && @company.category.name != "Unknown") || @company.tags.any?
+                .company-about-tags
+                    - if @company.category&.name.present? && @company.category.name != "Unknown"
+                        span.company-about-category
+                            span.company-about-category-dot aria-hidden="true"
+                            = @company.category.name
+                    - @company.tags.each do |tag|
+                        = link_to tag.name, tag_path(tag.name), class: "company-about-keyword"
+
+        section.company-section
+            .company-section-label Key facts
+            .company-key-facts-list
+                - key_facts.each do |fact|
+                    .company-key-fact-card
+                        .company-key-fact-icon
+                            i class="#{fact[:icon]}" aria-hidden="true"
+                        .company-key-fact-copy
+                            .company-key-fact-label= fact[:label]
+                            .company-key-fact-value= fact[:value]
+
+        - if source_links.any?
+            section.company-section
+                .company-section-label Sources
+                .company-source-list
+                    - source_links.each do |source_link|
+                        = link_to source_link[:url], class: "company-source-row", target: "_blank", rel: "noopener" do
+                            .company-source-icon
+                                i class="#{source_link[:icon]}" style="color: #{source_link[:icon_color]};"
+                            .company-source-label= source_link[:label]
+                            .company-source-host= source_link[:host]
+                            i.fa-solid.fa-arrow-up-right-from-square.company-source-arrow aria-hidden="true"
+
+        - if academic_refs.any?
+            section.company-section
+                .company-section-label Academic references
+                ol.company-reference-list
+                    - academic_refs.first(5).each_with_index do |reference, index|
+                        li.company-reference-item
+                            span.company-reference-index= "[#{index + 1}]"
+                            = reference
+
+        section.company-section
+            .company-citation-header
+                .company-section-label.mb-0 Cite this entry
+                button.company-copy-citation type="button" id="company-copy-citation" Copy citation
+            .company-citation-box
+                em#company-citation-text= citation_text
+
+        - related_company_list @company do |related_companies|
+            - if related_companies.any?
+                section.company-section
+                    .company-section-label Related solutions
+                    .company-related-grid
+                        - related_companies.first(3).each_with_index do |related, index|
+                            - related_label = (related.sub_category&.name.present? && related.sub_category.name != "Unknown") ? related.sub_category.name : (related.category&.name.presence || "Legal tech")
+                            = link_to company_path(related), class: "company-related-card" do
+                                .company-related-avatar style="background: #{related_avatar_colors[index % related_avatar_colors.length]};"
+                                    = related.name.to_s.first
+                                div
+                                    .company-related-name= related.name
+                                    .company-related-category= related_label
+
+        .company-maintainer-note
+            | Entry maintained by Stanford CodeX. Last reviewed #{reviewed_label}.
+            = link_to "Suggest an update", edit_company_path(@company), class: "ms-2"
+
+javascript:
+    (function() {
+        function initCompanyCitationCopy() {
+            var button = document.getElementById("company-copy-citation");
+            var citation = document.getElementById("company-citation-text");
+            if (!button || !citation || button.dataset.bound === "true") return;
+            button.dataset.bound = "true";
+            button.addEventListener("click", function() {
+                var text = citation.textContent.trim();
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(text).then(function() {
+                        button.textContent = "Copied";
+                        window.setTimeout(function() { button.textContent = "Copy citation"; }, 2000);
+                    });
+                }
+            });
+        }
+        document.addEventListener("DOMContentLoaded", initCompanyCitationCopy);
+        document.addEventListener("turbo:load", initCompanyCitationCopy);
+        document.addEventListener("turbolinks:load", initCompanyCitationCopy);
+    })();
