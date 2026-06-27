@@ -19,7 +19,7 @@
                     = text_field_tag :query, params[:query], class: "form-control", placeholder: "Search tools, categories, or companies", id: "search-input"
 
 - categories = Category.where.not(name: "Unknown").where.not(id: [12, 13, 14]).sort_by { |category| -category.companies.where(visible: true).count }
-- featured_categories = categories.first(8)
+- featured_categories = categories.first(9)
 .home-section.home-categories.border-bottom
     .container.py-5
         .home-section-heading.d-flex.flex-wrap.justify-content-between.align-items-end.gap-3.mb-4
@@ -173,7 +173,7 @@ css:
     .home-category-grid {
         display: grid;
         gap: 0.85rem;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
+        grid-template-columns: repeat(3, minmax(0, 1fr));
     }
 
     .home-category-card {
