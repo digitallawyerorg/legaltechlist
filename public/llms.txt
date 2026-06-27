@@ -4,7 +4,7 @@
 
 ## About this dataset
 
-The CodeX TechIndex tracks legal tech companies worldwide with profiles covering founding year, location, category, business model, target client, technology tags, and disclosed funding. Public statistics dashboards summarize ecosystem growth, geography, funding, and market segments.
+The CodeX TechIndex tracks legal tech companies worldwide with profiles covering founding year, location, category, revenue model, target client, technology tags, lifecycle status, and disclosed funding. Public statistics dashboards summarize ecosystem growth, geography, funding, and market segments.
 
 ## Key pages
 
@@ -26,7 +26,7 @@ The CodeX TechIndex tracks legal tech companies worldwide with profiles covering
 - Market focus: https://techindex.law.stanford.edu/statistics/target_client
 - AI trends: https://techindex.law.stanford.edu/statistics/ai_trends
 - Funding landscape: https://techindex.law.stanford.edu/statistics/funding_by_category
-- Business models: https://techindex.law.stanford.edu/statistics/business_model
+- Revenue models: https://techindex.law.stanford.edu/statistics/business_model
 
 ## Citation policy
 

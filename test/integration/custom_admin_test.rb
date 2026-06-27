@@ -354,7 +354,8 @@ class CustomAdminTest < ActionDispatch::IntegrationTest
     sign_in admin_users(:one)
     file = Rack::Test::UploadedFile.new(Rails.root.join("test/fixtures/atlas_candidates.csv"), "text/csv")
     original_count = Company.count
-    original_attributes = companies(:one).attributes.slice("name", "description", "main_url", "visible", "quality_status", "verification_verdict", "quality_score", "canonical_domain", "fingerprint", "updated_at")
+    unchanged_fields = %w[name description main_url visible quality_status verification_verdict quality_score]
+    original_attributes = companies(:one).attributes.slice(*unchanged_fields)
 
     assert_difference "PipelineRun.count", 1 do
       assert_difference "CompanyProposal.count", 2 do
@@ -369,7 +370,7 @@ class CustomAdminTest < ActionDispatch::IntegrationTest
     assert_equal 2, run.details["summary"]["reviewed_rows"]
     assert_equal 2, run.details["automation"]["processed_rows"]
     assert_equal original_count, Company.count
-    assert_equal original_attributes, companies(:one).reload.attributes.slice("name", "description", "main_url", "visible", "quality_status", "verification_verdict", "quality_score", "canonical_domain", "fingerprint", "updated_at")
+    assert_equal original_attributes, companies(:one).reload.attributes.slice(*unchanged_fields)
 
     get custom_admin_pipeline_run_path(run)
     assert_response :success

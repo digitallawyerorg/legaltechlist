@@ -2,10 +2,10 @@
 
 one:
   id: 1
-  name: SaaS
-  description: Software as a Service
+  name: Subscription
+  description: Monthly or annual recurring revenue
 
 two:
   id: 2
-  name: Subscription
-  description: Subscription-based service
+  name: Services
+  description: Human-delivered service revenue

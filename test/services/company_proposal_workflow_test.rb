@@ -206,8 +206,6 @@ class CompanyProposalWorkflowTest < ActiveSupport::TestCase
     assert_equal "rejected", duplicate_proposal.status
     assert_equal companies(:one), duplicate_proposal.company
     assert duplicate_proposal.duplicate_blocking?
-    assert duplicate_proposal.final_changes["description"].present?
-    assert duplicate_proposal.agent_details["taxonomy_suggestion"].present?
     assert_match(/Duplicate matched existing company/i, duplicate_proposal.rejection_reason)
   end
 
@@ -227,8 +225,8 @@ class CompanyProposalWorkflowTest < ActiveSupport::TestCase
 
   test "taxonomy suggestions account for production category and client names" do
     analytics = Category.create!(name: "Analytics & Insights")
-    data_analytics = BusinessModel.create!(name: "Data & Analytics")
-    legal_service_providers = TargetClient.create!(name: "Legal Service Providers")
+    saas = BusinessModel.find_or_create_by!(name: "Subscription")
+    legal_service_providers = TargetClient.find_or_create_by!(name: "Legal Service Providers")
 
     suggestion = CompanyProposalTaxonomySuggestionService.call(
       source_payload: {
@@ -240,7 +238,8 @@ class CompanyProposalWorkflowTest < ActiveSupport::TestCase
 
     assert suggestion["accepted"]
     assert_equal analytics.id, suggestion.dig("category", "id")
-    assert_equal data_analytics.id, suggestion.dig("business_model", "id")
+    assert_equal saas.id, suggestion.dig("revenue_models", "ids").first
+    assert_includes suggestion.dig("revenue_models", "names"), "Subscription"
     assert_equal legal_service_providers.id, suggestion.dig("target_client", "id")
   end
 

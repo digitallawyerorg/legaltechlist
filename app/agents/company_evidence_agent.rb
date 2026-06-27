@@ -30,7 +30,7 @@ class CompanyEvidenceAgent
       "main_url" => company.main_url,
       "canonical_domain" => company.canonical_domain.presence || company.canonical_main_domain,
       "category" => company.category&.name,
-      "business_model" => company.business_model&.name,
+      "revenue_models" => company.revenue_model_names,
       "target_client" => company.target_client&.name,
       "status" => company.status,
       "visible" => company.visible

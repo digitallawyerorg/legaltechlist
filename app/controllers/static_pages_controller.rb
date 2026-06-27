@@ -328,18 +328,20 @@ class StaticPagesController < ApplicationController
                              '2000',
                              Time.current.year.to_s,
                              '^\d{4}$')
-                       .includes(:business_model)
+                       .includes(:business_models, :business_model)
                        .to_a
 
     model_counts = Hash.new(0)
     model_companies = Hash.new { |h, k| h[k] = [] }
 
     @companies.each do |company|
-      next if company.business_model&.name.blank?
+      company.revenue_models.each do |revenue_model|
+        next if revenue_model.name.blank?
 
-      model_name = company.business_model.name
-      model_counts[model_name] += 1
-      model_companies[model_name] << company
+        model_name = revenue_model.name
+        model_counts[model_name] += 1
+        model_companies[model_name] << company
+      end
     end
 
     total_companies = @companies.count.to_f
@@ -347,8 +349,6 @@ class StaticPagesController < ApplicationController
     @model_data = {}
 
     model_counts.each do |model_name, count|
-      next if count < 10
-
       companies_for_model = model_companies[model_name]
       total_funding = companies_for_model.sum { |c| c.total_funding_amount_usd.to_f }
       avg_funding = companies_for_model.any? ? (total_funding / companies_for_model.size) : 0
@@ -369,7 +369,7 @@ class StaticPagesController < ApplicationController
       format.html
       format.csv do
         csv_data = CSV.generate do |csv|
-          csv << ["Business Model", "Companies", "Percentage", "Average Funding"]
+          csv << ["Revenue Model", "Companies", "Percentage", "Average Funding"]
           @model_metrics.each do |metrics|
             csv << [
               metrics[:model],
@@ -418,9 +418,6 @@ class StaticPagesController < ApplicationController
 
     # Process each individual target client
     individual_counts.each do |client_name, count|
-      next if count < 10  # Skip very small segments
-
-      # Calculate average funding for companies targeting this client
       companies_for_client = client_companies[client_name]
       total_funding = companies_for_client.sum { |c| c.total_funding_amount_usd.to_f }
       avg_funding = companies_for_client.any? ? (total_funding / companies_for_client.size) : 0

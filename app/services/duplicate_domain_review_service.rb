@@ -82,7 +82,7 @@ class DuplicateDomainReviewService
       "main_url" => record.main_url,
       "canonical_domain" => canonical_domain(record),
       "category" => record.category&.name,
-      "business_model" => record.business_model&.name,
+      "revenue_models" => record.revenue_model_names,
       "target_client" => record.target_client&.name,
       "visible" => record.visible,
       "quality_status" => record.quality_status,

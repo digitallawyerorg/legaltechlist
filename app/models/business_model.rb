@@ -1,6 +1,9 @@
 class BusinessModel < ActiveRecord::Base
-  has_many :companies
-  
+  has_many :company_business_models, dependent: :destroy
+  has_many :companies, through: :company_business_models
+
+  scope :canonical, -> { where(name: MethodologyHelper::REVENUE_MODEL_NAMES) }
+
   accepts_nested_attributes_for :companies
   
   def self.ransackable_attributes(auth_object = nil)

@@ -1,0 +1,25 @@
+version: 2
+effective_date: "2026-06-28"
+description: "Nine-category spine to twelve primary categories via targeted splits."
+
+new_categories:
+  - name: "eDiscovery & Investigations"
+    description: "Review, processing, and analysis of electronically stored information for litigation and investigations."
+  - name: "Legal Operations / ELM"
+    description: "Matter management, e-billing, spend management, and legal operations for corporate legal departments."
+  - name: "Access to Justice & Public Sector"
+    description: "Self-help, legal aid, court, and government-facing tools for access to justice and public-sector legal services."
+
+rules:
+  - target: "eDiscovery & Investigations"
+    source_categories: ["Litigation & Dispute Resolution"]
+    tag_patterns: ["ediscovery", "e-discovery", "e discovery", "electronic discovery", "digital forensics"]
+    description_patterns: ["\\yediscovery\\y", "\\ye-?discovery\\y", "electronically stored information", "\\besi\\b"]
+  - target: "Legal Operations / ELM"
+    source_categories: ["Practice Management"]
+    tag_patterns: ["matter management", "enterprise legal management", "legal spend management", "e-billing", "ebilling", "legal operations"]
+    description_patterns: ["\\ylegal operations\\y", "\\ye-?billing\\y", "matter management", "enterprise legal management", "\\belm\\b"]
+  - target: "Access to Justice & Public Sector"
+    source_categories: ["Analytics & Insights", "Compliance & Risk", "Contract Management", "Document Management and Automation", "IP Management", "Knowledge & Research", "Litigation & Dispute Resolution", "Marketplace and ALSPs", "Practice Management", "Unknown"]
+    tag_patterns: ["access to justice", "legal aid", "pro bono", "court technology", "consumer legal services"]
+    description_patterns: ["\\blegal aid\\b", "access to justice", "\\bpro bono\\b", "self-represented", "\\bpro se\\b", "court self-help"]

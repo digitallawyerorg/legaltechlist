@@ -9,7 +9,7 @@ module Admin
         { label: "Duplicate-name candidates", value: Company.duplicate_name_candidate_ids.count, tone: "danger" },
         { label: "Duplicate-domain candidates", value: Company.duplicate_domain_candidate_ids.count, tone: "danger" },
         { label: "Unknown category", value: Company.unknown_category.count, tone: "warning" },
-        { label: "Unknown business model", value: Company.unknown_business_model.count, tone: "warning" },
+        { label: "Unknown revenue model", value: Company.unknown_business_model.count, tone: "warning" },
         { label: "Unknown target client", value: Company.unknown_target_client.count, tone: "warning" }
       ]
 

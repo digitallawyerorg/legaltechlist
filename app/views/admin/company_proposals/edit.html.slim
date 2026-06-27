@@ -49,9 +49,16 @@
                 .col-md-3
                     = label_tag "company_proposal_final_changes_sub_category_id", "Subcategory", class: "form-label"
                     = select_tag "company_proposal[final_changes][sub_category_id]", options_from_collection_for_select(SubCategory.order(:name), :id, :name, @final_changes["sub_category_id"]), include_blank: true, class: "form-select"
-                .col-md-3
-                    = label_tag "company_proposal_final_changes_business_model_id", "Business model", class: "form-label"
-                    = select_tag "company_proposal[final_changes][business_model_id]", options_from_collection_for_select(BusinessModel.order(:name), :id, :name, @final_changes["business_model_id"]), include_blank: true, class: "form-select"
+                .col-md-6
+                    = label_tag "company_proposal_final_changes_business_model_ids", "Revenue models", class: "form-label"
+                    - selected_revenue_model_ids = Array(@final_changes["business_model_ids"]).map(&:to_i).presence || Array(@final_changes["business_model_id"]).map(&:to_i)
+                    .row.g-2
+                        - BusinessModel.order(:name).each do |model|
+                            .col-md-6
+                                .form-check
+                                    = check_box_tag "company_proposal[final_changes][business_model_ids][]", model.id, selected_revenue_model_ids.include?(model.id), class: "form-check-input", id: "company_proposal_final_changes_business_model_ids_#{model.id}"
+                                    = label_tag "company_proposal_final_changes_business_model_ids_#{model.id}", model.name, class: "form-check-label"
+                    = hidden_field_tag "company_proposal[final_changes][business_model_ids][]", ""
                 .col-md-3
                     = label_tag "company_proposal_final_changes_target_client_id", "Target client", class: "form-label"
                     = select_tag "company_proposal[final_changes][target_client_id]", options_from_collection_for_select(TargetClient.order(:name), :id, :name, @final_changes["target_client_id"]), include_blank: true, class: "form-select"

@@ -25,6 +25,12 @@ class CompanyProposalApprovalService
     company.fingerprint = company.calculated_fingerprint
     company.save!
 
+    revenue_model_ids = Array(proposal.final_changes["business_model_ids"]).map(&:presence).compact
+    if revenue_model_ids.empty? && proposal.final_changes["business_model_id"].present?
+      revenue_model_ids = [proposal.final_changes["business_model_id"]]
+    end
+    company.business_model_ids = revenue_model_ids if revenue_model_ids.any?
+
     proposal.update!(
       status: publish ? "published" : "approved_to_draft",
       company: company,

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_06_27_130000) do
+ActiveRecord::Schema[8.0].define(version: 2026_06_27_160000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -120,6 +120,8 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_27_130000) do
     t.string "canonical_domain"
     t.string "source"
     t.string "source_url"
+    t.bigint "secondary_category_id"
+    t.bigint "successor_company_id"
     t.index ["business_model_id"], name: "index_companies_on_business_model_id"
     t.index ["canonical_domain"], name: "index_companies_on_canonical_domain"
     t.index ["category_id"], name: "index_companies_on_category_id"
@@ -128,13 +130,25 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_27_130000) do
     t.index ["name"], name: "index_companies_on_name", opclass: :gin_trgm_ops, using: :gin
     t.index ["quality_score"], name: "index_companies_on_quality_score"
     t.index ["quality_status"], name: "index_companies_on_quality_status"
+    t.index ["secondary_category_id"], name: "index_companies_on_secondary_category_id"
     t.index ["sub_category_id"], name: "index_companies_on_sub_category_id"
+    t.index ["successor_company_id"], name: "index_companies_on_successor_company_id"
     t.index ["target_client_id"], name: "index_companies_on_target_client_id"
     t.index ["verification_verdict"], name: "index_companies_on_verification_verdict"
     t.index ["verified_at"], name: "index_companies_on_verified_at"
     t.index ["visible", "created_at"], name: "index_companies_on_visible_and_created_at", order: { created_at: :desc }
     t.index ["visible", "founded_date"], name: "index_companies_on_visible_and_founded_date", order: { founded_date: :desc }
     t.index ["visible"], name: "index_companies_on_visible"
+  end
+
+  create_table "company_business_models", force: :cascade do |t|
+    t.bigint "company_id", null: false
+    t.bigint "business_model_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["business_model_id"], name: "index_company_business_models_on_business_model_id"
+    t.index ["company_id", "business_model_id"], name: "index_company_business_models_uniqueness", unique: true
+    t.index ["company_id"], name: "index_company_business_models_on_company_id"
   end
 
   create_table "company_import_rows", force: :cascade do |t|
@@ -222,6 +236,16 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_27_130000) do
     t.index ["status"], name: "index_company_proposals_on_status"
   end
 
+  create_table "company_target_clients", force: :cascade do |t|
+    t.bigint "company_id", null: false
+    t.bigint "target_client_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["company_id", "target_client_id"], name: "index_company_target_clients_uniqueness", unique: true
+    t.index ["company_id"], name: "index_company_target_clients_on_company_id"
+    t.index ["target_client_id"], name: "index_company_target_clients_on_target_client_id"
+  end
+
   create_table "models", force: :cascade do |t|
     t.string "model_id", null: false
     t.string "name", null: false
@@ -299,14 +323,20 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_27_130000) do
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "companies", "business_models"
   add_foreign_key "companies", "categories"
+  add_foreign_key "companies", "categories", column: "secondary_category_id"
+  add_foreign_key "companies", "companies", column: "successor_company_id"
   add_foreign_key "companies", "sub_categories"
   add_foreign_key "companies", "target_clients"
+  add_foreign_key "company_business_models", "business_models"
+  add_foreign_key "company_business_models", "companies"
   add_foreign_key "company_import_rows", "companies"
   add_foreign_key "company_import_rows", "company_import_runs"
   add_foreign_key "company_import_rows", "company_proposals"
   add_foreign_key "company_logos", "companies"
   add_foreign_key "company_proposals", "admin_users"
   add_foreign_key "company_proposals", "companies"
+  add_foreign_key "company_target_clients", "companies"
+  add_foreign_key "company_target_clients", "target_clients"
   add_foreign_key "sub_categories", "categories"
   add_foreign_key "taggings", "companies"
   add_foreign_key "taggings", "tags"

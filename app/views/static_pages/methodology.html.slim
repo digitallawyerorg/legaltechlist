@@ -10,7 +10,7 @@ css:
 
     .methodology-page .methodology-container {
         flex: 1;
-        max-width: 920px;
+        max-width: 980px;
     }
 
     .methodology-page .methodology-back-link {
@@ -47,11 +47,11 @@ css:
         font-size: 1.08rem;
         line-height: 1.65;
         margin: 0;
-        max-width: 42rem;
+        max-width: 44rem;
     }
 
     .methodology-page .methodology-section {
-        margin-bottom: 2.5rem;
+        margin-bottom: 2.75rem;
     }
 
     .methodology-page .methodology-section-label {
@@ -63,52 +63,131 @@ css:
         text-transform: uppercase;
     }
 
-    .methodology-page .methodology-field-grid {
-        display: grid;
-        gap: 0.85rem;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+    .methodology-page .methodology-section-intro {
+        color: #3f3933;
+        font-size: 0.94rem;
+        line-height: 1.65;
+        margin: 0 0 1rem;
+        max-width: 44rem;
     }
 
-    .methodology-page .methodology-field-card {
+    .methodology-page .methodology-table-wrap {
+        border: 1px solid #e1dccf;
+        border-radius: 0.85rem;
+        overflow-x: auto;
+    }
+
+    .methodology-page .methodology-table {
+        border-collapse: collapse;
+        font-size: 0.88rem;
+        line-height: 1.5;
+        margin: 0;
+        min-width: 640px;
+        width: 100%;
+    }
+
+    .methodology-page .methodology-table th {
+        background: #f0ebe3;
+        border-bottom: 1px solid #e1dccf;
+        color: #2b2926;
+        font-size: 0.78rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        padding: 0.75rem 1rem;
+        text-align: left;
+        text-transform: uppercase;
+        vertical-align: top;
+    }
+
+    .methodology-page .methodology-table td {
+        border-bottom: 1px solid #ece7de;
+        color: #3f3933;
+        padding: 0.85rem 1rem;
+        vertical-align: top;
+    }
+
+    .methodology-page .methodology-table tbody tr:last-child td {
+        border-bottom: none;
+    }
+
+    .methodology-page .methodology-table .field-name {
+        color: #2b2926;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-size: 0.82rem;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+    .methodology-page .methodology-table .field-type {
+        color: #6b645b;
+        font-size: 0.82rem;
+        white-space: nowrap;
+    }
+
+    .methodology-page .methodology-table .category-name {
+        color: #2b2926;
+        font-weight: 700;
+        min-width: 11rem;
+    }
+
+    .methodology-page .methodology-table .category-count {
+        color: #6b645b;
+        font-size: 0.82rem;
+        text-align: right;
+        white-space: nowrap;
+    }
+
+    .methodology-page .methodology-table .category-count-note {
+        color: #8b8379;
+        font-size: 0.72rem;
+        font-weight: 600;
+        margin-left: 0.25rem;
+        text-transform: uppercase;
+    }
+
+    .methodology-page .methodology-table .category-status {
+        color: #6b645b;
+        font-size: 0.82rem;
+        white-space: nowrap;
+    }
+
+    .methodology-page .methodology-planned-label {
+        color: #8c1515;
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        margin-left: 0.5rem;
+        text-transform: uppercase;
+    }
+
+    .methodology-page .methodology-table th.text-end,
+    .methodology-page .methodology-table td.text-end {
+        text-align: right;
+    }
+
+    .methodology-page .methodology-group-label {
+        background: rgba(240, 235, 227, 0.55);
+        color: #6b645b;
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        padding: 0.55rem 1rem;
+        text-transform: uppercase;
+    }
+
+    .methodology-page .methodology-principle-box {
         background: #f0ebe3;
         border: 1px solid #e1dccf;
         border-radius: 0.85rem;
-        padding: 1rem 1.1rem;
-    }
-
-    .methodology-page .methodology-field-label {
-        color: #2b2926;
-        font-size: 0.92rem;
-        font-weight: 700;
-        line-height: 1.3;
-        margin-bottom: 0.35rem;
-    }
-
-    .methodology-page .methodology-field-desc {
-        color: #3f3933;
-        font-size: 0.88rem;
-        line-height: 1.55;
-        margin: 0;
-    }
-
-    .methodology-page .methodology-rule-list {
-        border-top: 1px solid #e1dccf;
-        list-style: none;
-        margin: 0;
-        padding: 0;
-    }
-
-    .methodology-page .methodology-rule-item {
-        border-bottom: 1px solid #e1dccf;
         color: #3f3933;
         font-size: 0.92rem;
-        line-height: 1.6;
-        padding: 0.95rem 0;
+        line-height: 1.65;
+        margin-bottom: 1.25rem;
+        padding: 1rem 1.15rem;
     }
 
-    .methodology-page .methodology-rule-item strong {
-        color: #2b2926;
-        font-weight: 700;
+    .methodology-page .methodology-principle-box p {
+        margin: 0;
     }
 
     .methodology-page .methodology-convention-list {
@@ -165,17 +244,11 @@ css:
         padding-top: 1.5rem;
     }
 
-    @media (max-width: 767.98px) {
-        .methodology-page .methodology-field-grid {
-            grid-template-columns: 1fr;
-        }
-    }
-
-- content_for :title, "Data Methodology"
-- content_for :description, "Fields, sources, and visibility rules for CodeX TechIndex company profiles and statistics dashboards."
-- profile_fields = [{ label: "Name, description, website", desc: "Core identity fields sourced from public company information and CodeX research." }, { label: "Founded date", desc: "Four-digit founding year when available; used for growth and cohort statistics (typically 2000+)." }, { label: "Location", desc: "Headquarters city/region/country; normalized for geographic charts." }, { label: "Category", desc: "Primary legal tech segment (e.g. contracts, litigation, research)." }, { label: "Business model & target client", desc: "Go-to-market and monetization classification." }, { label: "Tags", desc: "Technology themes (e.g. AI, analytics) applied across the ecosystem." }, { label: "Funding", desc: "Total disclosed venture capital in USD when reported; absent values are treated as undisclosed." }, { label: "Status", desc: "Operating status (active, acquired, etc.) when known." }]
-- visibility_rules = [{ term: "Visible profiles", detail: "Only companies marked visible appear in the public directory and statistics. Hidden profiles are excluded from all public counts and charts." }, { term: "Unknown category", detail: "Excluded from category-based statistics." }, { term: "Minimum segment size", detail: "Some breakdowns (business model, target client) hide segments with fewer than 10 companies." }]
-- stat_conventions = ["Charts show counts as of #{Date.current.strftime("%B %-d, %Y")} based on #{number_with_delimiter(visible_company_count)} visible companies unless noted otherwise.", "Ecosystem growth charts use cumulative totals or annual new companies depending on the selected view.", "Category evolution charts show cumulative companies founded through each period end, not new companies per period alone.", "Funding charts include only companies with disclosed funding amounts greater than zero.", "Geographic charts require a valid headquarters location and typically filter to companies founded in 2000 or later."]
+- content_for :title, "Data Methodology & Dictionary"
+- content_for :description, "Data dictionary, classification scheme, and statistics conventions for the Stanford CodeX TechIndex legal technology index."
+- category_rows = methodology_category_rows
+- proposed_category_rows = methodology_proposed_category_rows
+- company_count = visible_company_count
 
 .methodology-page
     .container.methodology-container.py-4.py-lg-5
@@ -183,29 +256,129 @@ css:
             | ← All statistics
 
         header.methodology-hero
-            h1.methodology-title Data Methodology
-            p.methodology-lead How CodeX TechIndex collects, curates, and presents legal tech company data for research and public reference.
+            h1.methodology-title Data Methodology & Dictionary
+            p.methodology-lead How the TechIndex defines company profiles, classification, and statistics.
 
         section.methodology-section
-            .methodology-section-label Company profile fields
-            .methodology-field-grid
-                - profile_fields.each do |field|
-                    .methodology-field-card
-                        .methodology-field-label= field[:label]
-                        p.methodology-field-desc= field[:desc]
+            .methodology-section-label Overview
+            .methodology-principle-box
+                p= "#{methodology_overview_guidance(number_with_delimiter(company_count))}"
+            .methodology-table-wrap.mt-3
+                table.methodology-table
+                    thead
+                        tr
+                            th Situation
+                            th Policy
+                    tbody
+                        - methodology_entity_relationships.each do |row|
+                            tr
+                                td.category-name= row[:term]
+                                td= row[:definition]
 
         section.methodology-section
-            .methodology-section-label Visibility rules
-            ul.methodology-rule-list
-                - visibility_rules.each do |rule|
-                    li.methodology-rule-item
-                        strong= "#{rule[:term]}:"
-                        = " #{rule[:detail]}"
+            .methodology-section-label Company data dictionary
+            p.methodology-section-intro Profile fields stored on each company record.
+
+            .methodology-table-wrap
+                table.methodology-table
+                    thead
+                        tr
+                            th Field
+                            th Type
+                            th Description
+                    tbody
+                        - methodology_company_field_groups.each do |group|
+                            tr
+                                td.methodology-group-label colspan="3"= group[:label]
+                            - group[:fields].each do |field|
+                                tr
+                                    td
+                                        span.field-name= field[:name]
+                                    td.field-type= field[:type]
+                                    td= field[:description]
+
+        section.methodology-section
+            .methodology-section-label Categorization
+            p.methodology-section-intro One primary functional category per company. Audience and technology themes use target client and tags.
+
+            .methodology-section-label.mt-4
+                | Primary categories — current
+                span.methodology-planned-label Live
+            .methodology-table-wrap
+                table.methodology-table
+                    thead
+                        tr
+                            th Category
+                            th Definition
+                            th.text-end Count
+                    tbody
+                        - category_rows.each do |row|
+                            tr
+                                td.category-name= row[:name]
+                                td= row[:definition]
+                                td.category-count.text-end= number_with_delimiter(row[:count])
+
+            .methodology-section-label.mt-4
+                | Primary categories — planned
+                span.methodology-planned-label Review
+            p.methodology-section-intro= methodology_proposed_category_guidance
+            .methodology-table-wrap
+                table.methodology-table
+                    thead
+                        tr
+                            th Category
+                            th Status
+                            th Definition
+                            th.text-end Count
+                    tbody
+                        - proposed_category_rows.each do |row|
+                            tr
+                                td.category-name= row[:name]
+                                td.category-status= row[:status]
+                                td= row[:definition]
+                                td.category-count.text-end
+                                    = number_with_delimiter(row[:count])
+                                    - if row[:count_note].present?
+                                        span.category-count-note= row[:count_note]
+
+            .methodology-section-label.mt-4 Secondary category
+            p.methodology-section-intro= methodology_secondary_category_guidance
+
+            .methodology-section-label.mt-4 Revenue models
+            p.methodology-section-intro= methodology_revenue_model_guidance
+
+            .methodology-table-wrap
+                table.methodology-table
+                    thead
+                        tr
+                            th Model
+                            th Definition
+                    tbody
+                        - methodology_revenue_models.each do |row|
+                            tr
+                                td.category-name= row[:name]
+                                td= row[:definition]
+
+            .methodology-section-label.mt-4 Target client
+
+            .methodology-table-wrap
+                table.methodology-table
+                    thead
+                        tr
+                            th Value
+                            th Definition
+                    tbody
+                        - methodology_target_clients.each do |row|
+                            tr
+                                td.category-name= row[:name]
+                                td= row[:definition]
+
+            p.methodology-section-intro.mt-4 Tags cross-cut categories for technology-theme and AI charts (e.g. artificial intelligence, ediscovery, saas).
 
         section.methodology-section
             .methodology-section-label Statistics conventions
             ul.methodology-convention-list
-                - stat_conventions.each do |convention|
+                - methodology_statistics_conventions.each do |convention|
                     li= convention
 
         section.methodology-section
@@ -214,10 +387,10 @@ css:
                 p
                     | Data is curated by
                     = link_to " CodeX, the Stanford Center for Legal Informatics", "https://law.stanford.edu/codex-the-stanford-center-for-legal-informatics/", target: "_blank", rel: "noopener", class: "methodology-link"
-                    | , with contributions from Legal.io and community submissions. When citing TechIndex data, include the page URL, access date, and note visibility/funding caveats above.
+                    | , with contributions from Legal.io and community submissions. Cite the page URL, access date, and note classification caveats above.
                 p
                     | AI-friendly overview:
                     = link_to " llms.txt", "/llms.txt", class: "methodology-link"
 
         .methodology-meta-note
-            | Document maintained by Stanford CodeX. Last updated #{Date.current.strftime("%B %Y")}.
+            | Field definitions may evolve; major taxonomy changes are documented here.

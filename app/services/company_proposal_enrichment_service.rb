@@ -44,7 +44,8 @@ class CompanyProposalEnrichmentService
   def taxonomy_changes
     {
       "category_id" => taxonomy_suggestion.dig("category", "id"),
-      "business_model_id" => taxonomy_suggestion.dig("business_model", "id"),
+      "business_model_id" => taxonomy_suggestion.dig("revenue_models", "ids")&.first,
+      "business_model_ids" => taxonomy_suggestion.dig("revenue_models", "ids"),
       "target_client_id" => taxonomy_suggestion.dig("target_client", "id")
     }.compact_blank
   end

@@ -11,7 +11,7 @@ class TaxonomyLookupTool < RubyLLM::Tool
       "current" => current_taxonomy(company),
       "available" => {
         "categories" => Category.order(:name).pluck(:name),
-        "business_models" => BusinessModel.order(:name).pluck(:name),
+        "revenue_models" => BusinessModel.order(:name).pluck(:name),
         "target_clients" => TargetClient.order(:name).pluck(:name)
       },
       "read_only" => true
@@ -25,7 +25,7 @@ class TaxonomyLookupTool < RubyLLM::Tool
 
     {
       "category" => company.category&.name,
-      "business_model" => company.business_model&.name,
+      "revenue_models" => company.revenue_model_names,
       "target_client" => company.target_client&.name
     }
   end

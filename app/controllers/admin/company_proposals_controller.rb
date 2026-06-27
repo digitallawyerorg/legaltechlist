@@ -148,8 +148,12 @@ module Admin
     end
 
     def sanitized_final_changes
-      changes = params.require(:company_proposal).permit(final_changes: CompanyProposal::EDITABLE_COMPANY_FIELDS)["final_changes"] || {}
-      changes.to_h.slice(*CompanyProposal::EDITABLE_COMPANY_FIELDS)
+      permitted = params.require(:company_proposal).permit(final_changes: CompanyProposal::EDITABLE_COMPANY_FIELDS + [{ business_model_ids: [] }])["final_changes"] || {}
+      changes = permitted.to_h.slice(*CompanyProposal::EDITABLE_COMPANY_FIELDS)
+      revenue_model_ids = Array(permitted["business_model_ids"]).map(&:presence).compact
+      changes["business_model_ids"] = revenue_model_ids if revenue_model_ids.any?
+      changes["business_model_id"] = revenue_model_ids.first if revenue_model_ids.any?
+      changes
     end
   end
 end

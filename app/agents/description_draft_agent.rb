@@ -93,7 +93,7 @@ class DescriptionDraftAgent < RubyLLM::Agent
   def fallback_draft
     segments = []
     segments << "in #{company.category.name}" if company.category&.name.present?
-    segments << "with a #{company.business_model.name.downcase} business model" if company.business_model&.name.present?
+    segments << "with #{company.revenue_model_names.map(&:downcase).to_sentence} revenue" if company.revenue_model_names.any?
     segments << "serving #{company.target_client.name.downcase}" if company.target_client&.name.present?
     description = if segments.any?
       "#{company.name} provides or supports legal technology #{segments.to_sentence}."
@@ -138,7 +138,7 @@ class DescriptionDraftAgent < RubyLLM::Agent
         current_description: company.description,
         website: company.main_url,
         category: company.category&.name,
-        business_model: company.business_model&.name,
+        revenue_models: company.revenue_model_names,
         target_client: company.target_client&.name,
         status: company.status
       },

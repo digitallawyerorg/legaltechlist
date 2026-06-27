@@ -10,11 +10,17 @@ class Company < ActiveRecord::Base
 
   has_many :taggings,  dependent: :destroy
   has_many :tags, through: :taggings
+  has_many :company_business_models, dependent: :destroy
+  has_many :business_models, through: :company_business_models
+  has_many :company_target_clients, dependent: :destroy
+  has_many :target_clients, through: :company_target_clients
   has_one :company_logo, dependent: :destroy
 
   #this should be has_one, but apparently there's a known bug
   belongs_to :category, optional: true
   belongs_to :sub_category, optional: true
+  belongs_to :secondary_category, class_name: "Category", optional: true
+  belongs_to :successor_company, class_name: "Company", optional: true
   belongs_to :business_model, optional: true
   belongs_to :target_client, optional: true
 
@@ -29,7 +35,7 @@ class Company < ActiveRecord::Base
   validates :location, presence: true, length: {minimum: 1}
   validates :founded_date, presence: true, format: {with: /\d\d\d\d/, message: "must be a 4-digit year."}
   validates :category, presence: true
-  validates :business_model, presence: true
+  validate :must_have_at_least_one_revenue_model
   validates :target_client, presence: true
   validates :description, presence: true, length: {minimum: 5}
 
@@ -42,7 +48,7 @@ class Company < ActiveRecord::Base
   scope :rejected_quality, -> { where(quality_status: "rejected") }
   scope :human_reviewed, -> { where.not(human_reviewed_at: nil) }
   scope :unknown_category, -> { left_joins(:category).where(categories: { name: "Unknown" }) }
-  scope :unknown_business_model, -> { left_joins(:business_model).where(business_models: { name: "Unknown" }) }
+  scope :unknown_business_model, -> { left_joins(:company_business_models).where(company_business_models: { id: nil }).where(business_model_id: nil) }
   scope :unknown_target_client, -> { left_joins(:target_client).where(target_clients: { name: "Unknown" }) }
   scope :duplicate_name_candidates, -> { where(id: duplicate_name_candidate_ids) }
   scope :duplicate_domain_candidates, -> { where(id: duplicate_domain_candidate_ids) }
@@ -161,14 +167,56 @@ class Company < ActiveRecord::Base
     self.status = status.to_s.strip.downcase.presence
   end
 
+  def must_have_at_least_one_revenue_model
+    return if business_models.any? || business_model_id.present?
+
+    errors.add(:base, "must have at least one revenue model")
+  end
+
+  def revenue_models_label
+    revenue_model_names.to_sentence
+  end
+
   def all_tags=(names)
-    self.tags = names.split(",").map do |name|
-      Tag.where(name: name.strip.downcase).first_or_create!
+    self.tags = names.split(",").filter_map do |name|
+      TagNormalizationService.find_or_create_canonical(name)
     end
   end
 
   def all_tags
     self.tags.map(&:name).join(", ")
+  end
+
+  def revenue_model_names
+    revenue_models.map(&:name)
+  end
+
+  def revenue_models
+    business_models.presence || Array(business_model).compact
+  end
+
+  def target_client_ids=(ids)
+    ids = Array(ids).map(&:presence).compact.map(&:to_i).uniq
+    self.target_clients = TargetClient.where(id: ids)
+    self.target_client_id = ids.first
+  end
+
+  def business_model_ids=(ids)
+    ids = Array(ids).map(&:presence).compact.map(&:to_i).uniq
+    self.business_models = BusinessModel.where(id: ids)
+    self.business_model_id = ids.first
+  end
+
+  def revenue_model_names=(names)
+    names = names.is_a?(String) ? names.split(",") : Array(names)
+    records = names.filter_map do |name|
+      normalized = name.to_s.strip
+      next if normalized.blank?
+
+      BusinessModel.find_by(name: normalized) || BusinessModel.find_by("LOWER(name) = ?", normalized.downcase)
+    end.uniq
+    self.business_models = records
+    self.business_model_id = records.first&.id
   end
 
   #convenience method to parse the twitter username from the twitter url,
@@ -247,7 +295,7 @@ class Company < ActiveRecord::Base
   end
 
   def self.ransackable_associations(auth_object = nil)
-    %w[category sub_category business_model target_client taggings tags]
+    %w[category sub_category business_model business_models target_client taggings tags company_business_models]
   end
 
   scope :text_search, ->(query) {

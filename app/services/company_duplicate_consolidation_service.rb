@@ -136,6 +136,7 @@ class CompanyDuplicateConsolidationService
 
   def delete_duplicate!(duplicate, keeper)
     transfer_taggings!(duplicate, keeper)
+    transfer_company_business_models!(duplicate, keeper)
     CompanyProposal.where(company_id: duplicate.id).update_all(company_id: keeper.id, updated_at: Time.current)
     CompanyImportRow.where(company_id: duplicate.id).update_all(company_id: keeper.id, updated_at: Time.current)
     transfer_active_storage_attachments!(duplicate, keeper)
@@ -150,6 +151,12 @@ class CompanyDuplicateConsolidationService
         tagging.update!(company_id: keeper.id)
       end
     end
+  end
+
+  def transfer_company_business_models!(duplicate, keeper)
+    merged_ids = (keeper.business_model_ids + duplicate.business_model_ids).uniq
+    keeper.business_model_ids = merged_ids if merged_ids.any?
+    duplicate.company_business_models.delete_all
   end
 
   def transfer_active_storage_attachments!(duplicate, keeper)

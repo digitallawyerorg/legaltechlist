@@ -1,0 +1,38 @@
+# Canonical tag name => list of alias strings (matched case-insensitively after normalize)
+artificial intelligence:
+  - ai
+  - ai-powered
+  - ai powered
+e-discovery:
+  - ediscovery
+  - e discovery
+  - electronic discovery
+generative ai:
+  - gen-ai
+  - gen ai
+  - genai
+machine learning:
+  - ml
+document management:
+  - document automation
+contract management:
+  - clm
+practice management:
+  - legal practice management
+access to justice:
+  - a2j
+legal aid:
+  - legal-aid
+pro bono:
+  - pro-bono
+matter management:
+  - legal matter management
+enterprise legal management:
+  - elm
+  - legal operations
+e-billing:
+  - ebilling
+  - e billing
+consumers:
+  - individual consumers
+  - b2c

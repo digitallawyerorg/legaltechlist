@@ -123,7 +123,7 @@ class DescriptionCriticAgent < RubyLLM::Agent
         current_description: company.description,
         website: company.main_url,
         category: company.category&.name,
-        business_model: company.business_model&.name,
+        revenue_models: company.revenue_model_names,
         target_client: company.target_client&.name
       },
       proposed_description: proposed_description,

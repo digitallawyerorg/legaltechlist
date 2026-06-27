@@ -97,6 +97,12 @@ class CompanyCandidateRowProcessorService
     company.skip_geocoding = true
     company.save!
 
+    revenue_model_ids = Array(proposal.final_changes["business_model_ids"]).map(&:presence).compact
+    if revenue_model_ids.empty? && changes["business_model_id"].present?
+      revenue_model_ids = [changes["business_model_id"]]
+    end
+    company.business_model_ids = revenue_model_ids if revenue_model_ids.any?
+
     proposal.update!(
       status: "approved_to_draft",
       company: company,

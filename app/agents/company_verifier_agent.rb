@@ -80,10 +80,10 @@ class CompanyVerifierAgent
   def taxonomy_signals
     {
       "category" => company.category&.name,
-      "business_model" => company.business_model&.name,
+      "revenue_models" => company.revenue_model_names,
       "target_client" => company.target_client&.name,
       "unknown_category" => company.category_id.blank?,
-      "unknown_business_model" => company.business_model_id.blank?,
+      "unknown_revenue_model" => company.revenue_models.empty?,
       "unknown_target_client" => company.target_client_id.blank?
     }
   end
@@ -134,7 +134,7 @@ class CompanyVerifierAgent
   end
 
   def unknown_taxonomy?
-    company.category_id.blank? || company.business_model_id.blank? || company.target_client_id.blank?
+    company.category_id.blank? || company.revenue_models.empty? || company.target_client_id.blank?
   end
 
   def spam_risk?
