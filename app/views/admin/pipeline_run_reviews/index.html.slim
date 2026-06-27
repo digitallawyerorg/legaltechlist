@@ -1,43 +1,26 @@
 - content_for :title, "Activity"
 
-.d-flex.justify-content-between.align-items-start.mb-4
-    div
-        h1.h3.mb-1 Activity
-    = link_to "Back to Admin Home", custom_admin_root_path, class: "btn btn-outline-secondary"
-
-.card.border-0.shadow-sm.mb-4
-    .card-body
-        .d-flex.flex-wrap.align-items-center.justify-content-between.gap-3
-            div
-                .admin-kicker Activity workspace
-                .fw-semibold Agent review output is a focused view of the same pipeline run audit trail.
-            .nav.nav-pills
-                = link_to "All Runs", custom_admin_pipeline_runs_path, class: "nav-link #{@activity == 'all' ? 'active' : ''}"
-                = link_to "Agent Reviews", custom_admin_agent_reviews_path, class: "nav-link"
-                = link_to "Import Reviews", custom_admin_pipeline_runs_path(activity: "import_reviews"), class: "nav-link #{@activity == 'import_reviews' ? 'active' : ''}"
-                = link_to "Failures", custom_admin_pipeline_runs_path(activity: "failed"), class: "nav-link #{@activity == 'failed' ? 'active' : ''}"
-
-.row.g-3.mb-4
-    - [["All runs", @activity_counts["all"], custom_admin_pipeline_runs_path], ["Agent reviews", @activity_counts["agent_reviews"], custom_admin_agent_reviews_path], ["Import reviews", @activity_counts["import_reviews"], custom_admin_pipeline_runs_path(activity: "import_reviews")], ["Failures", @activity_counts["failed"], custom_admin_pipeline_runs_path(activity: "failed")]].each do |label, count, path|
-        .col-6.col-lg-3
-            = link_to path, class: "text-decoration-none text-reset" do
-                .card.border-0.shadow-sm.h-100
-                    .card-body
-                        .text-muted.small.fw-semibold= label
-                        .display-6.fw-semibold= number_with_delimiter(count)
-
-.card.border-0.shadow-sm.mb-4
-    .card-body
-        .d-flex.flex-wrap.gap-2
+.card.border-0.shadow-sm.admin-compact-card
+    .card-header.bg-white
+        .d-flex.flex-wrap.justify-content-between.align-items-center.gap-2
+            h1.h4.mb-0 Activity
+            .admin-table-summary
+                - [["All runs", @activity_counts["all"], custom_admin_pipeline_runs_path], ["Agent reviews", @activity_counts["agent_reviews"], custom_admin_agent_reviews_path], ["Import reviews", @activity_counts["import_reviews"], custom_admin_pipeline_runs_path(activity: "import_reviews")], ["Failures", @activity_counts["failed"], custom_admin_pipeline_runs_path(activity: "failed")], ["Records", @pipeline_runs.total_count, custom_admin_pipeline_runs_path(activity: @activity, status: @status)]].each do |label, count, path|
+                    span.admin-table-summary-item
+                        = "#{label} "
+                        = link_to number_with_delimiter(count), path, aria: { label: "Show #{label.downcase}" }
+    .card-body.border-bottom.admin-tabs-row
+        .nav.admin-section-tabs
+            = link_to "All Runs", custom_admin_pipeline_runs_path, class: "nav-link #{@activity == 'all' ? 'active' : ''}"
+            = link_to "Agent Reviews", custom_admin_agent_reviews_path, class: "nav-link"
+            = link_to "Import Reviews", custom_admin_pipeline_runs_path(activity: "import_reviews"), class: "nav-link #{@activity == 'import_reviews' ? 'active' : ''}"
+            = link_to "Failures", custom_admin_pipeline_runs_path(activity: "failed"), class: "nav-link #{@activity == 'failed' ? 'active' : ''}"
+    .card-body.border-bottom
+        .admin-filter-toolbar
             - @status_counts.each do |status, count|
-                = link_to "#{status.titleize} (#{number_with_delimiter(count)})", custom_admin_pipeline_runs_path(activity: @activity, status: status), class: "btn btn-sm #{(@status.presence || 'all') == status ? 'btn-primary' : 'btn-outline-secondary'}"
-
-.card.border-0.shadow-sm
-    .card-header.bg-white.d-flex.justify-content-between.align-items-center
-        h2.h5.mb-0 Run History
-        span.text-muted.small= "#{number_with_delimiter(@pipeline_runs.total_count)} records"
+                = link_to "#{status.titleize} #{number_with_delimiter(count)}", custom_admin_pipeline_runs_path(activity: @activity, status: status), class: "btn btn-sm #{(@status.presence || 'all') == status ? 'btn-primary' : 'btn-outline-secondary'} rounded-pill px-3"
     .table-responsive
-        table.table.table-hover.align-middle.mb-0.admin-table
+        table.table.table-hover.align-middle.mb-0.admin-table.is-compact
             thead
                 tr
                     th Name
@@ -52,19 +35,29 @@
                 - @pipeline_runs.each do |run|
                     - review_path = Admin::PipelineRunReviewsController::AGENT_REVIEW_RUN_TYPES.include?(run.run_type) ? custom_admin_agent_review_path(run) : custom_admin_pipeline_run_path(run)
                     tr
-                        td.fw-semibold= run.name
-                        td.admin-nowrap= run.run_type
+                        td.admin-description
+                            = link_to review_path, class: "admin-primary-link", aria: { label: "View #{run.name}" } do
+                                .fw-semibold= run.name
+                                .admin-cell-secondary= run.agent_name.presence || "No agent assigned"
                         td.admin-nowrap
-                            span.badge class="text-bg-#{run.status == 'failed' ? 'danger' : 'secondary'}"= run.status
+                            .admin-cell-primary= run.run_type
+                        td.admin-nowrap
+                            span.admin-status-pill class="text-bg-#{run.status == 'failed' ? 'danger' : 'secondary'}"= run.status
                         td.admin-nowrap= run.agent_name.presence || "None"
                         td.admin-nowrap= number_with_delimiter(run.records_processed)
                         td.small.admin-nowrap= run.started_at
                         td.small.admin-nowrap= run.finished_at
-                        td.text-end.admin-actions= link_to (Admin::PipelineRunReviewsController::AGENT_REVIEW_RUN_TYPES.include?(run.run_type) ? "Review Output" : "View"), review_path, class: "btn btn-sm btn-primary"
+                        td.text-end.admin-actions
+                            .dropdown
+                                button.btn.btn-sm.btn-light.border.btn-icon type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Run actions"
+                                    i.fas.fa-ellipsis-h
+                                .dropdown-menu.dropdown-menu-end
+                                    = link_to review_path, class: "dropdown-item" do
+                                        i.fas.fa-eye.me-2
+                                        = Admin::PipelineRunReviewsController::AGENT_REVIEW_RUN_TYPES.include?(run.run_type) ? "Review Output" : "View"
             - if @pipeline_runs.empty?
                 tbody
                     tr
                         td.text-muted.text-center colspan="8" No pipeline runs found.
-
-.py-3
-    = paginate @pipeline_runs
+    .card-footer.bg-white.py-2
+        = paginate @pipeline_runs

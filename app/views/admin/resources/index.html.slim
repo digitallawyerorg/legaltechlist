@@ -1,22 +1,23 @@
 - content_for :title, @title
 
-.d-flex.justify-content-between.align-items-start.mb-4
-    div
-        h1.h3.mb-1= @title
-    = link_to "New #{@title.singularize}", new_custom_admin_resource_path(resource: @resource_key), class: "btn btn-primary"
-
-.card.border-0.shadow-sm.mb-4
-    .card-body
-        .d-flex.flex-wrap.gap-2
+.card.border-0.shadow-sm.admin-compact-card
+    .card-header.bg-white
+        .d-flex.flex-wrap.justify-content-between.align-items-center.gap-2
+            h1.h4.mb-0= @title
+            .d-flex.flex-wrap.align-items-center.gap-2
+                .admin-table-summary
+                    span.admin-table-summary-item
+                        | Records 
+                        strong= number_with_delimiter(@records.total_count)
+                = link_to new_custom_admin_resource_path(resource: @resource_key), class: "btn btn-sm btn-primary rounded-pill px-3" do
+                    i.fas.fa-plus.me-2
+                    = "New #{@title.singularize}"
+    .card-body.border-bottom.admin-tabs-row
+        .nav.admin-section-tabs
             - Admin::ResourcesController::RESOURCE_CONFIG.each do |key, config|
-                = link_to config[:title], custom_admin_resources_path(resource: key), class: "btn btn-sm #{key == @resource_key ? 'btn-primary' : 'btn-outline-secondary'}"
-
-.card.border-0.shadow-sm
-    .card-header.bg-white.d-flex.justify-content-between.align-items-center
-        h2.h5.mb-0= @title
-        span.text-muted.small= "#{number_with_delimiter(@records.total_count)} records"
+                = link_to config[:title], custom_admin_resources_path(resource: key), class: "nav-link #{key == @resource_key ? 'active' : ''}"
     .table-responsive
-        table.table.table-hover.align-middle.mb-0.admin-table
+        table.table.table-hover.align-middle.mb-0.admin-table.is-compact
             thead
                 tr
                     th.admin-nowrap ID
@@ -28,27 +29,35 @@
                 - @records.each do |record|
                     tr
                         td.admin-nowrap= record.id
-                        td.fw-semibold.admin-nowrap= record.respond_to?(:email) ? record.email : record.name
+                        td.admin-nowrap
+                            = link_to edit_custom_admin_resource_path(resource: @resource_key, id: record.id), class: "admin-primary-link", aria: { label: "Edit #{record.respond_to?(:email) ? record.email : record.name}" } do
+                                .fw-semibold= record.respond_to?(:email) ? record.email : record.name
                         td.admin-description
                             - if record.respond_to?(:description)
-                                = truncate(record.description.to_s, length: 180)
+                                .admin-cell-secondary= truncate(record.description.to_s, length: 140)
                             - elsif record.is_a?(SubCategory)
-                                = record.category&.name || "No category"
+                                .admin-cell-secondary= record.category&.name || "No category"
                             - elsif record.is_a?(Tag)
-                                = "#{record.companies.count} companies"
+                                .admin-cell-secondary= "#{record.companies.count} companies"
                             - elsif record.is_a?(AdminUser)
-                                = "Sign-ins: #{record.sign_in_count}"
+                                .admin-cell-secondary= "Sign-ins: #{record.sign_in_count}"
                             - else
-                                = "No details"
+                                .admin-cell-secondary No details
                         td.small.admin-nowrap= record.updated_at
                         td.text-end.admin-actions
-                            .d-inline-flex.gap-2
-                                = link_to "Edit", edit_custom_admin_resource_path(resource: @resource_key, id: record.id), class: "btn btn-sm btn-outline-primary"
-                                = button_to "Delete", custom_admin_resource_record_path(resource: @resource_key, id: record.id), method: :delete, class: "btn btn-sm btn-outline-danger", form: { data: { turbo_confirm: "Delete this record?" } }
+                            .dropdown
+                                button.btn.btn-sm.btn-light.border.btn-icon type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Taxonomy record actions"
+                                    i.fas.fa-ellipsis-h
+                                .dropdown-menu.dropdown-menu-end
+                                    = link_to edit_custom_admin_resource_path(resource: @resource_key, id: record.id), class: "dropdown-item" do
+                                        i.fas.fa-pen.me-2
+                                        | Edit
+                                    = button_to custom_admin_resource_record_path(resource: @resource_key, id: record.id), method: :delete, class: "dropdown-item text-danger", form: { data: { turbo_confirm: "Delete this record?" } } do
+                                        i.fas.fa-trash-alt.me-2
+                                        | Delete
             - if @records.empty?
                 tbody
                     tr
                         td.text-muted.text-center colspan="5" No records found.
-
-.py-3
-    = paginate @records
+    .card-footer.bg-white.py-2
+        = paginate @records

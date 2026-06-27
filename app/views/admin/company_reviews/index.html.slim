@@ -1,49 +1,53 @@
 - content_for :title, "Company Review"
 
-.d-flex.justify-content-between.align-items-start.mb-4
-    div
-        h1.h3.mb-1 Review
-    .d-flex.gap-2
-        = button_to "Run Next Description Review", custom_admin_next_description_review_path, method: :post, class: "btn btn-warning", form: { data: { turbo_confirm: "Run a proposal-only agent review for the next description candidate?" } }
-        = button_to "Run Next Duplicate Review", custom_admin_next_duplicate_domain_review_path, method: :post, class: "btn btn-outline-warning", form: { data: { turbo_confirm: "Run a proposal-only duplicate-domain review for the next duplicate candidate?" } }
-        = link_to "Quality Dashboard", custom_admin_quality_path, class: "btn btn-outline-secondary"
-
-.card.border-0.shadow-sm.mb-4
-    .card-body
-        .d-flex.flex-wrap.align-items-center.justify-content-between.gap-3
-            div
-                .admin-kicker Review workspace
-                .fw-semibold Existing records and new candidates stay separate until a human approves a write.
-            .nav.nav-pills
-                = link_to "Existing Companies", custom_admin_company_reviews_path, class: "nav-link active"
-                = link_to "New Candidates", custom_admin_company_proposals_path, class: "nav-link"
-                = link_to "Upload CSV", upload_custom_admin_companies_csv_path, class: "nav-link"
-
-.card.border-0.shadow-sm.mb-4
-    .card-body
-        - queue_cards = [{ key: "description_review", label: "Description review", tone: "warning", action: "Run next description review", path: custom_admin_company_reviews_path(queue: "description_review") }, { key: "duplicate_domain", label: "Duplicate domains", tone: "danger", action: "Resolve duplicate risk", path: custom_admin_company_reviews_path(queue: "duplicate_domain") }, { key: "missing_url", label: "Missing URLs", tone: "warning", action: "Find evidence", path: custom_admin_company_reviews_path(queue: "missing_url") }, { key: "needs_review", label: "Needs review", tone: "info", action: "Inspect records", path: custom_admin_company_reviews_path(queue: "needs_review") }]
-        .row.g-3.mb-3
-            - queue_cards.each do |queue_card|
-                .col-md-6.col-xl-3
-                    = link_to queue_card[:path], class: "text-decoration-none text-reset" do
-                        .card.h-100.border-0.bg-light.admin-workflow-card class="#{queue_card[:tone] == 'danger' ? 'is-urgent' : 'is-warning'}"
-                            .card-body
-                                .d-flex.justify-content-between.align-items-start
-                                    div
-                                        .admin-kicker= queue_card[:action]
-                                        .fw-semibold= queue_card[:label]
-                                    span.badge class="text-bg-#{queue_card[:tone]}"= number_with_delimiter(@queue_counts[queue_card[:key]])
-        .d-flex.flex-wrap.gap-2
-            = link_to "All companies", custom_admin_company_reviews_path, class: "btn btn-sm #{params[:queue].blank? ? 'btn-primary' : 'btn-outline-secondary'}"
+.card.border-0.shadow-sm.admin-compact-card
+    .card-header.bg-white
+        .d-flex.flex-wrap.justify-content-between.align-items-center.gap-2
+            h1.h4.mb-0 Review
+            .d-flex.flex-wrap.align-items-center.gap-2
+                .admin-table-summary
+                    span.admin-table-summary-item
+                        | Description 
+                        = link_to number_with_delimiter(@queue_counts["description_review"]), custom_admin_company_reviews_path(queue: "description_review"), aria: { label: "Show description review queue" }
+                    span.admin-table-summary-item
+                        | Missing URLs 
+                        = link_to number_with_delimiter(@queue_counts["missing_url"]), custom_admin_company_reviews_path(queue: "missing_url"), aria: { label: "Show missing URL queue" }
+                    span.admin-table-summary-item
+                        | Weak descriptions 
+                        = link_to number_with_delimiter(@queue_counts["weak_description"]), custom_admin_company_reviews_path(queue: "weak_description"), aria: { label: "Show weak descriptions queue" }
+                    span.admin-table-summary-item
+                        | Duplicate domains 
+                        = link_to number_with_delimiter(@queue_counts["duplicate_domain"]), custom_admin_company_reviews_path(queue: "duplicate_domain"), aria: { label: "Show duplicate domain queue" }
+                    span.admin-table-summary-item
+                        | Records 
+                        = link_to number_with_delimiter(@companies.total_count), custom_admin_company_reviews_path, aria: { label: "Show all review records" }
+                .dropdown
+                    button.btn.btn-sm.btn-light.border.btn-icon.rounded-pill type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Review actions"
+                        i.fas.fa-ellipsis-h
+                    .dropdown-menu.dropdown-menu-end
+                        = link_to upload_custom_admin_companies_csv_path, class: "dropdown-item" do
+                            i.fas.fa-upload.me-2
+                            | Upload CSV
+                        = button_to custom_admin_next_description_review_path, method: :post, class: "dropdown-item", form: { data: { turbo_confirm: "Run a proposal-only agent review for the next description candidate?" } } do
+                            i.fas.fa-wand-magic-sparkles.me-2
+                            | Run Next Description Review
+                        = button_to custom_admin_next_duplicate_domain_review_path, method: :post, class: "dropdown-item", form: { data: { turbo_confirm: "Run a proposal-only duplicate-domain review for the next duplicate candidate?" } } do
+                            i.fas.fa-copy.me-2
+                            | Run Next Duplicate Review
+                        = link_to custom_admin_quality_path, class: "dropdown-item" do
+                            i.fas.fa-chart-line.me-2
+                            | Quality Dashboard
+    .card-body.border-bottom.admin-tabs-row
+        .nav.admin-section-tabs
+            = link_to "Existing Companies", custom_admin_company_reviews_path, class: "nav-link active"
+            = link_to "New Candidates", custom_admin_company_proposals_path, class: "nav-link"
+    .card-body.border-bottom
+        .admin-filter-toolbar
+            = link_to "All companies", custom_admin_company_reviews_path, class: "btn btn-sm #{params[:queue].blank? ? 'btn-primary' : 'btn-outline-secondary'} rounded-pill px-3"
             - Admin::CompanyReviewsController::QUEUES.each do |key, label|
-                = link_to "#{label} (#{number_with_delimiter(@queue_counts[key])})", custom_admin_company_reviews_path(queue: key), class: "btn btn-sm #{params[:queue] == key ? 'btn-primary' : 'btn-outline-secondary'}"
-
-.card.border-0.shadow-sm
-    .card-header.bg-white.d-flex.justify-content-between.align-items-center
-        h2.h5.mb-0= @queue_label
-        span.text-muted.small= "#{number_with_delimiter(@companies.total_count)} records"
+                = link_to "#{label} #{number_with_delimiter(@queue_counts[key])}", custom_admin_company_reviews_path(queue: key), class: "btn btn-sm #{params[:queue] == key ? 'btn-primary' : 'btn-outline-secondary'} rounded-pill px-3"
     .table-responsive
-        table.table.table-hover.align-middle.mb-0.admin-table
+        table.table.table-hover.align-middle.mb-0.admin-table.is-compact
             thead
                 tr
                     th Company
@@ -56,26 +60,35 @@
                 - @companies.each do |company|
                     tr
                         td.admin-description
-                            .fw-semibold= company.name
-                            .text-muted.small= truncate(company.description.to_s, length: 180)
+                            = link_to custom_admin_company_review_path(company), class: "admin-primary-link", aria: { label: "Review #{company.name}" } do
+                                .admin-company-cell
+                                    = image_tag company.logo, class: "admin-company-logo", alt: "#{company.name} logo", loading: "lazy"
+                                    .admin-company-copy
+                                        .fw-semibold= company.name
+                                        .admin-cell-secondary= truncate(company.description.to_s, length: 110)
                         td.admin-url
                             - if company.main_url.present?
                                 = link_to company.canonical_domain.presence || company.canonical_main_domain || company.main_url, company.main_url, target: "_blank", rel: "noopener"
                             - else
-                                span.text-warning Missing
+                                span.admin-cell-secondary Missing
                         td.admin-nowrap
-                            .small= company.category&.name || "Unknown"
-                            .text-muted.small= company.business_model&.name || "Unknown"
+                            .admin-cell-primary= company.category&.name || "Unknown"
+                            .admin-cell-secondary= company.business_model&.name || "Unknown"
                         td.admin-nowrap
-                            span.badge class="#{company.quality_status.present? ? 'text-bg-info' : 'text-bg-light text-dark'}"= company.quality_status.presence || "Unreviewed"
-                            .text-muted.small= company.verification_verdict.presence || "No verdict"
+                            .admin-quality= company.quality_status.presence&.humanize || "Unreviewed"
+                            .admin-cell-secondary= company.verification_verdict.presence&.humanize || "No verdict"
                         td.small.admin-nowrap= company.updated_at&.to_date
                         td.text-end.admin-actions
-                            = link_to "Review", custom_admin_company_review_path(company), class: "btn btn-sm btn-primary"
+                            .dropdown
+                                button.btn.btn-sm.btn-light.border.btn-icon type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Company review actions"
+                                    i.fas.fa-ellipsis-h
+                                .dropdown-menu.dropdown-menu-end
+                                    = link_to custom_admin_company_review_path(company), class: "dropdown-item" do
+                                        i.fas.fa-eye.me-2
+                                        | Review
             - if @companies.empty?
                 tbody
                     tr
                         td.text-muted.text-center colspan="6" No companies found for this queue.
-
-.py-3
-    = paginate @companies
+    .card-footer.bg-white.py-2
+        = paginate @companies

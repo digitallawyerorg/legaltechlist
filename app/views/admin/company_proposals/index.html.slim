@@ -1,47 +1,36 @@
 - content_for :title, "Company Proposals"
 
-.d-flex.justify-content-between.align-items-start.mb-4
-    div
-        h1.h3.mb-1 New Candidate Review
-    = link_to "Review CSV Candidates", upload_custom_admin_companies_csv_path, class: "btn btn-outline-primary"
-
-.card.border-0.shadow-sm.mb-4
-    .card-body
-        .d-flex.flex-wrap.align-items-center.justify-content-between.gap-3
-            div
-                .admin-kicker Review workspace
-                .fw-semibold Existing records and new candidates stay separate until a human approves a write.
-            .nav.nav-pills
-                = link_to "Existing Companies", custom_admin_company_reviews_path, class: "nav-link"
-                = link_to "New Candidates", custom_admin_company_proposals_path, class: "nav-link active"
-                = link_to "Upload CSV", upload_custom_admin_companies_csv_path, class: "nav-link"
-
-.row.g-3.mb-4
-    - @review_cockpit_counts.each do |label, count|
-        .col-6.col-lg-2
-            .card.border-0.shadow-sm.h-100
-                .card-body
-                    .text-uppercase.text-muted.small.fw-semibold= label.humanize
-                    .display-6.fw-semibold= number_with_delimiter(count)
-
-.card.border-0.shadow-sm.mb-4
-    .card-body
-        .d-flex.flex-wrap.gap-2
-            - @status_counts.each do |status, count|
-                = link_to "#{status.humanize} (#{number_with_delimiter(count)})", custom_admin_company_proposals_path(status: status), class: "btn btn-sm #{@status == status ? 'btn-primary' : 'btn-outline-secondary'}"
-
 = form_with url: batch_custom_admin_company_proposals_path, method: :post, local: true do
     = hidden_field_tag :status, @status
-    .card.border-0.shadow-sm.mb-3
-        .card-body.d-flex.flex-wrap.align-items-center.gap-2
-            span.text-muted.small.fw-semibold Batch actions
-            = button_tag "Re-enrich selected", type: "submit", name: "batch_action", value: "reenrich", class: "btn btn-sm btn-outline-primary"
-            = button_tag "Mark needs revision", type: "submit", name: "batch_action", value: "mark_needs_revision", class: "btn btn-sm btn-outline-warning"
-            = button_tag "Publish gate-passing selected", type: "submit", name: "batch_action", value: "publish", class: "btn btn-sm btn-success", data: { turbo_confirm: "Only publish proposals that pass all readiness gates?" }
-
-    .card.border-0.shadow-sm
+    .card.border-0.shadow-sm.admin-compact-card
+        .card-header.bg-white
+            .d-flex.flex-wrap.justify-content-between.align-items-center.gap-2
+                h1.h4.mb-0 New Candidate Review
+                .d-flex.flex-wrap.align-items-center.gap-2
+                    .admin-table-summary
+                        - @review_cockpit_counts.each do |label, count|
+                            span.admin-table-summary-item
+                                = "#{label.humanize} "
+                                strong= number_with_delimiter(count)
+                    = link_to upload_custom_admin_companies_csv_path, class: "btn btn-sm btn-outline-primary rounded-pill px-3" do
+                        i.fas.fa-upload.me-2
+                        | Review CSV Candidates
+        .card-body.border-bottom.admin-tabs-row
+            .nav.admin-section-tabs
+                = link_to "Existing Companies", custom_admin_company_reviews_path, class: "nav-link"
+                = link_to "New Candidates", custom_admin_company_proposals_path, class: "nav-link active"
+        .card-body.border-bottom
+            .admin-filter-toolbar
+                - @status_counts.each do |status, count|
+                    = link_to "#{status.humanize} #{number_with_delimiter(count)}", custom_admin_company_proposals_path(status: status), class: "btn btn-sm #{@status == status ? 'btn-primary' : 'btn-outline-secondary'} rounded-pill px-3"
+        .card-body.border-bottom
+            .admin-filter-toolbar
+                span.text-muted.small.fw-semibold Batch actions
+                = button_tag "Re-enrich selected", type: "submit", name: "batch_action", value: "reenrich", class: "btn btn-sm btn-outline-primary rounded-pill px-3"
+                = button_tag "Mark needs revision", type: "submit", name: "batch_action", value: "mark_needs_revision", class: "btn btn-sm btn-outline-warning rounded-pill px-3"
+                = button_tag "Publish selected", type: "submit", name: "batch_action", value: "publish", class: "btn btn-sm btn-success rounded-pill px-3", data: { turbo_confirm: "Only publish proposals that pass all readiness gates?" }
         .table-responsive
-            table.table.table-hover.align-middle.mb-0
+            table.table.table-hover.align-middle.mb-0.admin-table.is-compact
                 thead
                     tr
                         th
@@ -62,39 +51,46 @@
                         - research_results = Array(proposal.agent_details.dig("web_research", "results"))
                         tr
                             td= check_box_tag "proposal_ids[]", proposal.id, false, class: "form-check-input"
+                            td.admin-description
+                                = link_to custom_admin_company_proposal_path(proposal), class: "admin-primary-link", aria: { label: "Review #{proposal.display_name}" } do
+                                    .fw-semibold= proposal.display_name
+                                    .admin-cell-secondary= proposal.final_changes["main_url"].presence || proposal.source_payload["website"].presence || "Missing website"
+                                    span.admin-status-pill.text-bg-light.mt-1= proposal.status.humanize
                             td
-                                .fw-semibold= link_to proposal.display_name, custom_admin_company_proposal_path(proposal)
-                                .text-muted.small= proposal.final_changes["main_url"].presence || proposal.source_payload["website"].presence || "Missing website"
-                                span.badge.text-bg-light.mt-1= proposal.status.humanize
-                            td
-                                span.badge(class=(quality["publish_ready"] ? "text-bg-success" : "text-bg-warning"))= "#{quality['score']}%"
+                                span.admin-status-pill(class=(quality["publish_ready"] ? "text-bg-success" : "text-bg-warning"))= "#{quality['score']}%"
                                 - if Array(quality["blockers"]).any?
-                                    .small.text-muted= Array(quality["blockers"]).first
+                                    .admin-cell-secondary= Array(quality["blockers"]).first
                             td
-                                span.badge(class=(critic == "pass" ? "text-bg-success" : "text-bg-warning"))= critic.humanize
-                                .small.text-muted= missing.include?("description") ? "Missing description" : truncate(proposal.final_changes["description"].to_s, length: 90)
+                                span.admin-status-pill(class=(critic == "pass" ? "text-bg-success" : "text-bg-warning"))= critic.humanize
+                                .admin-cell-secondary= missing.include?("description") ? "Missing description" : truncate(proposal.final_changes["description"].to_s, length: 90)
                             td.small
                                 - taxonomy_missing = missing & ["category_id", "business_model_id", "target_client_id"]
                                 - if taxonomy_missing.any?
-                                    span.text-warning= "Missing #{taxonomy_missing.map(&:humanize).to_sentence}"
+                                    span.admin-issue-chip.is-warning= "Missing #{taxonomy_missing.map(&:humanize).to_sentence}"
                                 - else
-                                    span.text-success Complete
-                            td.small= "#{Array(proposal.duplicate_signals['name_matches']).size} name / #{Array(proposal.duplicate_signals['domain_matches']).size} domain"
+                                    span.admin-issue-chip.is-muted Complete
+                            td.small.admin-nowrap= "#{Array(proposal.duplicate_signals['name_matches']).size} name / #{Array(proposal.duplicate_signals['domain_matches']).size} domain"
                             td.small
                                 - if research_results.any?
-                                    span.text-success= "#{research_results.size} snippets"
+                                    span.admin-cell-primary= "#{research_results.size} snippets"
                                 - else
-                                    span.text-muted No search evidence
-                            td
+                                    span.admin-cell-secondary No search evidence
+                            td.admin-nowrap
                                 - if proposal.company
                                     = link_to proposal.company.name, custom_admin_company_review_path(proposal.company)
                                 - else
-                                    span.text-muted None
-                            td.text-muted.small= time_ago_in_words(proposal.updated_at)
-                            td.text-end
-                                = link_to "Review", custom_admin_company_proposal_path(proposal), class: "btn btn-sm btn-outline-primary"
+                                    span.admin-cell-secondary None
+                            td.admin-cell-secondary.admin-nowrap= time_ago_in_words(proposal.updated_at)
+                            td.text-end.admin-actions
+                                .dropdown
+                                    button.btn.btn-sm.btn-light.border.btn-icon type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Candidate actions"
+                                        i.fas.fa-ellipsis-h
+                                    .dropdown-menu.dropdown-menu-end
+                                        = link_to custom_admin_company_proposal_path(proposal), class: "dropdown-item" do
+                                            i.fas.fa-eye.me-2
+                                            | Review
                     - if @company_proposals.empty?
                         tr
                             td.text-muted colspan="10" No proposals in this queue.
-
-= paginate @company_proposals
+        .card-footer.bg-white.py-2
+            = paginate @company_proposals

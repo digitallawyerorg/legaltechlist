@@ -1,28 +1,21 @@
 - content_for :title, "Agent Reviews"
 
-.d-flex.justify-content-between.align-items-start.mb-4
-    div
-        h1.h3.mb-1 Agent Reviews
-    = link_to "All Activity", custom_admin_pipeline_runs_path, class: "btn btn-outline-secondary"
-
-.card.border-0.shadow-sm.mb-4
-    .card-body
-        .d-flex.flex-wrap.align-items-center.justify-content-between.gap-3
-            div
-                .admin-kicker Activity workspace
-                .fw-semibold Safe field application remains here; raw import and batch logs remain in all activity.
-            .nav.nav-pills
-                = link_to "All Runs", custom_admin_pipeline_runs_path, class: "nav-link"
-                = link_to "Agent Reviews", custom_admin_agent_reviews_path, class: "nav-link active"
-                = link_to "Import Reviews", custom_admin_pipeline_runs_path(activity: "import_reviews"), class: "nav-link"
-                = link_to "Failures", custom_admin_pipeline_runs_path(activity: "failed"), class: "nav-link"
-
-.card.border-0.shadow-sm
-    .card-header.bg-white.d-flex.justify-content-between.align-items-center
-        h2.h5.mb-0 Review Output
-        span.text-muted.small= "#{number_with_delimiter(@agent_reviews.total_count)} records"
+.card.border-0.shadow-sm.admin-compact-card
+    .card-header.bg-white
+        .d-flex.flex-wrap.justify-content-between.align-items-center.gap-2
+            h1.h4.mb-0 Agent Reviews
+            .admin-table-summary
+                span.admin-table-summary-item
+                    | Records 
+                    strong= number_with_delimiter(@agent_reviews.total_count)
+    .card-body.border-bottom.admin-tabs-row
+        .nav.admin-section-tabs
+            = link_to "All Runs", custom_admin_pipeline_runs_path, class: "nav-link"
+            = link_to "Agent Reviews", custom_admin_agent_reviews_path, class: "nav-link active"
+            = link_to "Import Reviews", custom_admin_pipeline_runs_path(activity: "import_reviews"), class: "nav-link"
+            = link_to "Failures", custom_admin_pipeline_runs_path(activity: "failed"), class: "nav-link"
     .table-responsive
-        table.table.table-hover.align-middle.mb-0.admin-table
+        table.table.table-hover.align-middle.mb-0.admin-table.is-compact
             thead
                 tr
                     th Review
@@ -36,17 +29,31 @@
                 - @agent_reviews.each do |run|
                     - company = Company.find_by(id: run.details&.dig("company_id"))
                     tr
-                        td.fw-semibold= run.name
+                        td.admin-description
+                            = link_to custom_admin_agent_review_path(run), class: "admin-primary-link", aria: { label: "Review #{run.name}" } do
+                                .fw-semibold= run.name
+                                .admin-cell-secondary= run.run_type
                         td.admin-nowrap= run.run_type
                         td.admin-nowrap= run.agent_name.presence || "Unassigned"
-                        td.admin-nowrap= run.status
-                        td.admin-nowrap= company&.name || "Not linked"
+                        td.admin-nowrap
+                            span.admin-status-pill class="text-bg-#{run.status == 'failed' ? 'danger' : 'secondary'}"= run.status
+                        td.admin-nowrap
+                            - if company
+                                = link_to company.name, custom_admin_company_review_path(company)
+                            - else
+                                span.admin-cell-secondary Not linked
                         td.small.admin-nowrap= run.created_at
-                        td.text-end.admin-actions= link_to "Review Output", custom_admin_agent_review_path(run), class: "btn btn-sm btn-primary"
+                        td.text-end.admin-actions
+                            .dropdown
+                                button.btn.btn-sm.btn-light.border.btn-icon type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Agent review actions"
+                                    i.fas.fa-ellipsis-h
+                                .dropdown-menu.dropdown-menu-end
+                                    = link_to custom_admin_agent_review_path(run), class: "dropdown-item" do
+                                        i.fas.fa-eye.me-2
+                                        | Review Output
             - if @agent_reviews.empty?
                 tbody
                     tr
                         td.text-muted.text-center colspan="7" No agent review output has been logged yet.
-
-.py-3
-    = paginate @agent_reviews
+    .card-footer.bg-white.py-2
+        = paginate @agent_reviews

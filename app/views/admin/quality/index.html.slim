@@ -1,35 +1,66 @@
 - content_for :title, "Quality Dashboard"
 
-.d-flex.justify-content-between.align-items-start.mb-4
-    div
-        h1.h3.mb-1 Quality Dashboard
-    = link_to "Back to Admin Home", custom_admin_root_path, class: "btn btn-outline-secondary"
-
-h2.h5.mb-3 Company Data
-.row.g-3.mb-4
-    - @company_metrics.each do |metric|
-        .col-md-6.col-xl-4
-            .card.border-0.shadow-sm.h-100
-                .card-body
-                    .d-flex.justify-content-between.align-items-center
-                        .text-muted.small= metric[:label]
-                        span.badge class="text-bg-#{metric[:tone]}" Read-only
-                    .fs-3.fw-semibold.mt-2= number_with_delimiter(metric[:value])
-
-h2.h5.mb-3 Review Status
-.row.g-3.mb-4
-    - @review_metrics.each do |metric|
-        .col-md-6.col-xl-3
-            .card.border-0.shadow-sm.h-100
-                .card-body
-                    .text-muted.small= metric[:label]
-                    .fs-3.fw-semibold.mt-2= number_with_delimiter(metric[:value])
-
-h2.h5.mb-3 Pipeline Runs
-.row.g-3
-    - @pipeline_metrics.each do |metric|
-        .col-md-6.col-xl-4
-            .card.border-0.shadow-sm.h-100
-                .card-body
-                    .text-muted.small= metric[:label]
-                    .fs-3.fw-semibold.mt-2= number_with_delimiter(metric[:value])
+.card.border-0.shadow-sm.admin-compact-card
+    .card-header.bg-white
+        .d-flex.flex-wrap.justify-content-between.align-items-center.gap-2
+            h1.h4.mb-0 Quality Dashboard
+            .admin-table-summary
+                - total_metric = @company_metrics.find { |metric| metric[:label] == "Total companies" }
+                - public_metric = @company_metrics.find { |metric| metric[:label] == "Public companies" }
+                - missing_url_metric = @company_metrics.find { |metric| metric[:label] == "Missing URLs" }
+                - failed_metric = @pipeline_metrics.find { |metric| metric[:label] == "Failed" }
+                span.admin-table-summary-item
+                    | Companies 
+                    = link_to number_with_delimiter(total_metric[:value]), custom_admin_companies_path, aria: { label: "Show all companies" }
+                span.admin-table-summary-item
+                    | Visible 
+                    = link_to number_with_delimiter(public_metric[:value]), custom_admin_companies_path(visibility: "visible"), aria: { label: "Show visible companies" }
+                span.admin-table-summary-item
+                    | Missing URLs 
+                    = link_to number_with_delimiter(missing_url_metric[:value]), custom_admin_companies_path(review_signal: "missing_url"), aria: { label: "Show companies missing URLs" }
+                span.admin-table-summary-item
+                    | Failed runs 
+                    = link_to number_with_delimiter(failed_metric[:value]), custom_admin_pipeline_runs_path(activity: "failed"), aria: { label: "Show failed pipeline runs" }
+    .card-body
+        .admin-dashboard-section
+            .d-flex.flex-wrap.justify-content-between.align-items-center.gap-2.mb-2
+                h2.h6.mb-0 Company Data
+                span.text-muted.small Canonical records, taxonomy, visibility, and data quality
+            .admin-quality-grid
+                - @company_metrics.each do |metric|
+                    - metric_path = (case metric[:label] when "Total companies" then custom_admin_companies_path when "Public companies" then custom_admin_companies_path(visibility: "visible") when "Missing URLs" then custom_admin_companies_path(review_signal: "missing_url") when "Weak descriptions" then custom_admin_companies_path(review_signal: "weak_description") when "Duplicate-name candidates" then custom_admin_company_reviews_path(queue: "duplicate_name") when "Duplicate-domain candidates" then custom_admin_companies_path(review_signal: "duplicate_domain") when "Unknown category", "Unknown business model", "Unknown target client" then custom_admin_companies_path(review_signal: "unknown_taxonomy") end)
+                    - metric_classes = "admin-quality-item is-#{metric[:tone]}"
+                    - if metric_path.present?
+                        = link_to metric_path, class: "#{metric_classes} admin-quality-link", aria: { label: "Review #{metric[:label].downcase}" } do
+                            span.admin-quality-label= metric[:label]
+                            strong.admin-quality-value= number_with_delimiter(metric[:value])
+                    - else
+                        .admin-quality-item class="is-#{metric[:tone]}"
+                            span.admin-quality-label= metric[:label]
+                            strong.admin-quality-value= number_with_delimiter(metric[:value])
+        .admin-dashboard-section
+            .d-flex.flex-wrap.justify-content-between.align-items-center.gap-2.mb-2
+                h2.h6.mb-0 Review Status
+                span.text-muted.small Human and automated review coverage
+            .admin-quality-grid
+                - @review_metrics.each do |metric|
+                    - metric_path = (case metric[:label] when "Needs review" then custom_admin_company_reviews_path(queue: "needs_review") when "Verified" then custom_admin_companies_path(quality_status: "verified") when "Rejected" then custom_admin_company_reviews_path(queue: "rejected") end)
+                    - metric_classes = "admin-quality-item is-#{metric[:tone]}"
+                    - if metric_path.present?
+                        = link_to metric_path, class: "#{metric_classes} admin-quality-link", aria: { label: "Review #{metric[:label].downcase}" } do
+                            span.admin-quality-label= metric[:label]
+                            strong.admin-quality-value= number_with_delimiter(metric[:value])
+                    - else
+                        .admin-quality-item class="is-#{metric[:tone]}"
+                            span.admin-quality-label= metric[:label]
+                            strong.admin-quality-value= number_with_delimiter(metric[:value])
+        .admin-dashboard-section.mb-0
+            .d-flex.flex-wrap.justify-content-between.align-items-center.gap-2.mb-2
+                h2.h6.mb-0 Pipeline Runs
+                span.text-muted.small Import, enrichment, and agent activity
+            .admin-quality-grid
+                - @pipeline_metrics.each do |metric|
+                    - metric_path = (case metric[:label] when "Pipeline runs" then custom_admin_pipeline_runs_path when "Running" then custom_admin_pipeline_runs_path(status: "running") when "Failed" then custom_admin_pipeline_runs_path(activity: "failed") end)
+                    = link_to metric_path, class: "admin-quality-item admin-quality-link is-#{metric[:tone]}", aria: { label: "Review #{metric[:label].downcase}" } do
+                        span.admin-quality-label= metric[:label]
+                        strong.admin-quality-value= number_with_delimiter(metric[:value])

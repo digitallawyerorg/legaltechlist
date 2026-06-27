@@ -54,8 +54,8 @@ class CustomAdminTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "h1", "Quality Dashboard"
-    assert_select "div", text: "Missing URLs"
-    assert_select "div", text: "Duplicate-domain candidates"
+    assert_select ".admin-quality-label", text: "Missing URLs"
+    assert_select ".admin-quality-label", text: "Duplicate-domain candidates"
   end
 
   test "company review index is available to signed-in admin users" do
@@ -65,8 +65,8 @@ class CustomAdminTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "h1", "Review"
-    assert_select ".nav-pills a.active", "Existing Companies"
-    assert_select ".nav-pills a", "New Candidates"
+    assert_select ".admin-section-tabs a.active", "Existing Companies"
+    assert_select ".admin-section-tabs a", "New Candidates"
     assert_select "button", "Run Next Description Review"
     assert_select "button", "Run Next Duplicate Review"
     assert_select "a", /Description review/
@@ -81,7 +81,7 @@ class CustomAdminTest < ActionDispatch::IntegrationTest
     get custom_admin_company_reviews_path(queue: "description_review")
 
     assert_response :success
-    assert_select "h2", "Description review"
+    assert_select "a.btn-primary", /Description review/
     assert_select "td", text: /#{Regexp.escape(company.name)}/
   end
 
@@ -186,9 +186,9 @@ class CustomAdminTest < ActionDispatch::IntegrationTest
     get custom_admin_pipeline_runs_path
     assert_response :success
     assert_select "h1", "Activity"
-    assert_select ".nav-pills a.active", "All Runs"
-    assert_select ".nav-pills a", "Agent Reviews"
-    assert_select "td", "Manual verifier"
+    assert_select ".admin-section-tabs a.active", "All Runs"
+    assert_select ".admin-section-tabs a", "Agent Reviews"
+    assert_select "td a", text: /Manual verifier/
 
     get custom_admin_pipeline_run_path(run)
     assert_response :success
@@ -203,9 +203,9 @@ class CustomAdminTest < ActionDispatch::IntegrationTest
     get custom_admin_agent_reviews_path
     assert_response :success
     assert_select "h1", "Agent Reviews"
-    assert_select ".nav-pills a.active", "Agent Reviews"
-    assert_select ".nav-pills a", "All Runs"
-    assert_select "td", "Agent review sample"
+    assert_select ".admin-section-tabs a.active", "Agent Reviews"
+    assert_select ".admin-section-tabs a", "All Runs"
+    assert_select "td a", text: /Agent review sample/
 
     get custom_admin_agent_review_path(run)
     assert_response :success
@@ -408,9 +408,9 @@ class CustomAdminTest < ActionDispatch::IntegrationTest
     get custom_admin_company_proposals_path
     assert_response :success
     assert_select "h1", "New Candidate Review"
-    assert_select ".nav-pills a.active", "New Candidates"
+    assert_select ".admin-section-tabs a.active", "New Candidates"
     assert_select "td", text: /Review Proposal/
-    assert_select ".text-uppercase", text: /Ready/
+    assert_select ".admin-table-summary-item", text: /Ready/
 
     get custom_admin_company_proposal_path(proposal)
     assert_response :success
