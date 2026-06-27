@@ -1,18 +1,22 @@
 .home-hero.border-bottom
     .container
         .home-hero-inner.text-center.mx-auto
-            .home-kicker Stanford Center for Legal Informatics / CodeX
+            .home-kicker
+                span.d-none.d-sm-inline Stanford Center for Legal Informatics / CodeX
+                span.d-sm-none Stanford Center for Legal Informatics
             h1.home-title CodeX TechIndex
             p.home-lead A curated dataset of #{number_with_delimiter(Company.where(visible: true).count)} legal tech companies shaping the future of legal work.
             .home-actions.d-flex.flex-wrap.justify-content-center.gap-2
                 = link_to companies_path, class: "btn home-primary-action" do
                     ' Browse the directory
                     i.fa.fa-arrow-right.ms-1
-                = link_to "View statistics", statistics_path, class: "btn home-secondary-action"
+                = link_to statistics_path, class: "btn home-secondary-action" do
+                    i.fa.fa-chart-line.me-2
+                    | View statistics
             = form_tag companies_path, class: "home-search mx-auto", method: :get do
                 .position-relative
                     i.fa.fa-search.home-search-icon
-                    = text_field_tag :query, params[:query], class: "form-control", placeholder: "Search tools, categories, or companies - e.g. \"contract review\"", id: "search-input"
+                    = text_field_tag :query, params[:query], class: "form-control", placeholder: "Search tools, categories, or companies", id: "search-input"
 
 - categories = Category.where.not(name: "Unknown").where.not(id: [12, 13, 14]).sort_by { |category| -category.companies.where(visible: true).count }
 - featured_categories = categories.first(8)
@@ -95,9 +99,9 @@ css:
         background: #8c1515;
         border-color: #8c1515;
         color: #fff;
-        font-size: 0.86rem;
+        font-size: 0.9rem;
         font-weight: 800;
-        padding: 0.7rem 1.2rem;
+        padding: 0.82rem 1.35rem;
     }
 
     .home-primary-action:hover {
@@ -110,9 +114,9 @@ css:
         background: #fff;
         border-color: #ded7ca;
         color: #3f3933;
-        font-size: 0.86rem;
+        font-size: 0.9rem;
         font-weight: 700;
-        padding: 0.7rem 1.2rem;
+        padding: 0.82rem 1.35rem;
     }
 
     .home-secondary-action:hover {
@@ -254,7 +258,68 @@ css:
 
     @media (max-width: 640px) {
         .home-hero {
-            padding: 3rem 0 2.5rem;
+            padding: 2.6rem 0 2.2rem;
+        }
+
+        .home-kicker {
+            font-size: 0.64rem;
+            letter-spacing: 0.14em;
+            line-height: 1.6;
+        }
+
+        .home-title {
+            font-size: clamp(2.8rem, 16vw, 4rem);
+        }
+
+        .home-lead {
+            font-size: 1rem;
+            line-height: 1.55;
+        }
+
+        .home-actions {
+            align-items: stretch;
+            flex-direction: column;
+            margin: 0 auto 1.4rem;
+            max-width: 21rem;
+        }
+
+        .home-primary-action,
+        .home-secondary-action {
+            align-items: center;
+            display: inline-flex;
+            justify-content: center;
+            min-height: 3.1rem;
+            width: 100%;
+        }
+
+        .home-primary-action,
+        .home-primary-action:active,
+        .home-primary-action:focus {
+            background: #8c1515;
+            border-color: #8c1515;
+            color: #fff;
+        }
+
+        .home-secondary-action,
+        .home-secondary-action:active,
+        .home-secondary-action:focus {
+            background: #fffdf8;
+            border-color: #ded7ca;
+            color: #3f3933;
+        }
+
+        .home-search {
+            max-width: 21rem;
+        }
+
+        .home-search .form-control {
+            font-size: 0.95rem;
+            min-height: 3.25rem;
+            padding-left: 2.45rem;
+        }
+
+        .home-search-icon {
+            left: 0.9rem;
         }
 
         .home-category-grid {

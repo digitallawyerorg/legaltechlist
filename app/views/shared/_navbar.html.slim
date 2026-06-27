@@ -13,10 +13,10 @@ nav.navbar.navbar-expand-lg.navbar-dark.bg-dark.fixed-top
                     = link_to root_path, class: "nav-link custom-menu" do
                         | CodeX TechIndex
                 li.nav-item
-                    = link_to "/companies", class: "nav-link custom-menu" do
+                    = link_to "/companies", class: "nav-link custom-menu nav-divider-link" do
                         | /
                 li.nav-item.dropdown
-                    a.nav-link.dropdown-toggle[
+                    a.nav-link.dropdown-toggle.overview-toggle[
                         href="#"
                         id="navbarDropdown"
                         role="button"
@@ -33,3 +33,7 @@ nav.navbar.navbar-expand-lg.navbar-dark.bg-dark.fixed-top
                             = link_to "Statistics", "/statistics", class: "dropdown-item"
                         li
                             = link_to "About", "/about", class: "dropdown-item"
+            = form_with url: companies_path, method: :get, local: true, html: { class: "public-nav-search" } do
+                .public-nav-search-field
+                    i.fa.fa-search.public-nav-search-icon aria-hidden="true"
+                    = search_field_tag :query, params[:query], class: "form-control", placeholder: "Search #{number_with_delimiter(Company.where(visible: true).count)} companies", aria: { label: "Search companies" }

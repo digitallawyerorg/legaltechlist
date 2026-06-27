@@ -20,6 +20,106 @@ css:
         background-color: #f5f3ee !important;
     }
 
+    .public-nav-search {
+        margin: 0 0 0 auto;
+        max-width: 28rem;
+        min-width: 18rem;
+    }
+
+    .public-nav-search-field {
+        position: relative;
+    }
+
+    .public-nav-search-icon {
+        color: rgba(255, 255, 255, 0.58);
+        left: 0.85rem;
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+    }
+
+    .public-nav-search .form-control {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.24);
+        border-radius: 0.7rem;
+        color: rgba(255, 255, 255, 0.92);
+        font-size: 0.86rem;
+        min-height: 2.35rem;
+        padding-left: 2.25rem;
+    }
+
+    .public-nav-search .form-control::placeholder {
+        color: rgba(255, 255, 255, 0.58);
+    }
+
+    .public-nav-search .form-control:focus {
+        background: rgba(255, 255, 255, 0.08);
+        border-color: rgba(255, 255, 255, 0.46);
+        box-shadow: 0 0 0 0.16rem rgba(140, 21, 21, 0.35);
+        color: #fff;
+    }
+
+    @media (max-width: 991.98px) {
+        .navbar .navbar-collapse {
+            padding: 0.7rem 0 0.3rem;
+        }
+
+        .navbar .navbar-nav {
+            gap: 0.1rem;
+        }
+
+        .navbar .nav-link {
+            border-radius: 0.55rem;
+            padding: 0.45rem 0.75rem;
+        }
+
+        .navbar .nav-link:hover,
+        .navbar .nav-link:focus {
+            background: rgba(255, 255, 255, 0.06);
+        }
+
+        .navbar .nav-divider-link {
+            display: none;
+        }
+
+        .navbar .overview-toggle {
+            display: none;
+        }
+
+        .navbar .dropdown-menu {
+            background: transparent;
+            border: 0;
+            box-shadow: none;
+            display: block;
+            margin: 0;
+            padding: 0.1rem 0 0.25rem;
+        }
+
+        .navbar .dropdown-toggle::after {
+            display: none;
+        }
+
+        .navbar .dropdown-item {
+            border-radius: 0.55rem;
+            color: rgba(255, 255, 255, 0.68);
+            font-size: 0.92rem;
+            padding: 0.42rem 0.75rem;
+        }
+
+        .navbar .dropdown-item:hover,
+        .navbar .dropdown-item:focus {
+            background: rgba(255, 255, 255, 0.06);
+            color: #fff;
+        }
+
+        .public-nav-search {
+            margin: 0.65rem 0 0;
+            max-width: none;
+            min-width: 0;
+            width: 100%;
+        }
+    }
+
     .fs-sm {
         font-size: 0.875rem !important;
     }
