@@ -87,6 +87,15 @@ class CompaniesControllerTest < ActionController::TestCase
     assert_not_includes assigns(:companies), hidden
   end
 
+  test "search returns matching visible companies as json" do
+    get :search, params: { q: @company.name }, format: :json
+
+    assert_response :success
+    payload = JSON.parse(@response.body)
+    assert_equal @company.name, payload["companies"].first["name"]
+    assert payload["total_count"] >= 1
+  end
+
   test "should get new" do
     get :new
     assert_response :success

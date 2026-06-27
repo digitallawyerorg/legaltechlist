@@ -2,7 +2,7 @@ nav.navbar.navbar-expand-lg.navbar-dark.bg-dark.fixed-top
     .container-fluid
         .navbar-header
             = link_to root_path, class: "navbar-brand" do
-                = image_tag "/images/logo/short.png", height: 30, alt: "CodeX", class: "d-inline-block align-text-top"
+                = image_tag "/images/logo/short.png", height: 30, width: 30, alt: "CodeX", class: "d-inline-block align-text-top", fetchpriority: "high"
 
         button.navbar-toggler type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain" aria-controls="navbarMain" aria-expanded="false" aria-label="Toggle navigation"
             span.navbar-toggler-icon
@@ -33,7 +33,8 @@ nav.navbar.navbar-expand-lg.navbar-dark.bg-dark.fixed-top
                             = link_to "Statistics", "/statistics", class: "dropdown-item"
                         li
                             = link_to "About", "/about", class: "dropdown-item"
-            = form_with url: companies_path, method: :get, local: true, html: { class: "public-nav-search" } do
+            .public-nav-search
                 .public-nav-search-field
                     i.fa.fa-search.public-nav-search-icon aria-hidden="true"
-                    = search_field_tag :query, params[:query], class: "form-control", placeholder: "Search #{number_with_delimiter(visible_company_count)} companies", aria: { label: "Search companies" }
+                    = search_field_tag :query, params[:query], class: "form-control", placeholder: "Search #{number_with_delimiter(visible_company_count)} companies", aria: { label: "Search companies" }, readonly: true, data: { nav_search_trigger: true }
+                    kbd.public-nav-search-shortcut aria-hidden="true" data-nav-search-shortcut=""

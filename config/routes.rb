@@ -46,7 +46,11 @@ Rails.application.routes.draw do
   delete 'admin/app/companies/:id', to: 'admin/company_management#destroy'
 
   # Resources
-  resources :companies, except: [:destroy]
+  resources :companies, except: [:destroy] do
+    collection do
+      get :search
+    end
+  end
   root to: 'static_pages#home'
 
   # Company filters

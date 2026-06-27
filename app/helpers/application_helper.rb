@@ -1,7 +1,23 @@
 module ApplicationHelper
+  include CacheKeyVersions
+
   def visible_company_count
-    Rails.cache.fetch("companies/visible_count/#{Company.maximum(:updated_at)&.to_i}", expires_in: 10.minutes) do
+    Rails.cache.fetch("companies/visible_count/#{company_cache_version}", expires_in: 10.minutes) do
       Company.where(visible: true).count
+    end
+  end
+
+  def company_search_categories
+    Rails.cache.fetch("companies/search_modal_categories/#{company_cache_version}/#{category_cache_version}", expires_in: 10.minutes) do
+      counts = Category.where.not(name: "Unknown")
+                       .where.not(id: [12, 13, 14])
+                       .left_joins(:companies)
+                       .where(companies: { visible: true })
+                       .group("categories.id", "categories.name")
+                       .count
+      counts.map do |(category_id, name), count|
+        { id: category_id, name: name, count: count, icon: category_icon(name), url: companies_path(category: category_id) }
+      end.sort_by { |category| -category[:count] }
     end
   end
 

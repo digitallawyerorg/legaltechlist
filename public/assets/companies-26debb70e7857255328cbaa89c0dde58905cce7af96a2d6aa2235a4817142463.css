@@ -1,0 +1,211 @@
+/* background gray */
+/* very light */
+/* line 7, app/assets/stylesheets/companies.scss */
+.company-list-sidecontainer h3 {
+  margin-left: 0px;
+}
+
+/* line 10, app/assets/stylesheets/companies.scss */
+.company-list-sidecontainer .tags-cloud {
+  padding-bottom: 25px;
+}
+
+/* line 15, app/assets/stylesheets/companies.scss */
+.company-list-container .btn-sls-orange {
+  margin-top: 15px;
+}
+
+/* line 18, app/assets/stylesheets/companies.scss */
+.company-list-container .list-item {
+  padding: 20px 15px;
+  margin: 0 auto;
+  border-top: 1px solid #eee;
+}
+
+/* line 24, app/assets/stylesheets/companies.scss */
+.company-list-container .list-item a {
+  text-decoration: none;
+  color: #1A1A1A;
+}
+
+/* line 29, app/assets/stylesheets/companies.scss */
+.company-list-container h3 {
+  margin-bottom: 35px;
+}
+
+/* line 32, app/assets/stylesheets/companies.scss */
+.company-list-container .list-item:hover {
+  border-radius: 3px;
+  border: 1px solid #bebebe;
+  background-color: #F2EFEA;
+}
+
+/* line 36, app/assets/stylesheets/companies.scss */
+.company-list-container .list-item:hover a {
+  text-decoration: none;
+}
+
+/* line 40, app/assets/stylesheets/companies.scss */
+.company-list-container h3 {
+  font-weight: 400 !important;
+  margin-left: 15px;
+}
+
+/* line 44, app/assets/stylesheets/companies.scss */
+.company-list-container h4 {
+  color: #B30000;
+}
+
+/* line 48, app/assets/stylesheets/companies.scss */
+.company-list-container .company-list a:hover {
+  text-decoration: none;
+}
+
+/* line 51, app/assets/stylesheets/companies.scss */
+.company-list-container .company-list a {
+  color: #1A1A1A;
+}
+
+/* show single company */
+/* line 58, app/assets/stylesheets/companies.scss */
+.company-show-container .breadcrumb {
+  border: 1px solid #bebebe;
+  border-radius: 3px;
+  font-size: 15px;
+  background-color: white;
+  color: black;
+  padding-top: 22px !important;
+  padding-left: 20px !important;
+  padding-right: 20px !important;
+}
+
+/* line 67, app/assets/stylesheets/companies.scss */
+.company-show-container .breadcrumb a {
+  color: black !important;
+  text-decoration: underline;
+}
+
+/* line 71, app/assets/stylesheets/companies.scss */
+.company-show-container .breadcrumb .btn {
+  color: white !important;
+  text-decoration: none;
+  margin-top: -5px;
+  margin-bottom: 3px;
+}
+
+/* line 78, app/assets/stylesheets/companies.scss */
+.company-show-container .panel-default {
+  padding: 20px !important;
+}
+
+/* line 80, app/assets/stylesheets/companies.scss */
+.company-show-container .panel-default h1 {
+  margin-top: 0px;
+}
+
+/* line 83, app/assets/stylesheets/companies.scss */
+.company-show-container .panel-default .col-md-12 {
+  margin-left: -20px !important;
+  left: 0 !important;
+}
+
+/* line 87, app/assets/stylesheets/companies.scss */
+.company-show-container .panel-default h4 {
+  font-weight: 300 !important;
+}
+
+/* line 90, app/assets/stylesheets/companies.scss */
+.company-show-container .panel-default .panel-footer {
+  background-color: white;
+  border: solid 1px #E89C2E;
+  border-radius: 3px;
+}
+
+/* line 94, app/assets/stylesheets/companies.scss */
+.company-show-container .panel-default .panel-footer span {
+  color: black !important;
+}
+
+/* line 97, app/assets/stylesheets/companies.scss */
+.company-show-container .panel-default .panel-footer a {
+  color: black !important;
+  text-decoration: underline;
+}
+
+/* line 104, app/assets/stylesheets/companies.scss */
+.company-edit-container {
+  margin-bottom: 300px;
+}
+
+/* line 105, app/assets/stylesheets/companies.scss */
+.company-edit-container .thank-you-panel {
+  padding-left: 20px !important;
+  padding-top: 18px;
+  padding-bottom: 10px;
+  margin-top: 20px;
+  font-size: 15px;
+  background-color: #E89C2E;
+  border-radius: 0 !important;
+  color: white;
+}
+
+/* line 114, app/assets/stylesheets/companies.scss */
+.company-edit-container .thank-you-panel a {
+  color: white !important;
+  text-decoration: underline;
+}
+
+/* line 121, app/assets/stylesheets/companies.scss */
+.company-new-container {
+  margin-bottom: 300px;
+}
+
+/* line 122, app/assets/stylesheets/companies.scss */
+.company-new-container .thank-you-panel {
+  padding-left: 20px !important;
+  padding-top: 18px;
+  padding-bottom: 10px;
+  margin-top: 20px;
+  font-size: 15px;
+  background-color: #E89C2E;
+  border-radius: 0 !important;
+  color: white;
+}
+
+/* line 131, app/assets/stylesheets/companies.scss */
+.company-new-container .thank-you-panel a {
+  color: white !important;
+  text-decoration: underline;
+}
+
+/* line 139, app/assets/stylesheets/companies.scss */
+.companies_map, .companies_map svg {
+  position: absolute;
+}
+
+/* line 143, app/assets/stylesheets/companies.scss */
+.companies_map svg {
+  width: 60px;
+  height: 20px;
+  padding-right: 100px;
+  font: 10px sans-serif;
+}
+
+/* line 150, app/assets/stylesheets/companies.scss */
+.companies_map circle {
+  fill: brown;
+  stroke: black;
+  stroke-width: 1.5px;
+}
+
+/* line 156, app/assets/stylesheets/companies.scss */
+.company-logo {
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  transition: transform 0.2s ease;
+}
+
+/* line 161, app/assets/stylesheets/companies.scss */
+.company-logo:hover {
+  transform: scale(1.05);
+}

@@ -69,7 +69,7 @@ css:
                     .company-filter-heading Category
                     = link_to companies_path(active_params.except(:category, :page)), class: "company-filter-link #{selected_category.blank? ? 'is-active' : ''}" do
                         span All categories
-                        span.company-filter-count= number_with_delimiter(@base_companies.count)
+                        span.company-filter-count= number_with_delimiter(@base_company_count)
                     - @category_counts.each do |category|
                         = link_to companies_path(active_params.merge(category: category[:id]).except(:page)), class: "company-filter-link #{selected_category.to_s == category[:id].to_s ? 'is-active' : ''}" do
                             span= category[:name]
@@ -79,7 +79,7 @@ css:
                         .company-filter-heading Status
                         = link_to companies_path(active_params.except(:status, :page)), class: "company-filter-link #{selected_status.blank? ? 'is-active' : ''}" do
                             span Any status
-                            span.company-filter-count= number_with_delimiter(@base_companies.count)
+                            span.company-filter-count= number_with_delimiter(@base_company_count)
                         - @status_counts.each do |status, count|
                             = link_to companies_path(active_params.merge(status: status).except(:page)), class: "company-filter-link #{selected_status == status ? 'is-active' : ''}" do
                                 span= status.to_s.humanize

@@ -1,0 +1,35 @@
+/* line 7, app/assets/stylesheets/application.scss */
+.btn-stanford {
+  background-color: #8c1515;
+  border-color: #8c1515;
+  color: white;
+}
+
+/* line 12, app/assets/stylesheets/application.scss */
+.btn-stanford:hover {
+  background-color: #600e0e;
+  border-color: #600e0e;
+  color: white;
+}
+
+/* line 20, app/assets/stylesheets/application.scss */
+.formtastic .input {
+  list-style: none;
+}
+
+/* line 24, app/assets/stylesheets/application.scss */
+.formtastic fieldset {
+  list-style: none;
+  padding-left: 0;
+}
+
+/* line 29, app/assets/stylesheets/application.scss */
+.formtastic legend {
+  display: none;
+}
+
+/* line 33, app/assets/stylesheets/application.scss */
+.formtastic ol {
+  list-style: none;
+  padding-left: 0;
+}

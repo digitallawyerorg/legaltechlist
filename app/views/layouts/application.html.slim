@@ -61,6 +61,33 @@ css:
         padding-left: 2.25rem;
     }
 
+    .public-nav-search-field.has-shortcut .form-control {
+        padding-right: 3.65rem;
+    }
+
+    .public-nav-search-shortcut {
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        border-radius: 0.4rem;
+        color: rgba(255, 255, 255, 0.52);
+        display: none;
+        font-family: inherit;
+        font-size: 0.68rem;
+        font-weight: 600;
+        letter-spacing: 0.03em;
+        line-height: 1;
+        padding: 0.22rem 0.4rem;
+        pointer-events: none;
+        position: absolute;
+        right: 0.55rem;
+        top: 50%;
+        transform: translateY(-50%);
+        user-select: none;
+    }
+
+    .public-nav-search-field.has-shortcut .public-nav-search-shortcut {
+        display: inline-block;
+    }
+
     .public-nav-search .form-control::placeholder {
         color: rgba(255, 255, 255, 0.58);
     }
@@ -70,6 +97,10 @@ css:
         border-color: rgba(255, 255, 255, 0.46);
         box-shadow: 0 0 0 0.16rem rgba(140, 21, 21, 0.35);
         color: #fff;
+    }
+
+    .public-nav-search .form-control[readonly] {
+        cursor: pointer;
     }
 
     @media (max-width: 991.98px) {
@@ -272,32 +303,20 @@ html
         / Font Awesome
         link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
 
-        / jQuery first, then Bootstrap bundle, then other scripts
-        script src="https://code.jquery.com/jquery-3.7.1.min.js"
-        script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
-
-        - statistics_asset_page = controller_name == "static_pages" && !%w[home about].include?(action_name)
-        - if statistics_asset_page
-            / Chart.js and Chartkick
-            script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"
-            script src="https://cdn.jsdelivr.net/npm/chartkick@5.0.1/dist/chartkick.js"
-
-            / Google Charts for GeoChart
-            script src="https://www.gstatic.com/charts/loader.js"
-
-            / jQCloud
-            link href="https://cdnjs.cloudflare.com/ajax/libs/jqcloud/1.0.4/jqcloud.min.css" rel="stylesheet"
-            script src="https://cdnjs.cloudflare.com/ajax/libs/jqcloud/1.0.4/jqcloud.min.js"
-
-            / D3.js and d3-cloud for word cloud
-            script src="https://d3js.org/d3.v7.min.js"
-            script src="https://cdn.jsdelivr.net/gh/jasondavies/d3-cloud@master/build/d3.layout.cloud.js"
-
-            / html2canvas for chart exports
-            script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"
+        - chartkick_page = controller_name == "static_pages" && !%w[home about statistics country_distribution tag_distribution].include?(action_name)
+        - google_geo_page = controller_name == "static_pages" && action_name == "country_distribution"
+        - google_core_page = controller_name == "static_pages" && action_name == "tag_distribution"
+        - if chartkick_page
+            script defer="" src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"
+            script defer="" src="https://cdn.jsdelivr.net/npm/chartkick@5.0.1/dist/chartkick.js"
+        - if google_geo_page || google_core_page
+            script defer="" src="https://www.gstatic.com/charts/loader.js"
 
     body
         = render "shared/navbar"
         .public-page style="margin-top: 60px"
             = yield
         = render "shared/footer"
+        = render "shared/company_search_modal"
+        script defer="" src="https://code.jquery.com/jquery-3.7.1.min.js"
+        script defer="" src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"

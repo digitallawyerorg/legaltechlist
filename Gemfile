@@ -6,6 +6,7 @@ ruby '3.3.10'
 gem 'rails', '~> 8.0.0'
 gem 'pg', '~> 1.5.4'
 gem 'puma'
+gem 'redis', '~> 5.0'
 gem 'webpacker', '~> 5.4'
 gem 'sprockets-rails'
 

@@ -24,7 +24,7 @@ class StaticPagesController < ApplicationController
 
   def home
   	@tags = Tag.limit(50)
-    @home_category_counts = Rails.cache.fetch("home/visible_category_counts/#{Company.maximum(:updated_at)&.to_i}/#{Category.maximum(:updated_at)&.to_i}", expires_in: 10.minutes) do
+    @home_category_counts = Rails.cache.fetch("home/visible_category_counts/#{company_cache_version}/#{category_cache_version}", expires_in: 10.minutes) do
       Category.where.not(name: "Unknown")
               .where.not(id: [12, 13, 14])
               .left_joins(:companies)
@@ -179,7 +179,7 @@ class StaticPagesController < ApplicationController
   end
 
   def category_evolution
-    cache_key = "statistics/category_evolution/#{Company.maximum(:updated_at)&.to_i}/#{Category.maximum(:updated_at)&.to_i}"
+    cache_key = "statistics/category_evolution/#{company_cache_version}/#{category_cache_version}"
     if (cached_data = Rails.cache.read(cache_key))
       @table_data = cached_data[:table_data]
       @summary_data = cached_data[:summary_data]
@@ -659,69 +659,15 @@ class StaticPagesController < ApplicationController
   end
 
   def category_maturity
-    @companies = Company.where(visible: true)
-                       .where('founded_date >= ? AND founded_date <= ? AND founded_date ~ ?',
-                             '2000',
-                             Time.current.year.to_s,
-                             '^\d{4}$')
-                       .includes(:category)
-
-    # Calculate maturity metrics for each category
-    category_metrics = {}
-
-    Category.all.each do |category|
-      category_companies = @companies.where(category: category)
-      next if category_companies.empty?
-
-      # Calculate various maturity indicators
-      total_companies = category_companies.count.to_f
-      avg_age = category_companies.average("EXTRACT(YEAR FROM CURRENT_DATE) - founded_date::integer")
-      total_funding = category_companies.sum(:total_funding_amount_usd)
-      avg_funding = total_funding / total_companies
-      funded_companies = category_companies.where('total_funding_amount_usd > 0').count
-      funding_rate = (funded_companies / total_companies * 100)
-      late_stage_companies = category_companies.where('total_funding_amount_usd > ?', 10_000_000).count
-      late_stage_rate = (late_stage_companies / total_companies * 100)
-
-      # Calculate maturity score (0-100)
-      maturity_score = calculate_maturity_score(
-        total_companies: total_companies,
-        avg_age: avg_age,
-        avg_funding: avg_funding,
-        funding_rate: funding_rate,
-        late_stage_rate: late_stage_rate
-      )
-
-      # Determine maturity stage
-      maturity_stage = case maturity_score
-                      when 0..25 then 'Emerging'
-                      when 26..50 then 'Growing'
-                      when 51..75 then 'Established'
-                      else 'Mature'
-                      end
-
-      category_metrics[category.name] = {
-        companies: total_companies.to_i,
-        avg_age: avg_age&.round(1) || 0,
-        total_funding: total_funding,
-        avg_funding: avg_funding,
-        funding_rate: funding_rate.round(1),
-        late_stage_rate: late_stage_rate.round(1),
-        maturity_score: maturity_score,
-        maturity_stage: maturity_stage
-      }
+    cached = Rails.cache.fetch("statistics/category_maturity/#{company_cache_version}/#{category_cache_version}", expires_in: 10.minutes) do
+      build_category_maturity_metrics
     end
 
-    # Sort by maturity score
-    @category_metrics = category_metrics.sort_by { |_, metrics| -metrics[:maturity_score] }.to_h
-
-    # Prepare chart data
-    @chart_data = @category_metrics.transform_values { |m| m[:maturity_score] }
-
-    # Get insights for research notes
-    @mature_categories = @category_metrics.select { |_, m| m[:maturity_stage] == 'Mature' }.keys
-    @emerging_categories = @category_metrics.select { |_, m| m[:maturity_stage] == 'Emerging' }.keys
-    @highest_growth = @category_metrics.max_by { |_, m| m[:funding_rate] }&.first
+    @category_metrics = cached[:category_metrics]
+    @chart_data = cached[:chart_data]
+    @mature_categories = cached[:mature_categories]
+    @emerging_categories = cached[:emerging_categories]
+    @highest_growth = cached[:highest_growth]
 
     respond_to do |format|
       format.html
@@ -748,69 +694,16 @@ class StaticPagesController < ApplicationController
   end
 
   def funding_efficiency
-    @companies = Company.where(visible: true)
-                       .where('founded_date >= ? AND founded_date <= ? AND founded_date ~ ?',
-                             '2000',
-                             Time.current.year.to_s,
-                             '^\d{4}$')
-                       .includes(:category)
-
-    # Calculate efficiency metrics by category
-    category_metrics = {}
-
-    Category.all.each do |category|
-      category_companies = @companies.where(category: category)
-      next if category_companies.empty?
-
-      funded_companies = category_companies.where('total_funding_amount_usd > 0')
-      next if funded_companies.empty?
-
-      total_companies = category_companies.count.to_f
-      total_funding = funded_companies.sum(:total_funding_amount_usd)
-      avg_funding_per_company = total_funding / funded_companies.count
-      avg_rounds = funded_companies.average(:number_of_funding_rounds).to_f
-      funding_per_round = avg_funding_per_company / avg_rounds if avg_rounds > 0
-
-      # Calculate time-based metrics
-      avg_age = funded_companies.average("EXTRACT(YEAR FROM CURRENT_DATE) - founded_date::integer")
-      funding_per_year = avg_funding_per_company / avg_age if avg_age > 0
-
-      # Calculate success metrics
-      late_stage = funded_companies.where('total_funding_amount_usd > ?', 10_000_000).count
-      success_rate = (late_stage / funded_companies.count.to_f * 100)
-
-      # Calculate efficiency score (0-100)
-      efficiency_score = calculate_efficiency_score(
-        funding_per_round: funding_per_round,
-        funding_per_year: funding_per_year,
-        success_rate: success_rate,
-        avg_rounds: avg_rounds
-      )
-
-      category_metrics[category.name] = {
-        companies: total_companies.to_i,
-        funded_companies: funded_companies.count,
-        total_funding: total_funding,
-        avg_funding: avg_funding_per_company,
-        avg_rounds: avg_rounds.round(1),
-        funding_per_round: funding_per_round&.round(2),
-        funding_per_year: funding_per_year&.round(2),
-        success_rate: success_rate.round(1),
-        efficiency_score: efficiency_score
-      }
+    cached = Rails.cache.fetch("statistics/funding_efficiency/#{company_cache_version}/#{category_cache_version}", expires_in: 10.minutes) do
+      build_funding_efficiency_metrics
     end
 
-    # Sort by efficiency score
-    @category_metrics = category_metrics.sort_by { |_, metrics| -metrics[:efficiency_score] }.to_h
-
-    # Prepare chart data
-    @efficiency_scores = @category_metrics.transform_values { |m| m[:efficiency_score] }
-    @funding_per_round = @category_metrics.transform_values { |m| m[:funding_per_round] }
-
-    # Get insights for research notes
-    @most_efficient = @category_metrics.first(3).map(&:first)
-    @highest_success = @category_metrics.max_by { |_, m| m[:success_rate] }&.first
-    @optimal_rounds = @category_metrics.max_by { |_, m| m[:efficiency_score] }&.last[:avg_rounds]
+    @category_metrics = cached[:category_metrics]
+    @efficiency_scores = cached[:efficiency_scores]
+    @funding_per_round = cached[:funding_per_round]
+    @most_efficient = cached[:most_efficient]
+    @highest_success = cached[:highest_success]
+    @optimal_rounds = cached[:optimal_rounds]
 
     respond_to do |format|
       format.html
@@ -839,26 +732,8 @@ class StaticPagesController < ApplicationController
   end
 
   def tag_distribution
-    # Get unique tag data with company counts, properly deduplicating by normalized name
-    @tags = Tag.joins(:companies)
-             .where(companies: { visible: true })
-             .select("MIN(tags.id) as id,
-                     LOWER(REGEXP_REPLACE(tags.name, E'\\s+', ' ', 'g')) as normalized_name,
-                     MIN(tags.name) as name,
-                     COUNT(DISTINCT companies.id) as company_count")
-             .group("LOWER(REGEXP_REPLACE(tags.name, E'\\s+', ' ', 'g'))")
-             .having('COUNT(DISTINCT companies.id) > 8')
-             .order(Arel.sql('COUNT(DISTINCT companies.id) DESC'))
-             .limit(50)
-
-    # Prepare data for tag cloud and table
-    @tag_metrics = @tags.map do |tag|
-      {
-        name: tag.name,
-        count: tag.company_count,
-        percentage: (tag.company_count.to_f / Company.where(visible: true).count * 100).round(1),
-        avg_funding: calculate_avg_funding(Tag.where("LOWER(REGEXP_REPLACE(name, E'\\s+', ' ', 'g')) = ?", tag.normalized_name).first.companies.where(visible: true))
-      }
+    @tag_metrics = Rails.cache.fetch("statistics/tag_distribution/#{company_cache_version}", expires_in: 10.minutes) do
+      build_tag_distribution_metrics
     end
 
     respond_to do |format|
@@ -937,44 +812,13 @@ class StaticPagesController < ApplicationController
   end
 
   def exit_patterns
-    @companies = Company.where(visible: true)
-                       .where.not(exit_date: nil)
-                       .includes(:category)
-
-    # Calculate time to exit statistics
-    @exit_metrics = {}
-
-    Category.all.each do |category|
-      category_companies = @companies.select { |c| c.category_id == category.id }
-      next if category_companies.empty?
-
-      times_to_exit = category_companies.map do |company|
-        if company.founded_date.present? && company.exit_date.present?
-          company.exit_date.year - company.founded_date.to_i
-        end
-      end.compact
-
-      next if times_to_exit.empty?
-
-      @exit_metrics[category.name] = {
-        total_exits: category_companies.size,
-        avg_time_to_exit: (times_to_exit.sum / times_to_exit.size.to_f).round(1),
-        min_time_to_exit: times_to_exit.min,
-        max_time_to_exit: times_to_exit.max,
-        exit_rate: (category_companies.size / Company.where(category: category).count.to_f * 100).round(1)
-      }
+    cached = Rails.cache.fetch("statistics/exit_patterns/#{company_cache_version}/#{category_cache_version}", expires_in: 10.minutes) do
+      build_exit_pattern_metrics
     end
 
-    # Sort by total exits
-    @exit_metrics = @exit_metrics.sort_by { |_, v| -v[:total_exits] }.to_h
-
-    # Calculate exit type distribution
-    @exit_types = @companies.group_by(&:status).transform_values(&:count)
-
-    # Calculate exit timing patterns
-    @exit_timing = @companies.group_by { |c| c.exit_date.year }
-                            .transform_values(&:count)
-                            .sort.to_h
+    @exit_metrics = cached[:exit_metrics]
+    @exit_types = cached[:exit_types]
+    @exit_timing = cached[:exit_timing]
 
     respond_to do |format|
       format.html
@@ -1365,6 +1209,207 @@ class StaticPagesController < ApplicationController
 
   private
 
+  def maturity_base_scope
+    Company.where(visible: true)
+           .where("founded_date >= ? AND founded_date <= ? AND founded_date ~ ?",
+                  "2000",
+                  Time.current.year.to_s,
+                  "^\d{4}$")
+  end
+
+  def build_category_maturity_metrics
+    category_metrics = {}
+
+    maturity_base_scope.joins(:category)
+                       .group("categories.name")
+                       .pluck(
+                         Arel.sql("categories.name"),
+                         Arel.sql("COUNT(*)"),
+                         Arel.sql("AVG(EXTRACT(YEAR FROM CURRENT_DATE) - NULLIF(founded_date, '')::integer)"),
+                         Arel.sql("COALESCE(SUM(total_funding_amount_usd), 0)"),
+                         Arel.sql("COUNT(*) FILTER (WHERE total_funding_amount_usd > 0)"),
+                         Arel.sql("COUNT(*) FILTER (WHERE total_funding_amount_usd > 10000000)")
+                       ).each do |name, total, avg_age, total_funding, funded, late_stage|
+      total = total.to_f
+      next if total.zero?
+
+      total_funding = total_funding.to_f
+      funded = funded.to_i
+      late_stage = late_stage.to_i
+      funding_rate = (funded / total * 100)
+      late_stage_rate = (late_stage / total * 100)
+      avg_funding = total_funding / total
+      maturity_score = calculate_maturity_score(
+        total_companies: total,
+        avg_age: avg_age.to_f,
+        avg_funding: avg_funding,
+        funding_rate: funding_rate,
+        late_stage_rate: late_stage_rate
+      )
+      maturity_stage = case maturity_score
+                      when 0..25 then "Emerging"
+                      when 26..50 then "Growing"
+                      when 51..75 then "Established"
+                      else "Mature"
+                      end
+
+      category_metrics[name] = {
+        companies: total.to_i,
+        avg_age: avg_age&.round(1) || 0,
+        total_funding: total_funding,
+        avg_funding: avg_funding,
+        funding_rate: funding_rate.round(1),
+        late_stage_rate: late_stage_rate.round(1),
+        maturity_score: maturity_score,
+        maturity_stage: maturity_stage
+      }
+    end
+
+    category_metrics = category_metrics.sort_by { |_, metrics| -metrics[:maturity_score] }.to_h
+    {
+      category_metrics: category_metrics,
+      chart_data: category_metrics.transform_values { |m| m[:maturity_score] },
+      mature_categories: category_metrics.select { |_, m| m[:maturity_stage] == "Mature" }.keys,
+      emerging_categories: category_metrics.select { |_, m| m[:maturity_stage] == "Emerging" }.keys,
+      highest_growth: category_metrics.max_by { |_, m| m[:funding_rate] }&.first
+    }
+  end
+
+  def build_funding_efficiency_metrics
+    category_metrics = {}
+
+    maturity_base_scope.joins(:category)
+                       .group("categories.name")
+                       .pluck(
+                         Arel.sql("categories.name"),
+                         Arel.sql("COUNT(*)"),
+                         Arel.sql("COUNT(*) FILTER (WHERE total_funding_amount_usd > 0)"),
+                         Arel.sql("COALESCE(SUM(total_funding_amount_usd) FILTER (WHERE total_funding_amount_usd > 0), 0)"),
+                         Arel.sql("AVG(number_of_funding_rounds) FILTER (WHERE total_funding_amount_usd > 0)"),
+                         Arel.sql("AVG(EXTRACT(YEAR FROM CURRENT_DATE) - NULLIF(founded_date, '')::integer) FILTER (WHERE total_funding_amount_usd > 0)"),
+                         Arel.sql("COUNT(*) FILTER (WHERE total_funding_amount_usd > 10000000)")
+                       ).each do |name, total, funded_count, total_funding, avg_rounds, avg_age, late_stage|
+      funded_count = funded_count.to_i
+      next if funded_count.zero?
+
+      total = total.to_f
+      total_funding = total_funding.to_f
+      avg_rounds = avg_rounds.to_f
+      avg_funding_per_company = total_funding / funded_count
+      funding_per_round = avg_rounds.positive? ? avg_funding_per_company / avg_rounds : nil
+      avg_age = avg_age.to_f
+      funding_per_year = avg_age.positive? ? avg_funding_per_company / avg_age : nil
+      success_rate = (late_stage.to_i / funded_count.to_f * 100)
+      efficiency_score = calculate_efficiency_score(
+        funding_per_round: funding_per_round,
+        funding_per_year: funding_per_year,
+        success_rate: success_rate,
+        avg_rounds: avg_rounds
+      )
+
+      category_metrics[name] = {
+        companies: total.to_i,
+        funded_companies: funded_count,
+        total_funding: total_funding,
+        avg_funding: avg_funding_per_company,
+        avg_rounds: avg_rounds.round(1),
+        funding_per_round: funding_per_round&.round(2),
+        funding_per_year: funding_per_year&.round(2),
+        success_rate: success_rate.round(1),
+        efficiency_score: efficiency_score
+      }
+    end
+
+    category_metrics = category_metrics.sort_by { |_, metrics| -metrics[:efficiency_score] }.to_h
+    {
+      category_metrics: category_metrics,
+      efficiency_scores: category_metrics.transform_values { |m| m[:efficiency_score] },
+      funding_per_round: category_metrics.transform_values { |m| m[:funding_per_round] },
+      most_efficient: category_metrics.first(3).map(&:first),
+      highest_success: category_metrics.max_by { |_, m| m[:success_rate] }&.first,
+      optimal_rounds: category_metrics.max_by { |_, m| m[:efficiency_score] }&.last&.dig(:avg_rounds)
+    }
+  end
+
+  def build_tag_distribution_metrics
+    tags = Tag.joins(:companies)
+              .where(companies: { visible: true })
+              .select("MIN(tags.id) as id,
+                       LOWER(REGEXP_REPLACE(tags.name, E'\\s+', ' ', 'g')) as normalized_name,
+                       MIN(tags.name) as name,
+                       COUNT(DISTINCT companies.id) as company_count")
+              .group("LOWER(REGEXP_REPLACE(tags.name, E'\\s+', ' ', 'g'))")
+              .having("COUNT(DISTINCT companies.id) > 8")
+              .order(Arel.sql("COUNT(DISTINCT companies.id) DESC"))
+              .limit(50)
+              .to_a
+
+    visible_count = Company.where(visible: true).count
+    normalized_names = tags.map(&:normalized_name)
+    avg_funding_by_tag = if normalized_names.any?
+      Company.joins(:tags)
+             .where(visible: true)
+             .where.not(total_funding_amount_usd: [nil, 0])
+             .where("LOWER(REGEXP_REPLACE(tags.name, E'\\s+', ' ', 'g')) IN (?)", normalized_names)
+             .group(Arel.sql("LOWER(REGEXP_REPLACE(tags.name, E'\\s+', ' ', 'g'))"))
+             .average(:total_funding_amount_usd)
+    else
+      {}
+    end
+
+    tags.map do |tag|
+      {
+        name: tag.name,
+        count: tag.company_count,
+        percentage: (tag.company_count.to_f / visible_count * 100).round(1),
+        avg_funding: avg_funding_by_tag[tag.normalized_name].to_f
+      }
+    end
+  end
+
+  def build_exit_pattern_metrics
+    companies = Company.where(visible: true).where.not(exit_date: nil).includes(:category).to_a
+    category_totals = Company.group(:category_id).count
+    categories_by_id = Category.all.index_by(&:id)
+    exit_metrics = {}
+
+    companies.group_by(&:category_id).each do |category_id, category_companies|
+      category = categories_by_id[category_id]
+      next unless category
+
+      times_to_exit = category_companies.filter_map do |company|
+        if company.founded_date.present? && company.exit_date.present?
+          company.exit_date.year - company.founded_date.to_i
+        end
+      end
+      next if times_to_exit.empty?
+
+      category_total = category_totals[category_id].to_f
+      exit_metrics[category.name] = {
+        total_exits: category_companies.size,
+        avg_time_to_exit: (times_to_exit.sum / times_to_exit.size.to_f).round(1),
+        min_time_to_exit: times_to_exit.min,
+        max_time_to_exit: times_to_exit.max,
+        exit_rate: category_total.positive? ? (category_companies.size / category_total * 100).round(1) : 0
+      }
+    end
+
+    {
+      exit_metrics: exit_metrics.sort_by { |_, value| -value[:total_exits] }.to_h,
+      exit_types: companies.group_by(&:status).transform_values(&:count),
+      exit_timing: companies.group_by { |company| company.exit_date.year }.transform_values(&:count).sort.to_h
+    }
+  end
+
+  def generate_tag_distribution_csv
+    CSV.generate do |csv|
+      csv << ["Tag", "Companies", "Percentage", "Average Funding"]
+      @tag_metrics.each do |metric|
+        csv << [metric[:name], metric[:count], metric[:percentage], metric[:avg_funding]]
+      end
+    end
+  end
+
   FOUR_DIGIT_YEAR_REGEX = "^[0-9]{4}$"
 
   COUNTRY_ALIASES = {
@@ -1548,7 +1593,7 @@ class StaticPagesController < ApplicationController
   ].freeze
 
   def visible_company_counts_by_year
-    Rails.cache.fetch("statistics/visible_company_counts_by_year/#{Company.maximum(:updated_at)&.to_i}", expires_in: 10.minutes) do
+    Rails.cache.fetch("statistics/visible_company_counts_by_year/#{company_cache_version}", expires_in: 10.minutes) do
       Company.where(visible: true)
              .where("founded_date ~ ?", "^\\d{4}$")
              .group(:founded_date)

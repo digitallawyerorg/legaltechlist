@@ -294,14 +294,19 @@ css:
     }
 
     .company-show-page .company-reference-list {
-        display: grid;
-        gap: 0.85rem;
-        list-style: none;
-        margin: 0;
-        padding: 0;
+        border-top: 1px solid #e1dccf;
     }
 
-    .company-show-page .company-reference-item {
+    .company-show-page .company-reference-row {
+        align-items: start;
+        border-bottom: 1px solid #e1dccf;
+        display: grid;
+        gap: 0.85rem;
+        grid-template-columns: 2rem minmax(0, 1fr) 1.25rem;
+        padding: 0.95rem 0;
+    }
+
+    .company-show-page .company-reference-text {
         color: #3f3933;
         font-size: 0.92rem;
         line-height: 1.6;
@@ -313,26 +318,37 @@ css:
         margin-right: 0.35rem;
     }
 
+    .company-show-page .company-reference-copy {
+        align-items: center;
+        background: transparent;
+        border: 0;
+        color: #b7afa4;
+        cursor: pointer;
+        display: flex;
+        font-size: 0.82rem;
+        height: 1.25rem;
+        justify-content: center;
+        justify-self: end;
+        line-height: 1;
+        margin-top: 0.15rem;
+        padding: 0;
+        width: 1.25rem;
+    }
+
+    .company-show-page .company-reference-copy:hover {
+        color: #8c1515;
+    }
+
+    .company-show-page .company-reference-copy.is-copied {
+        color: #047857;
+    }
+
     .company-show-page .company-citation-header {
         align-items: center;
         display: flex;
         gap: 1rem;
         justify-content: space-between;
         margin-bottom: 0.75rem;
-    }
-
-    .company-show-page .company-copy-citation {
-        background: transparent;
-        border: 0;
-        color: #8c1515;
-        font-size: 0.82rem;
-        font-weight: 600;
-        padding: 0;
-    }
-
-    .company-show-page .company-copy-citation:hover {
-        color: #6f1111;
-        text-decoration: underline;
     }
 
     .company-show-page .company-citation-box {
@@ -429,6 +445,11 @@ css:
             gap: 0.65rem;
             grid-template-columns: 2rem 5.5rem minmax(0, 1fr) 1.25rem;
         }
+
+        .company-show-page .company-reference-row {
+            gap: 0.65rem;
+            grid-template-columns: 2rem minmax(0, 1fr) 1.25rem;
+        }
     }
 
 - website_url = (@company.main_url.present? && @company.main_url != "n/a") ? (@company.main_url.include?("http") ? @company.main_url : "http://#{@company.main_url}") : nil
@@ -449,11 +470,12 @@ css:
 - source_links << { label: "Facebook", icon: "fa-brands fa-facebook", icon_color: "#1877f2", url: @company.facebook_url, host: short_host_for.call(@company.facebook_url) } if @company.facebook_url.present? && @company.facebook_url != "n/a"
 - source_links << { label: "AngelList", icon: "fa-solid fa-seedling", icon_color: "#047857", url: @company.angellist_url, host: short_host_for.call(@company.angellist_url) } if @company.angellist_url.present? && @company.angellist_url != "n/a"
 - accessed_on = Date.current.strftime("%B %-d, %Y")
-- academic_refs = []
-- academic_refs << "#{@company.name}. \"#{@company.name}.\" Official website. #{website_url} (accessed #{accessed_on})." if website_url.present?
-- academic_refs << "#{@company.name}. LinkedIn company profile. #{@company.linkedin_url} (accessed #{accessed_on})." if @company.linkedin_url.present? && @company.linkedin_url != "n/a"
-- academic_refs << "#{@company.name}. Crunchbase company profile. #{@company.crunchbase_url} (accessed #{accessed_on})." if @company.crunchbase_url.present? && @company.crunchbase_url != "n/a"
-- academic_refs << "#{@company.name}. #{@company.source} record. #{@company.source_url.presence || 'TechIndex internal record'} (accessed #{accessed_on})." if @company.source.present?
+- academic_ref_entries = []
+- academic_ref_entries << { icon: "fa-solid fa-globe", icon_color: "#2563eb", citation: "#{@company.name}. \"#{@company.name}.\" Official website. #{website_url} (accessed #{accessed_on})." } if website_url.present?
+- academic_ref_entries << { icon: "fa-brands fa-linkedin", icon_color: "#0a66c2", citation: "#{@company.name}. LinkedIn company profile. #{@company.linkedin_url} (accessed #{accessed_on})." } if @company.linkedin_url.present? && @company.linkedin_url != "n/a"
+- academic_ref_entries << { icon: "fa-solid fa-chart-line", icon_color: "#047857", citation: "#{@company.name}. Crunchbase company profile. #{@company.crunchbase_url} (accessed #{accessed_on})." } if @company.crunchbase_url.present? && @company.crunchbase_url != "n/a"
+- atlas_record_url = @company.source_url.presence || company_url(@company)
+- academic_ref_entries << { icon: "fa-solid fa-book", icon_color: "#8c1515", citation: "#{@company.name}. #{@company.source} record. #{atlas_record_url} (accessed #{accessed_on})." } if @company.source.present?
 - reviewed_at = @company.human_reviewed_at || @company.quality_reviewed_at || @company.updated_at
 - reviewed_label = reviewed_at.strftime("%B %Y")
 - citation_text = "Stanford Center for Legal Informatics (CodeX), CodeX TechIndex, #{@company.name}, #{company_url(@company)} (last visited #{accessed_on})."
@@ -523,21 +545,27 @@ css:
                             .company-source-host= source_link[:host]
                             i.fa-solid.fa-arrow-up-right-from-square.company-source-arrow aria-hidden="true"
 
-        - if academic_refs.any?
+        - if academic_ref_entries.any?
             section.company-section
                 .company-section-label Academic references
-                ol.company-reference-list
-                    - academic_refs.first(5).each_with_index do |reference, index|
-                        li.company-reference-item
-                            span.company-reference-index= "[#{index + 1}]"
-                            = reference
+                .company-reference-list
+                    - academic_ref_entries.first(5).each_with_index do |reference_entry, index|
+                        .company-reference-row
+                            .company-source-icon
+                                i class="#{reference_entry[:icon]}" style="color: #{reference_entry[:icon_color]};"
+                            .company-reference-text
+                                span.company-reference-index= "[#{index + 1}]"
+                                = reference_entry[:citation]
+                            button.company-reference-copy type="button" aria-label="Copy citation #{index + 1}" title="Copy citation" data-citation=reference_entry[:citation]
+                                i.fa-regular.fa-copy aria-hidden="true"
 
         section.company-section
             .company-citation-header
                 .company-section-label.mb-0 Cite this entry
-                button.company-copy-citation type="button" id="company-copy-citation" Copy citation
+                button.company-reference-copy type="button" aria-label="Copy TechIndex citation" title="Copy citation" data-citation=citation_text
+                    i.fa-regular.fa-copy aria-hidden="true"
             .company-citation-box
-                em#company-citation-text= citation_text
+                em= citation_text
 
         - related_company_list @company do |related_companies|
             - if related_companies.any?
@@ -559,19 +587,41 @@ css:
 
 javascript:
     (function() {
+        function copyCitationText(button, text) {
+            if (!text) return;
+            var resetButton = function() {
+                button.classList.remove("is-copied");
+                button.innerHTML = "<i class=\"fa-regular fa-copy\" aria-hidden=\"true\"></i>";
+            };
+            var markCopied = function() {
+                button.classList.add("is-copied");
+                button.innerHTML = "<i class=\"fa-solid fa-check\" aria-hidden=\"true\"></i>";
+                window.setTimeout(resetButton, 2000);
+            };
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(markCopied);
+                return;
+            }
+            var textarea = document.createElement("textarea");
+            textarea.value = text;
+            textarea.setAttribute("readonly", "");
+            textarea.style.position = "absolute";
+            textarea.style.left = "-9999px";
+            document.body.appendChild(textarea);
+            textarea.select();
+            try {
+                if (document.execCommand("copy")) markCopied();
+            } finally {
+                document.body.removeChild(textarea);
+            }
+        }
         function initCompanyCitationCopy() {
-            var button = document.getElementById("company-copy-citation");
-            var citation = document.getElementById("company-citation-text");
-            if (!button || !citation || button.dataset.bound === "true") return;
-            button.dataset.bound = "true";
-            button.addEventListener("click", function() {
-                var text = citation.textContent.trim();
-                if (navigator.clipboard && navigator.clipboard.writeText) {
-                    navigator.clipboard.writeText(text).then(function() {
-                        button.textContent = "Copied";
-                        window.setTimeout(function() { button.textContent = "Copy citation"; }, 2000);
-                    });
-                }
+            document.querySelectorAll(".company-show-page .company-reference-copy").forEach(function(button) {
+                if (button.dataset.bound === "true") return;
+                button.dataset.bound = "true";
+                button.addEventListener("click", function() {
+                    copyCitationText(button, button.getAttribute("data-citation"));
+                });
             });
         }
         document.addEventListener("DOMContentLoaded", initCompanyCitationCopy);

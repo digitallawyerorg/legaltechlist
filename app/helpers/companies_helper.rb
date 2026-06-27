@@ -34,7 +34,7 @@ module CompaniesHelper
 
     related_companies = Company.publicly_visible
                                .joins(:tags)
-                               .includes(:tags)
+                               .includes(:tags, :category, :sub_category)
                                .where(tags: { id: tag_ids })
                                .where.not(id: company.id)
                                .distinct

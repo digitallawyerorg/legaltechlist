@@ -11,6 +11,7 @@ class CompaniesController < ApplicationController
   def index
     @base_companies = Company.publicly_visible.includes(:category)
     @companies = @base_companies
+    @base_company_count = @base_companies.count
 
     begin
       # Search
@@ -49,8 +50,25 @@ class CompaniesController < ApplicationController
     end
   end
 
+  def search
+    @query = params[:q].to_s.strip
+    if @query.present?
+      results = Company.publicly_visible
+                       .includes(:category)
+                       .text_search(@query)
+                       .order(name: :asc)
+                       .limit(10)
+                       .select("companies.*, COUNT(*) OVER() AS full_count")
+      @companies = results
+      @total_count = results.first&.try(:full_count).to_i
+    else
+      @companies = Company.none
+      @total_count = 0
+    end
+  end
+
   def map
-    @companies = Company.all
+    @companies = Company.publicly_visible.where.not(latitude: nil).where.not(longitude: nil)
     @hash = Gmaps4rails.build_markers(@companies) do |company, marker|
       marker.lat company.latitude
       marker.lng company.longitude

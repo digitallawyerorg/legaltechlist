@@ -333,6 +333,10 @@ GEM
       psych (>= 4.0.0)
       tsort
     recaptcha (5.19.0)
+    redis (5.4.1)
+      redis-client (>= 0.22.0)
+    redis-client (0.30.0)
+      connection_pool
     reline (0.6.3)
       io-console (~> 0.5)
     responders (3.1.1)
@@ -482,6 +486,7 @@ DEPENDENCIES
   rails (~> 8.0.0)
   rails-controller-testing
   recaptcha
+  redis (~> 5.0)
   ruby-openai
   ruby_llm (~> 1.16)
   ruby_llm-responses_api (~> 0.5.4)
@@ -499,7 +504,7 @@ DEPENDENCIES
   webpacker (~> 5.4)
 
 RUBY VERSION
-  ruby 3.3.10
+   ruby 3.3.10
 
 BUNDLED WITH
    2.5.23

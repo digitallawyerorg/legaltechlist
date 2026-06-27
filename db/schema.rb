@@ -10,9 +10,10 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_06_27_050001) do
+ActiveRecord::Schema[8.0].define(version: 2026_06_27_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
+  enable_extension "pg_trgm"
 
   create_table "active_storage_attachments", force: :cascade do |t|
     t.string "name", null: false
@@ -124,12 +125,16 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_27_050001) do
     t.index ["category_id"], name: "index_companies_on_category_id"
     t.index ["fingerprint"], name: "index_companies_on_fingerprint"
     t.index ["human_reviewed_at"], name: "index_companies_on_human_reviewed_at"
+    t.index ["name"], name: "index_companies_on_name", opclass: :gin_trgm_ops, using: :gin
     t.index ["quality_score"], name: "index_companies_on_quality_score"
     t.index ["quality_status"], name: "index_companies_on_quality_status"
     t.index ["sub_category_id"], name: "index_companies_on_sub_category_id"
     t.index ["target_client_id"], name: "index_companies_on_target_client_id"
     t.index ["verification_verdict"], name: "index_companies_on_verification_verdict"
     t.index ["verified_at"], name: "index_companies_on_verified_at"
+    t.index ["visible", "created_at"], name: "index_companies_on_visible_and_created_at", order: { created_at: :desc }
+    t.index ["visible", "founded_date"], name: "index_companies_on_visible_and_founded_date", order: { founded_date: :desc }
+    t.index ["visible"], name: "index_companies_on_visible"
   end
 
   create_table "company_import_rows", force: :cascade do |t|
@@ -271,6 +276,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_27_050001) do
     t.string "name"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.index ["name"], name: "index_tags_on_name"
   end
 
   create_table "target_clients", force: :cascade do |t|
