@@ -20,7 +20,7 @@ class CompanyImportWorkerService
   def loop
     Kernel.loop do
       processed = drain
-      sleep sleep_seconds if processed.zero?
+      sleep sleep_seconds
     end
   end
 
