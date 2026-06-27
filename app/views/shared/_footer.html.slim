@@ -12,7 +12,9 @@ footer.footer.public-footer
                     li= link_to "Statistics", statistics_path
                     li= link_to "About", about_path
         .public-footer-bottom
-            div © #{Time.current.year} Stanford Center for Legal Informatics
+            .public-footer-bottom-row
+                div © #{Time.current.year} Stanford Center for Legal Informatics
+                = link_to "Data methodology", statistics_methodology_path, class: "public-footer-meta-link"
             p.public-footer-disclaimer
                 ' The companies and services listed in this database are provided for informational purposes only and are not endorsed by CodeX, Stanford Law School, or Stanford University. Info may be out of date. Data provided by
                 = link_to "Legal.io", "https://legal.io", target: "_blank", rel: "noopener"
