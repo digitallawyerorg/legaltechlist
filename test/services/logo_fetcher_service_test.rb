@@ -115,6 +115,17 @@ class LogoFetcherServiceTest < ActiveSupport::TestCase
     end
   end
 
+  test "verifier falls back to get when head is not successful" do
+    service = LogoFetcherService.new(scope: Company.none, dry_run: true, limit: nil, provider: :logo_dev, logger: nil, verifier: nil)
+    head_response = Net::HTTPNotFound.new("1.1", "404", "Not Found")
+    get_response = Net::HTTPOK.new("1.1", "200", "OK")
+    get_response["content-type"] = "image/png"
+    service.define_singleton_method(:requests) { @requests ||= [head_response, get_response] }
+    service.define_singleton_method(:request) { |_uri, _request_class| requests.shift }
+
+    assert service.send(:verified_image_url?, "https://img.logo.dev/example.com")
+  end
+
   private
 
   def with_logo_dev_key(value)

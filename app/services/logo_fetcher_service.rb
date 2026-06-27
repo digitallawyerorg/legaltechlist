@@ -125,7 +125,7 @@ class LogoFetcherService
   def verified_image_url?(url)
     uri = URI.parse(url)
     response = request(uri, Net::HTTP::Head)
-    response = request(uri, Net::HTTP::Get) if response.is_a?(Net::HTTPMethodNotAllowed)
+    response = request(uri, Net::HTTP::Get) unless response.is_a?(Net::HTTPSuccess)
 
     response.is_a?(Net::HTTPSuccess) && response["content-type"].to_s.start_with?("image/")
   rescue URI::InvalidURIError, SocketError, Timeout::Error, Errno::ECONNREFUSED, Net::OpenTimeout, Net::ReadTimeout
