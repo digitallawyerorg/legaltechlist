@@ -376,7 +376,7 @@ class LocationCountryResolver
         return parts.first
       end
 
-      explicit_country = explicit_country_name_from_parts(parts)
+      explicit_country = explicit_country_name_from_parts([parts.last], all_parts: parts)
       if explicit_country.present?
         display_country = explicit_country_part?(parts.last, all_parts: parts) ? parts.last : explicit_country
         return "#{parts.first}, #{display_country}"
