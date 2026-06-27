@@ -3,12 +3,12 @@ namespace :logos do
     task backfill: :environment do
         dry_run = ENV.fetch("DRY_RUN", "true") != "false"
         limit = ENV["LIMIT"].presence
-        provider = ENV["PROVIDER"].presence
+        provider = ENV.fetch("PROVIDER", "logo_dev")
 
         puts "Starting logo backfill..."
         puts "Dry run: #{dry_run}"
         puts "Limit: #{limit || "none"}"
-        puts "Provider: #{provider || "auto"}"
+        puts "Provider: #{provider}"
 
         result = LogoFetcherService.backfill_missing_logos(dry_run: dry_run, limit: limit, provider: provider)
 

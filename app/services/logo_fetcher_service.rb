@@ -3,14 +3,15 @@ require "net/http"
 require "uri"
 
 class LogoFetcherService
+  MissingConfiguration = Class.new(StandardError)
   Result = Struct.new(:checked, :updated, :skipped_existing, :skipped_no_domain, :skipped_unverified, :errors, :examples, keyword_init: true)
 
   DEFAULT_LIMIT = 100
   DEFAULT_SIZE = 128
   VERIFY_TIMEOUT_SECONDS = 8
-  PLACEHOLDER_HOSTS = ["placehold.co"].freeze
+  REPLACEABLE_LOGO_HOSTS = ["placehold.co", "icons.duckduckgo.com"].freeze
 
-  def self.backfill_missing_logos(scope: Company.publicly_visible, dry_run: true, limit: DEFAULT_LIMIT, provider: nil, logger: $stdout, verifier: nil)
+  def self.backfill_missing_logos(scope: Company.publicly_visible, dry_run: true, limit: DEFAULT_LIMIT, provider: :logo_dev, logger: $stdout, verifier: nil)
     new(scope: scope, dry_run: dry_run, limit: limit, provider: provider, logger: logger, verifier: verifier).backfill_missing_logos
   end
 
@@ -24,6 +25,8 @@ class LogoFetcherService
   end
 
   def backfill_missing_logos
+    validate_configuration!
+
     result = Result.new(checked: 0, updated: 0, skipped_existing: 0, skipped_no_domain: 0, skipped_unverified: 0, errors: 0, examples: [])
 
     companies_to_check.find_each do |company|
@@ -65,16 +68,29 @@ class LogoFetcherService
 
   attr_reader :provider
 
+  def validate_configuration!
+    case provider
+    when :logo_dev
+      logo_dev_token
+    else
+      raise ArgumentError, "Unsupported logo provider: #{provider}"
+    end
+  end
+
   def companies_to_check
-    relation = @scope.order(:id)
+    relation = replaceable_logo_scope(@scope)
     @limit.present? ? relation.limit(@limit.to_i) : relation
+  end
+
+  def replaceable_logo_scope(scope)
+    scope.where("logo_url IS NULL OR logo_url = ? OR logo_url LIKE ? OR logo_url LIKE ? OR logo_url LIKE ?", "", "%placehold.co%", "%placeholder%", "%icons.duckduckgo.com%")
   end
 
   def replaceable_logo?(logo_url)
     return true if logo_url.blank?
 
     host = URI.parse(logo_url).host
-    PLACEHOLDER_HOSTS.include?(host)
+    REPLACEABLE_LOGO_HOSTS.include?(host)
   rescue URI::InvalidURIError
     true
   end
@@ -86,23 +102,24 @@ class LogoFetcherService
   def candidate_urls(domain)
     case provider
     when :logo_dev
-      logo_dev_candidate(domain) ? [logo_dev_candidate(domain)] : []
-    when :duckduckgo
-      [duckduckgo_candidate(domain)]
+      [logo_dev_candidate(domain)]
     else
-      [logo_dev_candidate(domain), duckduckgo_candidate(domain)].compact
+      raise ArgumentError, "Unsupported logo provider: #{provider}"
     end
   end
 
   def logo_dev_candidate(domain)
-    token = ENV["LOGO_DEV_PUBLISHABLE_KEY"].presence
-    return nil unless token
+    token = logo_dev_token
 
     "https://img.logo.dev/#{CGI.escape(domain)}?token=#{CGI.escape(token)}&size=#{DEFAULT_SIZE}&format=png&fallback=404"
   end
 
-  def duckduckgo_candidate(domain)
-    "https://icons.duckduckgo.com/ip3/#{CGI.escape(domain)}.ico"
+  def logo_dev_token
+    token = ENV["LOGO_DEV_API_KEY"].presence || ENV["LOGO_DEV_PUBLISHABLE_KEY"].presence
+    raise MissingConfiguration, "Set LOGO_DEV_API_KEY to a logo.dev publishable image key before backfilling logos" unless token
+    raise MissingConfiguration, "LOGO_DEV_API_KEY must be a publishable logo.dev image key, not a secret sk_ key" if token.start_with?("sk_")
+
+    token
   end
 
   def verified_image_url?(url)
