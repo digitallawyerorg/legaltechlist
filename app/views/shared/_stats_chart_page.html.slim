@@ -1,4 +1,4 @@
-/ locals: title, subtitle (optional), chart, table (optional), chart_id (optional), download_filename (optional), csv_path (optional), xlsx_path (optional), table_title (optional), toggles (optional), back_link (default true), download_handler (optional)
+/ locals: title, subtitle (optional), chart, table (optional), chart_id (optional), download_filename (optional), csv_path (optional), xlsx_path (optional), table_title (optional), toggles (optional), view_dropdown (optional), back_link (default true), download_handler (optional)
 - table_title ||= "Data"
 - show_back = local_assigns.fetch(:back_link, true)
 = render partial: "shared/stats_styles"
@@ -17,6 +17,8 @@
                 .stats-chart-controls
                     - if local_assigns[:toggles].present?
                         .stats-pill-group= toggles
+                    - if local_assigns[:view_dropdown].present?
+                        = view_dropdown
                     = render partial: "shared/stats_export_dropdown", locals: { chart_id: local_assigns[:chart_id], download_filename: local_assigns[:download_filename], csv_path: local_assigns[:csv_path], xlsx_path: local_assigns[:xlsx_path], download_handler: local_assigns[:download_handler] }.compact
             .stats-chart-body
                 = chart

@@ -6,9 +6,30 @@ class StaticPagesControllerTest < ActionController::TestCase
     assert_response :success
   end
 
-  test "should get about" do
-    get :about
+  test "should get statistics" do
+    get :statistics
     assert_response :success
+  end
+
+  test "should get total_companies cumulative view" do
+    get :total_companies
+    assert_response :success
+  end
+
+  test "should get total_companies annual view" do
+    get :total_companies, params: { view: "annual" }
+    assert_response :success
+  end
+
+  test "companies_founded redirects to unified growth page" do
+    get :companies_founded
+    assert_redirected_to statistics_total_companies_path(view: "annual")
+  end
+
+  test "companies_founded csv export still works" do
+    get :companies_founded, params: { format: :csv }
+    assert_response :success
+    assert_equal "text/csv", @response.media_type
   end
 
   test "extract_country normalizes country aliases and administrative regions" do

@@ -13,7 +13,7 @@
                     = render partial: "shared/stats_export_dropdown", locals: { csv_path: statistics_exit_patterns_path(format: :csv) }
             .stats-chart-body
                 h2.stats-table-title.mb-3 Exit Timing Distribution
-                = line_chart @exit_timing, height: "min(55vh, 480px)", colors: ["#8c1515"], library: { scales: { y: { beginAtZero: true } } }
+                = line_chart @exit_timing, height: 480, colors: ["#8c1515"], library: { scales: { y: { beginAtZero: true } } }
         .stats-table-card
             .stats-table-card-header
                 h2.stats-table-title Exit Analysis by Category

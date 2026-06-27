@@ -12,4 +12,4 @@
                 .stats-chart-controls
                     = render partial: "shared/stats_export_dropdown", locals: { csv_path: statistics_innovation_hubs_path(format: :csv) }
             .stats-chart-body
-                = line_chart @tech_concentration, height: "min(65vh, 520px)", colors: ["#8C1515"], library: { scales: { y: { beginAtZero: true, title: { display: true, text: "Number of Companies" } }, x: { title: { display: true, text: "Region" } } } }
+                = line_chart @tech_concentration, height: 520, colors: ["#8C1515"], library: { scales: { y: { beginAtZero: true, title: { display: true, text: "Number of Companies" } }, x: { title: { display: true, text: "Region" } } } }

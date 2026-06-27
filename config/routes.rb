@@ -78,19 +78,14 @@ Rails.application.routes.draw do
 
   # New analytics pages
   get 'statistics/innovation_hubs', to: 'static_pages#innovation_hubs', as: :statistics_innovation_hubs
-  get 'statistics/innovation_hubs/download', to: 'static_pages#download_innovation_hubs', as: :download_innovation_hubs
   get 'statistics/exit_patterns', to: 'static_pages#exit_patterns', as: :statistics_exit_patterns
-  get 'statistics/exit_patterns/download', to: 'static_pages#download_exit_patterns', as: :download_exit_patterns
   get 'statistics/founders_journey', to: 'static_pages#founders_journey', as: :statistics_founders_journey
-  get 'statistics/founders_journey/download', to: 'static_pages#download_founders_journey', as: :download_founders_journey
 
   get 'static_pages/home'
   get 'admin/pieter', to: 'admin/pieter#index'
 
   # Add tag routes
   get 'tags/:tag', to: 'companies#index', as: :tag
-
-  post '/export_chart', to: 'static_pages#export_chart'
 
   # Statistics routes
   get 'statistics/country_distribution', to: 'static_pages#country_distribution', as: :statistics_country_distribution

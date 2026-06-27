@@ -13,11 +13,11 @@
                     = render partial: "shared/stats_export_dropdown", locals: { csv_path: download_funding_stages_path(format: :csv) }
             .stats-chart-body
                 h2.stats-table-title.mb-3 Companies by Funding Stage
-                = pie_chart @stage_data.transform_values { |v| v[:count] }, height: "min(45vh, 400px)", colors: ["#8c1515", "#ab2b2b", "#c94141", "#e65757", "#ff6e6e"], library: { plugins: { legend: { position: "right" } } }
+                = pie_chart @stage_data.transform_values { |v| v[:count] }, height: 400, colors: ["#8c1515", "#ab2b2b", "#c94141", "#e65757", "#ff6e6e"], library: { plugins: { legend: { position: "right" } } }
         .stats-chart-card
             .stats-chart-body
                 h2.stats-table-title.mb-3 Stage Progression Success Rates
-                = bar_chart @progression_rates, height: "min(35vh, 320px)", colors: ["#8c1515"], library: { scales: { y: { beginAtZero: true, title: { display: true, text: "Success Rate (%)" } } } }
+                = bar_chart @progression_rates, height: 320, colors: ["#8c1515"], library: { scales: { y: { beginAtZero: true, title: { display: true, text: "Success Rate (%)" } } } }
         .stats-table-card
             .stats-table-card-header
                 h2.stats-table-title Stage breakdown

@@ -45,6 +45,7 @@ class StaticPagesController < ApplicationController
   end
 
   def total_companies
+    @growth_view = growth_view_param
     @table_data = total_companies_table_data(start_year: 2000, end_year: Time.current.year)
 
     # Prepare chart data
@@ -95,6 +96,7 @@ class StaticPagesController < ApplicationController
   end
 
   def total_companies_all_time
+    @growth_view = growth_view_param
     counts_by_year = visible_company_counts_by_year
     earliest_year = [counts_by_year.keys.min || 1975, 1975].max
     @table_data = total_companies_table_data(start_year: earliest_year, end_year: Time.current.year, counts_by_year: counts_by_year)
@@ -168,7 +170,7 @@ class StaticPagesController < ApplicationController
     end
 
     respond_to do |format|
-      format.html
+      format.html { redirect_to statistics_total_companies_path(view: 'annual') }
       format.csv { send_data generate_companies_founded_csv, filename: "companies_founded.csv" }
       format.xlsx { send_data generate_companies_founded_xlsx, filename: "companies_founded.xlsx" }
     end
@@ -314,83 +316,6 @@ class StaticPagesController < ApplicationController
 
   def download_funding_concentration
     redirect_to statistics_funding_concentration_path(format: :csv)
-  end
-
-  def category_success
-    @companies = Company.where(visible: true)
-                       .where('founded_date >= ? AND founded_date <= ? AND founded_date ~ ?',
-                             '2000',
-                             (Time.current.year - 5).to_s, # Exclude last 5 years
-                             '^\d{4}$')
-                       .includes(:category)
-
-    # Calculate success metrics by category
-    categories = Category.where.not(name: 'Unknown')
-                        .joins(:companies)
-                        .group('categories.id')
-                        .having('COUNT(companies.id) > 5')
-
-    @success_metrics = categories.map do |category|
-      cat_companies = @companies.select { |c| c.category == category }
-      total = cat_companies.count.to_f
-
-      # Calculate metrics
-      survival_rate = calculate_survival_rate(cat_companies)
-      funding_success = calculate_funding_success(cat_companies)
-      exit_rate = calculate_exit_rate(cat_companies)
-
-      {
-        name: category.name,
-        survival_rate: survival_rate,
-        funding_success: funding_success,
-        exit_rate: exit_rate
-      }
-    end.sort_by { |d| -d[:survival_rate] }
-
-    # Prepare data for chart
-    @survival_data = @success_metrics.map { |d| [d[:name], d[:survival_rate]] }
-
-    # Calculate top performers for research notes
-    @top_survival = @success_metrics.take(3).map { |d| d[:name] }
-    @top_funding_success = @success_metrics.sort_by { |d| -d[:funding_success] }
-                                         .take(3)
-                                         .map { |d| d[:name] }
-    @top_exits = @success_metrics.sort_by { |d| -d[:exit_rate] }
-                                .take(3)
-                                .map { |d| d[:name] }
-  end
-
-  def business_model
-    # Get all visible companies
-    @companies = Company.where(visible: true)
-                       .where('founded_date >= ? AND founded_date <= ? AND founded_date ~ ?',
-                             '2000',
-                             Time.current.year.to_s,
-                             '^\d{4}$')
-                       .includes(:business_model)
-
-    # Prepare data for the business model distribution chart
-    models = @companies.group(:business_model_id).count
-    @model_data = {}
-    models.each do |model_id, count|
-      model_name = model_id ? BusinessModel.find(model_id).name : 'Unknown'
-      @model_data[model_name] = count
-    end
-
-    # Calculate business model success metrics
-    @model_metrics = models.map do |model_id, count|
-      model = model_id ? BusinessModel.find(model_id) : nil
-      model_name = model ? model.name : 'Unknown'
-      companies = @companies.where(business_model_id: model_id)
-
-      {
-        model: model_name,
-        count: count,
-        percentage: (count.to_f / @companies.count * 100).round(1),
-        avg_funding: calculate_avg_funding(companies),
-        success_rate: calculate_success_rate(companies)
-      }
-    end
   end
 
   def target_client
@@ -539,16 +464,6 @@ class StaticPagesController < ApplicationController
              filename: "category_evolution_#{Time.current.strftime('%Y%m%d')}.csv"
   end
 
-  def download_category_success
-    send_data generate_csv(@success_metrics, ['Category', 'Survival Rate', 'Funding Success', 'Exit Rate']),
-             filename: "category_success_#{Time.current.strftime('%Y%m%d')}.csv"
-  end
-
-  def download_business_model
-    send_data generate_csv(@model_metrics, ['Business Model', 'Companies', 'Percentage', 'Avg Funding']),
-             filename: "business_model_#{Time.current.strftime('%Y%m%d')}.csv"
-  end
-
   def download_target_client
     send_data generate_csv(@client_metrics, ['Target Client', 'Companies', 'Percentage', 'Average Funding']),
              filename: "target_client_analysis_#{Time.current.strftime('%Y%m%d')}.csv"
@@ -654,41 +569,6 @@ class StaticPagesController < ApplicationController
           end
         end
         send_data csv_data, filename: "funding_stages_analysis.csv"
-      end
-    end
-  end
-
-  def category_maturity
-    cached = Rails.cache.fetch("statistics/category_maturity/#{company_cache_version}/#{category_cache_version}", expires_in: 10.minutes) do
-      build_category_maturity_metrics
-    end
-
-    @category_metrics = cached[:category_metrics]
-    @chart_data = cached[:chart_data]
-    @mature_categories = cached[:mature_categories]
-    @emerging_categories = cached[:emerging_categories]
-    @highest_growth = cached[:highest_growth]
-
-    respond_to do |format|
-      format.html
-      format.csv do
-        csv_data = CSV.generate do |csv|
-          csv << ["Category", "Companies", "Avg Age", "Total Funding", "Avg Funding", "Funding Rate", "Late Stage Rate", "Maturity Score", "Stage"]
-          @category_metrics.each do |category, metrics|
-            csv << [
-              category,
-              metrics[:companies],
-              metrics[:avg_age],
-              metrics[:total_funding],
-              metrics[:avg_funding],
-              metrics[:funding_rate],
-              metrics[:late_stage_rate],
-              metrics[:maturity_score],
-              metrics[:maturity_stage]
-            ]
-          end
-        end
-        send_data csv_data, filename: "category_maturity_analysis.csv"
       end
     end
   end
@@ -1209,70 +1089,18 @@ class StaticPagesController < ApplicationController
 
   private
 
+  GROWTH_VIEWS = %w[cumulative annual].freeze
+
+  def growth_view_param
+    params[:view].presence_in(GROWTH_VIEWS) || "cumulative"
+  end
+
   def maturity_base_scope
     Company.where(visible: true)
            .where("founded_date >= ? AND founded_date <= ? AND founded_date ~ ?",
                   "2000",
                   Time.current.year.to_s,
                   "^\d{4}$")
-  end
-
-  def build_category_maturity_metrics
-    category_metrics = {}
-
-    maturity_base_scope.joins(:category)
-                       .group("categories.name")
-                       .pluck(
-                         Arel.sql("categories.name"),
-                         Arel.sql("COUNT(*)"),
-                         Arel.sql("AVG(EXTRACT(YEAR FROM CURRENT_DATE) - NULLIF(founded_date, '')::integer)"),
-                         Arel.sql("COALESCE(SUM(total_funding_amount_usd), 0)"),
-                         Arel.sql("COUNT(*) FILTER (WHERE total_funding_amount_usd > 0)"),
-                         Arel.sql("COUNT(*) FILTER (WHERE total_funding_amount_usd > 10000000)")
-                       ).each do |name, total, avg_age, total_funding, funded, late_stage|
-      total = total.to_f
-      next if total.zero?
-
-      total_funding = total_funding.to_f
-      funded = funded.to_i
-      late_stage = late_stage.to_i
-      funding_rate = (funded / total * 100)
-      late_stage_rate = (late_stage / total * 100)
-      avg_funding = total_funding / total
-      maturity_score = calculate_maturity_score(
-        total_companies: total,
-        avg_age: avg_age.to_f,
-        avg_funding: avg_funding,
-        funding_rate: funding_rate,
-        late_stage_rate: late_stage_rate
-      )
-      maturity_stage = case maturity_score
-                      when 0..25 then "Emerging"
-                      when 26..50 then "Growing"
-                      when 51..75 then "Established"
-                      else "Mature"
-                      end
-
-      category_metrics[name] = {
-        companies: total.to_i,
-        avg_age: avg_age&.round(1) || 0,
-        total_funding: total_funding,
-        avg_funding: avg_funding,
-        funding_rate: funding_rate.round(1),
-        late_stage_rate: late_stage_rate.round(1),
-        maturity_score: maturity_score,
-        maturity_stage: maturity_stage
-      }
-    end
-
-    category_metrics = category_metrics.sort_by { |_, metrics| -metrics[:maturity_score] }.to_h
-    {
-      category_metrics: category_metrics,
-      chart_data: category_metrics.transform_values { |m| m[:maturity_score] },
-      mature_categories: category_metrics.select { |_, m| m[:maturity_stage] == "Mature" }.keys,
-      emerging_categories: category_metrics.select { |_, m| m[:maturity_stage] == "Emerging" }.keys,
-      highest_growth: category_metrics.max_by { |_, m| m[:funding_rate] }&.first
-    }
   end
 
   def build_funding_efficiency_metrics
@@ -1412,186 +1240,6 @@ class StaticPagesController < ApplicationController
 
   FOUR_DIGIT_YEAR_REGEX = "^[0-9]{4}$"
 
-  COUNTRY_ALIASES = {
-    "USA" => "United States",
-    "United States" => "United States",
-    "US" => "United States",
-    "U.S." => "United States",
-    "U.S.A." => "United States",
-    "UK" => "United Kingdom",
-    "United Kingdom" => "United Kingdom",
-    "Great Britain" => "United Kingdom",
-    "England" => "United Kingdom",
-    "UAE" => "United Arab Emirates",
-    "U.A.E." => "United Arab Emirates",
-    "The Netherlands" => "Netherlands",
-    "Russian Federation" => "Russia",
-    "Slovakia Slovak Republic" => "Slovakia",
-    "Hong Kong China" => "Hong Kong",
-    "Germany" => "Germany",
-    "Hong Kong" => "Hong Kong",
-    "South Africa" => "South Africa",
-    "Taiwan" => "Taiwan",
-    "Uruguay" => "Uruguay",
-    "Venezuela" => "Venezuela",
-    "Vietnam" => "Vietnam",
-    "NA - South Africa" => "South Africa",
-    "NA - Uruguay" => "Uruguay",
-    "NA - Venezuela" => "Venezuela",
-    "NA - Vietnam" => "Vietnam"
-  }.freeze
-
-  ADMINISTRATIVE_REGION_COUNTRIES = {
-    "CA" => "United States",
-    "Alabama" => "United States",
-    "Alaska" => "United States",
-    "Arizona" => "United States",
-    "Arkansas" => "United States",
-    "California" => "United States",
-    "Colorado" => "United States",
-    "Connecticut" => "United States",
-    "Delaware" => "United States",
-    "District of Columbia" => "United States",
-    "Florida" => "United States",
-    "Georgia" => "United States",
-    "Illinois" => "United States",
-    "Indiana" => "United States",
-    "Kentucky" => "United States",
-    "Maine" => "United States",
-    "Maryland" => "United States",
-    "Massachusetts" => "United States",
-    "Michigan" => "United States",
-    "Missouri" => "United States",
-    "Montana" => "United States",
-    "New Jersey" => "United States",
-    "New York" => "United States",
-    "North Carolina" => "United States",
-    "Ohio" => "United States",
-    "Oregon" => "United States",
-    "Pennsylvania" => "United States",
-    "South Carolina" => "United States",
-    "Tennessee" => "United States",
-    "Texas" => "United States",
-    "Utah" => "United States",
-    "Virginia" => "United States",
-    "Washington" => "United States",
-    "Wyoming" => "United States",
-    "Alberta" => "Canada",
-    "British Columbia" => "Canada",
-    "Ontario" => "Canada",
-    "Quebec" => "Canada",
-    "Saskatchewan" => "Canada",
-    "Andhra Pradesh" => "India",
-    "Assam" => "India",
-    "Bihar" => "India",
-    "Chandigarh" => "India",
-    "Delhi" => "India",
-    "Haryana" => "India",
-    "Karnataka" => "India",
-    "Kerala" => "India",
-    "Madhya Pradesh" => "India",
-    "Maharashtra" => "India",
-    "Orissa" => "India",
-    "Punjab" => "India",
-    "Rajasthan" => "India",
-    "Tamil Nadu" => "India",
-    "Telangana" => "India",
-    "Uttar Pradesh" => "India",
-    "West Bengal" => "India",
-    "Gujarat" => "India",
-    "New South Wales" => "Australia",
-    "South Australia" => "Australia",
-    "Victoria" => "Australia",
-    "Auckland" => "New Zealand",
-    "Christchurch 8011" => "New Zealand",
-    "Berlin" => "Germany",
-    "Bayern" => "Germany",
-    "Baden-Wurttemberg" => "Germany",
-    "Hamburg" => "Germany",
-    "Niedersachsen" => "Germany",
-    "Nordrhein-Westfalen" => "Germany",
-    "Noord-Holland" => "Netherlands",
-    "Limburg" => "Netherlands",
-    "Utrecht" => "Netherlands",
-    "Flevoland" => "Netherlands",
-    "Lombardia" => "Italy",
-    "Liguria" => "Italy",
-    "Lazio" => "Italy",
-    "Marche" => "Italy",
-    "Piemonte" => "Italy",
-    "Sicilia" => "Italy",
-    "Andalucia" => "Spain",
-    "Catalonia" => "Spain",
-    "Galicia" => "Spain",
-    "Madrid" => "Spain",
-    "Region Metropolitana" => "Chile",
-    "Sao Paulo" => "Brazil",
-    "Lisboa" => "Portugal",
-    "Bucuresti" => "Romania",
-    "Ile-de-France" => "France",
-    "Poitou-Charentes" => "France",
-    "Rhone-Alpes" => "France",
-    "Mazowieckie" => "Poland",
-    "Harjumaa" => "Estonia",
-    "Vorumaa" => "Estonia",
-    "Dublin" => "Ireland",
-    "Cork" => "Ireland",
-    "Wexford" => "Ireland",
-    "Skane Lan" => "Sweden",
-    "Vastra Gotaland" => "Sweden",
-    "Schwyz" => "Switzerland",
-    "Vaud" => "Switzerland",
-    "Zurich" => "Switzerland",
-    "Federal Capital Territory" => "Nigeria",
-    "Lagos" => "Nigeria",
-    "Al Jizah" => "Egypt",
-    "Al Kuwayt" => "Kuwait",
-    "Ar Riyad" => "Saudi Arabia",
-    "Makkah" => "Saudi Arabia",
-    "Ankara" => "Turkey",
-    "Istanbul" => "Turkey",
-    "Jalisco" => "Mexico",
-    "Quintana Roo" => "Mexico",
-    "Jakarta Raya" => "Indonesia",
-    "Jawa Barat" => "Indonesia",
-    "Chiba" => "Japan",
-    "Tokyo" => "Japan",
-    "Pusan-jikhalsi" => "South Korea",
-    "Oost-Vlaanderen" => "Belgium",
-    "Central Region" => "Singapore",
-    "Tel Aviv" => "Israel",
-    "Islamabad" => "Pakistan",
-    "Limassol" => "Cyprus",
-    "Dubai" => "United Arab Emirates",
-    "Abu Dhabi" => "United Arab Emirates",
-    "Macedonia" => "North Macedonia",
-    "Dallas" => "United States",
-    "Hlavni mesto Praha" => "Czech Republic",
-    "L'vivs'ka Oblast'" => "Ukraine",
-    "Ljubljana Urban Commune" => "Slovenia",
-    "Vilniaus Apskritis" => "Lithuania",
-    "Vojvodina" => "Serbia",
-    "Cesu" => "Latvia",
-    "Grand Casablanca" => "Morocco",
-    "San Jose" => "Costa Rica",
-    "Tacloban" => "Philippines",
-    "Manila" => "Philippines",
-    "Lima" => "Peru"
-  }.freeze
-
-  UK_ADMINISTRATIVE_AREAS = [
-    "Aberdeen City", "Barking and Dagenham", "Bath and North East Somerset", "Belfast", "Birmingham", "Brighton and Hove",
-    "Bristol", "Buckinghamshire", "Caerphilly", "Cambridgeshire", "Cardiff", "Cheshire", "Cheshire East", "Cornwall", "Coventry",
-    "Derby", "Dorset", "Dublin", "East Sussex", "Edinburgh", "Essex", "Fermanagh", "Glasgow City", "Hampshire", "Harrow", "Havering",
-    "Herefordshire", "Hertford", "Hillingdon", "Kent", "Kingston upon Hull", "Kirklees", "Lancashire", "Leeds",
-    "Liverpool", "Manchester", "Middlesbrough", "Milton Keynes", "Newcastle upon Tyne", "Newport", "Norfolk",
-    "North Ayrshire", "North Lincolnshire", "North Yorkshire", "Northamptonshire", "Nottingham", "Oxfordshire",
-    "Reading", "Redbridge", "Richmond upon Thames", "Rochdale", "Solihull", "Somerset", "South Lanarkshire",
-    "South Tyneside", "Southampton", "Staffordshire", "Stirling", "Stockport", "Stockton-on-Tees", "Suffolk",
-    "Telford and Wrekin", "Warrington", "Warwickshire", "West Lothian", "West Sussex", "Wigan", "Wiltshire",
-    "Wolverhampton", "Worcestershire"
-  ].freeze
-
   def visible_company_counts_by_year
     Rails.cache.fetch("statistics/visible_company_counts_by_year/#{company_cache_version}", expires_in: 10.minutes) do
       Company.where(visible: true)
@@ -1651,54 +1299,10 @@ class StaticPagesController < ApplicationController
     "Other"
   end
 
-  def calculate_survival_rate(companies)
-    # Companies still active after 5 years
-    founded_before_5y = companies.count { |c| c.founded_date.to_i <= Time.current.year - 5 }
-    return 0 if founded_before_5y.zero?
-
-    still_active = companies.count { |c|
-      founded_year = c.founded_date.to_i
-      founded_year <= Time.current.year - 5 &&
-      (c.exit_date.nil? || c.exit_date.year >= founded_year + 5)
-    }
-
-    (still_active / founded_before_5y.to_f * 100).round(1)
-  end
-
-  def calculate_funding_success(companies)
-    # Companies that raised more than one round
-    has_funding = companies.count { |c| c.total_funding_amount_usd.to_i > 0 }
-    return 0 if has_funding.zero?
-
-    multiple_rounds = companies.count { |c| c.number_of_funding_rounds.to_i > 1 }
-    (multiple_rounds / has_funding.to_f * 100).round(1)
-  end
-
-  def calculate_exit_rate(companies)
-    # Companies that had an exit (acquisition, IPO, etc)
-    total = companies.count.to_f
-    return 0 if total.zero?
-
-    exits = companies.count { |c| c.exit_date.present? }
-    (exits / total * 100).round(1)
-  end
-
   def calculate_success_rate(companies)
     return 0 if companies.empty?
     successful = companies.count { |c| ['Public', 'Acquired'].include?(self.class.stage_mapping[c.funding_status]) }
     (successful / companies.count.to_f) * 100
-  end
-
-  def calculate_maturity_score(metrics)
-    # Normalize and weight different factors
-    company_score = [metrics[:total_companies] / 100.0, 1.0].min * 25  # Max 25 points
-    age_score = [metrics[:avg_age] / 10.0, 1.0].min * 25              # Max 25 points
-    funding_score = [metrics[:funding_rate] / 100.0, 1.0].min * 25    # Max 25 points
-    stage_score = [metrics[:late_stage_rate] / 100.0, 1.0].min * 25   # Max 25 points
-
-    # Calculate total score (0-100)
-    total_score = (company_score + age_score + funding_score + stage_score).round(1)
-    [total_score, 100.0].min  # Cap at 100
   end
 
   def calculate_efficiency_score(metrics)
@@ -1731,68 +1335,6 @@ class StaticPagesController < ApplicationController
     (hhi * 100).round(1)
   end
 
-  def calculate_funding_times(companies)
-    funded_companies = companies.select { |c| c.total_funding_amount_usd.to_f > 0 }
-    return { to_first: 0, between_rounds: 0 } if funded_companies.empty?
-
-    # Average time to first funding
-    times_to_first = funded_companies.map do |company|
-      if company.founded_date.present?
-        # This is a simplification - in reality, you'd want the date of first funding round
-        company.founded_date.to_i
-      end
-    end.compact
-
-    avg_to_first = if times_to_first.any?
-      (times_to_first.sum / times_to_first.size.to_f).round(1)
-    else
-      0
-    end
-
-    # Average time between rounds
-    avg_between = funded_companies.sum do |company|
-      rounds = company.number_of_funding_rounds.to_i
-      if rounds > 1
-        # This is a simplification - in reality, you'd want actual times between rounds
-        rounds / 2.0
-      else
-        0
-      end
-    end / funded_companies.size.to_f
-
-    { to_first: avg_to_first, between_rounds: avg_between.round(1) }
-  end
-
-  def identify_growth_pattern(companies)
-    return 'Insufficient Data' if companies.size < 5
-
-    # Analyze funding patterns
-    funded = companies.count { |c| c.total_funding_amount_usd.to_f > 0 }
-    multiple_rounds = companies.count { |c| c.number_of_funding_rounds.to_i > 1 }
-
-    if funded == 0
-      'Bootstrap'
-    elsif multiple_rounds > (funded * 0.7)
-      'Venture-Backed'
-    elsif multiple_rounds > (funded * 0.3)
-      'Mixed'
-    else
-      'Single Round'
-    end
-  end
-
-  def calculate_timing_impact(companies)
-    # Group companies by founding year and calculate success metrics
-    companies.group_by { |c| c.founded_date.to_i }
-            .transform_values do |year_companies|
-              {
-                count: year_companies.size,
-                success_rate: calculate_success_rate(year_companies),
-                avg_funding: calculate_avg_funding(year_companies)
-              }
-            end
-  end
-
   def generate_innovation_hubs_csv
     CSV.generate do |csv|
       csv << ['Region', 'Companies', 'Top Technologies', 'Diversity Index', 'YoY Growth', 'Specialization Score']
@@ -1820,23 +1362,6 @@ class StaticPagesController < ApplicationController
           metrics[:min_time_to_exit],
           metrics[:max_time_to_exit],
           metrics[:exit_rate]
-        ]
-      end
-    end
-  end
-
-  def generate_founders_journey_csv
-    CSV.generate do |csv|
-      csv << ['Category', 'Companies', 'Avg Time to First Funding', 'Avg Time Between Rounds',
-              'Success Rate', 'Growth Pattern']
-      @lifecycle_metrics.each do |category, metrics|
-        csv << [
-          category,
-          metrics[:companies],
-          metrics[:avg_to_first_funding],
-          metrics[:avg_between_rounds],
-          metrics[:success_rate],
-          metrics[:growth_pattern]
         ]
       end
     end
@@ -1946,25 +1471,11 @@ class StaticPagesController < ApplicationController
   end
 
   def extract_country(location)
-    return nil if location.blank?
-
-    parts = location.to_s.split(",").map { |part| part.squish }.reject(&:blank?)
-    country = parts.last
-    return nil if country.blank?
-
-    normalize_country_name(country)
+    LocationCountryResolver.country_name_for(location)
   end
 
   def normalize_country_name(country)
-    normalized_country = country.to_s.squish
-    without_crunchbase_prefix = normalized_country.sub(/\ANA\s*-\s*/i, "")
-    without_trailing_digits = without_crunchbase_prefix.sub(/\d+\z/, "")
-
-    COUNTRY_ALIASES[without_crunchbase_prefix] ||
-      COUNTRY_ALIASES[without_trailing_digits] ||
-      ADMINISTRATIVE_REGION_COUNTRIES[without_crunchbase_prefix] ||
-      (UK_ADMINISTRATIVE_AREAS.include?(without_crunchbase_prefix) ? "United Kingdom" : nil) ||
-      without_crunchbase_prefix
+    LocationCountryResolver.normalize_country_name(country)
   end
 
   def generate_country_distribution_csv

@@ -5,8 +5,7 @@
             p.stats-hero-subtitle Research insights into the legal technology landscape
         h2.stats-chart-title.mb-3 Statistics
         .stats-index-grid
-            = render partial: "shared/stats_index_card", locals: { path: statistics_total_companies_path, icon: "fa-chart-line", tag: "Growth", title: "Ecosystem Growth", description: "Cumulative growth of the legal tech ecosystem", sparkline_variant: 1 }
-            = render partial: "shared/stats_index_card", locals: { path: statistics_companies_founded_path, icon: "fa-chart-bar", tag: "Growth", title: "Companies Founded by Year", description: "Annual growth in new legal tech ventures", sparkline_variant: 3 }
+            = render partial: "shared/stats_index_card", locals: { path: statistics_total_companies_path, icon: "fa-chart-line", tag: "Growth", title: "Ecosystem Growth", description: "Cumulative and annual growth of the legal tech ecosystem", sparkline_variant: 1 }
             = render partial: "shared/stats_index_card", locals: { path: statistics_category_evolution_5_years_path, icon: "fa-chart-bar", tag: "Categories", title: "Category Evolution", description: "Growth patterns across legal tech segments over time", sparkline_variant: 3 }
             = render partial: "shared/stats_index_card", locals: { path: statistics_country_distribution_path, icon: "fa-globe-americas", tag: "Geography", title: "Country Distribution", description: "Geographic distribution of legal tech companies by country", sparkline_variant: 2 }
             = render partial: "shared/stats_index_card", locals: { path: statistics_funding_by_category_path, icon: "fa-dollar-sign", tag: "Funding", title: "Funding by Category", description: "Distribution of venture capital across legal tech segments", sparkline_variant: 3 }

@@ -13,7 +13,7 @@
                     = render partial: "shared/stats_export_dropdown", locals: { csv_path: statistics_founders_journey_path(format: :csv) }
             .stats-chart-body
                 h2.stats-table-title.mb-3 Company Progression Over Time
-                = line_chart @progression_data.transform_values { |v| v[:companies] }, height: "min(55vh, 480px)", colors: ["#8c1515"], library: { scales: { y: { beginAtZero: true } } }
+                = line_chart @progression_data.transform_values { |v| v[:companies] }, height: 480, colors: ["#8c1515"], library: { scales: { y: { beginAtZero: true } } }
         .stats-table-card
             .stats-table-card-header
                 h2.stats-table-title Journey Stage Analysis

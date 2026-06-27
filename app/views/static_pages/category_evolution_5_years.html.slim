@@ -28,7 +28,7 @@
                     .stats-period-card-body
                         - chart_data = categories.sort_by { |_, count| -count }.first(9).map { |category, count| [category, count] }.to_h
                         - custom_colors = chart_data.keys.map { |category| @category_colors[category] }
-                        = column_chart chart_data, height: "280px", colors: custom_colors, id: "chart-#{period.parameterize}", library: { plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { min: 0, max: 600, ticks: { precision: 0 } } } }
+                        = column_chart chart_data, height: 280, colors: custom_colors, id: "chart-#{period.parameterize}", library: { plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { min: 0, max: 600, ticks: { precision: 0 } } } }
                         javascript:
                             document.addEventListener('DOMContentLoaded', function() {
                                 var chart = Chartkick.charts["chart-#{period.parameterize}"];
