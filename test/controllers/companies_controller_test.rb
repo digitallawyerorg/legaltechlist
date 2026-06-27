@@ -11,6 +11,18 @@ class CompaniesControllerTest < ActionController::TestCase
     assert_not_nil assigns(:companies)
   end
 
+  test "index renders dense table and filter sidebar" do
+    get :index
+
+    assert_response :success
+    assert_select ".company-sidebar-title", "Filter"
+    assert_select ".company-filter-link", text: /All categories/
+    assert_select "table.company-table"
+    assert_select "th", "Company"
+    assert_select "th", "Funding"
+    assert_select "select[name='sort']"
+  end
+
   test "index only includes publicly visible companies" do
     hidden = @company.dup
     hidden.name = "Hidden Company"
@@ -22,6 +34,18 @@ class CompaniesControllerTest < ActionController::TestCase
     assert_response :success
     assert_includes assigns(:companies), @company
     assert_not_includes assigns(:companies), hidden
+  end
+
+  test "index filters by public status" do
+    @company.update_columns(status: "active")
+    companies(:two).update_columns(status: "acquired")
+
+    get :index, params: { status: "active" }
+
+    assert_response :success
+    assert_includes assigns(:companies), @company
+    assert_not_includes assigns(:companies), companies(:two)
+    assert_select ".company-filter-link.is-active", text: /Active/
   end
 
   test "should get new" do

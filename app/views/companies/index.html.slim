@@ -1,139 +1,131 @@
-.bg-body-tertiary.border-bottom.min-vh-100
-    .container.py-3
-        .mb-0
-            .fs-2 Companies
-        p.text-secondary = "#{@companies.total_count} legal technology companies"
+css:
+    .public-company-index { background: #f5f3ee; min-height: calc(100vh - 60px); }
+    .company-shell { display: grid; grid-template-columns: 13rem minmax(0, 1fr); min-height: calc(100vh - 60px); }
+    .company-sidebar { background: #eee9df; border-right: 1px solid #ded7ca; padding: 1rem 0.85rem; }
+    .company-sidebar-title { color: #6b6258; font-size: 0.68rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; }
+    .company-filter-group { border-top: 1px solid #ded7ca; margin-top: 0.85rem; padding-top: 0.85rem; }
+    .company-filter-link { align-items: center; border-radius: 0.4rem; color: #4b5563; display: flex; font-size: 0.78rem; justify-content: space-between; padding: 0.28rem 0.35rem; text-decoration: none; }
+    .company-filter-link:hover { background: rgba(255, 255, 255, 0.55); color: #111827; }
+    .company-filter-link.is-active { background: #fff; color: #8c1515; font-weight: 700; }
+    .company-filter-count { color: #9ca3af; font-size: 0.72rem; margin-left: 0.75rem; }
+    .company-main { padding: 1rem; }
+    .company-toolbar { align-items: center; display: flex; flex-wrap: wrap; gap: 0.6rem; justify-content: space-between; margin-bottom: 0.7rem; }
+    .company-results-title { color: #111827; font-size: 0.95rem; font-weight: 700; margin: 0; }
+    .company-results-meta { color: #8c1515; font-size: 0.76rem; font-weight: 700; margin-right: 0.35rem; }
+    .company-search { max-width: 20rem; }
+    .company-search .form-control, .company-sort { border-color: #ded7ca; font-size: 0.78rem; min-height: 2rem; }
+    .company-table-card { background: #fff; border: 1px solid #e5dfd5; border-radius: 0.6rem; overflow: hidden; }
+    .company-table { font-size: 0.82rem; margin-bottom: 0; min-width: 980px; }
+    .company-table thead th { background: #faf8f3; border-bottom: 1px solid #e5dfd5; color: #6b7280; font-size: 0.66rem; font-weight: 800; letter-spacing: 0.05em; padding: 0.58rem 0.75rem; text-transform: uppercase; white-space: nowrap; }
+    .company-table tbody td { border-top-color: #f0ebe3; padding: 0.58rem 0.75rem; vertical-align: middle; }
+    .company-table tbody tr:hover { background: #fffdf8; }
+    .company-name-cell { align-items: center; display: flex; gap: 0.6rem; min-width: 0; }
+    .company-logo { background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 0.25rem; flex: 0 0 auto; height: 1.75rem; object-fit: contain; padding: 0.12rem; width: 1.75rem; }
+    .company-name-link { color: #111827; display: block; font-weight: 700; text-decoration: none; }
+    .company-name-link:hover { color: #8c1515; text-decoration: underline; }
+    .company-description { color: #6b7280; font-size: 0.72rem; line-height: 1.25; max-width: 36rem; }
+    .company-pill { background: #f6f1e7; border: 1px solid #e6ddce; border-radius: 999px; color: #6b6258; display: inline-flex; font-size: 0.68rem; font-weight: 700; padding: 0.12rem 0.45rem; white-space: nowrap; }
+    .company-status { background: #e8f5ef; color: #047857; }
+    .company-muted { color: #9ca3af; }
+    .company-pagination { padding: 0.75rem; }
+    @media (max-width: 900px) { .company-shell { grid-template-columns: 1fr; } .company-sidebar { border-right: 0; border-bottom: 1px solid #ded7ca; } }
 
-		= form_tag companies_path, method: :get, class: "card mb-4" do
-			.card-body
-				.d-flex.gap-3
-					div style="flex: 1"
-						.input-group
-							= text_field_tag :query, params[:query], class: "form-control", placeholder: "Search companies..."
-							button.btn.btn-primary type="submit"
-								i.fa.fa-search
+- active_params = request.query_parameters.symbolize_keys
+- clear_params = active_params.except(:category, :status, :location, :query, :page)
+- selected_category = params[:category].presence
+- selected_status = params[:status].presence
 
-					div style="flex: 0 0 200px"
-						.d-flex.gap-2
-							.dropdown
-								button.btn.btn-light.d-flex.align-items-center type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside"
-									i.fa.fa-sliders.me-2
-									| Filters
-								.dropdown-menu.dropdown-menu-end.p-3 style="min-width: 300px"
-									.mb-3
-										label.form-label Category
-										= select_tag :category, options_from_collection_for_select(Category.all, :id, :name, params[:category]), prompt: "All Categories", class: "form-select", data: { form_target: "input" }
-									.mb-3
-										label.form-label Location
-										= text_field_tag :location, params[:location], class: "form-control", placeholder: "Filter by location", data: { form_target: "input" }
-									.d-grid
-										button.btn.btn-primary type="submit"
-											i.fa.fa-filter.me-2
-											| Apply Filters
+.public-company-index
+    .company-shell
+        aside.company-sidebar
+            .company-sidebar-title Filter
+            .company-filter-group.mt-2.pt-0.border-0
+                .company-sidebar-title Category
+                = link_to companies_path(active_params.except(:category, :page)), class: "company-filter-link #{selected_category.blank? ? 'is-active' : ''}" do
+                    span All categories
+                    span.company-filter-count= number_with_delimiter(@base_companies.count)
+                - @category_counts.each do |category|
+                    = link_to companies_path(active_params.merge(category: category[:id]).except(:page)), class: "company-filter-link #{selected_category.to_s == category[:id].to_s ? 'is-active' : ''}" do
+                        span= category[:name]
+                        span.company-filter-count= number_with_delimiter(category[:count])
+            - if @status_counts.any?
+                .company-filter-group
+                    .company-sidebar-title Status
+                    = link_to companies_path(active_params.except(:status, :page)), class: "company-filter-link #{selected_status.blank? ? 'is-active' : ''}" do
+                        span Any status
+                        span.company-filter-count= number_with_delimiter(@base_companies.count)
+                    - @status_counts.each do |status, count|
+                        = link_to companies_path(active_params.merge(status: status).except(:page)), class: "company-filter-link #{selected_status == status ? 'is-active' : ''}" do
+                            span= status.to_s.humanize
+                            span.company-filter-count= number_with_delimiter(count)
+            .company-filter-group
+                .company-sidebar-title Location
+                = form_with url: companies_path, method: :get, local: true do
+                    = hidden_field_tag :query, params[:query] if params[:query].present?
+                    = hidden_field_tag :category, params[:category] if params[:category].present?
+                    = hidden_field_tag :status, params[:status] if params[:status].present?
+                    = hidden_field_tag :sort, params[:sort] if params[:sort].present?
+                    = text_field_tag :location, params[:location], class: "form-control form-control-sm mt-2", placeholder: "City, region, country"
+                    button.btn.btn-sm.btn-outline-secondary.w-100.mt-2 type="submit" Apply
+            - if active_params.slice(:category, :status, :location, :query).any?
+                .company-filter-group
+                    = link_to "Reset filters", companies_path(clear_params), class: "company-filter-link is-active"
 
-							.btn-group
-								= hidden_field_tag :view, params[:view] || "grid", id: "view-input"
-								button.btn.btn-light#grid-view.rounded-start class=("active" if params[:view] != "list") type="button" data-view="grid"
-									i.fa.fa-th
-								button.btn.btn-light#list-view.rounded-end class=("active" if params[:view] == "list") type="button" data-view="list"
-									i.fa.fa-list
+        main.company-main
+            .company-toolbar
+                div
+                    span.company-results-meta Result
+                    h1.company-results-title.d-inline= "Showing #{@companies.offset_value + 1}-#{@companies.offset_value + @companies.length} of #{number_with_delimiter(@total_count)} companies"
+                .d-flex.flex-wrap.align-items-center.gap-2
+                    = form_with url: companies_path, method: :get, local: true, html: { class: "company-search" } do
+                        = hidden_field_tag :category, params[:category] if params[:category].present?
+                        = hidden_field_tag :status, params[:status] if params[:status].present?
+                        = hidden_field_tag :location, params[:location] if params[:location].present?
+                        = hidden_field_tag :sort, params[:sort] if params[:sort].present?
+                        .input-group.input-group-sm
+                            = search_field_tag :query, params[:query], class: "form-control", placeholder: "Search companies"
+                            button.btn.btn-outline-secondary type="submit"
+                                i.fa.fa-search
+                    = form_with url: companies_path, method: :get, local: true do
+                        = hidden_field_tag :query, params[:query] if params[:query].present?
+                        = hidden_field_tag :category, params[:category] if params[:category].present?
+                        = hidden_field_tag :status, params[:status] if params[:status].present?
+                        = hidden_field_tag :location, params[:location] if params[:location].present?
+                        = select_tag :sort, options_for_select(@sort_options, params[:sort].presence || "founded_desc"), class: "form-select form-select-sm company-sort", onchange: "this.form.submit()", aria: { label: "Sort companies" }
 
-		//.mb-4
-			.d-flex.gap-2
-				= hidden_field_tag :sort, params[:sort]
-				button.btn.btn-outline-primary.btn-sm.d-flex.align-items-center type="button" data-controller="sort" data-action="click->sort#toggle"
-					| Name
-					i.fa.fa-arrow-down-up.ms-1
-				= link_to "Categories", companies_path(category: params[:category]), class: "btn btn-light btn-sm #{"active" if params[:category].present?}"
-				= link_to "Location", companies_path(location: params[:location]), class: "btn btn-light btn-sm #{"active" if params[:location].present?}"
-
-		- if @view == 'list'
-			.list-view
-				- @companies.each do |company|
-					= link_to company_path(company), class: "text-decoration-none text-dark" do
-						.card.mb-3
-							.card-body
-								.d-flex.gap-3
-									.flex-grow-1
-										h3.h5.mb-1= company.name
-										p.text-secondary.small.mb-0= truncate(company.description, length: 200)
-		- else
-			.row.g-4
-				- @companies.each do |company|
-					.col-md-6.col-lg-4
-						= link_to company_path(company), class: "text-decoration-none text-dark" do
-							.card.h-100.border
-								.card-body
-									.d-flex.gap-3.mb-3
-										= image_tag company.logo,
-											class: "rounded bg-light",
-											style: "width: 48px; height: 48px; object-fit: contain;",
-											alt: "#{company.name} logo"
-										.flex-grow-1
-											h3.h5.mb-1= company.name
-											p.text-secondary.small.mb-0= truncate(company.description, length: 100)
-
-									.d-flex.gap-3.small.text-secondary.mb-3
-										- if company.location.present? && company.location != "Nowhere"
-											.d-flex.align-items-center
-												i.fa.fa-location-dot.me-1
-												= company.location
-
-									- if company.tags.any?
-										.d-flex.flex-wrap.gap-2
-											- visible_tags = company.tags.reject { |tag| tag.name.downcase == 'n/a' }
-											- visible_tags.first(3).each do |tag|
-												span.badge.rounded-pill.bg-light.text-secondary= tag.name
-											- if visible_tags.size > 3
-												span.badge.rounded-pill.bg-light.text-secondary +#{visible_tags.size - 3}
-
-		.container.py-4
-			= paginate @companies
-
-javascript:
-	document.addEventListener('DOMContentLoaded', function() {
-		// Search form handling
-		const searchForm = document.querySelector('form');
-		if (searchForm) {
-			// Handle enter key
-			searchForm.addEventListener('keypress', function(event) {
-				if (event.key === 'Enter') {
-					event.preventDefault();
-					this.submit();
-				}
-			});
-
-			// Handle input changes with debounce
-			const searchInput = searchForm.querySelector('input[type="text"]');
-			if (searchInput) {
-				let timeout = null;
-				searchInput.addEventListener('input', function() {
-					clearTimeout(timeout);
-					timeout = setTimeout(() => {
-						searchForm.submit();
-					}, 300);
-				});
-			}
-		}
-
-		// View toggle handling
-		const gridViewBtn = document.getElementById('grid-view');
-		const listViewBtn = document.getElementById('list-view');
-		const viewInput = document.getElementById('view-input');
-
-		if (gridViewBtn && listViewBtn && viewInput && searchForm) {
-			gridViewBtn.addEventListener('click', function() {
-				viewInput.value = 'grid';
-				gridViewBtn.classList.add('active');
-				listViewBtn.classList.remove('active');
-				searchForm.submit();
-			});
-
-			listViewBtn.addEventListener('click', function() {
-				viewInput.value = 'list';
-				listViewBtn.classList.add('active');
-				gridViewBtn.classList.remove('active');
-				searchForm.submit();
-			});
-		}
-	});
+            .company-table-card
+                .table-responsive
+                    table.table.company-table.align-middle
+                        thead
+                            tr
+                                th Company
+                                th Category
+                                th Founded
+                                th HQ
+                                th Funding
+                                th Status
+                        tbody
+                            - @companies.each do |company|
+                                tr
+                                    td
+                                        .company-name-cell
+                                            = image_tag company.logo, class: "company-logo", alt: "#{company.name} logo", loading: "lazy"
+                                            div
+                                                = link_to company.name, company_path(company), class: "company-name-link"
+                                                .company-description= truncate(company.description.to_s, length: 105)
+                                    td
+                                        span.company-pill= company.category&.name || "Uncategorized"
+                                    td= company.founded_date.presence || "N/A"
+                                    td= company.location.presence || "N/A"
+                                    td
+                                        - if company.total_funding_amount_usd.present? && company.total_funding_amount_usd.positive?
+                                            = number_to_currency(company.total_funding_amount_usd, precision: 0)
+                                        - else
+                                            span.company-muted Not disclosed
+                                    td
+                                        span.company-pill.company-status= company.status.presence&.humanize || "Active"
+                            - if @companies.empty?
+                                tr
+                                    td.text-center.company-muted py="4" colspan="6" No companies match these filters.
+                .company-pagination
+                    = paginate @companies

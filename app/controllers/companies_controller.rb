@@ -7,7 +7,8 @@ class CompaniesController < ApplicationController
   # this search could easily be made much more complex and powerful
   # with ands and ors if necessary
   def index
-    @companies = Company.publicly_visible
+    @base_companies = Company.publicly_visible.includes(:category)
+    @companies = @base_companies
 
     begin
       # Search
@@ -16,6 +17,7 @@ class CompaniesController < ApplicationController
       # Filters
       @companies = @companies.where(category_id: params[:category]) if params[:category].present?
       @companies = @companies.where("location ILIKE ?", "%#{params[:location]}%") if params[:location].present?
+      @companies = @companies.where(status: params[:status]) if params[:status].present?
 
       # Sorting
       case params[:sort] || 'founded_desc'
@@ -25,13 +27,19 @@ class CompaniesController < ApplicationController
         @companies = @companies.order(name: :desc)
       when 'founded_desc'
         @companies = @companies.order(founded_date: :desc)
+      when 'founded_asc'
+        @companies = @companies.order(founded_date: :asc)
+      when 'funding_desc'
+        @companies = @companies.order(total_funding_amount_usd: :desc)
+      when 'updated_desc'
+        @companies = @companies.order(updated_at: :desc)
       end
 
-      # View handling
-      @view = params[:view] || 'grid'
-
       @total_count = @companies.count
-      @companies = @companies.page(params[:page]).per(12)
+      @category_counts = category_counts
+      @status_counts = status_counts
+      @sort_options = [["Newest founded", "founded_desc"], ["Oldest founded", "founded_asc"], ["Name A-Z", "name_asc"], ["Name Z-A", "name_desc"], ["Most funding", "funding_desc"], ["Recently updated", "updated_desc"]]
+      @companies = @companies.page(params[:page]).per(25)
     rescue => e
       Rails.logger.error "Error in companies#index: #{e.message}"
       @companies = Company.none
@@ -141,6 +149,16 @@ class CompaniesController < ApplicationController
   end
 
   private
+    def category_counts
+      @base_companies.joins(:category).group("categories.id", "categories.name").order("categories.name ASC").count.map do |(category_id, name), count|
+        { id: category_id, name: name, count: count }
+      end
+    end
+
+    def status_counts
+      @base_companies.where.not(status: [nil, ""]).group(:status).order(:status).count
+    end
+
     # Use callbacks to share common setup or constraints between actions.
     def set_company
       @company = Company.find(params[:id])
