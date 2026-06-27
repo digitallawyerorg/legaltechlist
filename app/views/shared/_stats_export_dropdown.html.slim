@@ -1,0 +1,30 @@
+/ locals: chart_id (optional), download_filename, csv_path (optional), xlsx_path (optional), download_handler (optional custom onclick)
+- has_image_export = local_assigns[:download_handler].present? || local_assigns[:chart_id].present?
+- has_csv_export = local_assigns[:csv_path].present?
+- has_xlsx_export = local_assigns[:xlsx_path].present?
+- if has_image_export || has_csv_export || has_xlsx_export
+    .dropdown
+        button.stats-export-btn.dropdown-toggle type="button" data-bs-toggle="dropdown" aria-expanded="false"
+            i.fas.fa-download
+            | Export
+        ul.dropdown-menu.dropdown-menu-end
+            - if local_assigns[:download_handler].present?
+                li
+                    button.dropdown-item type="button" onclick="#{download_handler}"
+                        i.fas.fa-image.me-2
+                        | Download as Image (PNG)
+            - elsif local_assigns[:chart_id].present?
+                li
+                    button.dropdown-item type="button" onclick="downloadChart('#{chart_id}')"
+                        i.fas.fa-image.me-2
+                        | Download as Image (PNG)
+            - if local_assigns[:csv_path].present?
+                li
+                    = link_to csv_path, class: "dropdown-item", data: { turbo: false } do
+                        i.fas.fa-file-csv.me-2
+                        | Download as CSV
+            - if local_assigns[:xlsx_path].present?
+                li
+                    = link_to xlsx_path, class: "dropdown-item", data: { turbo: false } do
+                        i.fas.fa-file-excel.me-2
+                        | Download as Excel

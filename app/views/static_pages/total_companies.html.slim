@@ -1,77 +1,30 @@
-.container-fluid.px-3.px-xl-4
-    .card.border-0
-        .card-body
-            .row
-                .col-12
-                    .d-flex.flex-column.flex-md-row.justify-content-between.align-items-start.align-items-md-center.mb-3.mb-md-0
-                        div
-                            div
-                                .h4.fw-bold.mb-0 Ecosystem Growth
-                                p.mb-2 Cumulative growth of the legal technology ecosystem (2000 - #{Date.current.year})
-                            div.mb-3
-                                = link_to statistics_total_companies_path, class: "badge bg-primary text-white me-2 text-decoration-none" do
-                                    ' 2000 - #{Date.current.year}
-                                = link_to statistics_total_companies_all_time_path, class: "badge bg-secondary text-white me-2 text-decoration-none" do
-                                    ' 1975 - #{Date.current.year}
-
-                        .dropdown
-                            button.btn.btn-sm.btn-light.dropdown-toggle type="button" data-bs-toggle="dropdown" aria-expanded="false"
-                                i.fas.fa-download.me-2
-                                | Export
-                            ul.dropdown-menu.dropdown-menu-end
-                                li
-                                    button.dropdown-item onclick="downloadChart()"
-                                        i.fas.fa-image.me-2
-                                        | Download Chart (PNG)
-                                li
-                                    = link_to statistics_total_companies_path(format: :csv), class: "dropdown-item" do
-                                        i.fas.fa-file-csv.me-2
-                                        | Download Data (CSV)
-                                li
-                                    = link_to statistics_total_companies_path(format: :xlsx), class: "dropdown-item" do
-                                        i.fas.fa-file-excel.me-2
-                                        | Download Data (Excel)
-                    .border.rounded-3.p-3
-                        = area_chart [@chart_data], height: "600px", discrete: true, points: false, legend: "bottom", colors: ["#8c1515"], thousands: ",", library: { plugins: { legend: { display: true, position: "bottom" } }, scales: { x: { grid: { display: true, drawBorder: false }, ticks: { font: { size: 12 } } }, y: { min: 0, grid: { display: true, drawBorder: false }, ticks: { font: { size: 12 }, stepSize: 250 } } }, elements: { line: { tension: 0.4, borderWidth: 2, fill: true, backgroundColor: "rgba(140, 21, 21, 0.1)" }, point: { radius: 0, hitRadius: 10, hoverRadius: 4 } }, interaction: { intersect: false, mode: 'index' } }, id: "total-companies-chart"
-
-                .col-12
-                    .table-responsive.mt-5
-                        table.table.table-hover.border#totalCompaniesTable
-                            thead
-                                tr
-                                    th.bg-body-tertiary.fw-normal.text-muted.text-uppercase.fs-sm
-                                        ' Year
-                                    th.bg-body-tertiary.fw-normal.text-muted.text-uppercase.fs-sm
-                                        ' New Companies
-                                    th.bg-body-tertiary.fw-normal.text-muted.text-uppercase.fs-sm
-                                        ' Total Companies
-                                    th.bg-body-tertiary.fw-normal.text-muted.text-uppercase.fs-sm
-                                        ' Growth Rate
-                            tbody
-                                - @table_data.each do |data|
-                                    tr
-                                        td= data[:year]
-                                        td= data[:new_companies]
-                                        td= data[:total_companies]
-                                        td
-                                            - if data[:growth_rate] > 0
-                                                .badge.bg-success-subtle.text-success
-                                                    |+
-                                                    = number_to_percentage(data[:growth_rate], precision: 1)
-                                            - elsif data[:growth_rate] < 0
-                                                .badge.bg-danger-subtle.text-danger
-                                                    | -
-                                                    = number_to_percentage(data[:growth_rate], precision: 1)
-                                            - else
-                                                .badge.bg-secondary-subtle.text-secondary
-                                                    | 0%
-
-javascript:
-  function downloadChart() {
-    const chartElement = document.querySelector('#total-companies-chart');
-    const chartInstance = Chartkick.charts[chartElement.id].getChartObject();
-    const link = document.createElement('a');
-    link.download = 'total_companies.png';
-    link.href = chartInstance.canvas.toDataURL('image/png');
-    link.click();
-  }
+- toggles_html = capture do
+    = link_to "2000 – #{Date.current.year}", statistics_total_companies_path, class: "stats-pill is-active"
+    = link_to "1975 – #{Date.current.year}", statistics_total_companies_all_time_path, class: "stats-pill"
+- table_html = capture do
+    .table-responsive
+        table.table.table-hover.align-middle#totalCompaniesTable
+            thead
+                tr
+                    th Year
+                    th New Companies
+                    th Total Companies
+                    th Growth Rate
+            tbody
+                - @table_data.each do |data|
+                    tr
+                        td= data[:year]
+                        td= data[:new_companies]
+                        td= data[:total_companies]
+                        td
+                            - if data[:growth_rate] > 0
+                                .badge.bg-success-subtle.text-success
+                                    |+
+                                    = number_to_percentage(data[:growth_rate], precision: 1)
+                            - elsif data[:growth_rate] < 0
+                                .badge.bg-danger-subtle.text-danger
+                                    | -
+                                    = number_to_percentage(data[:growth_rate], precision: 1)
+                            - else
+                                .badge.bg-secondary-subtle.text-secondary 0%
+= render partial: "shared/stats_chart_page", locals: { title: "Ecosystem Growth", subtitle: "Cumulative growth of the legal technology ecosystem (2000 – #{Date.current.year})", chart: area_chart([@chart_data], height: "min(65vh, 620px)", discrete: true, points: false, legend: "bottom", colors: ["#8c1515"], thousands: ",", library: { plugins: { legend: { display: true, position: "bottom" } }, scales: { x: { grid: { display: true, drawBorder: false }, ticks: { font: { size: 12 } } }, y: { min: 0, grid: { display: true, drawBorder: false }, ticks: { font: { size: 12 }, stepSize: 250 } } }, elements: { line: { tension: 0.4, borderWidth: 2, fill: true, backgroundColor: "rgba(140, 21, 21, 0.1)" }, point: { radius: 0, hitRadius: 10, hoverRadius: 4 } }, interaction: { intersect: false, mode: "index" } }, id: "total-companies-chart"), table: table_html, chart_id: "total-companies-chart", download_filename: "total_companies", csv_path: statistics_total_companies_path(format: :csv), xlsx_path: statistics_total_companies_path(format: :xlsx), toggles: toggles_html, table_title: "Yearly breakdown" }

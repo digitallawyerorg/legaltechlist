@@ -1,31 +1,39 @@
-.bg-body.border-bottom
-    .container-lg
-        .row.text-center.mt-5.pt-5
-            .col-lg-10.mx-auto
-                .fs-1.fw-bold Funding Efficiency
-                p.lead Capital utilization across segments
-        .row
-            .col-12
-                .p-3.border
-                    .h4.fw-bold Efficiency Scores by Category
-                    = bar_chart @efficiency_scores, height: "400px", colors: ["#8c1515"], library: { scales: { y: { beginAtZero: true, max: 100, title: { display: true, text: "Efficiency Score" } } } }
-            .col-12.mt-4
-                .p-3.border
-                    .h4.fw-bold Average Funding per Round
-                    = bar_chart @funding_per_round, height: "300px", colors: ["#8c1515"], library: { scales: { y: { beginAtZero: true, title: { display: true, text: "Funding per Round ($)" } } } }
-            .col-12.mt-4
+= render partial: "shared/stats_styles"
+.stats-page
+    .stats-page-inner
+        = link_to statistics_path, class: "stats-page-back" do
+            i.fas.fa-arrow-left
+            | All statistics
+        .stats-chart-card
+            .stats-chart-header
+                div
+                    h1.stats-chart-title Funding Efficiency
+                    p.stats-chart-subtitle Capital utilization across segments
+                .stats-chart-controls
+                    = render partial: "shared/stats_export_dropdown", locals: { csv_path: download_funding_efficiency_path(format: :csv) }
+            .stats-chart-body
+                h2.stats-table-title.mb-3 Efficiency Scores by Category
+                = bar_chart @efficiency_scores, height: "min(45vh, 400px)", colors: ["#8c1515"], library: { scales: { y: { beginAtZero: true, max: 100, title: { display: true, text: "Efficiency Score" } } } }
+        .stats-chart-card
+            .stats-chart-body
+                h2.stats-table-title.mb-3 Average Funding per Round
+                = bar_chart @funding_per_round, height: "min(35vh, 320px)", colors: ["#8c1515"], library: { scales: { y: { beginAtZero: true, title: { display: true, text: "Funding per Round ($)" } } } }
+        .stats-table-card
+            .stats-table-card-header
+                h2.stats-table-title Category metrics
+            .stats-table-card-body
                 .table-responsive
-                    table.table.table-hover.border#efficiencyTable
+                    table.table.table-hover.align-middle#efficiencyTable
                         thead
                             tr
-                                th.bg-body-tertiary Category
-                                th.bg-body-tertiary.text-end Companies
-                                th.bg-body-tertiary.text-end Funded
-                                th.bg-body-tertiary.text-end Avg Rounds
-                                th.bg-body-tertiary.text-end Per Round
-                                th.bg-body-tertiary.text-end Per Year
-                                th.bg-body-tertiary.text-end Success Rate
-                                th.bg-body-tertiary.text-end Score
+                                th Category
+                                th.text-end Companies
+                                th.text-end Funded
+                                th.text-end Avg Rounds
+                                th.text-end Per Round
+                                th.text-end Per Year
+                                th.text-end Success Rate
+                                th.text-end Score
                         tbody
                             - @category_metrics.each do |category, metrics|
                                 tr
@@ -37,6 +45,3 @@
                                     td.text-end= number_to_currency(metrics[:funding_per_year], precision: 0)
                                     td.text-end= number_to_percentage(metrics[:success_rate], precision: 1)
                                     td.text-end= number_with_precision(metrics[:efficiency_score], precision: 1)
-                .mt-3.text-end
-                    = link_to "Download CSV", download_funding_efficiency_path(format: :csv), class: "btn btn-sm btn-outline-secondary"
-

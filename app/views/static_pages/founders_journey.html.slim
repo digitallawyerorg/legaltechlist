@@ -1,63 +1,49 @@
-.bg-body.border-bottom
-    .container
-        .row.text-center.mt-5.py-5
-            .col-lg-8.mx-auto
-                .fs-1.fw-bold Founder's Journey
-                p.lead.mb-4 Company lifecycle patterns and success factors in legal tech
-
-.bg-body-tertiary.border-bottom
-    .container.py-5
-        .row
-            .col-12
-                .card.border
-                    .card-body.px-4.pt-4
-                        .d-flex.justify-content-between.align-items-start.mb-4
-                            div
-                                h4.fw-bold Journey Stage Analysis
-                                p.text-muted.mb-0 Distribution of companies across different stages of growth
-                            = link_to statistics_founders_journey_path(format: :csv), class: "btn btn-outline-cardinal-red" do
-                                i.fas.fa-download.me-2
-                                | Download Data
-
-                        .table-responsive
-                            table.table.table-hover.align-middle
-                                thead
-                                    tr
-                                        th.border-0 Stage
-                                        th.border-0.text-end Companies
-                                        th.border-0.text-end % of Total
-                                        th.border-0.text-end Avg Funding
-                                        th.border-0.text-end Success Rate
-                                tbody
-                                    - @journey_metrics.each do |stage, metrics|
-                                        tr
-                                            td = stage
-                                            td.text-end = metrics[:count]
-                                            td.text-end #{metrics[:percentage]}%
-                                            td.text-end $#{number_with_delimiter(metrics[:avg_funding].round)}
-                                            td.text-end #{metrics[:success_rate].round(1)}%
-
-.bg-body
-    .container.py-5
-        .row
-            .col-12
-                .card.border
-                    .card-body.px-4.pt-4
-                        h4.fw-bold Company Progression Over Time
-                        = line_chart @progression_data.transform_values { |v| v[:companies] }, height: "400px", colors: ["#8c1515"], library: { scales: { y: { beginAtZero: true } } }
-
-        .row.mt-4
-            .col-12
-                .card.border
-                    .card-body.px-4.pt-4
-                        h4.fw-bold Key Insights
-                        ul.list-unstyled.mb-0
-                            li.mb-3
-                                i.fas.fa-chart-line.text-cardinal-red.me-2
-                                | Most companies are in the #{@journey_metrics.max_by { |_, m| m[:count] }.first.downcase} stage (#{@journey_metrics.max_by { |_, m| m[:count] }.last[:percentage]}% of total)
-                            li.mb-3
-                                i.fas.fa-dollar-sign.text-cardinal-red.me-2
-                                | Highest average funding in #{@journey_metrics.max_by { |_, m| m[:avg_funding] }.first.downcase} stage: $#{number_with_delimiter(@journey_metrics.max_by { |_, m| m[:avg_funding] }.last[:avg_funding].round)}
-                            li.mb-3
-                                i.fas.fa-trophy.text-cardinal-red.me-2
-                                | Best success rate in #{@journey_metrics.max_by { |_, m| m[:success_rate] }.first.downcase} stage: #{@journey_metrics.max_by { |_, m| m[:success_rate] }.last[:success_rate].round(1)}%
+= render partial: "shared/stats_styles"
+.stats-page
+    .stats-page-inner
+        = link_to statistics_path, class: "stats-page-back" do
+            i.fas.fa-arrow-left
+            | All statistics
+        .stats-chart-card
+            .stats-chart-header
+                div
+                    h1.stats-chart-title Founder's Journey
+                    p.stats-chart-subtitle Company lifecycle patterns and success factors in legal tech
+                .stats-chart-controls
+                    = render partial: "shared/stats_export_dropdown", locals: { csv_path: statistics_founders_journey_path(format: :csv) }
+            .stats-chart-body
+                h2.stats-table-title.mb-3 Company Progression Over Time
+                = line_chart @progression_data.transform_values { |v| v[:companies] }, height: "min(55vh, 480px)", colors: ["#8c1515"], library: { scales: { y: { beginAtZero: true } } }
+        .stats-table-card
+            .stats-table-card-header
+                h2.stats-table-title Journey Stage Analysis
+            .stats-table-card-body
+                .table-responsive
+                    table.table.table-hover.align-middle
+                        thead
+                            tr
+                                th Stage
+                                th.text-end Companies
+                                th.text-end % of Total
+                                th.text-end Avg Funding
+                                th.text-end Success Rate
+                        tbody
+                            - @journey_metrics.each do |stage, metrics|
+                                tr
+                                    td= stage
+                                    td.text-end= metrics[:count]
+                                    td.text-end #{metrics[:percentage]}%
+                                    td.text-end $#{number_with_delimiter(metrics[:avg_funding].round)}
+                                    td.text-end #{metrics[:success_rate].round(1)}%
+        .stats-insights-card
+            h2.stats-chart-title Key Insights
+            ul.list-unstyled.mb-0
+                li.mb-3
+                    i.fas.fa-chart-line.text-cardinal-red.me-2
+                    | Most companies are in the #{@journey_metrics.max_by { |_, m| m[:count] }.first.downcase} stage (#{@journey_metrics.max_by { |_, m| m[:count] }.last[:percentage]}% of total)
+                li.mb-3
+                    i.fas.fa-dollar-sign.text-cardinal-red.me-2
+                    | Highest average funding in #{@journey_metrics.max_by { |_, m| m[:avg_funding] }.first.downcase} stage: $#{number_with_delimiter(@journey_metrics.max_by { |_, m| m[:avg_funding] }.last[:avg_funding].round)}
+                li.mb-3
+                    i.fas.fa-trophy.text-cardinal-red.me-2
+                    | Best success rate in #{@journey_metrics.max_by { |_, m| m[:success_rate] }.first.downcase} stage: #{@journey_metrics.max_by { |_, m| m[:success_rate] }.last[:success_rate].round(1)}%

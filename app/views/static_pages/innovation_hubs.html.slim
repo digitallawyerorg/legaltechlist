@@ -1,25 +1,15 @@
-div.bg-body.border-bottom
-    div.container
-        div.row.text-center.mt-5.py-5
-            div.col-lg-8.mx-auto
-                div.fs-1.fw-bold Innovation Hubs Analysis
-                p.lead.mb-4 Regional technology specialization and innovation patterns across the legal tech ecosystem
-
-div.bg-body-tertiary.border-bottom
-    div.container.py-5
-        div.row.justify-content-center
-            div.col-lg-10
-                div.card.border
-                    div.card-body.px-4.pt-4
-                        div.d-flex.justify-content-between.align-items-start.mb-3
-                            div.rounded.d-flex.justify-content-center.align-items-center style="background-color:#8c15151a; width: 40px; height: 40px;"
-                                i.fas.fa-lightbulb.text-cardinal-red
-
-                        h3.h5.card-title.mb-4 Technology Concentration by Region
-                        = line_chart @tech_concentration, height: "400px", colors: ["#8C1515"], library: { scales: { y: { beginAtZero: true, title: { display: true, text: "Number of Companies" } }, x: { title: { display: true, text: "Region" } } } }
-
-                    div.card-footer.bg-white.border-top-0.px-4.pb-4
-                        = link_to download_innovation_hubs_path(format: :csv), class: "text-decoration-none d-flex align-items-center" do
-                            span.fs-sm style="color: rgb(140 21 21)"
-                                b Download data
-                                i.fa.fa-download.ms-2
+= render partial: "shared/stats_styles"
+.stats-page
+    .stats-page-inner
+        = link_to statistics_path, class: "stats-page-back" do
+            i.fas.fa-arrow-left
+            | All statistics
+        .stats-chart-card
+            .stats-chart-header
+                div
+                    h1.stats-chart-title Innovation Hubs Analysis
+                    p.stats-chart-subtitle Regional technology specialization and innovation patterns across the legal tech ecosystem
+                .stats-chart-controls
+                    = render partial: "shared/stats_export_dropdown", locals: { csv_path: statistics_innovation_hubs_path(format: :csv) }
+            .stats-chart-body
+                = line_chart @tech_concentration, height: "min(65vh, 520px)", colors: ["#8C1515"], library: { scales: { y: { beginAtZero: true, title: { display: true, text: "Number of Companies" } }, x: { title: { display: true, text: "Region" } } } }

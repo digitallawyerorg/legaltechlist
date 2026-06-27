@@ -1,53 +1,41 @@
 - content_for :title, "Category Evolution Over 5-Year Increments"
-
-.container.py-5
-    / Header with download button
-    .row.mb-4
-        .col-12.d-flex.justify-content-between.align-items-center
-            h4.mb-0
-                ' Category Evolution Over 5-Year Increments
-
-                small.text-muted (new companies founded in each period)
-            = link_to "Download CSV", download_category_evolution_5_years_path(format: :csv), class: "btn btn-sm btn-outline-secondary"
-
-    / Shared legend for all charts
-    .row.mb-4
-        .col-12
-            .card.border
-                .card-body.px-4.py-3
-                    .d-flex.flex-wrap.justify-content-center.gap-3
-                        - top_categories = {}
-                        - @period_data.each do |_, categories|
-                            - categories.sort_by { |_, count| -count }.first(9).each do |category, _|
-                                - top_categories[category] = @category_colors[category] if !top_categories.key?(category)
-
-                        - top_categories.to_a.sort_by { |c| c[0] }.each do |category, color|
-                            .d-flex.align-items-center.me-2.mb-1
-                                .rounded-circle.me-2 style="width: 12px; height: 12px; background-color: #{color};"
-                                span.fs-sm
-                                    = category
-
-    / Individual period charts side by side with custom colors
-    .row.g-4
-        - @period_data.each do |period, categories|
-            .col-md-6
-                .card.border.h-100
-                    .card-body.px-2.pt-3.pb-0
+= render partial: "shared/stats_styles"
+.stats-page
+    .stats-page-inner
+        = link_to statistics_path, class: "stats-page-back" do
+            i.fas.fa-arrow-left
+            | All statistics
+        .stats-chart-card
+            .stats-chart-header
+                div
+                    h1.stats-chart-title Category Evolution Over 5-Year Increments
+                    p.stats-chart-subtitle New companies founded in each period
+                .stats-chart-controls
+                    = render partial: "shared/stats_export_dropdown", locals: { csv_path: download_category_evolution_5_years_path(format: :csv) }
+        .stats-legend-card
+            .d-flex.flex-wrap.justify-content-center.gap-3
+                - top_categories = {}
+                - @period_data.each do |_, categories|
+                    - categories.sort_by { |_, count| -count }.first(9).each do |category, _|
+                        - top_categories[category] = @category_colors[category] if !top_categories.key?(category)
+                - top_categories.to_a.sort_by { |c| c[0] }.each do |category, color|
+                    .d-flex.align-items-center.me-2.mb-1
+                        .rounded-circle.me-2 style="width: 12px; height: 12px; background-color: #{color};"
+                        span.fs-sm= category
+        .stats-period-grid
+            - @period_data.each do |period, categories|
+                .stats-period-card
+                    .stats-period-card-body
                         - chart_data = categories.sort_by { |_, count| -count }.first(9).map { |category, count| [category, count] }.to_h
                         - custom_colors = chart_data.keys.map { |category| @category_colors[category] }
-                        = column_chart chart_data, height: '300px', colors: custom_colors, id: "chart-#{period.parameterize}", library: { plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { min: 0, max: 600, ticks: { precision: 0 } } } }
-
+                        = column_chart chart_data, height: "280px", colors: custom_colors, id: "chart-#{period.parameterize}", library: { plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { min: 0, max: 600, ticks: { precision: 0 } } } }
                         javascript:
                             document.addEventListener('DOMContentLoaded', function() {
                                 var chart = Chartkick.charts["chart-#{period.parameterize}"];
                                 if (chart && chart.getChartObject()) {
                                     var chartObj = chart.getChartObject();
-                                    chartObj.options.scales.y.ticks = {
-                                        stepSize: 50,
-                                        precision: 0
-                                    };
+                                    chartObj.options.scales.y.ticks = { stepSize: 50, precision: 0 };
                                     chartObj.update();
                                 }
                             });
-                    .card-footer.bg-body.text-center.border-top-0
-                        h5.mb-0= period
+                    .stats-period-card-footer= period

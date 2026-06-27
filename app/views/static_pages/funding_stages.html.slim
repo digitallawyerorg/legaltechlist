@@ -1,28 +1,36 @@
-.bg-body.border-bottom
-    .container-lg
-        .row.text-center.mt-5.pt-5
-            .col-lg-10.mx-auto
-                .fs-1.fw-bold Funding Stage Progression
-                p.lead Investment patterns across company lifecycles
-        .row
-            .col-12
-                .p-3.border
-                    .h4.fw-bold Companies by Funding Stage
-                    = pie_chart @stage_data.transform_values { |v| v[:count] }, height: "400px", colors: ["#8c1515", "#ab2b2b", "#c94141", "#e65757", "#ff6e6e"], library: { plugins: { legend: { position: "right" } } }
-            .col-12.mt-4
-                .p-3.border
-                    .h4.fw-bold Stage Progression Success Rates
-                    = bar_chart @progression_rates, height: "300px", colors: ["#8c1515"], library: { scales: { y: { beginAtZero: true, title: { display: true, text: "Success Rate (%)" } } } }
-            .col-12.mt-4
+= render partial: "shared/stats_styles"
+.stats-page
+    .stats-page-inner
+        = link_to statistics_path, class: "stats-page-back" do
+            i.fas.fa-arrow-left
+            | All statistics
+        .stats-chart-card
+            .stats-chart-header
+                div
+                    h1.stats-chart-title Funding Stage Progression
+                    p.stats-chart-subtitle Investment patterns across company lifecycles
+                .stats-chart-controls
+                    = render partial: "shared/stats_export_dropdown", locals: { csv_path: download_funding_stages_path(format: :csv) }
+            .stats-chart-body
+                h2.stats-table-title.mb-3 Companies by Funding Stage
+                = pie_chart @stage_data.transform_values { |v| v[:count] }, height: "min(45vh, 400px)", colors: ["#8c1515", "#ab2b2b", "#c94141", "#e65757", "#ff6e6e"], library: { plugins: { legend: { position: "right" } } }
+        .stats-chart-card
+            .stats-chart-body
+                h2.stats-table-title.mb-3 Stage Progression Success Rates
+                = bar_chart @progression_rates, height: "min(35vh, 320px)", colors: ["#8c1515"], library: { scales: { y: { beginAtZero: true, title: { display: true, text: "Success Rate (%)" } } } }
+        .stats-table-card
+            .stats-table-card-header
+                h2.stats-table-title Stage breakdown
+            .stats-table-card-body
                 .table-responsive
-                    table.table.table-hover.border#fundingTable
+                    table.table.table-hover.align-middle#fundingTable
                         thead
                             tr
-                                th.bg-body-tertiary Stage
-                                th.bg-body-tertiary.text-end Companies
-                                th.bg-body-tertiary.text-end Percentage
-                                th.bg-body-tertiary.text-end Total Funding
-                                th.bg-body-tertiary.text-end Avg Funding
+                                th Stage
+                                th.text-end Companies
+                                th.text-end Percentage
+                                th.text-end Total Funding
+                                th.text-end Avg Funding
                         tbody
                             - @stage_data.each do |stage, data|
                                 tr
@@ -31,6 +39,3 @@
                                     td.text-end= number_to_percentage(data[:percentage], precision: 1)
                                     td.text-end= number_to_currency(data[:total_funding], precision: 0)
                                     td.text-end= number_to_currency(data[:avg_funding], precision: 0)
-                .mt-3.text-end
-                    = link_to "Download CSV", download_funding_stages_path(format: :csv), class: "btn btn-sm btn-outline-secondary"
-

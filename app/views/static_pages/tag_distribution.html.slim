@@ -1,105 +1,91 @@
-.bg-body-tertiary.border-bottom
-    .container.py-5
-        .row
-            .col-12
-                .card.border
-                    .card-body.px-4.pt-4
-                        .col-12
-                            .d-flex.flex-column.flex-md-row.justify-content-between.align-items-start.align-items-md-center.mb-3.mb-md-0
-                                div
-                                    .h4.fw-bold.mb-0
-                                        ' Tag Distribution
-                                    p Technology focus areas in the legal tech ecosystem
-                                .dropdown
-                                    button.btn.btn-sm.btn-light.dropdown-toggle type="button" data-bs-toggle="dropdown" aria-expanded="false"
-                                        i.fas.fa-download.me-2
-                                        | Export
-                                    ul.dropdown-menu.dropdown-menu-end
-                                        li
-                                            button.dropdown-item onclick="downloadTagChart()"
-                                                i.fas.fa-image.me-2
-                                                | Download Chart (PNG)
-                                        li
-                                            = link_to download_tag_distribution_path(format: :csv), class: "dropdown-item" do
-                                                i.fas.fa-file-csv.me-2
-                                                | Download Data (CSV)
-                        div#tag-chart style="width: 100%; height: 600px;"
-
-            .col-12.mt-4
+- content_for :title, "Tag Distribution"
+= render partial: "shared/stats_styles"
+.stats-page
+    .stats-page-inner
+        = link_to statistics_path, class: "stats-page-back" do
+            i.fas.fa-arrow-left
+            | All statistics
+        .stats-chart-card
+            .stats-chart-header
+                div
+                    h1.stats-chart-title Tag Distribution
+                    p.stats-chart-subtitle Technology focus areas in the legal tech ecosystem
+                .stats-chart-controls
+                    = render partial: "shared/stats_export_dropdown", locals: { download_handler: "downloadTagChart()", csv_path: download_tag_distribution_path(format: :csv) }
+            .stats-chart-body
+                div#tag-chart style="width: 100%; height: min(65vh, 620px);"
+        .stats-table-card
+            .stats-table-card-header
+                h2.stats-table-title Tag breakdown
+            .stats-table-card-body
                 .table-responsive
-                    table.table.table-hover.border#tagDistributionTable
+                    table.table.table-hover.align-middle#tagDistributionTable
                         thead
                             tr
-                                th.bg-body-tertiary Tag
-                                th.bg-body-tertiary Companies
-                                th.bg-body-tertiary.text-end Percentage
-                                th.bg-body-tertiary.text-end Average Funding
+                                th Tag
+                                th Companies
+                                th.text-end Percentage
+                                th.text-end Average Funding
                         tbody
                             - @tag_metrics.each do |metric|
                                 tr
                                     td= metric[:name]
                                     td= metric[:count]
-                                    td.text-end
-                                        = number_to_percentage(metric[:percentage], precision: 1)
-                                    td.text-end
-                                        = number_to_currency(metric[:avg_funding], precision: 0)
-                .mt-3.text-end
-                    = link_to "Download CSV", download_tag_distribution_path(format: :csv), class: "btn btn-sm btn-outline-secondary"
+                                    td.text-end= number_to_percentage(metric[:percentage], precision: 1)
+                                    td.text-end= number_to_currency(metric[:avg_funding], precision: 0)
 
 javascript:
-  google.charts.load('current', {packages: ['corechart']});
-  google.charts.setOnLoadCallback(drawTagChart);
+    google.charts.load('current', {packages: ['corechart']});
+    google.charts.setOnLoadCallback(drawTagChart);
 
-  function drawTagChart() {
-    var rawData = #{raw(@tag_metrics.sort_by { |m| -m[:count] }.first(50).map { |m| [m[:name], m[:count]] }.to_json)};
+    function drawTagChart() {
+        var rawData = #{raw(@tag_metrics.sort_by { |m| -m[:count] }.first(50).map { |m| [m[:name], m[:count]] }.to_json)};
 
-    // Add header row
-    var data = [['Tag', 'Companies']];
-    rawData.forEach(function(row) {
-      data.push(row);
-    });
+        var data = [['Tag', 'Companies']];
+        rawData.forEach(function(row) {
+            data.push(row);
+        });
 
-    var dataTable = google.visualization.arrayToDataTable(data);
+        var dataTable = google.visualization.arrayToDataTable(data);
 
-    var options = {
-      backgroundColor: 'transparent',
-      colors: ['#8c1515'],
-      chartArea: {
-        left: 75,
-        top: 20,
-        width: '100%',
-        height: '75%'
-      },
-      legend: { position: 'none' },
-      hAxis: {
-        slantedText: true,
-        slantedTextAngle: 45,
-        textStyle: { fontSize: 10 }
-      },
-      vAxis: {
-        title: 'Number of Companies',
-        minValue: 0,
-        textStyle: { fontSize: 12 }
-      },
-      bar: { groupWidth: '80%' }
-    };
+        var options = {
+            backgroundColor: 'transparent',
+            colors: ['#8c1515'],
+            chartArea: {
+                left: 75,
+                top: 20,
+                width: '100%',
+                height: '75%'
+            },
+            legend: { position: 'none' },
+            hAxis: {
+                slantedText: true,
+                slantedTextAngle: 45,
+                textStyle: { fontSize: 10 }
+            },
+            vAxis: {
+                title: 'Number of Companies',
+                minValue: 0,
+                textStyle: { fontSize: 12 }
+            },
+            bar: { groupWidth: '80%' }
+        };
 
-    var chart = new google.visualization.ColumnChart(document.getElementById('tag-chart'));
-    chart.draw(dataTable, options);
+        var chart = new google.visualization.ColumnChart(document.getElementById('tag-chart'));
+        chart.draw(dataTable, options);
 
-    // Redraw on window resize for responsiveness
-    window.addEventListener('resize', function() {
-      chart.draw(dataTable, options);
-    });
-  }
-
-  function downloadTagChart() {
-    var chart = document.getElementById('tag-chart');
-    var canvas = chart.getElementsByTagName('canvas')[0];
-    if (canvas) {
-      var link = document.createElement('a');
-      link.download = 'tag_distribution.png';
-      link.href = canvas.toDataURL('image/png');
-      link.click();
+        window.addEventListener('resize', function() {
+            chart.draw(dataTable, options);
+        });
     }
-  }
+
+    function downloadTagChart() {
+        var chart = document.getElementById('tag-chart');
+        var canvas = chart.getElementsByTagName('canvas')[0];
+        if (canvas) {
+            var link = document.createElement('a');
+            link.download = 'tag_distribution.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+    }

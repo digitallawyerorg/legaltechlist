@@ -1,13 +1,11 @@
-.table-responsive.mt-4
-    table.table.table-hover.align-middle.border
+.table-responsive
+    table.table.table-hover.align-middle
         thead
             tr
                 - headers.each do |header|
-                    th.bg-body-tertiary.fw-normal.text-muted.text-uppercase.fs-sm
-                        = header
+                    th= header
         tbody
             - rows.each do |row|
                 tr
                     - row.each do |cell|
-                        td
-                            = cell
+                        td= cell

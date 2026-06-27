@@ -1,61 +1,47 @@
-.bg-body.border-bottom
-    .container
-        .row.text-center.mt-5.py-5
-            .col-lg-8.mx-auto
-                .fs-1.fw-bold Exit Patterns
-                p.lead.mb-4 Analysis of successful exits and market timing
-
-.bg-body-tertiary.border-bottom
-    .container.py-5
-        .row
-            .col-12
-                .card.border
-                    .card-body.px-4.pt-4
-                        h4.fw-bold Exit Timing Distribution
-                        = line_chart @exit_timing, height: "400px", colors: ["#8c1515"], library: { scales: { y: { beginAtZero: true } } }
-
-.bg-body
-    .container.py-5
-        .row
-            .col-12
-                .card.border
-                    .card-body.px-4.pt-4
-                        .d-flex.justify-content-between.align-items-start.mb-4
-                            div
-                                h4.fw-bold Exit Analysis by Category
-                                p.text-muted.mb-0 Detailed breakdown of exit patterns across different legal tech segments
-                            = link_to statistics_exit_patterns_path(format: :csv), class: "btn btn-outline-cardinal-red" do
-                                i.fas.fa-download.me-2
-                                | Download Data
-
-                        .table-responsive
-                            table.table.table-hover.align-middle
-                                thead
-                                    tr
-                                        th.border-0 Category
-                                        th.border-0.text-end Total Exits
-                                        th.border-0.text-end Avg Time to Exit
-                                        th.border-0.text-end Exit Rate
-                                tbody
-                                    - @exit_metrics.each do |category, metrics|
-                                        tr
-                                            td = category
-                                            td.text-end = metrics[:total_exits]
-                                            td.text-end #{metrics[:avg_time_to_exit]} years
-                                            td.text-end #{metrics[:exit_rate]}%
-
-        .row.mt-4
-            .col-12
-                .card.border
-                    .card-body.px-4.pt-4
-                        h4.fw-bold Key Insights
-                        ul.list-unstyled.mb-0
-                            li.mb-3
-                                i.fas.fa-chart-line.text-cardinal-red.me-2
-                                | Categories with highest exit rates: #{@exit_metrics.sort_by { |_, m| -m[:exit_rate] }.first(3).map { |c, m| "#{c} (#{m[:exit_rate]}%)" }.join(", ")}
-                            li.mb-3
-                                i.fas.fa-clock.text-cardinal-red.me-2
-                                | Average time to exit: #{@exit_metrics.empty? ? 0 : (@exit_metrics.values.sum { |m| m[:avg_time_to_exit] } / @exit_metrics.size)} years
-                            li.mb-3
-                                i.fas.fa-rocket.text-cardinal-red.me-2
-                                | Most exits occurred in #{@exit_timing.empty? ? 'N/A' : @exit_timing.max_by { |_, count| count }.first}
+= render partial: "shared/stats_styles"
+.stats-page
+    .stats-page-inner
+        = link_to statistics_path, class: "stats-page-back" do
+            i.fas.fa-arrow-left
+            | All statistics
+        .stats-chart-card
+            .stats-chart-header
+                div
+                    h1.stats-chart-title Exit Patterns
+                    p.stats-chart-subtitle Analysis of successful exits and market timing
+                .stats-chart-controls
+                    = render partial: "shared/stats_export_dropdown", locals: { csv_path: statistics_exit_patterns_path(format: :csv) }
+            .stats-chart-body
+                h2.stats-table-title.mb-3 Exit Timing Distribution
+                = line_chart @exit_timing, height: "min(55vh, 480px)", colors: ["#8c1515"], library: { scales: { y: { beginAtZero: true } } }
+        .stats-table-card
+            .stats-table-card-header
+                h2.stats-table-title Exit Analysis by Category
+            .stats-table-card-body
+                .table-responsive
+                    table.table.table-hover.align-middle
+                        thead
+                            tr
+                                th Category
+                                th.text-end Total Exits
+                                th.text-end Avg Time to Exit
+                                th.text-end Exit Rate
+                        tbody
+                            - @exit_metrics.each do |category, metrics|
+                                tr
+                                    td= category
+                                    td.text-end= metrics[:total_exits]
+                                    td.text-end #{metrics[:avg_time_to_exit]} years
+                                    td.text-end #{metrics[:exit_rate]}%
+        .stats-insights-card
+            h2.stats-chart-title Key Insights
+            ul.list-unstyled.mb-0
+                li.mb-3
+                    i.fas.fa-chart-line.text-cardinal-red.me-2
+                    | Categories with highest exit rates: #{@exit_metrics.sort_by { |_, m| -m[:exit_rate] }.first(3).map { |c, m| "#{c} (#{m[:exit_rate]}%)" }.join(", ")}
+                li.mb-3
+                    i.fas.fa-clock.text-cardinal-red.me-2
+                    | Average time to exit: #{@exit_metrics.empty? ? 0 : (@exit_metrics.values.sum { |m| m[:avg_time_to_exit] } / @exit_metrics.size)} years
+                li.mb-3
+                    i.fas.fa-rocket.text-cardinal-red.me-2
+                    | Most exits occurred in #{@exit_timing.empty? ? "N/A" : @exit_timing.max_by { |_, count| count }.first}

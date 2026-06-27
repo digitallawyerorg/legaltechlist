@@ -1,31 +1,18 @@
-.bg-body.border-bottom
-    .container-lg
-        .row.text-center.mt-5.pt-5
-            .col-lg-10.mx-auto
-                .fs-1.fw-bold Target Client Analysis
-
-        .row
-            .col-12
-                .p-3.border
-                    .h4.fw-bold Companies by Target Client
-                    p Market focus and client segment distribution
-                    - chart_options = { height: "600px", library: { chart: { style: { fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial" } }, plotOptions: { bar: { dataLabels: { enabled: true, format: "{point.y}" } } }, xAxis: { title: { text: "Target Client" } }, yAxis: { title: { text: "Number of Companies" } } } }
-                    = bar_chart @client_data, colors: ["#8c1515"], **chart_options
-            .col-12.mt-4
-                .table-responsive
-                    table.table.table-hover.border#clientTable
-                        thead
-                            tr
-                                th.bg-body-tertiary Target Client
-                                th.bg-body-tertiary.text-end Companies
-                                th.bg-body-tertiary.text-end Percentage
-                                th.bg-body-tertiary.text-end Avg Funding
-                        tbody
-                            - @client_metrics.each do |data|
-                                tr
-                                    td= data[:client]
-                                    td.text-end= data[:count]
-                                    td.text-end= number_to_percentage(data[:percentage], precision: 1)
-                                    td.text-end= number_to_currency(data[:avg_funding], precision: 0)
-                .mt-3.text-end
-                    = link_to "Download CSV", download_target_client_path(format: :csv), class: "btn btn-sm btn-outline-secondary"
+- chart_options = { height: "min(65vh, 620px)", library: { chart: { style: { fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial" } }, plotOptions: { bar: { dataLabels: { enabled: true, format: "{point.y}" } } }, xAxis: { title: { text: "Target Client" } }, yAxis: { title: { text: "Number of Companies" } } } }
+- table_html = capture do
+    .table-responsive
+        table.table.table-hover.align-middle#clientTable
+            thead
+                tr
+                    th Target Client
+                    th.text-end Companies
+                    th.text-end Percentage
+                    th.text-end Avg Funding
+            tbody
+                - @client_metrics.each do |data|
+                    tr
+                        td= data[:client]
+                        td.text-end= data[:count]
+                        td.text-end= number_to_percentage(data[:percentage], precision: 1)
+                        td.text-end= number_to_currency(data[:avg_funding], precision: 0)
+= render partial: "shared/stats_chart_page", locals: { title: "Target Client Analysis", subtitle: "Market focus and client segment distribution", chart: bar_chart(@client_data, colors: ["#8c1515"], **chart_options), table: table_html, csv_path: download_target_client_path(format: :csv), table_title: "Client segment breakdown" }

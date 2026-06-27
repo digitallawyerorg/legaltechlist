@@ -1,11 +1,7 @@
-.bg-body.border-bottom
-    .container
-        .row.text-center.mt-5.py-5
-            .col-lg-8.mx-auto
-                .fs-1.fw-bold CodeX TechIndex
-                p.lead.mb-4 Research insights into the legal technology landscape
-
-.bg-body-tertiary.border-bottom
-    .container.py-4
-        h2.h4 Statistics
-        = render partial: 'shared/statistics'
+= render partial: "shared/stats_styles"
+.stats-page
+    .stats-page-inner
+        .stats-hero
+            h1.stats-hero-title CodeX TechIndex
+            p.stats-hero-subtitle Research insights into the legal technology landscape
+        = render partial: "shared/statistics"

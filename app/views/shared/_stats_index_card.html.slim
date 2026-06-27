@@ -1,0 +1,42 @@
+/ locals: path, icon, tag, title, description, sparkline_variant (optional, 1-4)
+- sparkline_variant ||= (title.hash.abs % 4) + 1
+= link_to path, class: "stats-index-card" do
+    .stats-index-card-top
+        .stats-index-card-icon
+            i class="fas #{icon}"
+        span.stats-index-card-tag= tag
+    h3.stats-index-card-title= title
+    p.stats-index-card-desc= description
+    .stats-index-card-sparkline aria-hidden="true"
+        - if sparkline_variant == 1
+            svg viewBox="0 0 240 48" preserveAspectRatio="none" width="100%" height="48"
+                path fill="none" stroke="#8c1515" stroke-width="2" stroke-linecap="round" d="M0,38 L30,34 L60,28 L90,30 L120,18 L150,22 L180,10 L210,14 L240,4"
+                path fill="url(#sparkGrad1)" d="M0,38 L30,34 L60,28 L90,30 L120,18 L150,22 L180,10 L210,14 L240,4 L240,48 L0,48 Z"
+                defs
+                    linearGradient#sparkGrad1 x1="0" y1="0" x2="0" y2="1"
+                        stop offset="0%" stop-color="#8c1515" stop-opacity="0.18"
+                        stop offset="100%" stop-color="#8c1515" stop-opacity="0"
+        - elsif sparkline_variant == 2
+            svg viewBox="0 0 240 48" preserveAspectRatio="none" width="100%" height="48"
+                path fill="none" stroke="#175e54" stroke-width="2" stroke-linecap="round" d="M0,12 L40,16 L80,24 L120,20 L160,30 L200,26 L240,36"
+                path fill="url(#sparkGrad2)" d="M0,12 L40,16 L80,24 L120,20 L160,30 L200,26 L240,36 L240,48 L0,48 Z"
+                defs
+                    linearGradient#sparkGrad2 x1="0" y1="0" x2="0" y2="1"
+                        stop offset="0%" stop-color="#175e54" stop-opacity="0.16"
+                        stop offset="100%" stop-color="#175e54" stop-opacity="0"
+        - elsif sparkline_variant == 3
+            svg viewBox="0 0 240 48" preserveAspectRatio="none" width="100%" height="48"
+                rect x="8" y="28" width="18" height="20" fill="rgba(140,21,21,0.25)" rx="2"
+                rect x="38" y="20" width="18" height="28" fill="rgba(140,21,21,0.35)" rx="2"
+                rect x="68" y="24" width="18" height="24" fill="rgba(140,21,21,0.3)" rx="2"
+                rect x="98" y="14" width="18" height="34" fill="rgba(140,21,21,0.45)" rx="2"
+                rect x="128" y="18" width="18" height="30" fill="rgba(140,21,21,0.38)" rx="2"
+                rect x="158" y="10" width="18" height="38" fill="rgba(140,21,21,0.5)" rx="2"
+                rect x="188" y="16" width="18" height="32" fill="rgba(140,21,21,0.4)" rx="2"
+                rect x="218" y="8" width="18" height="40" fill="rgba(140,21,21,0.55)" rx="2"
+        - else
+            svg viewBox="0 0 240 48" preserveAspectRatio="none" width="100%" height="48"
+                path fill="none" stroke="#8c1515" stroke-width="2" stroke-linecap="round" d="M0,24 L60,24 L60,8 L120,8 L120,32 L180,32 L180,16 L240,16"
+    .stats-index-card-footer
+        span View analysis
+        i.fas.fa-arrow-right

@@ -1,52 +1,14 @@
 - content_for :title, "AI Trends in Legal Tech"
-
-.bg-body-tertiary.border-bottom
-    .container.py-4
-        .card
-            .card-body
-                .row
-                    .col-12
-                        .d-flex.flex-column.flex-md-row.justify-content-between.align-items-start.align-items-md-center.mb-3.mb-md-0
-                            div
-                                .h4.fw-bold.mb-0 AI Companies Founded Per Year
-                                p Annual growth in new AI-focused legal tech ventures
-                            .dropdown
-                                button.btn.btn-sm.btn-light.dropdown-toggle type="button" data-bs-toggle="dropdown" aria-expanded="false"
-                                    i.fas.fa-download.me-2
-                                    | Export
-                                ul.dropdown-menu.dropdown-menu-end
-                                    li
-                                        button.dropdown-item onclick="downloadChart()"
-                                            i.fas.fa-image.me-2
-                                            | Download Chart (PNG)
-                                    li
-                                        = link_to download_ai_trends_path(format: :csv), class: "dropdown-item" do
-                                            i.fas.fa-file-csv.me-2
-                                            | Download Data (CSV)
-
-
-                        = column_chart @table_data, height: '500px', colors: ['#8c1515'], library: { scales: { xAxes: [{ ticks: { autoSkip: false, maxRotation: 90, minRotation: 90 } }], yAxes: [{ ticks: { beginAtZero: true } }] } }
-                    .col-12
-                        .table-responsive.mt-5
-                            table.table.table-hover.border#totalCompaniesTable
-                                thead
-                                    tr
-                                        th.bg-body-tertiary.fw-normal.text-muted.text-uppercase.fs-sm
-                                            ' Year
-                                        th.bg-body-tertiary.fw-normal.text-muted.text-uppercase.fs-sm
-                                            ' AI Companies Founded
-                                tbody
-                                    - @table_data.each do |year, count|
-                                        tr
-                                            td = year
-                                            td = count
-
-javascript:
-  function downloadChart() {
-    const chartElement = document.querySelector('#aiCompaniesTable');
-    const chartInstance = Chartkick.charts[chartElement.id].getChartObject();
-    const link = document.createElement('a');
-    link.download = 'ai_companies.png';
-    link.href = chartInstance.canvas.toDataURL('image/png');
-    link.click();
-  }
+- table_html = capture do
+    .table-responsive
+        table.table.table-hover.align-middle#aiTrendsTable
+            thead
+                tr
+                    th Year
+                    th AI Companies Founded
+            tbody
+                - @table_data.each do |year, count|
+                    tr
+                        td= year
+                        td= count
+= render partial: "shared/stats_chart_page", locals: { title: "AI Companies Founded Per Year", subtitle: "Annual growth in new AI-focused legal tech ventures", chart: column_chart(@table_data, height: "min(65vh, 620px)", colors: ["#8c1515"], id: "ai-trends-chart", library: { scales: { xAxes: [{ ticks: { autoSkip: false, maxRotation: 90, minRotation: 90 } }], yAxes: [{ ticks: { beginAtZero: true } }] } }), table: table_html, chart_id: "ai-trends-chart", download_filename: "ai_trends", csv_path: download_ai_trends_path(format: :csv), table_title: "Yearly data" }

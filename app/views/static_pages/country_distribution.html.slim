@@ -1,9 +1,5 @@
-.bg-body.border-bottom
-    .container-lg.py-4
-        .row
-            .col-12
-                - chart_id = "country-distribution-chart"
-                - chart_options = { id: chart_id, height: "600px", library: { backgroundColor: "#ffffff", datalessRegionColor: "#f8f9fa", defaultColor: "#f8f9fa", colorAxis: { minValue: 0, maxValue: 250, colors: ['#f3e1e1', '#8c1515'] }, tooltip: { isHtml: false }, region: "world", displayMode: "regions", resolution: "countries" } }
-                javascript:
-                    google.charts.load('current', { 'packages': ['geochart'] });
-                = render partial: 'shared/statistics_card', locals: { title: "Company Distribution by Country", subtitle: "Geographic concentration of legal tech ventures", chart: geo_chart(@chart_data, **chart_options), table: render(partial: 'shared/data_table', locals: { headers: ['Country', 'Companies', 'Total Funding', 'Avg Funding'], rows: @table_data.map { |data| [data[:country], data[:companies], number_to_currency(data[:total_funding], precision: 0), number_to_currency(data[:avg_funding], precision: 0)] } }), chart_id: chart_id, download_filename: "country_distribution" }
+- chart_id = "country-distribution-chart"
+- chart_options = { id: chart_id, height: "min(65vh, 620px)", library: { backgroundColor: "#ffffff", datalessRegionColor: "#f8f9fa", defaultColor: "#f8f9fa", colorAxis: { minValue: 0, maxValue: 250, colors: ["#f3e1e1", "#8c1515"] }, tooltip: { isHtml: false }, region: "world", displayMode: "regions", resolution: "countries" } }
+javascript:
+    google.charts.load('current', { 'packages': ['geochart'] });
+= render partial: "shared/statistics_card", locals: { title: "Company Distribution by Country", subtitle: "Geographic concentration of legal tech ventures", chart: geo_chart(@chart_data, **chart_options), table: render(partial: "shared/data_table", locals: { headers: ["Country", "Companies", "Total Funding", "Avg Funding"], rows: @table_data.map { |data| [data[:country], data[:companies], number_to_currency(data[:total_funding], precision: 0), number_to_currency(data[:avg_funding], precision: 0)] } }), chart_id: chart_id, download_filename: "country_distribution" }
