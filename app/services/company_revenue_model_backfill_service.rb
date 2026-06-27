@@ -57,6 +57,7 @@ class CompanyRevenueModelBackfillService
     if confidence >= min_confidence
       unless dry_run
         company.business_model_ids = BusinessModel.where(name: names).pluck(:id)
+        company.save!(validate: false)
         result["applied"] = true
       end
       result["action"] = dry_run ? "would_apply" : "applied"

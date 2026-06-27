@@ -54,6 +54,7 @@ namespace :taxonomy do
         puts "DRY RUN #{line}"
       else
         company.business_model_ids = records.map(&:id)
+        company.save!(validate: false)
         puts line
       end
     end
@@ -135,7 +136,8 @@ namespace :taxonomy do
     puts "companies_visible: #{Company.publicly_visible.count}"
     puts "unknown_category: #{Company.unknown_category.count}"
     puts "unknown_target_client: #{Company.unknown_target_client.count}"
-    puts "unknown_revenue_model: #{Company.joins(:business_model).where(business_models: { name: 'Unknown' }).count}"
+    puts "unknown_revenue_model: #{Company.joins(:company_business_models).where(business_models: { name: 'Unknown' }).distinct.count}"
+    puts "legacy_unknown_revenue_fk: #{Company.joins(:business_model).where(business_models: { name: 'Unknown' }).count}"
     puts "no_m2m_revenue: #{Company.left_joins(:company_business_models).where(company_business_models: { id: nil }).where(business_model_id: nil).count}"
     puts "untagged_visible: #{Company.publicly_visible.left_joins(:taggings).where(taggings: { id: nil }).count}"
     puts "categories: #{Category.order(:name).pluck(:name).join(', ')}"
@@ -312,6 +314,24 @@ namespace :taxonomy do
     end
 
     puts "apply_category_migration complete mode=#{dry_run ? 'dry-run' : 'write'} counts=#{counts.inspect}"
+  end
+
+  desc "Sync legacy business_model_id from M2M revenue models. DRY_RUN=false to write."
+  task sync_legacy_revenue_fk: :environment do
+    dry_run = ENV.fetch("DRY_RUN", "true") != "false"
+    changed = 0
+
+    Company.includes(:company_business_models).find_each do |company|
+      next if company.company_business_models.empty?
+
+      target_id = company.company_business_models.order(:id).pick(:business_model_id)
+      next if target_id.blank? || company.business_model_id == target_id
+
+      changed += 1
+      company.update_columns(business_model_id: target_id, updated_at: Time.current) unless dry_run
+    end
+
+    puts "sync_legacy_revenue_fk complete mode=#{dry_run ? 'dry-run' : 'write'} changed=#{changed}"
   end
 
   desc "Run full taxonomy migration pipeline in order. DRY_RUN=false to write."
