@@ -5,7 +5,7 @@ xml.rss :version => "2.0" do
   xml.channel do
     xml.title "Legal Tech List"
     xml.author "Legal Tech List"
-    xml.description "Explore a curated list of 400+ companies changing the way legal is done"
+    xml.description "Explore a curated list of #{number_with_delimiter(visible_company_count)} companies changing the way legal is done"
     xml.link root_url
     xml.language "en"
 

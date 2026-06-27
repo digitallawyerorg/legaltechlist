@@ -1,4 +1,5 @@
 - content_for :title, "Category Evolution Over 5-Year Increments"
+- content_for :description, "Cumulative legal tech companies by category through each five-year period, based on visible CodeX TechIndex profiles founded since 2000."
 = render partial: "shared/stats_styles"
 .stats-page
     .stats-page-inner
@@ -9,7 +10,7 @@
             .stats-chart-header
                 div
                     h1.stats-chart-title Category Evolution Over 5-Year Increments
-                    p.stats-chart-subtitle New companies founded in each period
+                    p.stats-chart-subtitle Cumulative companies by category through each period (not new companies per period alone)
                 .stats-chart-controls
                     = render partial: "shared/stats_export_dropdown", locals: { csv_path: download_category_evolution_5_years_path(format: :csv) }
         .stats-legend-card
@@ -28,14 +29,7 @@
                     .stats-period-card-body
                         - chart_data = categories.sort_by { |_, count| -count }.first(9).map { |category, count| [category, count] }.to_h
                         - custom_colors = chart_data.keys.map { |category| @category_colors[category] }
-                        = column_chart chart_data, height: 280, colors: custom_colors, id: "chart-#{period.parameterize}", library: { plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { min: 0, max: 600, ticks: { precision: 0 } } } }
-                        javascript:
-                            document.addEventListener('DOMContentLoaded', function() {
-                                var chart = Chartkick.charts["chart-#{period.parameterize}"];
-                                if (chart && chart.getChartObject()) {
-                                    var chartObj = chart.getChartObject();
-                                    chartObj.options.scales.y.ticks = { stepSize: 50, precision: 0 };
-                                    chartObj.update();
-                                }
-                            });
+                        - period_chart_id = "chart-#{period.parameterize}"
+                        = column_chart chart_data, height: 280, colors: custom_colors, id: period_chart_id, library: { plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { min: 0, max: @max_count, ticks: { stepSize: 50, precision: 0 } } } }
                     .stats-period-card-footer= period
+        = render partial: "shared/stats_methodology"

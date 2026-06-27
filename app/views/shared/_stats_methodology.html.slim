@@ -1,0 +1,13 @@
+/ locals: show_funding_caveat (optional, default false)
+- show_funding_caveat = local_assigns.fetch(:show_funding_caveat, false)
+- as_of = Date.current.strftime("%B %-d, %Y")
+.stats-methodology
+    p.stats-methodology-text
+        | Based on
+        strong= " #{number_with_delimiter(visible_company_count)} "
+        | publicly listed companies in the CodeX TechIndex (visible profiles only). Charts typically include companies founded in 2000 or later with valid data for the metric shown. Data as of #{as_of}.
+        = link_to "Methodology & data dictionary", statistics_methodology_path, class: "stats-methodology-link"
+    - if show_funding_caveat
+        p.stats-methodology-caveat
+            i.fas.fa-circle-info aria-hidden="true"
+            |  Funding figures reflect disclosed venture capital only. Companies without reported funding are excluded from funding totals and averages.

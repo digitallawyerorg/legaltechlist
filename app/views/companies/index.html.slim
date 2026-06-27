@@ -16,6 +16,7 @@ css:
     .company-filter-count { color: #a3a09a; flex: 0 0 auto; font-size: 0.76rem; font-weight: 600; letter-spacing: 0.04em; margin-left: 0.75rem; }
     .company-filter-link.is-active .company-filter-count { color: #a3a09a; }
     .company-main { padding: 0.7rem 1rem 1rem; }
+    .company-index-title { color: #2a2723; font-family: edict, "edict Fallback", Georgia, Cambria, "Times New Roman", Times, serif; font-size: clamp(1.35rem, 2.2vw, 1.65rem); font-weight: 500; letter-spacing: -0.01em; line-height: 1.2; margin: 0 0 0.75rem; }
     .company-toolbar { align-items: center; display: grid; gap: 0.65rem; grid-template-columns: minmax(18rem, 1fr) auto; margin-bottom: 0.6rem; }
     .company-toolbar form { margin: 0; }
     .company-search { min-width: 0; }
@@ -49,6 +50,8 @@ css:
     @media (max-width: 900px) { .company-shell { grid-template-columns: 1fr; } .company-sidebar { border-right: 0; border-bottom: 1px solid #ded7ca; } .company-toolbar { grid-template-columns: 1fr; } }
     @media (max-width: 640px) { .public-company-index { min-height: auto; } .company-shell { min-height: auto; } .company-sidebar { border-bottom: 1px solid #ded7ca; padding: 0.55rem 0.65rem; } .company-sidebar-heading { display: none; } .company-filter-toggle-label { align-items: center; background: #fff; border: 1px solid #ded7ca; border-radius: 0.6rem; color: #3f3933; display: flex; font-size: 0.86rem; font-weight: 800; justify-content: space-between; min-height: 2.45rem; padding: 0 0.8rem; } .company-filter-toggle-label::after { color: #8c1515; content: "Show"; font-size: 0.74rem; font-weight: 900; letter-spacing: 0.06em; text-transform: uppercase; } .company-filter-toggle:checked + .company-filter-toggle-label::after { content: "Hide"; } .company-filter-content { display: none; max-height: 18rem; overflow-y: auto; padding-top: 0.65rem; } .company-filter-toggle:checked ~ .company-filter-content { display: block; } .company-filter-group { margin-top: 0.9rem; } .company-filter-link { padding: 0.42rem 0.55rem; } .company-main { padding: 0.45rem 0.65rem 0.9rem; } .company-toolbar { gap: 0.45rem; margin-bottom: 0.55rem; } .company-search .form-control, .company-sort { font-size: 0.86rem; min-height: 2.45rem; width: 100%; } .company-search .form-control { padding-left: 2.15rem; } .company-search-icon { left: 0.85rem; } .company-table-card { background: transparent; border: 0; border-radius: 0; overflow: visible; } .company-table { border-collapse: collapse; border-spacing: 0; min-width: 0; } .company-table thead { display: none; } .company-table tbody, .company-table tr, .company-table td { display: block; width: 100%; } .company-table tbody tr { background: #fff; border: 1px solid #e5dfd5; border-radius: 0.75rem; box-shadow: 0 1px 4px rgba(17, 24, 39, 0.04); margin-bottom: 0.85rem; overflow: hidden; } .company-table tbody td { align-items: center; border-top: 1px solid #f3eee6; display: flex; gap: 0.75rem; justify-content: space-between; padding: 0.58rem 0.75rem; } .company-table tbody td:first-child { border-top: 0; display: block; padding: 0.72rem 0.75rem; } .company-table tbody td:not(:first-child)::before { color: #8b8379; content: attr(data-label); flex: 0 0 auto; font-size: 0.62rem; font-weight: 900; letter-spacing: 0.08em; text-transform: uppercase; } .company-name-cell { align-items: flex-start; } .company-logo { height: 2rem; width: 2rem; } .company-description { max-width: none; } .company-pagination { align-items: flex-start; flex-direction: column; gap: 0.55rem; padding: 0.3rem 0.1rem 0; } .company-pagination .pagination { flex-wrap: wrap; } }
 
+- content_for :title, "Legal Tech Companies"
+- content_for :description, "Browse and search #{number_with_delimiter(@total_count)} legal technology companies in the CodeX TechIndex — filter by category, location, status, and funding."
 - active_params = request.query_parameters.symbolize_keys
 - clear_params = active_params.except(:category, :status, :location, :query, :page)
 - selected_category = params[:category].presence
@@ -97,6 +100,7 @@ css:
                         button.btn.btn-sm.btn-outline-secondary.w-100.mt-2 type="submit" Apply
 
         main.company-main
+            h1.company-index-title Legal Tech Companies
             .company-toolbar
                 = form_with url: companies_path, method: :get, local: true, html: { class: "company-search" } do
                     = hidden_field_tag :category, params[:category] if params[:category].present?

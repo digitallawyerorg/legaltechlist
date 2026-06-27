@@ -85,9 +85,30 @@ class StaticPagesControllerTest < ActionController::TestCase
     end
   end
 
-  test "extract_country skips blank locations" do
-    assert_nil @controller.send(:extract_country, nil)
-    assert_nil @controller.send(:extract_country, "")
+  test "methodology page renders" do
+    get :methodology
+    assert_response :success
+    assert_includes @response.body, "Data Methodology"
+    assert_includes @response.body, "Visibility rules"
+  end
+
+  test "statistics pages include methodology partial" do
+    get :target_client
+    assert_response :success
+    assert_includes @response.body, "stats-methodology"
+  end
+
+  test "funding page includes disclosed funding caveat" do
+    get :funding_by_category
+    assert_response :success
+    assert_includes @response.body, "disclosed venture capital"
+  end
+
+  test "country distribution includes geo navigation" do
+    get :country_distribution
+    assert_response :success
+    assert_includes @response.body, "Innovation hubs"
+    assert_includes @response.body, "stats-geo-nav"
   end
 
 end

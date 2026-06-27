@@ -1,4 +1,5 @@
 - content_for :title, "Tag Distribution"
+- content_for :description, "Dominant technology tags and themes among visible legal tech companies in the CodeX TechIndex."
 = render partial: "shared/stats_styles"
 .stats-page
     .stats-page-inner
@@ -33,6 +34,7 @@
                                     td= metric[:count]
                                     td.text-end= number_to_percentage(metric[:percentage], precision: 1)
                                     td.text-end= number_to_currency(metric[:avg_funding], precision: 0)
+        = render partial: "shared/stats_methodology", locals: { show_funding_caveat: true }
 
 javascript:
     google.charts.load('current', {packages: ['corechart']});

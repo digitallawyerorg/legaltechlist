@@ -1,9 +1,43 @@
 # See http://www.robotstxt.org/robotstxt.html for documentation on how to use the robots.txt file.
 
 User-agent: *
+Allow: /companies?page=
 Disallow: /admin
 Disallow: /admin/
-Disallow: /*?*page=
 Disallow: /*?*status=
 Disallow: /*?*tag=
-Crawl-delay: 10
+
+User-agent: GPTBot
+Allow: /statistics
+Allow: /statistics/
+Allow: /companies
+Allow: /about
+Allow: /about/data
+Allow: /llms.txt
+Disallow: /admin
+
+User-agent: ChatGPT-User
+Allow: /statistics
+Allow: /statistics/
+Allow: /companies
+Allow: /about
+Allow: /about/data
+Allow: /llms.txt
+Disallow: /admin
+
+User-agent: Google-Extended
+Disallow: /
+
+User-agent: CCBot
+Disallow: /
+
+User-agent: anthropic-ai
+Allow: /statistics
+Allow: /statistics/
+Allow: /companies
+Allow: /about
+Allow: /about/data
+Allow: /llms.txt
+Disallow: /admin
+
+Sitemap: https://techindex.law.stanford.edu/sitemap.xml

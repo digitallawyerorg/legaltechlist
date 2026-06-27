@@ -1,0 +1,67 @@
+- content_for :title, "Data Methodology"
+- content_for :description, "Fields, sources, and visibility rules for CodeX TechIndex company profiles and statistics dashboards."
+= render partial: "shared/stats_styles"
+.stats-page
+    .stats-page-inner
+        = link_to statistics_path, class: "stats-page-back" do
+            i.fas.fa-arrow-left
+            | All statistics
+        .stats-chart-card
+            .stats-chart-header
+                div
+                    h1.stats-chart-title Data Methodology
+                    p.stats-chart-subtitle How CodeX TechIndex collects, curates, and presents legal tech company data
+            .stats-chart-body
+                .stats-insights-card.border-0.shadow-none.p-0
+                    h2.stats-table-title Company profile fields
+                    ul
+                        li
+                            strong Name, description, website:
+                            |  Core identity fields sourced from public company information and CodeX research.
+                        li
+                            strong Founded date:
+                            |  Four-digit founding year when available; used for growth and cohort statistics (typically 2000+).
+                        li
+                            strong Location:
+                            |  Headquarters city/region/country; normalized for geographic charts.
+                        li
+                            strong Category:
+                            |  Primary legal tech segment (e.g. contracts, litigation, research).
+                        li
+                            strong Business model & target client:
+                            |  Go-to-market and monetization classification.
+                        li
+                            strong Tags:
+                            |  Technology themes (e.g. AI, analytics) applied across the ecosystem.
+                        li
+                            strong Funding:
+                            |  Total disclosed venture capital in USD when reported; absent values are treated as undisclosed.
+                        li
+                            strong Status:
+                            |  Operating status (active, acquired, etc.) when known.
+                    h2.stats-table-title.mt-4 Visibility rules
+                    ul
+                        li
+                            strong Visible profiles:
+                            |  Only companies marked visible appear in the public directory and statistics. Hidden profiles are excluded from all public counts and charts.
+                        li
+                            strong Unknown category:
+                            |  Excluded from category-based statistics.
+                        li
+                            strong Minimum segment size:
+                            |  Some breakdowns (business model, target client) hide segments with fewer than 10 companies.
+                    h2.stats-table-title.mt-4 Statistics conventions
+                    ul
+                        li Charts show counts as of #{Date.current.strftime("%B %-d, %Y")} based on #{number_with_delimiter(visible_company_count)} visible companies unless noted otherwise.
+                        li Ecosystem growth charts use cumulative totals or annual new companies depending on the selected view.
+                        li Category evolution charts show cumulative companies founded through each period end, not new companies per period alone.
+                        li Funding charts include only companies with disclosed funding amounts greater than zero.
+                        li Geographic charts require a valid headquarters location and typically filter to companies founded in 2000 or later.
+                    h2.stats-table-title.mt-4 Sources & citation
+                    p
+                        | Data is curated by
+                        = link_to " CodeX, the Stanford Center for Legal Informatics", "https://law.stanford.edu/codex-the-stanford-center-for-legal-informatics/", target: "_blank", class: "stats-methodology-link"
+                        | , with contributions from Legal.io and community submissions. When citing TechIndex data, include the page URL, access date, and note visibility/funding caveats above.
+                    p.mb-0
+                        | AI-friendly overview:
+                        = link_to " llms.txt", "/llms.txt", class: "stats-methodology-link"

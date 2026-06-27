@@ -1,4 +1,7 @@
-- chart_options = { height: 620, library: { chart: { style: { fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial" } }, plotOptions: { bar: { dataLabels: { enabled: true, format: "{point.y}" } } }, xAxis: { title: { text: "Business Model" } }, yAxis: { title: { text: "Number of Companies" } } } }
+- content_for :title, "Business Model Insights"
+- content_for :description, "How legal tech companies monetize and deliver value — SaaS, marketplace, and other business model patterns in the CodeX TechIndex."
+- chart_id = "business-model-chart"
+- chart_options = { height: 620, id: chart_id, library: { indexAxis: "y", plugins: { legend: { display: false } }, scales: { x: { grid: { display: true, drawBorder: false }, ticks: { precision: 0 } }, y: { grid: { display: false }, ticks: { font: { size: 12 } } } } } }
 - table_html = capture do
     .table-responsive
         table.table.table-hover.align-middle#businessModelTable
@@ -15,4 +18,4 @@
                         td.text-end= data[:count]
                         td.text-end= number_to_percentage(data[:percentage], precision: 1)
                         td.text-end= number_to_currency(data[:avg_funding], precision: 0)
-= render partial: "shared/stats_chart_page", locals: { title: "Business Model Insights", subtitle: "How legal tech companies monetize and deliver value", chart: bar_chart(@model_data, colors: ["#8c1515"], **chart_options), table: table_html, csv_path: download_business_model_path(format: :csv), table_title: "Business model breakdown" }
+= render partial: "shared/stats_chart_page", locals: { title: "Business Model Insights", subtitle: "How legal tech companies monetize and deliver value", chart: bar_chart(@model_data, colors: ["#8c1515"], **chart_options), table: table_html, chart_id: chart_id, download_filename: "business_model", csv_path: download_business_model_path(format: :csv), table_title: "Business model breakdown", show_funding_caveat: true }

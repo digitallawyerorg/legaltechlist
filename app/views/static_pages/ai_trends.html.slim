@@ -1,4 +1,5 @@
 - content_for :title, "AI Trends in Legal Tech"
+- content_for :description, "Annual count of new AI-focused legal tech companies founded since 2010, based on AI-related technology tags in the CodeX TechIndex."
 - table_html = capture do
     .table-responsive
         table.table.table-hover.align-middle#aiTrendsTable
@@ -11,4 +12,4 @@
                     tr
                         td= year
                         td= count
-= render partial: "shared/stats_chart_page", locals: { title: "AI Companies Founded Per Year", subtitle: "Annual growth in new AI-focused legal tech ventures", chart: column_chart(@table_data, height: 620, colors: ["#8c1515"], id: "ai-trends-chart", library: { scales: { xAxes: [{ ticks: { autoSkip: false, maxRotation: 90, minRotation: 90 } }], yAxes: [{ ticks: { beginAtZero: true } }] } }), table: table_html, chart_id: "ai-trends-chart", download_filename: "ai_trends", csv_path: download_ai_trends_path(format: :csv), table_title: "Yearly data" }
+= render partial: "shared/stats_chart_page", locals: { title: "AI Companies Founded Per Year", subtitle: "Annual growth in new AI-focused legal tech ventures", chart: column_chart(@table_data, height: 620, colors: ["#8c1515"], id: "ai-trends-chart", library: { plugins: { legend: { display: false } }, scales: { x: { ticks: { maxRotation: 90, minRotation: 90 } }, y: { beginAtZero: true, ticks: { precision: 0 } } } }), table: table_html, chart_id: "ai-trends-chart", download_filename: "ai_trends", csv_path: download_ai_trends_path(format: :csv), table_title: "Yearly data" }

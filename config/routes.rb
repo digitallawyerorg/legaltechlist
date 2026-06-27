@@ -65,11 +65,15 @@ Rails.application.routes.draw do
 
   # Static pages
   get 'about', to: 'static_pages#about'
+  get 'about/data', to: redirect('/statistics/methodology', status: 301)
+  get 'sitemap.xml', to: 'sitemap#index', defaults: { format: :xml }, as: :sitemap
+
   get 'statistics', to: 'static_pages#statistics'
+  get 'statistics/methodology', to: 'static_pages#methodology', as: :statistics_methodology
   get 'statistics/tag_distribution', to: 'static_pages#tag_distribution'
   get 'statistics/tag_distribution/download', to: 'static_pages#download_tag_distribution', as: :download_tag_distribution
-  get 'statistics/category_evolution', to: 'static_pages#category_evolution'
-  get 'statistics/category_evolution/download', to: 'static_pages#download_category_evolution', as: :download_category_evolution
+  get 'statistics/category_evolution', to: redirect('/statistics/category_evolution_5_years', status: 301)
+  get 'statistics/category_evolution/download', to: redirect('/statistics/category_evolution_5_years/download', status: 301)
 
   # Total Companies routes with format support
   get 'statistics/total_companies', to: 'static_pages#total_companies', as: :statistics_total_companies
@@ -78,8 +82,10 @@ Rails.application.routes.draw do
 
   # New analytics pages
   get 'statistics/innovation_hubs', to: 'static_pages#innovation_hubs', as: :statistics_innovation_hubs
-  get 'statistics/exit_patterns', to: 'static_pages#exit_patterns', as: :statistics_exit_patterns
-  get 'statistics/founders_journey', to: 'static_pages#founders_journey', as: :statistics_founders_journey
+  get 'statistics/exit_patterns', to: redirect('/statistics', status: 301)
+  get 'statistics/exit_patterns/download', to: redirect('/statistics', status: 301)
+  get 'statistics/founders_journey', to: redirect('/statistics', status: 301)
+  get 'statistics/founders_journey/download', to: redirect('/statistics', status: 301)
 
   get 'static_pages/home'
   get 'admin/pieter', to: 'admin/pieter#index'
@@ -93,12 +99,12 @@ Rails.application.routes.draw do
   get 'statistics/target_client/download', to: 'static_pages#download_target_client', as: :download_target_client
   get 'statistics/business_model', to: 'static_pages#business_model', as: :statistics_business_model
   get 'statistics/business_model/download', to: 'static_pages#download_business_model', as: :download_business_model
-  get 'statistics/funding_stages', to: 'static_pages#funding_stages', as: :statistics_funding_stages
-  get 'statistics/funding_stages/download', to: 'static_pages#download_funding_stages', as: :download_funding_stages
-  get 'statistics/funding_efficiency', to: 'static_pages#funding_efficiency', as: :statistics_funding_efficiency
-  get 'statistics/funding_efficiency/download', to: 'static_pages#download_funding_efficiency', as: :download_funding_efficiency
-  get 'statistics/funding_concentration', to: 'static_pages#funding_concentration', as: :statistics_funding_concentration
-  get 'statistics/funding_concentration/download', to: 'static_pages#download_funding_concentration', as: :download_funding_concentration
+  get 'statistics/funding_stages', to: redirect('/statistics', status: 301)
+  get 'statistics/funding_stages/download', to: redirect('/statistics', status: 301)
+  get 'statistics/funding_efficiency', to: redirect('/statistics', status: 301)
+  get 'statistics/funding_efficiency/download', to: redirect('/statistics', status: 301)
+  get 'statistics/funding_concentration', to: redirect('/statistics', status: 301)
+  get 'statistics/funding_concentration/download', to: redirect('/statistics', status: 301)
   get 'statistics/download_country_distribution', to: 'static_pages#download_country_distribution'
   get 'statistics/ai_trends', to: 'static_pages#ai_trends', as: :statistics_ai_trends
   get 'statistics/ai_trends/download', to: 'static_pages#download_ai_trends', as: :download_ai_trends

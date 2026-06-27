@@ -1,4 +1,6 @@
 - is_annual = @growth_view == "annual"
+- content_for :title, is_annual ? "Companies Founded Per Year" : "Ecosystem Growth"
+- content_for :description, is_annual ? "Annual company formation in legal tech since 2000, based on visible CodeX TechIndex profiles." : "Cumulative growth of the legal technology ecosystem since 2000, based on visible CodeX TechIndex profiles."
 - chart_id = is_annual ? "ecosystem-growth-annual-chart" : "total-companies-chart"
 - year_range = "2000 – #{Date.current.year}"
 - cumulative_path = statistics_total_companies_path

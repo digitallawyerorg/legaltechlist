@@ -1,0 +1,5 @@
+/ locals: active_tab ("countries" or "hubs")
+- active_tab = local_assigns.fetch(:active_tab, "countries")
+.stats-geo-nav
+    = link_to "Country distribution", statistics_country_distribution_path, class: "stats-geo-nav-tab #{'is-active' if active_tab == 'countries'}"
+    = link_to "Innovation hubs", statistics_innovation_hubs_path, class: "stats-geo-nav-tab #{'is-active' if active_tab == 'hubs'}"

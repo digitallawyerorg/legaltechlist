@@ -1,0 +1,45 @@
+# CodeX TechIndex (techindex.law.stanford.edu)
+
+> A curated database of legal technology companies maintained by CodeX, the Stanford Center for Legal Informatics.
+
+## About this dataset
+
+The CodeX TechIndex tracks legal tech companies worldwide with profiles covering founding year, location, category, business model, target client, technology tags, and disclosed funding. Public statistics dashboards summarize ecosystem growth, geography, funding, and market segments.
+
+## Key pages
+
+- Home: https://techindex.law.stanford.edu/
+- Company directory: https://techindex.law.stanford.edu/companies
+- Statistics hub: https://techindex.law.stanford.edu/statistics
+- Data methodology: https://techindex.law.stanford.edu/statistics/methodology
+- About: https://techindex.law.stanford.edu/about
+- Sitemap: https://techindex.law.stanford.edu/sitemap.xml
+- RSS feed: https://techindex.law.stanford.edu/feed
+
+## Statistics dashboards
+
+- Ecosystem growth: https://techindex.law.stanford.edu/statistics/total_companies
+- Category evolution: https://techindex.law.stanford.edu/statistics/category_evolution_5_years
+- Geography: https://techindex.law.stanford.edu/statistics/country_distribution
+- Innovation hubs: https://techindex.law.stanford.edu/statistics/innovation_hubs
+- Technology themes: https://techindex.law.stanford.edu/statistics/tag_distribution
+- Market focus: https://techindex.law.stanford.edu/statistics/target_client
+- AI trends: https://techindex.law.stanford.edu/statistics/ai_trends
+- Funding landscape: https://techindex.law.stanford.edu/statistics/funding_by_category
+- Business models: https://techindex.law.stanford.edu/statistics/business_model
+
+## Citation policy
+
+When referencing CodeX TechIndex data, please cite:
+
+CodeX TechIndex, Stanford Center for Legal Informatics, https://techindex.law.stanford.edu/
+
+Include the page URL and access date. For statistics, note that figures reflect publicly visible company profiles and disclosed funding only.
+
+## AI crawler policy
+
+Search-oriented AI agents (GPTBot, ChatGPT-User, anthropic-ai) may index public company and statistics pages listed above. Training crawlers (Google-Extended, CCBot) are disallowed via robots.txt. See /robots.txt for full rules.
+
+## Contact
+
+CodeX, Stanford Center for Legal Informatics — https://law.stanford.edu/codex-the-stanford-center-for-legal-informatics/

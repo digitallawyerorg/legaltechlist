@@ -1,15 +1,20 @@
-= render partial: "shared/stats_styles"
-.stats-page
-    .stats-page-inner
-        = link_to statistics_path, class: "stats-page-back" do
-            i.fas.fa-arrow-left
-            | All statistics
-        .stats-chart-card
-            .stats-chart-header
-                div
-                    h1.stats-chart-title Innovation Hubs Analysis
-                    p.stats-chart-subtitle Regional technology specialization and innovation patterns across the legal tech ecosystem
-                .stats-chart-controls
-                    = render partial: "shared/stats_export_dropdown", locals: { csv_path: statistics_innovation_hubs_path(format: :csv) }
-            .stats-chart-body
-                = line_chart @tech_concentration, height: 520, colors: ["#8C1515"], library: { scales: { y: { beginAtZero: true, title: { display: true, text: "Number of Companies" } }, x: { title: { display: true, text: "Region" } } } }
+- content_for :title, "Innovation Hubs Analysis"
+- content_for :description, "Regional technology specialization, diversity, and growth patterns across legal tech innovation hubs in the CodeX TechIndex."
+- chart_id = "innovation-hubs-chart"
+- table_html = capture do
+    .table-responsive
+        table.table.table-hover.align-middle
+            thead
+                tr
+                    th Region
+                    th.text-end Companies
+                    th.text-end Diversity Index
+                    th.text-end YoY Growth
+            tbody
+                - @region_metrics.each do |region, metrics|
+                    tr
+                        td= region
+                        td.text-end= number_with_delimiter(metrics[:companies])
+                        td.text-end= "#{metrics[:diversity_index]}%"
+                        td.text-end= "#{metrics[:yoy_growth]}%"
+= render partial: "shared/stats_chart_page", locals: { title: "Innovation Hubs Analysis", subtitle: "Regional technology specialization and innovation patterns across the legal tech ecosystem", chart: line_chart(@tech_concentration, height: 520, colors: ["#8C1515"], id: chart_id, library: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, title: { display: true, text: "Number of Companies" } }, x: { title: { display: true, text: "Region" } } } }), table: table_html, chart_id: chart_id, download_filename: "innovation_hubs", csv_path: statistics_innovation_hubs_path(format: :csv), table_title: "Regional metrics", geo_nav: true, geo_nav_active: "hubs" }

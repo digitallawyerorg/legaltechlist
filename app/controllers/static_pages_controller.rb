@@ -44,6 +44,9 @@ class StaticPagesController < ApplicationController
   def statistics
   end
 
+  def methodology
+  end
+
   def total_companies
     @growth_view = growth_view_param
     @table_data = total_companies_table_data(start_year: 2000, end_year: Time.current.year)
@@ -188,6 +191,7 @@ class StaticPagesController < ApplicationController
     else
     # Get all companies with their categories and founding years
     companies = Company.includes(:category)
+                      .where(visible: true)
                       .where('founded_date >= ? AND founded_date <= ? AND founded_date ~ ?',
                              '2000',
                              Time.current.year.to_s,
@@ -512,6 +516,14 @@ class StaticPagesController < ApplicationController
     # Get top countries for research notes
     @top_countries = @table_data.take(3).map { |d| d[:country] }
     @top_funded_countries = @table_data.sort_by { |d| -d[:total_funding] }.take(3).map { |d| d[:country] }
+
+    max_companies = country_metrics.values.map { |m| m[:companies] }.max || 0
+    @geo_map_max = [((max_companies / 50.0).ceil * 50), 50].max
+
+    @region_preview = companies.group_by { |c| extract_region(c.location) }
+                               .transform_values(&:count)
+                               .sort_by { |_, count| -count }
+                               .first(6)
 
     respond_to do |format|
         format.html
@@ -944,7 +956,8 @@ class StaticPagesController < ApplicationController
       "2005-2009",
       "2010-2014",
       "2015-2019",
-      "2020-2024"
+      "2020-2024",
+      "2025-2029"
     ]
 
     # Get all unique categories

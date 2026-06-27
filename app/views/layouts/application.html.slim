@@ -281,16 +281,26 @@ css:
 doctype html
 html
     head
-        title= content_for?(:title) ? yield(:title) : "CodeX TechIndex"
+        title= seo_page_title
         meta name="viewport" content="width=device-width, initial-scale=1.0"
-        meta name="description" content="Legal Tech Business Database"
+        meta name="description" content=seo_description
+        link rel="canonical" href=canonical_url
         meta property="og:type" content="website"
-        meta property="og:title" content="CodeX TechIndex"
-        meta property="og:url" content="https://techindex.law.stanford.edu/"
+        meta property="og:site_name" content="CodeX TechIndex"
+        meta property="og:title" content=seo_full_title
+        meta property="og:description" content=seo_description
+        meta property="og:url" content=canonical_url
+        meta name="twitter:card" content="summary"
+        meta name="twitter:title" content=seo_full_title
+        meta name="twitter:description" content=seo_description
         meta name="language" content="us"
         meta name="audience" content="all"
         meta name="robots" content="index,follow"
         meta name="keywords" content="codex,legal,tech,index,sls,stanford,bay,area,database,search"
+        link rel="alternate" type="application/rss+xml" title="CodeX TechIndex RSS" href=feed_url
+        script type="application/ld+json"= website_json_ld
+        - if content_for?(:json_ld)
+            script type="application/ld+json"= content_for(:json_ld)
 
         = csrf_meta_tags
         = csp_meta_tag
@@ -313,6 +323,13 @@ html
             script defer="" src="https://cdn.jsdelivr.net/npm/chartkick@5.0.1/dist/chartkick.js"
         - if google_geo_page || google_core_page
             script defer="" src="https://www.gstatic.com/charts/loader.js"
+        - if google_analytics_id.present?
+            script async="" src="https://www.googletagmanager.com/gtag/js?id=#{google_analytics_id}"
+            javascript:
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){dataLayer.push(arguments);}
+                gtag('js', new Date());
+                gtag('config', '#{google_analytics_id}');
 
     body
         = render "shared/navbar"

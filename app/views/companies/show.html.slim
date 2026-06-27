@@ -453,6 +453,9 @@ css:
     }
 
 - website_url = (@company.main_url.present? && @company.main_url != "n/a") ? (@company.main_url.include?("http") ? @company.main_url : "http://#{@company.main_url}") : nil
+- content_for :title, @company.name
+- content_for :description, truncate(@company.description.to_s, length: 160)
+- content_for :json_ld, company_organization_json_ld(@company)
 - twitter_url = (@company.twitter_url.present? && @company.twitter_url != "n/a") ? (@company.twitter_url.include?("@") ? "https://twitter.com/#{@company.twitter_url[1..-1]}" : @company.twitter_url) : nil
 - status_label = @company.status.present? ? @company.status.titleize : "Unknown"
 - short_host_for = ->(url) { normalized = url.to_s.strip; normalized = "http://#{normalized}" unless normalized.match?(%r{\Ahttps?://}i); URI.parse(normalized).host.to_s.sub(/\Awww\./i, '') rescue url.to_s.gsub(%r{\Ahttps?://(www\.)?}i, '').split('/').first.to_s }
