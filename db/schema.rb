@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_06_27_033512) do
+ActiveRecord::Schema[8.0].define(version: 2026_06_27_050001) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -132,6 +132,54 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_27_033512) do
     t.index ["verified_at"], name: "index_companies_on_verified_at"
   end
 
+  create_table "company_import_rows", force: :cascade do |t|
+    t.bigint "company_import_run_id", null: false
+    t.bigint "company_proposal_id"
+    t.bigint "company_id"
+    t.integer "row_number", null: false
+    t.string "source_identifier"
+    t.string "canonical_domain"
+    t.string "status", default: "pending", null: false
+    t.string "action"
+    t.integer "attempts", default: 0, null: false
+    t.datetime "locked_at"
+    t.datetime "started_at"
+    t.datetime "finished_at"
+    t.text "error_message"
+    t.string "error_class"
+    t.jsonb "source_payload", default: {}, null: false
+    t.jsonb "candidate_payload", default: {}, null: false
+    t.jsonb "result_payload", default: {}, null: false
+    t.jsonb "quality_report", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["canonical_domain"], name: "index_company_import_rows_on_canonical_domain"
+    t.index ["company_id"], name: "index_company_import_rows_on_company_id"
+    t.index ["company_import_run_id", "row_number"], name: "index_company_import_rows_on_run_and_row", unique: true
+    t.index ["company_import_run_id", "status"], name: "index_company_import_rows_on_company_import_run_id_and_status"
+    t.index ["company_import_run_id"], name: "index_company_import_rows_on_company_import_run_id"
+    t.index ["company_proposal_id"], name: "index_company_import_rows_on_company_proposal_id"
+    t.index ["source_identifier"], name: "index_company_import_rows_on_source_identifier"
+  end
+
+  create_table "company_import_runs", force: :cascade do |t|
+    t.string "source", default: "legaltechatlas_csv", null: false
+    t.string "filename", null: false
+    t.string "status", default: "pending", null: false
+    t.text "notes"
+    t.string "reviewer"
+    t.integer "total_rows", default: 0, null: false
+    t.integer "processed_rows", default: 0, null: false
+    t.datetime "started_at"
+    t.datetime "finished_at"
+    t.text "error_message"
+    t.jsonb "summary", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["source"], name: "index_company_import_runs_on_source"
+    t.index ["status"], name: "index_company_import_runs_on_status"
+  end
+
   create_table "company_proposals", force: :cascade do |t|
     t.string "status", default: "pending", null: false
     t.string "proposal_type", default: "atlas_candidate", null: false
@@ -238,6 +286,9 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_27_033512) do
   add_foreign_key "companies", "categories"
   add_foreign_key "companies", "sub_categories"
   add_foreign_key "companies", "target_clients"
+  add_foreign_key "company_import_rows", "companies"
+  add_foreign_key "company_import_rows", "company_import_runs"
+  add_foreign_key "company_import_rows", "company_proposals"
   add_foreign_key "company_proposals", "admin_users"
   add_foreign_key "company_proposals", "companies"
   add_foreign_key "sub_categories", "categories"

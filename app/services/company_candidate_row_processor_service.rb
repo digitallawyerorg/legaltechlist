@@ -1,80 +1,82 @@
-class CompanyCandidateImportService
-  SOURCE = "legaltechatlas_csv".freeze
-  DEFAULT_LIMIT = AtlasCandidateImportReviewService::DEFAULT_MAX_LIMIT
-  DUPLICATE_MERGE_FIELDS = %w[
-    main_url
-    location
-    founded_date
-    description
-    category_id
-    sub_category_id
-    business_model_id
-    target_client_id
-    crunchbase_url
-    linkedin_url
-    total_funding_amount_usd
-    funding_status
-    number_of_funding_rounds
-    employee_count
-    founders
-    source
-    source_url
-  ].freeze
+class CompanyCandidateRowProcessorService
+  SOURCE = CompanyCandidateImportService::SOURCE
+  DUPLICATE_MERGE_FIELDS = CompanyCandidateImportService::DUPLICATE_MERGE_FIELDS
 
   def self.call(**kwargs)
     new(**kwargs).call
   end
 
-  def initialize(file:, admin_user:, notes: nil, limit: DEFAULT_LIMIT)
-    @file = file
+  def initialize(candidate:, index:, admin_user:, pipeline_run_id: nil)
+    @candidate = candidate
+    @index = index
     @admin_user = admin_user
-    @notes = notes
-    @limit = limit.to_i
+    @pipeline_run_id = pipeline_run_id
   end
 
   def call
-    @run = AtlasCandidateImportReviewService.call(file: file, reviewer: admin_user.email, notes: notes, limit: limit, max_limit: DEFAULT_LIMIT)
-    results = candidates.each_with_index.map { |candidate, index| process_candidate(candidate, index) }
-    @run.update!(details: @run.details.merge("automation" => automation_summary(results), "automation_results" => results))
-    @run
+    consolidate_visible_domain_duplicates!
+    proposal = upsert_proposal
+    return result_payload(proposal, "already_published", "Company is already published.") if proposal.status == "published" || proposal.company&.visible?
+
+    CompanyProposalEnrichmentService.call(proposal: proposal, admin_user: admin_user) if enrichment_needed?(proposal)
+    proposal.reload
+
+    quality = CompanyProposalQualityService.call(proposal)
+    return resolve_duplicate_candidate(proposal) if proposal.duplicate_blocking?
+    return result_payload(proposal, "needs_review", Array(quality["blockers"]).first) unless auto_draft_ready?(proposal, quality)
+    return result_payload(proposal, "already_drafted", "Proposal already has a company draft.") if proposal.company_id.present?
+
+    company = create_hidden_draft!(proposal)
+    result_payload(proposal.reload, "auto_drafted", "Invisible company draft created.", company)
+  rescue StandardError => e
+    result_payload(defined?(proposal) ? proposal : nil, "errored", e.message).merge(
+      "error_class" => e.class.name
+    )
   end
 
   private
 
-  attr_reader :file, :admin_user, :notes, :limit
+  attr_reader :candidate, :index, :admin_user, :pipeline_run_id
 
-  def candidates
-    @candidates ||= Array(run_details["candidates"])
-  end
+  def consolidate_visible_domain_duplicates!
+    domain = candidate["canonical_domain"]
+    return if domain.blank?
 
-  def run_details
-    @run_details ||= @run&.details || {}
-  end
+    visible_matches = Array(candidate["domain_matches"]).select { |match| match["visible"] != false }
+    return unless visible_matches.size > 1
 
-  def process_candidate(candidate, index)
-    CompanyCandidateRowProcessorService.call(
-      candidate: candidate,
-      index: index,
-      admin_user: admin_user,
-      pipeline_run_id: @run.id
+    CompanyDuplicateConsolidationService.call(
+      domains: [domain],
+      reviewer: admin_user&.email || "agent",
+      notes: "Consolidate visible duplicate domain before candidate import."
     )
+    candidate["domain_matches"] = fresh_domain_matches(domain)
   end
 
-  def upsert_proposal(candidate, index)
-    source_identifier = source_identifier(candidate)
+  def fresh_domain_matches(domain)
+    Company.where.not(main_url: [nil, ""]).select { |company| company.visible? && (company.canonical_domain.presence || company.canonical_main_domain) == domain }.first(10).map { |company| company_payload(company) }
+  end
+
+  def upsert_proposal
     proposal = CompanyProposal.find_or_initialize_by(source: SOURCE, source_identifier: source_identifier)
     proposal.assign_attributes(
       status: proposal.company_id.present? ? proposal.status : "pending",
       proposal_type: "atlas_candidate",
       admin_user: admin_user,
-      source_payload: candidate.merge("source_row_index" => index, "pipeline_run_id" => @run.id),
-      proposed_changes: proposed_changes(candidate),
-      final_changes: proposal.final_changes.presence || proposed_changes(candidate),
-      duplicate_signals: duplicate_signals(candidate),
-      reviewer_notes: reviewer_notes(candidate)
+      source_payload: source_payload,
+      proposed_changes: proposed_changes,
+      final_changes: proposal.final_changes.presence || proposed_changes,
+      duplicate_signals: duplicate_signals,
+      reviewer_notes: reviewer_notes
     )
     proposal.save!
     proposal
+  end
+
+  def source_payload
+    payload = candidate.merge("source_row_index" => index)
+    payload["pipeline_run_id"] = pipeline_run_id if pipeline_run_id.present?
+    payload
   end
 
   def create_hidden_draft!(proposal)
@@ -107,7 +109,7 @@ class CompanyCandidateImportService
     company
   end
 
-  def resolve_duplicate_candidate(candidate, index, proposal)
+  def resolve_duplicate_candidate(proposal)
     match = duplicate_company_match(proposal)
     merged_fields = match ? fill_blank_company_fields!(match, proposal) : []
     reason = if match
@@ -126,7 +128,7 @@ class CompanyCandidateImportService
       reviewer_notes: [proposal.reviewer_notes, reason].compact_blank.join("\n")
     )
 
-    result_payload(candidate, index, proposal.reload, match ? "duplicate_merged" : "duplicate_rejected", reason, match).merge(
+    result_payload(proposal.reload, match ? "duplicate_merged" : "duplicate_rejected", reason, match).merge(
       "merged_fields" => merged_fields
     )
   end
@@ -178,7 +180,7 @@ class CompanyCandidateImportService
       details["description_critic"].blank?
   end
 
-  def proposed_changes(candidate)
+  def proposed_changes
     {
       "name" => candidate["name"],
       "main_url" => candidate["website"],
@@ -198,7 +200,7 @@ class CompanyCandidateImportService
     }.compact
   end
 
-  def duplicate_signals(candidate)
+  def duplicate_signals
     {
       "name_matches" => Array(candidate["name_matches"]),
       "domain_matches" => Array(candidate["domain_matches"]),
@@ -206,7 +208,7 @@ class CompanyCandidateImportService
     }
   end
 
-  def reviewer_notes(candidate)
+  def reviewer_notes
     if candidate["status"] == "existing_or_possible_duplicate"
       "Imported candidate requires duplicate review before any company draft is created."
     else
@@ -214,7 +216,7 @@ class CompanyCandidateImportService
     end
   end
 
-  def result_payload(candidate, index, proposal, action, reason, company = nil)
+  def result_payload(proposal, action, reason, company = nil)
     {
       "row_index" => index,
       "name" => candidate["name"],
@@ -227,22 +229,7 @@ class CompanyCandidateImportService
     }.compact
   end
 
-  def automation_summary(results)
-    {
-      "processed_rows" => results.size,
-      "auto_drafted" => results.count { |result| result["action"] == "auto_drafted" },
-      "already_drafted" => results.count { |result| result["action"] == "already_drafted" },
-      "needs_review" => results.count { |result| result["action"] == "needs_review" },
-      "needs_duplicate_review" => results.count { |result| result["action"] == "needs_duplicate_review" },
-      "duplicate_merged" => results.count { |result| result["action"] == "duplicate_merged" },
-      "duplicate_rejected" => results.count { |result| result["action"] == "duplicate_rejected" },
-      "already_published" => results.count { |result| result["action"] == "already_published" },
-      "errored" => results.count { |result| result["action"] == "errored" },
-      "created_at" => Time.current.utc.iso8601
-    }
-  end
-
-  def source_identifier(candidate)
+  def source_identifier
     candidate["canonical_domain"].presence || Company.normalized_name_value(candidate["name"])
   end
 
@@ -256,5 +243,16 @@ class CompanyCandidateImportService
 
   def company_status(value)
     value.to_s.downcase == "closed" ? "inactive" : "active"
+  end
+
+  def company_payload(company)
+    {
+      "id" => company.id,
+      "name" => company.name,
+      "main_url" => company.main_url,
+      "canonical_domain" => company.canonical_domain.presence || company.canonical_main_domain,
+      "visible" => company.visible,
+      "quality_status" => company.quality_status
+    }
   end
 end
