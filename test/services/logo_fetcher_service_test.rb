@@ -32,17 +32,17 @@ class LogoFetcherServiceTest < ActiveSupport::TestCase
     end
   end
 
-  test "skips companies with existing non-placeholder logos" do
+  test "replaces legacy external logo urls when no blob is stored" do
     company = companies(:one)
     company.update!(logo_url: "https://cdn.example.com/logo.png")
 
     with_logo_dev_key("pk_test") do
       result = LogoFetcherService.backfill_missing_logos(scope: Company.where(id: company.id), dry_run: false, limit: nil, verifier: ->(_url) { true }, downloader: stub_downloader, logger: nil)
 
-      assert_equal 0, result.checked
-      assert_equal 0, result.updated
-      assert_equal "https://cdn.example.com/logo.png", company.reload.logo_url
-      assert_nil company.company_logo
+      assert_equal 1, result.updated
+      company.reload
+      assert_nil company.logo_url
+      assert_equal "image/png", company.company_logo.content_type
     end
   end
 

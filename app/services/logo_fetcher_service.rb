@@ -9,8 +9,6 @@ class LogoFetcherService
   DEFAULT_LIMIT = 100
   DEFAULT_SIZE = 128
   VERIFY_TIMEOUT_SECONDS = 8
-  REPLACEABLE_LOGO_HOSTS = ["placehold.co", "icons.duckduckgo.com"].freeze
-
   def self.backfill_missing_logos(scope: Company.publicly_visible, dry_run: true, limit: DEFAULT_LIMIT, provider: :logo_dev, logger: $stdout, verifier: nil, downloader: nil)
     new(scope: scope, dry_run: dry_run, limit: limit, provider: provider, logger: logger, verifier: verifier, downloader: downloader).backfill_missing_logos
   end
@@ -90,33 +88,11 @@ class LogoFetcherService
   end
 
   def replaceable_logo_scope(scope)
-    scope.left_joins(:company_logo).where(
-      <<~SQL.squish,
-        (company_logos.id IS NULL AND (logo_url IS NULL OR logo_url = :empty OR logo_url LIKE :placehold OR logo_url LIKE :placeholder OR logo_url LIKE :duckduckgo))
-        OR logo_url LIKE :logo_dev
-      SQL
-      empty: "",
-      placehold: "%placehold.co%",
-      placeholder: "%placeholder%",
-      duckduckgo: "%icons.duckduckgo.com%",
-      logo_dev: "%logo.dev%"
-    )
+    scope.left_joins(:company_logo).where(company_logos: { id: nil })
   end
 
   def replaceable_logo?(company)
-    return true if Company.logo_dev_url?(company.logo_url)
-    return false if company.company_logo.present?
-
-    company.logo_url.blank? || replaceable_placeholder_url?(company.logo_url)
-  end
-
-  def replaceable_placeholder_url?(logo_url)
-    return true if logo_url.blank?
-
-    host = URI.parse(logo_url).host
-    REPLACEABLE_LOGO_HOSTS.include?(host)
-  rescue URI::InvalidURIError
-    true
+    company.company_logo.blank?
   end
 
   def store_logo!(company, image)
