@@ -98,6 +98,178 @@ class LocationCountryResolver
     "San Jose" => "Costa Rica", "Tacloban" => "Philippines", "Manila" => "Philippines", "Lima" => "Peru"
   }.freeze
 
+  # Well-known cities that resolve unambiguously when given without a country.
+  # Case-insensitive lookup via city_country_for.
+  CITY_COUNTRIES = {
+    "London" => "United Kingdom",
+    "Paris" => "France",
+    "Berlin" => "Germany",
+    "Amsterdam" => "Netherlands",
+    "Vienna" => "Austria",
+    "Copenhagen" => "Denmark",
+    "Stockholm" => "Sweden",
+    "Oslo" => "Norway",
+    "Helsinki" => "Finland",
+    "Dublin" => "Ireland",
+    "Brussels" => "Belgium",
+    "Madrid" => "Spain",
+    "Barcelona" => "Spain",
+    "Lisbon" => "Portugal",
+    "Rome" => "Italy",
+    "Milan" => "Italy",
+    "Zurich" => "Switzerland",
+    "Basel" => "Switzerland",
+    "Geneva" => "Switzerland",
+    "Munich" => "Germany",
+    "Frankfurt" => "Germany",
+    "Frankfurt am Main" => "Germany",
+    "Hamburg" => "Germany",
+    "Mannheim" => "Germany",
+    "Eindhoven" => "Netherlands",
+    "Leuven" => "Belgium",
+    "Tallinn" => "Estonia",
+    "Bordeaux" => "France",
+    "Bilbao" => "Spain",
+    "Valencia" => "Spain",
+    "Edinburgh" => "United Kingdom",
+    "Manchester" => "United Kingdom",
+    "Birmingham" => "United Kingdom",
+    "Bristol" => "United Kingdom",
+    "Leeds" => "United Kingdom",
+    "Liverpool" => "United Kingdom",
+    "Glasgow" => "United Kingdom",
+    "Cardiff" => "United Kingdom",
+    "Oxford" => "United Kingdom",
+    "Cambridge" => "United Kingdom",
+    "Nottingham" => "United Kingdom",
+    "Swansea" => "United Kingdom",
+    "Los Angeles" => "United States",
+    "San Francisco" => "United States",
+    "Chicago" => "United States",
+    "New York" => "United States",
+    "NYC" => "United States",
+    "Boston" => "United States",
+    "Seattle" => "United States",
+    "Austin" => "United States",
+    "Denver" => "United States",
+    "Houston" => "United States",
+    "Atlanta" => "United States",
+    "Philadelphia" => "United States",
+    "Minneapolis" => "United States",
+    "Sacramento" => "United States",
+    "Charlotte" => "United States",
+    "Indianapolis" => "United States",
+    "Baltimore" => "United States",
+    "Pittsburgh" => "United States",
+    "Salt Lake City" => "United States",
+    "Princeton" => "United States",
+    "Fremont" => "United States",
+    "Cupertino" => "United States",
+    "Irvine" => "United States",
+    "Eugene" => "United States",
+    "Lubbock" => "United States",
+    "Miami" => "United States",
+    "Dallas" => "United States",
+    "Phoenix" => "United States",
+    "Portland" => "United States",
+    "San Diego" => "United States",
+    "San Jose" => "United States",
+    "Washington" => "United States",
+    "Detroit" => "United States",
+    "Nashville" => "United States",
+    "Raleigh" => "United States",
+    "Tampa" => "United States",
+    "Orlando" => "United States",
+    "Saint Louis" => "United States",
+    "St Louis" => "United States",
+    "Kansas City" => "United States",
+    "New Orleans" => "United States",
+    "Jersey City" => "United States",
+    "East Brunswick" => "United States",
+    "West Sacramento" => "United States",
+    "Pleasanton" => "United States",
+    "Irving" => "United States",
+    "West Palm Beach" => "United States",
+    "Pompano Beach" => "United States",
+    "Livermore" => "United States",
+    "Delaware City" => "United States",
+    "Studio City" => "United States",
+    "Lexington" => "United States",
+    "Toronto" => "Canada",
+    "Vancouver" => "Canada",
+    "Montreal" => "Canada",
+    "Ottawa" => "Canada",
+    "Edmonton" => "Canada",
+    "Calgary" => "Canada",
+    "Sydney" => "Australia",
+    "Melbourne" => "Australia",
+    "Brisbane" => "Australia",
+    "Adelaide" => "Australia",
+    "Perth" => "Australia",
+    "Mumbai" => "India",
+    "Bengaluru" => "India",
+    "Bangalore" => "India",
+    "Hyderabad" => "India",
+    "Chennai" => "India",
+    "Gurgaon" => "India",
+    "Jaipur" => "India",
+    "Jalandhar" => "India",
+    "Kolkata" => "India",
+    "Airoli" => "India",
+    "Delhi" => "India",
+    "New Delhi" => "India",
+    "Pune" => "India",
+    "Nairobi" => "Kenya",
+    "Singapore" => "Singapore",
+    "Hong Kong" => "Hong Kong",
+    "Tokyo" => "Japan",
+    "Seoul" => "South Korea",
+    "Beijing" => "China",
+    "Shanghai" => "China",
+    "Mexico City" => "Mexico",
+    "Guadalajara" => "Mexico",
+    "Buenos Aires" => "Argentina",
+    "São Paulo" => "Brazil",
+    "Sao Paulo" => "Brazil",
+    "Curitiba" => "Brazil",
+    "Rio de Janeiro" => "Brazil",
+    "Bogota" => "Colombia",
+    "Bogotá" => "Colombia",
+    "Santiago" => "Chile",
+    "Lima" => "Peru",
+    "Dubai" => "United Arab Emirates",
+    "Abu Dhabi" => "United Arab Emirates",
+    "Tel Aviv" => "Israel",
+    "Istanbul" => "Turkey",
+    "Johannesburg" => "South Africa",
+    "Cape Town" => "South Africa",
+    "Herentals" => "Belgium",
+    "Helsingborg" => "Sweden",
+    "Depok City" => "Indonesia",
+    "Jakarta" => "Indonesia"
+  }.freeze
+
+  # Exact malformed location strings that should map to a normalized "City, Country" value.
+  LOCATION_OVERRIDES = {
+    "Toronto CANADA" => "Toronto, Canada",
+    "Zurich Switzerland" => "Zurich, Switzerland",
+    "Kolkata India" => "Kolkata, India",
+    "Accra Ghana" => "Accra, Ghana",
+    "Exeter England" => "Exeter, United Kingdom",
+    "Zaragoza Spain" => "Zaragoza, Spain",
+    "Gurgaon Haryana" => "Gurgaon, India",
+    "Washington DC USA" => "Washington, United States",
+    "Bellevue WA" => "Bellevue, United States",
+    "BELLEVUE" => "Bellevue, United States",
+    "Denver CO" => "Denver, United States",
+    "Buffalo NY" => "Buffalo, United States",
+    "Sheikh Zayed Road Dubai" => "Dubai, United Arab Emirates",
+    "Paris 75001" => "Paris, France",
+    "TallinnEstonia" => "Tallinn, Estonia",
+    "PunjabIndia" => "Punjab, India",
+    "United States California" => "California, United States"
+  }.freeze
+
   UK_ADMINISTRATIVE_AREAS = [
     "Aberdeen City", "Barking and Dagenham", "Bath and North East Somerset", "Belfast", "Birmingham",
     "Brighton and Hove", "Bristol", "Buckinghamshire", "Caerphilly", "Cambridgeshire", "Cardiff",
@@ -116,6 +288,14 @@ class LocationCountryResolver
     def country_name_for(location)
       parts = split_parts(location)
       return if parts.empty?
+
+      override = location_override(location)
+      return override.split(", ").last if override.present?
+
+      if parts.size == 1
+        city_country = city_country_for(parts.first)
+        return city_country if city_country.present?
+      end
 
       explicit = explicit_country_name_from_parts(parts)
       return explicit if explicit
@@ -138,6 +318,19 @@ class LocationCountryResolver
     def iso_code_for(location)
       parts = split_parts(location)
       return if parts.empty?
+
+      override = location_override(location)
+      if override.present?
+        country = override.split(", ").last
+        iso_code = iso_code_for_country_name(country)
+        return iso_code if iso_code.present?
+      end
+
+      if parts.size == 1
+        city_country = city_country_for(parts.first)
+        iso_code = iso_code_for_country_name(city_country) if city_country.present?
+        return iso_code if iso_code.present?
+      end
 
       explicit_iso = explicit_country_iso_from_parts(parts)
       return explicit_iso if explicit_iso
@@ -167,6 +360,26 @@ class LocationCountryResolver
       return if parts.any? { |part| explicit_country_part?(part) }
 
       "#{parts.first}, #{country_name}"
+    end
+
+    def format_for_display(location)
+      return if location.blank?
+
+      override = location_override(location)
+      return override if override.present?
+
+      parts = split_parts(location)
+      if parts.size == 1
+        country = city_country_for(parts.first)
+        return "#{parts.first}, #{country}" if country.present?
+
+        return parts.first
+      end
+
+      normalized = normalize_location_string(location)
+      return normalized if normalized.present?
+
+      "#{parts.first}, #{parts.last}"
     end
 
     def normalize_country_name(country)
@@ -244,6 +457,23 @@ class LocationCountryResolver
 
     def cleaned_part(part)
       part.to_s.squish.sub(/\ANA\s*-\s*/i, "").sub(/\d+\z/, "")
+    end
+
+    def location_override(location)
+      cleaned = location.to_s.squish
+      LOCATION_OVERRIDES[cleaned] ||
+        LOCATION_OVERRIDES.find { |key, _| normalize_token(key) == normalize_token(cleaned) }&.last
+    end
+
+    def city_country_for(city)
+      cleaned = cleaned_part(city)
+      return CITY_COUNTRIES[cleaned] if CITY_COUNTRIES.key?(cleaned)
+
+      CITY_COUNTRIES.each do |city_name, country|
+        return country if normalize_token(city_name) == normalize_token(cleaned)
+      end
+
+      nil
     end
 
     COUNTRY_ISO_CODES = CompaniesHelper::COUNTRY_ISO_CODES

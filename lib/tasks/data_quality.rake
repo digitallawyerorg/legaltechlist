@@ -106,4 +106,41 @@ namespace :data_quality do
     puts examples if dry_run && !verbose
     puts "Backfill identity complete mode=#{mode} changed=#{changed}"
   end
+
+  desc "Normalize company locations missing country names. Defaults to dry-run; set DRY_RUN=false to write."
+  task normalize_locations: :environment do
+    dry_run = ENV.fetch("DRY_RUN", "true") != "false"
+    verbose = ENV.fetch("VERBOSE", "false") == "true"
+    category_id = ENV["CATEGORY_ID"]
+    changed = 0
+    still_missing_flag = 0
+    examples = []
+
+    scope = Company.all
+    scope = scope.where(category_id: category_id) if category_id.present?
+
+    scope.find_each do |company|
+      next if company.location.blank?
+
+      normalized = LocationCountryResolver.format_for_display(company.location)
+      next if normalized.blank? || normalized == company.location
+
+      changed += 1
+      if dry_run
+        line = "DRY RUN company_id=#{company.id} #{company.location.inspect} -> #{normalized.inspect}"
+        verbose ? puts(line) : examples << line if examples.size < 20
+      else
+        company.update!(location: normalized)
+      end
+    end
+
+    flag_scope = scope.where.not(location: [nil, ""])
+    flag_scope.find_each do |company|
+      still_missing_flag += 1 if LocationCountryResolver.iso_code_for(company.location).blank?
+    end
+
+    mode = dry_run ? "dry-run" : "write"
+    puts examples if dry_run && !verbose
+    puts "Normalize locations complete mode=#{mode} category_id=#{category_id || 'all'} changed=#{changed} still_missing_flag=#{still_missing_flag}"
+  end
 end
