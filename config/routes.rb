@@ -1,5 +1,6 @@
 Rails.application.routes.draw do
   get 'up', to: proc { [200, { 'Content-Type' => 'text/plain' }, ['OK']] }, as: :rails_health_check
+  get 'logos/:id', to: 'logos#show', as: :company_logo
 
   # Admin and Authentication
   devise_for :admin_users, path: "admin", path_names: { sign_in: "login", sign_out: "logout" }

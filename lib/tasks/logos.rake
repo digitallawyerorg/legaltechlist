@@ -21,7 +21,7 @@ namespace :logos do
         puts "Errors: #{result.errors}"
         puts "Examples:"
         result.examples.each do |example|
-            puts "- #{example[:id]} | #{example[:name]} | #{example[:domain]} | #{example[:logo_url]}"
+            puts "- #{example[:id]} | #{example[:name]} | #{example[:domain]} | #{example[:content_type]} (#{example[:byte_size]} bytes)"
         end
     end
 

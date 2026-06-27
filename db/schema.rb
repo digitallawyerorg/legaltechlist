@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_06_27_120000) do
+ActiveRecord::Schema[8.0].define(version: 2026_06_27_130000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -185,6 +185,15 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_27_120000) do
     t.index ["status"], name: "index_company_import_runs_on_status"
   end
 
+  create_table "company_logos", force: :cascade do |t|
+    t.bigint "company_id", null: false
+    t.binary "data", null: false
+    t.string "content_type", default: "image/png", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["company_id"], name: "index_company_logos_on_company_id", unique: true
+  end
+
   create_table "company_proposals", force: :cascade do |t|
     t.string "status", default: "pending", null: false
     t.string "proposal_type", default: "atlas_candidate", null: false
@@ -295,6 +304,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_27_120000) do
   add_foreign_key "company_import_rows", "companies"
   add_foreign_key "company_import_rows", "company_import_runs"
   add_foreign_key "company_import_rows", "company_proposals"
+  add_foreign_key "company_logos", "companies"
   add_foreign_key "company_proposals", "admin_users"
   add_foreign_key "company_proposals", "companies"
   add_foreign_key "sub_categories", "categories"

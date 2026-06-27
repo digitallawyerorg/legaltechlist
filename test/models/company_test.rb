@@ -113,4 +113,25 @@ class CompanyTest < ActiveSupport::TestCase
     assert_includes Company.duplicate_domain_candidates, companies(:one)
     assert_includes Company.duplicate_domain_candidates, duplicate
   end
+
+  test "logo returns stored logo path when blob exists" do
+    company = companies(:one)
+    CompanyLogo.create!(company: company, data: "\x89PNG\r\n\x1a\n".b, content_type: "image/png")
+
+    assert_equal Rails.application.routes.url_helpers.company_logo_path(company), company.logo
+  end
+
+  test "logo returns legacy external url when present" do
+    company = companies(:one)
+    company.update!(logo_url: "https://cdn.example.com/logo.png")
+
+    assert_equal "https://cdn.example.com/logo.png", company.logo
+  end
+
+  test "logo ignores legacy logo dev urls without blob" do
+    company = companies(:one)
+    company.update!(logo_url: "https://img.logo.dev/example.com?token=pk_test")
+
+    assert_match %r{\Ahttps://placehold\.co/}, company.logo
+  end
 end

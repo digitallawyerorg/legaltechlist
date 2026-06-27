@@ -10,6 +10,7 @@ class Company < ActiveRecord::Base
 
   has_many :taggings,  dependent: :destroy
   has_many :tags, through: :taggings
+  has_one :company_logo, dependent: :destroy
 
   #this should be has_one, but apparently there's a known bug
   belongs_to :category, optional: true
@@ -254,11 +255,25 @@ class Company < ActiveRecord::Base
   }
 
   def logo
-    if logo_url.present?
+    if company_logo.present?
+      Rails.application.routes.url_helpers.company_logo_path(self)
+    elsif logo_url.present? && !logo_dev_url?(logo_url)
       logo_url
     else
-      # Default placeholder image
       "https://placehold.co/64x64?text=#{URI.encode_www_form_component(name[0])}"
     end
+  end
+
+  def self.logo_dev_url?(url)
+    return false if url.blank?
+
+    host = URI.parse(url).host
+    host&.include?("logo.dev")
+  rescue URI::InvalidURIError
+    false
+  end
+
+  def logo_dev_url?(url)
+    self.class.logo_dev_url?(url)
   end
 end
