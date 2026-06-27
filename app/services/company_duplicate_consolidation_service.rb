@@ -60,19 +60,20 @@ class CompanyDuplicateConsolidationService
     end
 
     groups = groups.slice(*domains) if domains.any?
-    groups.transform_values { |records| Company.includes(:category, :business_model, :target_client).where(id: records.map(&:id)).to_a }
-      .select { |_domain, records| records.count(&:visible?) > 1 }
+    groups.transform_values { |records| Company.includes(:category, :business_model, :target_client, :taggings, :tags).where(id: records.map(&:id)).to_a }
+      .select { |_domain, records| records.size > 1 && records.any?(&:visible?) }
   end
 
   def consolidate_group(domain, companies)
     keeper = companies.max_by { |company| [keeper_score(company), -company.id] }
     duplicates = companies.reject { |company| company.id == keeper.id }
     merged_fields = duplicates.each_with_object({}) { |duplicate, fields| fields[duplicate.id] = merge_fields(keeper, duplicate) }
+    transferred_associations = duplicates.each_with_object({}) { |duplicate, fields| fields[duplicate.id] = association_counts(duplicate) }
 
     unless dry_run
       Company.transaction do
         save_keeper!(keeper)
-        duplicates.each { |duplicate| hide_duplicate!(duplicate, keeper) }
+        duplicates.each { |duplicate| delete_duplicate!(duplicate, keeper) }
       end
     end
 
@@ -81,8 +82,9 @@ class CompanyDuplicateConsolidationService
       "keeper_id" => keeper.id,
       "keeper_name" => keeper.name,
       "company_ids" => companies.map(&:id),
-      "hidden_company_ids" => duplicates.map(&:id),
+      "deleted_company_ids" => duplicates.map(&:id),
       "merged_fields" => merged_fields,
+      "transferred_associations" => transferred_associations,
       "dry_run" => dry_run
     }
   end
@@ -132,14 +134,45 @@ class CompanyDuplicateConsolidationService
     keeper.save!(validate: false)
   end
 
-  def hide_duplicate!(duplicate, keeper)
-    duplicate.visible = false
-    duplicate.quality_status = "duplicate_hidden"
-    duplicate.verification_verdict = "duplicate_consolidated_into_#{keeper.id}"
-    duplicate.quality_reviewed_at = Time.current
-    duplicate.human_reviewed_at = Time.current
-    duplicate.skip_geocoding = true
-    duplicate.save!(validate: false)
+  def delete_duplicate!(duplicate, keeper)
+    transfer_taggings!(duplicate, keeper)
+    CompanyProposal.where(company_id: duplicate.id).update_all(company_id: keeper.id, updated_at: Time.current)
+    CompanyImportRow.where(company_id: duplicate.id).update_all(company_id: keeper.id, updated_at: Time.current)
+    transfer_active_storage_attachments!(duplicate, keeper)
+    duplicate.delete
+  end
+
+  def transfer_taggings!(duplicate, keeper)
+    duplicate.taggings.find_each do |tagging|
+      if Tagging.exists?(company_id: keeper.id, tag_id: tagging.tag_id)
+        tagging.destroy!
+      else
+        tagging.update!(company_id: keeper.id)
+      end
+    end
+  end
+
+  def transfer_active_storage_attachments!(duplicate, keeper)
+    return unless defined?(ActiveStorage::Attachment) && ActiveStorage::Attachment.table_exists?
+
+    ActiveStorage::Attachment.where(record_type: "Company", record_id: duplicate.id).find_each do |attachment|
+      existing_attachment = ActiveStorage::Attachment.find_by(record_type: "Company", record_id: keeper.id, name: attachment.name, blob_id: attachment.blob_id)
+      if existing_attachment
+        attachment.destroy!
+      else
+        attachment.update!(record_id: keeper.id)
+      end
+    end
+  end
+
+  def association_counts(duplicate)
+    counts = {
+      "taggings" => duplicate.taggings.count,
+      "company_proposals" => CompanyProposal.where(company_id: duplicate.id).count,
+      "company_import_rows" => CompanyImportRow.where(company_id: duplicate.id).count
+    }
+    counts["active_storage_attachments"] = ActiveStorage::Attachment.where(record_type: "Company", record_id: duplicate.id).count if defined?(ActiveStorage::Attachment) && ActiveStorage::Attachment.table_exists?
+    counts
   end
 
   def keeper_score(company)
