@@ -25,7 +25,9 @@ css:
     .company-search .form-control:focus { border-color: #cbbfae; box-shadow: 0 0 0 0.15rem rgba(140, 21, 21, 0.08); }
     .company-sort { border-color: #ded7ca; border-radius: 0.55rem; font-size: 0.9rem; min-height: 2.85rem; min-width: 10.25rem; }
     .company-table-card { background: #fff; border: 1px solid #e5dfd5; border-radius: 0.6rem; overflow: hidden; }
-    .company-table { font-size: 0.82rem; margin-bottom: 0; min-width: 980px; }
+    .company-table { font-size: 0.82rem; margin-bottom: 0; min-width: 860px; }
+    .company-hq-cell { align-items: center; display: inline-flex; gap: 0.35rem; }
+    .company-hq-flag { flex: 0 0 auto; font-size: 1rem; line-height: 1; }
     .company-table thead th { background: #faf8f3; border-bottom: 1px solid #e5dfd5; color: #6b7280; font-size: 0.66rem; font-weight: 800; letter-spacing: 0.05em; padding: 0.58rem 0.75rem; text-transform: uppercase; white-space: nowrap; }
     .company-table tbody td { border-top-color: #f0ebe3; padding: 0.58rem 0.75rem; vertical-align: middle; }
     .company-table tbody tr:hover { background: #fffdf8; }
@@ -120,7 +122,6 @@ css:
                                 th Category
                                 th Founded
                                 th HQ
-                                th Funding
                                 th Status
                         tbody
                             - @companies.each do |company|
@@ -134,17 +135,21 @@ css:
                                     td data-label="Category"
                                         span.company-pill= company.category&.name || "Uncategorized"
                                     td data-label="Founded"= company.founded_date.presence || "N/A"
-                                    td data-label="HQ"= company.location.present? ? format_location(company.location) : "N/A"
-                                    td data-label="Funding"
-                                        - if company.total_funding_amount_usd.present? && company.total_funding_amount_usd.positive?
-                                            = number_to_currency(company.total_funding_amount_usd, precision: 0)
+                                    td data-label="HQ"
+                                        - if company.location.present?
+                                            - formatted_location = format_location(company.location)
+                                            - location_flag = country_flag_emoji(location_country_iso_code(company.location))
+                                            span.company-hq-cell
+                                                - if location_flag.present?
+                                                    span.company-hq-flag aria-hidden="true"= location_flag
+                                                span= formatted_location
                                         - else
-                                            span.company-muted Not disclosed
+                                            | N/A
                                     td data-label="Status"
                                         span.company-pill.company-status= company.status.presence&.humanize || "Active"
                             - if @companies.empty?
                                 tr
-                                    td.text-center.company-muted py="4" colspan="6" No companies match these filters.
+                                    td.text-center.company-muted py="4" colspan="5" No companies match these filters.
                 .company-pagination
                     .company-pagination-count= "Showing #{result_start}-#{result_end} of #{number_with_delimiter(@total_count)} companies"
                     = paginate @companies

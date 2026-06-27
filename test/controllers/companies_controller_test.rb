@@ -19,7 +19,8 @@ class CompaniesControllerTest < ActionController::TestCase
     assert_select ".company-filter-link", text: /All categories/
     assert_select "table.company-table"
     assert_select "th", "Company"
-    assert_select "th", "Funding"
+    assert_select "th", "HQ"
+    refute_includes css_select("th").map(&:text), "Funding"
     assert_select ".company-search input[placeholder='Search companies by name, category, or location']"
     assert_select ".company-pagination-count", text: /Showing \d+-\d+ of \d+ companies/
     assert_select "select[name='sort']"

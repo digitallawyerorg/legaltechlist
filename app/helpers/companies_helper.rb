@@ -17,9 +17,81 @@ module CompaniesHelper
     end
   end
   
+  US_STATE_CODES = %w[
+    AL AK AZ AR CA CO CT DE FL GA HI ID IL IN IA KS KY LA ME MD MA MI MN MS MO MT
+    NE NV NH NJ NM NY NC ND OH OK OR PA RI SC SD TN TX UT VT VA WA WV WI WY DC
+  ].freeze
+
+  COUNTRY_ISO_CODES = {
+    'afghanistan' => 'AF', 'albania' => 'AL', 'algeria' => 'DZ', 'argentina' => 'AR', 'armenia' => 'AM',
+    'australia' => 'AU', 'austria' => 'AT', 'azerbaijan' => 'AZ', 'bahrain' => 'BH', 'bangladesh' => 'BD',
+    'belarus' => 'BY', 'belgium' => 'BE', 'bolivia' => 'BO', 'bosnia and herzegovina' => 'BA', 'brazil' => 'BR',
+    'bulgaria' => 'BG', 'cambodia' => 'KH', 'cameroon' => 'CM', 'canada' => 'CA', 'chile' => 'CL',
+    'china' => 'CN', 'colombia' => 'CO', 'costa rica' => 'CR', 'croatia' => 'HR', 'cyprus' => 'CY',
+    'czech republic' => 'CZ', 'czechia' => 'CZ', 'denmark' => 'DK', 'dominican republic' => 'DO',
+    'ecuador' => 'EC', 'egypt' => 'EG', 'el salvador' => 'SV', 'estonia' => 'EE', 'ethiopia' => 'ET',
+    'finland' => 'FI', 'france' => 'FR', 'georgia' => 'GE', 'germany' => 'DE', 'ghana' => 'GH',
+    'greece' => 'GR', 'guatemala' => 'GT', 'hong kong' => 'HK', 'hungary' => 'HU', 'iceland' => 'IS',
+    'india' => 'IN', 'indonesia' => 'ID', 'iran' => 'IR', 'iraq' => 'IQ', 'ireland' => 'IE',
+    'israel' => 'IL', 'italy' => 'IT', 'jamaica' => 'JM', 'japan' => 'JP', 'jordan' => 'JO',
+    'kazakhstan' => 'KZ', 'kenya' => 'KE', 'kuwait' => 'KW', 'latvia' => 'LV', 'lebanon' => 'LB',
+    'lithuania' => 'LT', 'luxembourg' => 'LU', 'malaysia' => 'MY', 'malta' => 'MT', 'mexico' => 'MX',
+    'moldova' => 'MD', 'mongolia' => 'MN', 'montenegro' => 'ME', 'morocco' => 'MA', 'myanmar' => 'MM',
+    'nepal' => 'NP', 'netherlands' => 'NL', 'new zealand' => 'NZ', 'nigeria' => 'NG', 'north macedonia' => 'MK',
+    'norway' => 'NO', 'oman' => 'OM', 'pakistan' => 'PK', 'panama' => 'PA', 'paraguay' => 'PY',
+    'peru' => 'PE', 'philippines' => 'PH', 'poland' => 'PL', 'portugal' => 'PT', 'puerto rico' => 'PR',
+    'qatar' => 'QA', 'romania' => 'RO', 'russia' => 'RU', 'russian federation' => 'RU', 'rwanda' => 'RW',
+    'saudi arabia' => 'SA', 'serbia' => 'RS', 'singapore' => 'SG', 'slovakia' => 'SK', 'slovenia' => 'SI',
+    'south africa' => 'ZA', 'south korea' => 'KR', 'korea' => 'KR', 'spain' => 'ES', 'sri lanka' => 'LK',
+    'sweden' => 'SE', 'switzerland' => 'CH', 'taiwan' => 'TW', 'tanzania' => 'TZ', 'thailand' => 'TH',
+    'tunisia' => 'TN', 'turkey' => 'TR', 'türkiye' => 'TR', 'uganda' => 'UG', 'ukraine' => 'UA',
+    'united arab emirates' => 'AE', 'uae' => 'AE', 'united kingdom' => 'GB', 'uk' => 'GB', 'england' => 'GB',
+    'scotland' => 'GB', 'wales' => 'GB', 'northern ireland' => 'GB', 'great britain' => 'GB', 'britain' => 'GB',
+    'united states' => 'US', 'united states of america' => 'US', 'usa' => 'US', 'us' => 'US', 'u.s.' => 'US',
+    'u.s.a.' => 'US', 'uruguay' => 'UY', 'uzbekistan' => 'UZ', 'venezuela' => 'VE', 'vietnam' => 'VN',
+    'viet nam' => 'VN', 'zimbabwe' => 'ZW', 'holland' => 'NL', 'the netherlands' => 'NL', 'republic of ireland' => 'IE',
+    'brasil' => 'BR', 'deutschland' => 'DE', 'españa' => 'ES', 'espana' => 'ES', 'suisse' => 'CH', 'schweiz' => 'CH'
+  }.freeze
+
   def format_location(location)
     location.to_s.gsub(/\bUnited States\b/i, "USA")
   end
+
+  def format_location_with_flag(location)
+    formatted = format_location(location)
+    return formatted if formatted.blank?
+
+    flag = country_flag_emoji(location_country_iso_code(location))
+    flag.present? ? "#{flag} #{formatted}" : formatted
+  end
+
+  def location_country_iso_code(location)
+    return if location.blank?
+
+    parts = location.to_s.split(',').map { |part| part.strip }.reject(&:blank?)
+    return if parts.empty?
+
+    country_token = normalize_country_token(parts.last)
+    return 'US' if parts.size >= 2 && country_token.match?(/\A[a-z]{2}\z/) && US_STATE_CODES.include?(country_token.upcase)
+
+    iso_code = COUNTRY_ISO_CODES[country_token]
+    return iso_code if iso_code.present?
+
+    nil
+  end
+
+  def country_flag_emoji(iso_code)
+    code = iso_code.to_s.upcase
+    return if code.blank? || !code.match?(/\A[A-Z]{2}\z/)
+
+    code.chars.map { |char| (char.ord + 127397).chr(Encoding::UTF_8) }.join
+  end
+
+  def normalize_country_token(value)
+    value.to_s.strip.downcase.gsub(/\Athe\s+/, '').gsub(/\./, '')
+  end
+
+  private :normalize_country_token
 
   def website_display_label(url)
     value = url.to_s.strip
