@@ -130,7 +130,7 @@ namespace :data_quality do
         line = "DRY RUN company_id=#{company.id} #{company.location.inspect} -> #{normalized.inspect}"
         verbose ? puts(line) : examples << line if examples.size < 20
       else
-        company.update!(location: normalized)
+        company.update_columns(location: normalized, updated_at: Time.current)
       end
     end
 
@@ -167,7 +167,7 @@ namespace :data_quality do
         line = "DRY RUN company_id=#{company.id} #{company.location.inspect} -> #{correct_location.inspect}"
         verbose ? puts(line) : examples << line
       else
-        company.update!(location: correct_location)
+        company.update_columns(location: correct_location, updated_at: Time.current)
       end
     end
 
