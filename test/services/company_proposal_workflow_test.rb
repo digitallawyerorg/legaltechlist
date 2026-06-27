@@ -200,6 +200,25 @@ class CompanyProposalWorkflowTest < ActiveSupport::TestCase
     end
   end
 
+  test "taxonomy suggestions account for production category and client names" do
+    analytics = Category.create!(name: "Analytics & Insights")
+    data_analytics = BusinessModel.create!(name: "Data & Analytics")
+    legal_service_providers = TargetClient.create!(name: "Legal Service Providers")
+
+    suggestion = CompanyProposalTaxonomySuggestionService.call(
+      source_payload: {
+        "name" => "Insight Review",
+        "industries" => ["Analytics", "Legal Tech", "Data"],
+        "source_description" => "Insight Review develops analytics dashboards and reporting for legal service providers."
+      }
+    )
+
+    assert suggestion["accepted"]
+    assert_equal analytics.id, suggestion.dig("category", "id")
+    assert_equal data_analytics.id, suggestion.dig("business_model", "id")
+    assert_equal legal_service_providers.id, suggestion.dig("target_client", "id")
+  end
+
   private
 
   def atlas_candidate_run

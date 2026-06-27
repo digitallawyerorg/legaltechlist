@@ -2,6 +2,7 @@ class CompanyProposalTaxonomySuggestionService
   HIGH_CONFIDENCE = 0.8
 
   CATEGORY_RULES = [
+    ["Analytics & Insights", /\b(analytics?|insights?|metrics?|dashboard|reporting|benchmark|intelligence|data analysis|trend)\b/i],
     ["Contract Management", /\b(contract|clm|redlin|negotiat|agreement)\b/i],
     ["Litigation & Dispute Resolution", /\b(litigation|dispute|case|court|claims?)\b/i],
     ["Compliance & Risk", /\b(compliance|regulatory|risk|policy|audit)\b/i],
@@ -15,15 +16,27 @@ class CompanyProposalTaxonomySuggestionService
   ].freeze
 
   BUSINESS_MODEL_RULES = [
+    ["Marketplace", /\b(marketplace|network|directory|exchange)\b/i],
+    ["Marketplace and ALSPs", /\b(marketplace|network|directory|exchange|alsp)\b/i],
+    ["Managed Service", /\b(managed service|managed services|outsourc|service provider)\b/i],
+    ["Legal Service Using Tech", /\b(legal service|managed|provider|alsp|services? using tech)\b/i],
+    ["Legal Service", /\b(legal service|law firm service|attorney service)\b/i],
+    ["Data & Analytics", /\b(analytics?|insights?|metrics?|dashboard|reporting|benchmark|data)\b/i],
+    ["Content Provider", /\b(content|publication|templates?|forms?|clauses?|knowledge base)\b/i],
+    ["Government", /\b(government|public sector|agency|court)\b/i],
+    ["Practice Management", /\b(practice management|matter management|billing|time tracking|case management)\b/i],
     ["SaaS", /\b(saas|software|platform|subscription|cloud)\b/i],
     ["Subscription", /\b(subscription|saas)\b/i],
     ["Legal Service Using Tech", /\b(service|managed|provider|alsp)\b/i]
   ].freeze
 
   TARGET_CLIENT_RULES = [
-    ["Corporate Legal", /\b(in-house|corporate legal|legal department|legal teams?|enterprise)\b/i],
-    ["Companies", /\b(in-house|corporate legal|legal department|legal teams?|enterprise|companies)\b/i],
-    ["Law Firms", /\b(law firms?|lawyers?|attorneys?|litigation lawyers?)\b/i]
+    ["Corporate Legal", /\b(in-house|corporate legal|legal departments?|legal operations|general counsel)\b/i],
+    ["Law Firms", /\b(law firms?|lawyers?|attorneys?|litigation lawyers?|legal professionals?)\b/i],
+    ["Legal Service Providers", /\b(legal service providers?|alsp|service providers?)\b/i],
+    ["Government", /\b(government|public sector|agency|court|regulator)\b/i],
+    ["Individuals", /\b(individuals?|consumers?|self-represented|pro se)\b/i],
+    ["Companies", /\b(enterprise|businesses?|companies|organizations?|legal teams?)\b/i]
   ].freeze
 
   def self.call(**kwargs)
