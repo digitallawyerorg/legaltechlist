@@ -21,16 +21,12 @@
                     = text_field_tag :query, params[:query], class: "form-control", placeholder: "Search tools, categories, or companies", id: "search-input"
 
 - categories = @home_categories || []
-- featured_categories = categories.first(9)
+- featured_categories = categories.first(12)
 .home-section.home-categories.border-bottom
     .container.py-5
-        .home-section-heading.d-flex.flex-wrap.justify-content-between.align-items-end.gap-3.mb-4
-            div
-                .home-kicker Browse
-                h2.home-section-title By category
-            = link_to companies_path, class: "home-section-link" do
-                ' All #{categories.size} categories
-                i.fa.fa-arrow-right.ms-1
+        .home-section-heading.mb-4
+            .home-kicker Browse
+            h2.home-section-title By category
         .home-category-grid
             - featured_categories.each do |category|
                 - category_count = @home_category_counts.fetch(category.id, 0)

@@ -1,5 +1,41 @@
 javascript:
     (function() {
+        function statsViewportChartHeight() {
+            if (window.innerWidth < 992) return null;
+
+            var reserved = window.innerWidth >= 1400 ? 240 : 272;
+            return Math.round(Math.max(480, Math.min(window.innerHeight - reserved, 900)));
+        }
+
+        function syncStatsChartHeights() {
+            var height = statsViewportChartHeight();
+            if (!height) return;
+
+            document.querySelectorAll(".stats-chart-body > div[id], .stats-period-card-body > div[id]").forEach(function(node) {
+                if (!node.id) return;
+
+                node.style.height = height + "px";
+                var chartkickChart = window.Chartkick && Chartkick.charts && Chartkick.charts[node.id];
+                if (!chartkickChart) return;
+
+                if (typeof chartkickChart.redraw === "function") {
+                    chartkickChart.redraw();
+                    return;
+                }
+
+                var chartObject = chartkickChart.getChartObject && chartkickChart.getChartObject();
+                if (chartObject && typeof chartObject.resize === "function") {
+                    chartObject.resize();
+                }
+            });
+        }
+
+        var resizeTimer;
+        function scheduleStatsChartResize() {
+            window.clearTimeout(resizeTimer);
+            resizeTimer = window.setTimeout(syncStatsChartHeights, 120);
+        }
+
         function bootChartkick() {
             if (window.Chartkick) {
                 window.dispatchEvent(new Event("chartkick:load"));
@@ -11,7 +47,10 @@ javascript:
 
             var geoChart = document.getElementById("country-distribution-chart");
             if (geoChart && window.google && window.google.charts) {
-                window.google.charts.load("current", { packages: ["geochart"], callback: bootChartkick });
+                window.google.charts.load("current", { packages: ["geochart"], callback: function() {
+                    bootChartkick();
+                    window.setTimeout(syncStatsChartHeights, 150);
+                }});
                 return;
             }
 
@@ -21,7 +60,10 @@ javascript:
                     attempts += 1;
                     if (window.google && window.google.charts) {
                         window.clearInterval(timer);
-                        window.google.charts.load("current", { packages: ["geochart"], callback: bootChartkick });
+                        window.google.charts.load("current", { packages: ["geochart"], callback: function() {
+                            bootChartkick();
+                            window.setTimeout(syncStatsChartHeights, 150);
+                        }});
                     } else if (attempts > 100) {
                         window.clearInterval(timer);
                     }
@@ -30,9 +72,14 @@ javascript:
             }
 
             bootChartkick();
+            window.setTimeout(syncStatsChartHeights, 150);
         }
 
         document.addEventListener("turbo:load", refreshStatsCharts);
         document.addEventListener("turbo:render", refreshStatsCharts);
         document.addEventListener("turbolinks:load", refreshStatsCharts);
+        window.addEventListener("resize", scheduleStatsChartResize);
+        document.addEventListener("chartkick:load", function() {
+            window.setTimeout(syncStatsChartHeights, 50);
+        });
     })();
