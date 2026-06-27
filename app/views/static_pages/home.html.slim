@@ -44,7 +44,8 @@
         .home-section-heading.mb-4
             .home-kicker Analyze
             h2.home-section-title Statistics
-        = render partial: 'shared/statistics'
+        = render partial: 'shared/stats_styles'
+        = render partial: 'shared/statistics', locals: { embedded: true, show_hero: false, show_title: false }
 .home-about
     .container.py-5
         .home-about-panel

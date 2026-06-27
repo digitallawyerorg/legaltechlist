@@ -1,18 +1,28 @@
-.stats-page
-    .stats-page-inner
-        .stats-hero
-            h1.stats-hero-title CodeX TechIndex
-            p.stats-hero-subtitle Research insights into the legal technology landscape
-        h2.stats-chart-title.mb-3 Statistics
-        .stats-index-grid
-            = render partial: "shared/stats_index_card", locals: { path: statistics_total_companies_path, icon: "fa-chart-line", tag: "Growth", title: "Ecosystem Growth", description: "Cumulative and annual growth of the legal tech ecosystem", sparkline_variant: 1 }
-            = render partial: "shared/stats_index_card", locals: { path: statistics_category_evolution_5_years_path, icon: "fa-chart-bar", tag: "Categories", title: "Category Evolution", description: "Growth patterns across legal tech segments over time", sparkline_variant: 3 }
-            = render partial: "shared/stats_index_card", locals: { path: statistics_country_distribution_path, icon: "fa-globe-americas", tag: "Geography", title: "Country Distribution", description: "Geographic distribution of legal tech companies by country", sparkline_variant: 2 }
-            = render partial: "shared/stats_index_card", locals: { path: statistics_funding_by_category_path, icon: "fa-dollar-sign", tag: "Funding", title: "Funding by Category", description: "Distribution of venture capital across legal tech segments", sparkline_variant: 3 }
-            = render partial: "shared/stats_index_card", locals: { path: statistics_target_client_path, icon: "fa-users", tag: "Market", title: "Target Client Insights", description: "Market focus and client segment analysis", sparkline_variant: 2 }
-            = render partial: "shared/stats_index_card", locals: { path: statistics_funding_stages_path, icon: "fa-project-diagram", tag: "Funding", title: "Funding Stage Progression", description: "Investment patterns across company lifecycles", sparkline_variant: 1 }
-            = render partial: "shared/stats_index_card", locals: { path: statistics_tag_distribution_path, icon: "fa-tags", tag: "Technology", title: "Tag Distribution", description: "Technology focus areas in the legal tech ecosystem", sparkline_variant: 3 }
-            = render partial: "shared/stats_index_card", locals: { path: statistics_ai_trends_path, icon: "fa-robot", tag: "AI", title: "AI Trends", description: "Growth of AI-focused legal tech companies over time", sparkline_variant: 1 }
-            = render partial: "shared/stats_index_card", locals: { path: statistics_innovation_hubs_path, icon: "fa-lightbulb", tag: "Geography", title: "Innovation Hubs", description: "Regional technology specialization and innovation patterns", sparkline_variant: 2 }
-            = render partial: "shared/stats_index_card", locals: { path: statistics_exit_patterns_path, icon: "fa-door-open", tag: "Exits", title: "Exit Patterns", description: "Analysis of successful exits and market timing", sparkline_variant: 1 }
-            = render partial: "shared/stats_index_card", locals: { path: statistics_founders_journey_path, icon: "fa-route", tag: "Lifecycle", title: "Founder's Journey", description: "Company lifecycle patterns and success factors", sparkline_variant: 2 }
+- show_hero = local_assigns.fetch(:show_hero, true)
+- show_title = local_assigns.fetch(:show_title, true)
+- embedded = local_assigns.fetch(:embedded, false)
+- stats_index_cards = capture do
+    .stats-index-grid
+        = render partial: "shared/stats_index_card", locals: { path: statistics_total_companies_path, icon: "fa-chart-line", tag: "Growth", title: "Ecosystem Growth", description: "Cumulative and annual growth of the legal tech ecosystem", sparkline_variant: 1 }
+        = render partial: "shared/stats_index_card", locals: { path: statistics_category_evolution_5_years_path, icon: "fa-chart-bar", tag: "Categories", title: "Category Evolution", description: "Growth patterns across legal tech segments over time", sparkline_variant: 3 }
+        = render partial: "shared/stats_index_card", locals: { path: statistics_country_distribution_path, icon: "fa-globe-americas", tag: "Geography", title: "Country Distribution", description: "Geographic distribution of legal tech companies by country", sparkline_variant: 2 }
+        = render partial: "shared/stats_index_card", locals: { path: statistics_funding_by_category_path, icon: "fa-dollar-sign", tag: "Funding", title: "Funding by Category", description: "Distribution of venture capital across legal tech segments", sparkline_variant: 3 }
+        = render partial: "shared/stats_index_card", locals: { path: statistics_target_client_path, icon: "fa-users", tag: "Market", title: "Target Client Insights", description: "Market focus and client segment analysis", sparkline_variant: 2 }
+        = render partial: "shared/stats_index_card", locals: { path: statistics_funding_stages_path, icon: "fa-project-diagram", tag: "Funding", title: "Funding Stage Progression", description: "Investment patterns across company lifecycles", sparkline_variant: 1 }
+        = render partial: "shared/stats_index_card", locals: { path: statistics_tag_distribution_path, icon: "fa-tags", tag: "Technology", title: "Tag Distribution", description: "Technology focus areas in the legal tech ecosystem", sparkline_variant: 3 }
+        = render partial: "shared/stats_index_card", locals: { path: statistics_ai_trends_path, icon: "fa-robot", tag: "AI", title: "AI Trends", description: "Growth of AI-focused legal tech companies over time", sparkline_variant: 1 }
+        = render partial: "shared/stats_index_card", locals: { path: statistics_innovation_hubs_path, icon: "fa-lightbulb", tag: "Geography", title: "Innovation Hubs", description: "Regional technology specialization and innovation patterns", sparkline_variant: 2 }
+        = render partial: "shared/stats_index_card", locals: { path: statistics_exit_patterns_path, icon: "fa-door-open", tag: "Exits", title: "Exit Patterns", description: "Analysis of successful exits and market timing", sparkline_variant: 1 }
+        = render partial: "shared/stats_index_card", locals: { path: statistics_founders_journey_path, icon: "fa-route", tag: "Lifecycle", title: "Founder's Journey", description: "Company lifecycle patterns and success factors", sparkline_variant: 2 }
+- if embedded
+    == stats_index_cards
+- else
+    .stats-page
+        .stats-page-inner
+            - if show_hero
+                .stats-hero
+                    h1.stats-hero-title CodeX TechIndex
+                    p.stats-hero-subtitle Research insights into the legal technology landscape
+            - if show_title
+                h2.stats-chart-title.mb-3 Statistics
+            == stats_index_cards
