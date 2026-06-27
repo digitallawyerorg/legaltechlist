@@ -67,6 +67,12 @@ class CompaniesControllerTest < ActionController::TestCase
     assert_equal ["active"], assigns(:status_counts).keys
   end
 
+  test "deep public pagination is rate limited" do
+    get :index, params: { page: 21, tag: "corporate law" }
+
+    assert_response :too_many_requests
+  end
+
   test "should get new" do
     get :new
     assert_response :success
