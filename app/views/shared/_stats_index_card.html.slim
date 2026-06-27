@@ -1,10 +1,6 @@
-/ locals: path, icon, tag, title, description, sparkline_variant (optional, 1-4)
+/ locals: path, title, description, sparkline_variant (optional, 1-4)
 - sparkline_variant ||= (title.hash.abs % 4) + 1
 = link_to path, class: "stats-index-card" do
-    .stats-index-card-top
-        .stats-index-card-icon
-            i class="fas #{icon}"
-        span.stats-index-card-tag= tag
     h3.stats-index-card-title= title
     p.stats-index-card-desc= description
     .stats-index-card-sparkline aria-hidden="true"
