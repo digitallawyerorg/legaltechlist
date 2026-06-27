@@ -56,7 +56,7 @@ class CompanyDuplicateConsolidationService
 
   def duplicate_groups
     groups = Company.where.not(main_url: [nil, ""]).select(:id, :main_url, :canonical_domain).group_by do |company|
-      company.canonical_domain.presence || company.canonical_main_domain
+      company.canonical_main_domain.presence || company.canonical_domain
     end
 
     groups = groups.slice(*domains) if domains.any?

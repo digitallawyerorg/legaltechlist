@@ -86,4 +86,15 @@ class CompanyTest < ActiveSupport::TestCase
     assert_includes Company.duplicate_domain_candidates, companies(:one)
     assert_includes Company.duplicate_domain_candidates, duplicate
   end
+
+  test "duplicate domain candidates recalculate stale stored canonical domains" do
+    duplicate = companies(:one).dup
+    duplicate.name = "Stale Canonical Domain Company"
+    duplicate.main_url = "https://www.example.com/path"
+    duplicate.save!
+    duplicate.update_columns(canonical_domain: "old-domain.example", updated_at: Time.current)
+
+    assert_includes Company.duplicate_domain_candidates, companies(:one)
+    assert_includes Company.duplicate_domain_candidates, duplicate
+  end
 end

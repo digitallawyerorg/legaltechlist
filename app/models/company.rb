@@ -109,8 +109,7 @@ class Company < ActiveRecord::Base
         []
       end
 
-      fallback_scope = column_names.include?("canonical_domain") ? where(canonical_domain: [nil, ""]) : all
-      rows = fallback_scope.where.not(main_url: [nil, ""]).pluck(:id, :main_url)
+      rows = where.not(main_url: [nil, ""]).pluck(:id, :main_url)
       grouped = rows.group_by { |_id, main_url| canonical_domain_for(main_url) }
       fallback_ids = grouped.except(nil).values.select { |group| group.size > 1 }.flatten(1).map(&:first)
 

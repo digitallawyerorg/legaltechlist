@@ -93,4 +93,16 @@ class CompanyDuplicateConsolidationServiceTest < ActiveSupport::TestCase
     assert_equal keeper.id, run.details["results"].first["keeper_id"]
     assert_nil Company.find_by(id: duplicate.id)
   end
+
+  test "consolidates duplicates with stale stored canonical domain" do
+    keeper = companies(:one)
+    duplicate = companies(:two)
+    keeper.update_columns(name: "My Legal Pal", main_url: "https://www.mylegalpal.com", canonical_domain: "mylegalpal.com")
+    duplicate.update_columns(name: "My Legal Pal", main_url: "https://mylegalpal.com", canonical_domain: "draftpilot.ai")
+
+    run = CompanyDuplicateConsolidationService.call(domains: ["mylegalpal.com"], reviewer: "test@example.com")
+
+    assert_equal keeper.id, run.details["results"].first["keeper_id"]
+    assert_nil Company.find_by(id: duplicate.id)
+  end
 end
