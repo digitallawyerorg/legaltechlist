@@ -19,11 +19,11 @@ xml.rss :version => "2.0" do
         xml.author "Legal Tech List"
         xml.pubDate company.created_at.rfc822
 
-        xml.link "#{request.protocol}#{request.host}:#{request.port}/companies/" + company.id.to_s # + "-" + company.name
+        xml.link company_url(company)
         xml.guid company.id
-        xml.category company.category
+        xml.category company.category&.name.to_s
 
-        text = company.description
+        text = company.description.to_s
 		# if you like, do something with your content text here e.g. insert image tags.
 		# Optional. I'm doing this on my website.
         # if company.image.exists?

@@ -1,4 +1,6 @@
 class CompaniesController < ApplicationController
+  FEED_COMPANY_LIMIT = 100
+
   before_action :set_company, only: [:show, :edit, :update, :destroy]
 
   # GET /companies
@@ -72,7 +74,11 @@ class CompaniesController < ApplicationController
   end
 
   def feed
-    @companies = Company.all
+    @companies = Company.publicly_visible
+                        .includes(:category)
+                        .order(created_at: :desc)
+                        .limit(FEED_COMPANY_LIMIT)
+
     respond_to do |format|
       format.rss { render :layout => false }
     end

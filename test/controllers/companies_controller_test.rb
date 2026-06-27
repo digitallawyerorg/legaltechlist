@@ -73,6 +73,20 @@ class CompaniesControllerTest < ActionController::TestCase
     assert_response :too_many_requests
   end
 
+  test "rss feed is limited to recent visible companies" do
+    hidden = @company.dup
+    hidden.name = "Hidden Feed Company"
+    hidden.visible = false
+    hidden.save!
+
+    get :feed, format: :rss
+
+    assert_response :success
+    assert_operator assigns(:companies).length, :<=, CompaniesController::FEED_COMPANY_LIMIT
+    assert_includes assigns(:companies), @company if @company.visible?
+    assert_not_includes assigns(:companies), hidden
+  end
+
   test "should get new" do
     get :new
     assert_response :success
