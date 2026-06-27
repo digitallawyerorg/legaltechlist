@@ -143,4 +143,36 @@ namespace :data_quality do
     puts examples if dry_run && !verbose
     puts "Normalize locations complete mode=#{mode} category_id=#{category_id || 'all'} changed=#{changed} still_missing_flag=#{still_missing_flag}"
   end
+
+  # Locations corrupted by an earlier normalize_locations run before small-country ISO codes existed.
+  CORRUPTED_LOCATION_FIXES = {
+    "https://www.crunchbase.com/organization/korporatio" => "Victoria, Seychelles",
+    "https://www.crunchbase.com/organization/legaltechnology-hub" => "New York, Honduras"
+  }.freeze
+
+  desc "Revert known corrupted company locations. Defaults to dry-run; set DRY_RUN=false to write."
+  task fix_corrupted_locations: :environment do
+    dry_run = ENV.fetch("DRY_RUN", "true") != "false"
+    verbose = ENV.fetch("VERBOSE", "false") == "true"
+    changed = 0
+    examples = []
+
+    CORRUPTED_LOCATION_FIXES.each do |crunchbase_url, correct_location|
+      company = Company.find_by(crunchbase_url: crunchbase_url)
+      next if company.blank? || company.location.blank?
+      next if company.location == correct_location
+
+      changed += 1
+      if dry_run
+        line = "DRY RUN company_id=#{company.id} #{company.location.inspect} -> #{correct_location.inspect}"
+        verbose ? puts(line) : examples << line
+      else
+        company.update!(location: correct_location)
+      end
+    end
+
+    mode = dry_run ? "dry-run" : "write"
+    puts examples if dry_run && !verbose
+    puts "Fix corrupted locations complete mode=#{mode} changed=#{changed}"
+  end
 end

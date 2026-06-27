@@ -357,7 +357,7 @@ class LocationCountryResolver
 
       country_name = country_name_for(location)
       return if country_name.blank?
-      return if parts.any? { |part| explicit_country_part?(part) }
+      return if parts.any? { |part| explicit_country_part?(part, all_parts: parts) }
 
       "#{parts.first}, #{country_name}"
     end
@@ -374,6 +374,12 @@ class LocationCountryResolver
         return "#{parts.first}, #{country}" if country.present?
 
         return parts.first
+      end
+
+      explicit_country = explicit_country_name_from_parts(parts)
+      if explicit_country.present?
+        display_country = explicit_country_part?(parts.last, all_parts: parts) ? parts.last : explicit_country
+        return "#{parts.first}, #{display_country}"
       end
 
       normalized = normalize_location_string(location)
@@ -416,11 +422,14 @@ class LocationCountryResolver
       iso_code_for_country_name(country_name).present?
     end
 
-    def explicit_country_part?(part)
-      explicit_country_iso_from_parts([part]).present? || explicit_country_name_from_parts([part]).present?
+    def explicit_country_part?(part, all_parts: nil)
+      explicit_country_iso_from_parts([part], all_parts: all_parts).present? ||
+        explicit_country_name_from_parts([part], all_parts: all_parts).present?
     end
 
-    def explicit_country_iso_from_parts(parts)
+    def explicit_country_iso_from_parts(parts, all_parts: nil)
+      context_parts = all_parts || parts
+
       parts.reverse_each do |part|
         token = normalize_token(part)
         return COUNTRY_ISO_CODES[token] if COUNTRY_ISO_CODES.key?(token)
@@ -431,12 +440,19 @@ class LocationCountryResolver
           iso_code = iso_code_for_country_name(alias_name)
           return iso_code if iso_code.present?
         end
+
+        next unless implicit_country_segment?(part, context_parts)
+
+        iso_code = iso_code_for_country_name(cleaned)
+        return iso_code if iso_code.present?
       end
 
       nil
     end
 
-    def explicit_country_name_from_parts(parts)
+    def explicit_country_name_from_parts(parts, all_parts: nil)
+      context_parts = all_parts || parts
+
       parts.reverse_each do |part|
         cleaned = cleaned_part(part)
         alias_name = COUNTRY_ALIASES[cleaned]
@@ -444,9 +460,21 @@ class LocationCountryResolver
 
         token = normalize_token(part)
         return cleaned if COUNTRY_ISO_CODES.key?(token)
+
+        return cleaned if implicit_country_segment?(part, context_parts)
       end
 
       nil
+    end
+
+    def implicit_country_segment?(part, all_parts)
+      return false unless part == all_parts.last && all_parts.size >= 2
+
+      token = normalize_token(part)
+      return false if us_state_code?(token)
+      return false if administrative_region_country(part).present?
+
+      true
     end
 
     def administrative_region_country(part)

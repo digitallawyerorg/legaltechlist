@@ -28,6 +28,11 @@ class LocationCountryResolverTest < ActiveSupport::TestCase
     assert_nil LocationCountryResolver.normalize_location_string("New York, Honduras")
   end
 
+  test "format_for_display keeps explicit last-segment countries over city inference" do
+    assert_equal "Victoria, Seychelles", LocationCountryResolver.format_for_display("Victoria, Seychelles")
+    assert_equal "New York, Honduras", LocationCountryResolver.format_for_display("New York, Honduras")
+  end
+
   test "country_name_for returns canonical country names" do
     assert_equal "United Kingdom", LocationCountryResolver.country_name_for("Knutsford, Cheshire")
     assert_equal "United States", LocationCountryResolver.country_name_for("Austin, Texas")
