@@ -495,8 +495,8 @@ css:
         .company-hero
             .company-hero-main
                 .company-logo-frame
-                    - if @company.logo_url.present?
-                        = image_tag @company.logo_url, alt: "#{@company.name} logo"
+                    - if @company.company_logo.present? || (@company.logo_url.present? && !@company.logo_dev_url?(@company.logo_url))
+                        = image_tag @company.logo, alt: "#{@company.name} logo"
                     - else
                         .company-logo-placeholder= @company.name.to_s.first
                 div
