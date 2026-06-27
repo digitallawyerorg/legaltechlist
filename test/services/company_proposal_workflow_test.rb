@@ -151,6 +151,55 @@ class CompanyProposalWorkflowTest < ActiveSupport::TestCase
     end
   end
 
+  test "candidate import auto-drafts clean rows and routes exceptions to proposals" do
+    run = nil
+
+    assert_difference "Company.count", 1 do
+      assert_difference "CompanyProposal.count", 3 do
+        with_candidate_import_csv do |path|
+          run = CompanyCandidateImportService.call(file: path, admin_user: admin_users(:one), notes: "Import automation test")
+        end
+      end
+    end
+
+    automation = run.details["automation"]
+    assert_equal 3, automation["processed_rows"]
+    assert_equal 1, automation["auto_drafted"]
+    assert_equal 1, automation["needs_review"]
+    assert_equal 1, automation["needs_duplicate_review"]
+
+    clean_proposal = CompanyProposal.find_by!(source_identifier: "clean-research.example")
+    assert_equal "approved_to_draft", clean_proposal.status
+    assert clean_proposal.company
+    assert_not clean_proposal.company.visible?
+    assert_equal "automated_import_draft", clean_proposal.company.verification_verdict
+    assert_equal categories(:one).id, clean_proposal.final_changes["category_id"]
+    assert_equal business_models(:one).id, clean_proposal.final_changes["business_model_id"]
+    assert_equal target_clients(:one).id, clean_proposal.final_changes["target_client_id"]
+
+    ambiguous_proposal = CompanyProposal.find_by!(source_identifier: "ambiguous-import.example")
+    assert_nil ambiguous_proposal.company
+    assert_includes CompanyProposalQualityService.call(ambiguous_proposal)["missing_required_fields"], "category_id"
+
+    duplicate_proposal = CompanyProposal.find_by!(source_identifier: "example.com")
+    assert_nil duplicate_proposal.company
+    assert duplicate_proposal.duplicate_blocking?
+  end
+
+  test "candidate import is idempotent by source identifier" do
+    with_candidate_import_csv do |path|
+      CompanyCandidateImportService.call(file: path, admin_user: admin_users(:one), notes: "First import automation test")
+    end
+
+    assert_no_difference "Company.count" do
+      assert_no_difference "CompanyProposal.count" do
+        with_candidate_import_csv do |path|
+          CompanyCandidateImportService.call(file: path, admin_user: admin_users(:one), notes: "Second import automation test")
+        end
+      end
+    end
+  end
+
   private
 
   def atlas_candidate_run
@@ -172,5 +221,22 @@ class CompanyProposalWorkflowTest < ActiveSupport::TestCase
       )
     )
     proposal
+  end
+
+  def with_candidate_import_csv
+    Tempfile.create(["candidate_import", ".csv"]) do |file|
+      file.write(candidate_import_csv)
+      file.close
+      yield file.path
+    end
+  end
+
+  def candidate_import_csv
+    <<~CSV
+      Organization Name,Organization Name URL,Industries,Founded Date,Headquarters Location,Description,Website,LinkedIn,Operating Status,Company Type,Total Funding Amount (in USD),Number of Funding Rounds,Number of Employees,Founders,Full Description
+      Clean Research Candidate,https://www.crunchbase.com/organization/clean-research-candidate,"Legal Research, SaaS, Law Firms",2024-01-01,"Boston, Massachusetts, United States","Clean Research Candidate builds legal research software for law firms.",https://clean-research.example,https://www.linkedin.com/company/clean-research,Active,For Profit,1000000,1,1-10,Jane Founder,"Clean Research Candidate develops legal research software platforms for law firms and legal professionals."
+      Ambiguous Import Candidate,https://www.crunchbase.com/organization/ambiguous-import-candidate,"Legal Tech",2025-01-01,"Austin, Texas, United States","Ambiguous Import Candidate builds legal technology.",https://ambiguous-import.example,https://www.linkedin.com/company/ambiguous-import,Active,For Profit,500000,1,1-10,Alex Founder,"Ambiguous Import Candidate develops legal technology."
+      Test Company One,https://www.crunchbase.com/organization/test-company-one,"Legal Research, SaaS",2020-01-01,"San Francisco, California, United States","Duplicate of an existing company.",http://example.com,https://www.linkedin.com/company/test-company-one,Active,For Profit,1000000,1,1-10,Existing Founder,"Duplicate of an existing company."
+    CSV
   end
 end

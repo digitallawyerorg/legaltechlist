@@ -49,17 +49,24 @@
                         - missing = Array(quality["missing_required_fields"])
                         - critic = proposal.agent_details.dig("description_critic", "verdict").presence || "missing"
                         - research_results = Array(proposal.agent_details.dig("web_research", "results"))
+                        - taxonomy_suggestion = proposal.agent_details["taxonomy_suggestion"] || {}
+                        - import_run_id = proposal.source_payload["pipeline_run_id"]
                         tr
                             td= check_box_tag "proposal_ids[]", proposal.id, false, class: "form-check-input"
                             td.admin-description
                                 = link_to custom_admin_company_proposal_path(proposal), class: "admin-primary-link", aria: { label: "Review #{proposal.display_name}" } do
                                     .fw-semibold= proposal.display_name
                                     .admin-cell-secondary= proposal.final_changes["main_url"].presence || proposal.source_payload["website"].presence || "Missing website"
-                                    span.admin-status-pill.text-bg-light.mt-1= proposal.status.humanize
+                                    .d-flex.flex-wrap.gap-1.mt-1
+                                        span.admin-status-pill.text-bg-light= proposal.status.humanize
+                                        - if import_run_id.present?
+                                            span.admin-status-pill.text-bg-light= "Run ##{import_run_id}"
                             td
                                 span.admin-status-pill(class=(quality["publish_ready"] ? "text-bg-success" : "text-bg-warning"))= "#{quality['score']}%"
                                 - if Array(quality["blockers"]).any?
                                     .admin-cell-secondary= Array(quality["blockers"]).first
+                                - elsif proposal.company
+                                    .admin-cell-secondary Invisible draft created
                             td
                                 span.admin-status-pill(class=(critic == "pass" ? "text-bg-success" : "text-bg-warning"))= critic.humanize
                                 .admin-cell-secondary= missing.include?("description") ? "Missing description" : truncate(proposal.final_changes["description"].to_s, length: 90)
@@ -67,6 +74,8 @@
                                 - taxonomy_missing = missing & ["category_id", "business_model_id", "target_client_id"]
                                 - if taxonomy_missing.any?
                                     span.admin-issue-chip.is-warning= "Missing #{taxonomy_missing.map(&:humanize).to_sentence}"
+                                - elsif taxonomy_suggestion["accepted"]
+                                    span.admin-issue-chip.is-muted= "Auto-suggested #{taxonomy_suggestion['mode'].to_s.humanize}"
                                 - else
                                     span.admin-issue-chip.is-muted Complete
                             td.small.admin-nowrap= "#{Array(proposal.duplicate_signals['name_matches']).size} name / #{Array(proposal.duplicate_signals['domain_matches']).size} domain"

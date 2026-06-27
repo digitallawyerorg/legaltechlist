@@ -37,6 +37,7 @@ class CompanyProposalQualityService
       values = []
       values << "Resolve duplicate signals before publishing." if proposal.duplicate_blocking?
       values << "Complete required fields before publishing: #{missing_required_fields.map(&:humanize).to_sentence}." if missing_required_fields.any?
+      values << "Review low-confidence taxonomy before publishing." if low_confidence_taxonomy?
       values << "Revise weak or generic description before publishing." if weak_description?
       values << "Description appears to copy the source text." if copied_source_description?
       values
@@ -47,6 +48,7 @@ class CompanyProposalQualityService
     values = []
     values << "No web-search evidence is attached." if Array(proposal.agent_details.dig("web_research", "results")).empty?
     values << "No enrichment critic verdict is recorded." if proposal.agent_details.dig("description_critic", "verdict").blank?
+    values << "Taxonomy was not auto-accepted." if taxonomy_suggestion.present? && !taxonomy_suggestion["accepted"]
     values
   end
 
@@ -70,5 +72,16 @@ class CompanyProposalQualityService
     full_source_description = proposal.source_payload["full_source_description"].to_s.squish
     description = changes["description"].to_s.squish
     description.present? && ([source_description, full_source_description].compact_blank.any? { |source| description.casecmp?(source) })
+  end
+
+  def low_confidence_taxonomy?
+    return false if taxonomy_suggestion.blank?
+    return false if missing_required_fields.intersect?(%w[category_id business_model_id target_client_id])
+
+    !taxonomy_suggestion["accepted"]
+  end
+
+  def taxonomy_suggestion
+    @taxonomy_suggestion ||= proposal.agent_details["taxonomy_suggestion"]
   end
 end

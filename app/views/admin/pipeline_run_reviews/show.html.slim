@@ -27,6 +27,11 @@
                             .fw-semibold= number_with_delimiter(@candidate_import_summary["existing_domain_matches"].to_i)
                     - if @candidate_import_summary["warning"].present?
                         .alert.alert-warning= @candidate_import_summary["warning"]
+                    - automation = @details["automation"] || {}
+                    - automation_results = Array(@details["automation_results"])
+                    - if automation.present?
+                        .alert.alert-info
+                            = "Automation processed #{number_with_delimiter(automation['processed_rows'].to_i)} rows: #{number_with_delimiter(automation['auto_drafted'].to_i)} auto-drafted, #{number_with_delimiter(automation['needs_review'].to_i)} needing review, #{number_with_delimiter(automation['needs_duplicate_review'].to_i)} duplicate reviews."
                     - if @candidate_import_candidates.any?
                         = form_with url: custom_admin_pipeline_run_company_proposals_path(@pipeline_run), method: :post, local: true do
                             .table-responsive
@@ -39,8 +44,10 @@
                                             th Status
                                             th Matches
                                             th Recommended action
+                                            th Result
                                     tbody
                                         - @candidate_import_candidates.each_with_index do |candidate, index|
+                                            - result = automation_results.find { |item| item["row_index"].to_i == index }
                                             tr
                                                 td
                                                     - if candidate["status"] == "absent_candidate"
@@ -62,6 +69,15 @@
                                                         span.badge.text-bg-warning Existing or duplicate
                                                 td.small= "#{Array(candidate['name_matches']).size} name / #{Array(candidate['domain_matches']).size} domain"
                                                 td.small= candidate["recommended_action"]
+                                                td.small
+                                                    - if result.present?
+                                                        .fw-semibold= result["action"].to_s.humanize
+                                                        - if result["proposal_id"].present?
+                                                            = link_to "Proposal ##{result['proposal_id']}", custom_admin_company_proposal_path(result["proposal_id"])
+                                                        - if result["company_id"].present?
+                                                            .text-muted= "Draft company ##{result['company_id']}"
+                                                    - else
+                                                        span.text-muted Not processed
                             = submit_tag "Queue Selected Absent Candidates", class: "btn btn-primary", data: { turbo_confirm: "Create editable proposals for selected absent candidates without changing company records?" }
                     - else
                         p.text-muted.mb-0 No candidate rows recorded.

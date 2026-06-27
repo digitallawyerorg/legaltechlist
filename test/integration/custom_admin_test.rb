@@ -320,7 +320,7 @@ class CustomAdminTest < ActionDispatch::IntegrationTest
 
     get upload_custom_admin_companies_csv_path
     assert_response :success
-    assert_select "input[type=submit][value='Review Candidates Only']"
+    assert_select "input[type=submit][value='Process Candidates']"
 
     get export_custom_admin_companies_csv_path
     assert_response :success
@@ -350,21 +350,24 @@ class CustomAdminTest < ActionDispatch::IntegrationTest
     assert_nil proposal.reload.company_id
   end
 
-  test "candidate import review creates pipeline run without importing companies" do
+  test "candidate import processing creates proposals without publishing companies" do
     sign_in admin_users(:one)
     file = Rack::Test::UploadedFile.new(Rails.root.join("test/fixtures/atlas_candidates.csv"), "text/csv")
     original_count = Company.count
     original_attributes = companies(:one).attributes.slice("name", "description", "main_url", "visible", "quality_status", "verification_verdict", "quality_score", "canonical_domain", "fingerprint", "updated_at")
 
     assert_difference "PipelineRun.count", 1 do
-      post review_import_candidates_custom_admin_companies_csv_path, params: { dump: { file: file } }
+      assert_difference "CompanyProposal.count", 2 do
+        post review_import_candidates_custom_admin_companies_csv_path, params: { dump: { file: file } }
+      end
     end
 
     run = PipelineRun.order(:created_at).last
-    assert_redirected_to custom_admin_pipeline_run_path(run)
+    assert_redirected_to custom_admin_company_proposals_path
     assert_equal "atlas_candidate_import_review", run.run_type
     assert_equal "candidate_import_review_no_public_writes", run.details["mode"]
     assert_equal 2, run.details["summary"]["reviewed_rows"]
+    assert_equal 2, run.details["automation"]["processed_rows"]
     assert_equal original_count, Company.count
     assert_equal original_attributes, companies(:one).reload.attributes.slice("name", "description", "main_url", "visible", "quality_status", "verification_verdict", "quality_score", "canonical_domain", "fingerprint", "updated_at")
 

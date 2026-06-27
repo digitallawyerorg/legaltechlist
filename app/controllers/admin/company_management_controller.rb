@@ -88,9 +88,10 @@ module Admin
     end
 
     def review_import_candidates
-      run = AtlasCandidateImportReviewService.call(file: params.require(:dump).require(:file), reviewer: current_admin_user.email, notes: "Triggered from custom CSV candidate review")
+      run = CompanyCandidateImportService.call(file: params.require(:dump).require(:file), admin_user: current_admin_user, notes: "Triggered from custom CSV candidate import automation")
+      automation = run.details["automation"] || {}
 
-      redirect_to custom_admin_pipeline_run_path(run), notice: "Candidate import review created. No company records were changed."
+      redirect_to custom_admin_company_proposals_path, notice: "Candidate import processed. Auto-drafted: #{automation['auto_drafted'].to_i}. Needs review: #{automation['needs_review'].to_i}. Duplicate review: #{automation['needs_duplicate_review'].to_i}."
     end
 
     def export

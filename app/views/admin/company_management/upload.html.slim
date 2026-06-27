@@ -2,14 +2,14 @@
 
 .mb-4
     h1.h3.mb-1 Upload Candidate CSV
-    p.text-muted.mb-0 Review Atlas/Crunchbase CSV candidates before importing. Source descriptions are evidence only and must not be copied into public TechIndex text.
+    p.text-muted.mb-0 Process Atlas/Crunchbase CSV candidates into invisible drafts when data is complete; exceptions appear in proposal review.
 
 .card.border-0.shadow-sm.mb-4
     .card-body
         .d-flex.flex-wrap.align-items-center.justify-content-between.gap-3
             div
                 .admin-kicker Review workspace
-                .fw-semibold Uploads create candidate review reports first; company writes remain human-approved.
+                .fw-semibold Uploads auto-create invisible drafts only when quality gates pass; duplicates and missing data stay in proposals.
             .nav.nav-pills
                 = link_to "Existing Companies", custom_admin_company_reviews_path, class: "nav-link"
                 = link_to "New Candidates", custom_admin_company_proposals_path, class: "nav-link"
@@ -22,7 +22,7 @@
                 = f.label :file, "CSV file", class: "form-label"
                 = f.file_field :file, class: "form-control", accept: ".csv"
             .d-flex.gap-2
-                = f.submit "Review Candidates Only", class: "btn btn-warning", formaction: review_import_candidates_custom_admin_companies_csv_path, data: { turbo_confirm: "Create a review-only candidate import report without changing company records?" }
+                = f.submit "Process Candidates", class: "btn btn-warning", formaction: review_import_candidates_custom_admin_companies_csv_path, data: { turbo_confirm: "Process candidates into invisible drafts or proposal review? Public records will not be published." }
                 = link_to "Cancel", custom_admin_companies_path, class: "btn btn-outline-secondary"
             .accordion.mt-4 id="legacyImportDanger"
                 .accordion-item.border-danger

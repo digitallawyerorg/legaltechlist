@@ -12,7 +12,8 @@ class CompanyProposalEnrichmentService
 
   def call
     @research_payload = CompanyProposalResearchService.call(proposal: proposal)
-    final_changes = proposal.final_changes.merge(enriched_changes)
+    @taxonomy_suggestion = CompanyProposalTaxonomySuggestionService.call(source_payload: source_payload, final_changes: proposal.final_changes)
+    final_changes = proposal.final_changes.merge(enriched_changes).merge(taxonomy_changes)
     agent_payload = agent_details(final_changes)
     proposal.update!(
       status: "ready_for_review",
@@ -36,6 +37,14 @@ class CompanyProposalEnrichmentService
       "number_of_funding_rounds" => number_of_funding_rounds,
       "employee_count" => source_payload["employee_count"].presence || source_payload["Number of Employees"].presence
     }.compact
+  end
+
+  def taxonomy_changes
+    {
+      "category_id" => taxonomy_suggestion.dig("category", "id"),
+      "business_model_id" => taxonomy_suggestion.dig("business_model", "id"),
+      "target_client_id" => taxonomy_suggestion.dig("target_client", "id")
+    }.compact_blank
   end
 
   def proposed_description
@@ -102,6 +111,7 @@ class CompanyProposalEnrichmentService
         "Final publication requires a separate visible toggle."
       ],
       "web_research" => research_payload,
+      "taxonomy_suggestion" => taxonomy_suggestion,
       "description_draft" => {
         "proposed_description" => final_changes["description"],
         "confidence" => "low",
@@ -166,6 +176,10 @@ class CompanyProposalEnrichmentService
 
   def research_payload
     @research_payload ||= CompanyProposalResearchService.call(proposal: proposal)
+  end
+
+  def taxonomy_suggestion
+    @taxonomy_suggestion ||= CompanyProposalTaxonomySuggestionService.call(source_payload: source_payload, final_changes: proposal.final_changes)
   end
 
   def source_text

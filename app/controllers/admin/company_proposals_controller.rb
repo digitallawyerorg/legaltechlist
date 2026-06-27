@@ -3,15 +3,7 @@ module Admin
     def index
       @status = params[:status].presence || "pending_review"
       @company_proposals = proposals_scope.recent.page(params[:page]).per(25)
-      @status_counts = {
-        "pending_review" => CompanyProposal.pending_review.count,
-        "pending" => CompanyProposal.where(status: "pending").count,
-        "ready_for_review" => CompanyProposal.where(status: "ready_for_review").count,
-        "needs_revision" => CompanyProposal.where(status: "needs_revision").count,
-        "approved_to_draft" => CompanyProposal.approved_to_draft.count,
-        "published" => CompanyProposal.published.count,
-        "rejected" => CompanyProposal.rejected.count
-      }
+      @status_counts = proposal_filter_counts
       @review_cockpit_counts = review_cockpit_counts
     end
 
@@ -28,6 +20,7 @@ module Admin
       load_proposal
       @company_proposal.assign_attributes(proposal_notes_params)
       @company_proposal.final_changes = sanitized_final_changes
+      @company_proposal.agent_details = @company_proposal.agent_details.merge("taxonomy_suggestion" => CompanyProposalTaxonomySuggestionService.call(source_payload: @company_proposal.source_payload, final_changes: @company_proposal.final_changes))
       @company_proposal.status = "ready_for_review" if @company_proposal.status == "pending"
       @company_proposal.reviewed_at = Time.current
       @company_proposal.admin_user = current_admin_user
@@ -105,11 +98,43 @@ module Admin
       case @status
       when "pending_review"
         CompanyProposal.pending_review
+      when "duplicate"
+        duplicate_scope
+      when "missing_taxonomy"
+        missing_taxonomy_scope
+      when "auto_drafted"
+        CompanyProposal.approved_to_draft.where.not(company_id: nil)
+      when "ready"
+        CompanyProposal.where(id: ready_proposal_ids)
       when *CompanyProposal::STATUSES
         CompanyProposal.where(status: @status)
       else
         CompanyProposal.all
       end
+    end
+
+    def proposal_filter_counts
+      {
+        "pending_review" => CompanyProposal.pending_review.count,
+        "duplicate" => duplicate_scope.count,
+        "missing_taxonomy" => missing_taxonomy_scope.count,
+        "ready" => ready_proposal_ids.size,
+        "auto_drafted" => CompanyProposal.approved_to_draft.where.not(company_id: nil).count,
+        "published" => CompanyProposal.published.count,
+        "rejected" => CompanyProposal.rejected.count
+      }
+    end
+
+    def duplicate_scope
+      CompanyProposal.where("jsonb_array_length(COALESCE(duplicate_signals->'name_matches', '[]'::jsonb)) > 0 OR jsonb_array_length(COALESCE(duplicate_signals->'domain_matches', '[]'::jsonb)) > 0")
+    end
+
+    def missing_taxonomy_scope
+      CompanyProposal.pending_review.where("COALESCE(final_changes->>'category_id', '') = '' OR COALESCE(final_changes->>'business_model_id', '') = '' OR COALESCE(final_changes->>'target_client_id', '') = ''")
+    end
+
+    def ready_proposal_ids
+      @ready_proposal_ids ||= CompanyProposal.pending_review.to_a.select(&:publish_ready?).map(&:id)
     end
 
     def proposal_notes_params
