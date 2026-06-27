@@ -16,6 +16,7 @@ class CompanyProposalQualityService
       "missing_required_fields" => missing_required_fields,
       "blockers" => blockers,
       "warnings" => warnings,
+      "usable_web_evidence_count" => usable_web_results.size,
       "checked_at" => Time.current.utc.iso8601
     }
   end
@@ -46,7 +47,7 @@ class CompanyProposalQualityService
 
   def warnings
     values = []
-    values << "No web-search evidence is attached." if Array(proposal.agent_details.dig("web_research", "results")).empty?
+    values << "No usable web-search evidence is attached." if usable_web_results.empty?
     values << "No enrichment critic verdict is recorded." if proposal.agent_details.dig("description_critic", "verdict").blank?
     values << "Taxonomy was not auto-accepted." if taxonomy_suggestion.present? && !taxonomy_suggestion["accepted"]
     values
@@ -83,5 +84,11 @@ class CompanyProposalQualityService
 
   def taxonomy_suggestion
     @taxonomy_suggestion ||= proposal.agent_details["taxonomy_suggestion"]
+  end
+
+  def usable_web_results
+    @usable_web_results ||= Array(proposal.agent_details.dig("web_research", "results")).select do |result|
+      result["url"].present? || result["title"].present? || result["snippet"].present?
+    end
   end
 end

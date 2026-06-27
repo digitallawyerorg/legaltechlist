@@ -118,6 +118,21 @@ class CompanyProposalWorkflowTest < ActiveSupport::TestCase
     assert_equal proposal.company_id, results.first["company_id"]
   end
 
+  test "quality report ignores blank web evidence placeholders" do
+    proposal = ready_proposal
+    proposal.update!(
+      agent_details: {
+        "web_research" => { "results" => [{}] },
+        "description_critic" => { "verdict" => "pass" }
+      }
+    )
+
+    quality = CompanyProposalQualityService.call(proposal)
+
+    assert_equal 0, quality["usable_web_evidence_count"]
+    assert_includes quality["warnings"], "No usable web-search evidence is attached."
+  end
+
   test "approval generates a description when editable description is blank" do
     proposal = queued_proposal
     proposal.update!(

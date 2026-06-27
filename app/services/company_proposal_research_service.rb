@@ -90,7 +90,7 @@ class CompanyProposalResearchService
   def search_results(citations, search_calls)
     citation_results = Array(citations).map { |citation| search_result_payload(citation["title"], citation["url"], citation["text"]) }
     call_results = Array(search_calls).flat_map { |call| Array(call[:results] || call["results"]) }.map { |result| search_result_payload(result[:title] || result["title"], result[:url] || result["url"], result[:snippet] || result["snippet"]) }
-    (citation_results + call_results).uniq { |result| result["url"] }.first(8)
+    (citation_results + call_results).select { |result| usable_result?(result) }.uniq { |result| result["url"] || result["title"] }.first(8)
   end
 
   def search_result_payload(title, url, snippet)
@@ -99,5 +99,9 @@ class CompanyProposalResearchService
       "url" => url,
       "snippet" => snippet.to_s.squish.presence
     }.compact
+  end
+
+  def usable_result?(result)
+    result["url"].present? || result["title"].present? || result["snippet"].present?
   end
 end
