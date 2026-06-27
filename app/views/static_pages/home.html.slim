@@ -1,58 +1,263 @@
-.bg-body.border-bottom
+.home-hero.border-bottom
     .container
-        .row.text-center.mt-5.py-5
-            .col-lg-8.mx-auto
-                h1.fs-1.fw-bold
-                    ' CodeX TechIndex
-                p.lead.mb-4 Tracking #{Company.where(visible: true).count} legal technology solutions and their impact on legal services delivery
-                = form_tag companies_path, class: 'row g-3 justify-content-center', method: :get do
-                    .position-relative
-                        = text_field_tag :query, params[:query], class: "form-control form-control-lg", placeholder: "Search for a company", id: "search-input"
-                        button type="submit" class="btn position-absolute top-50 end-0 translate-middle-y me-3" style="border: none; background: none;"
-                            i class="fa fa-search"
+        .home-hero-inner.text-center.mx-auto
+            .home-kicker Stanford Center for Legal Informatics / CodeX
+            h1.home-title CodeX TechIndex
+            p.home-lead A curated dataset of #{number_with_delimiter(Company.where(visible: true).count)} legal tech companies shaping the future of legal work.
+            .home-actions.d-flex.flex-wrap.justify-content-center.gap-2
+                = link_to companies_path, class: "btn home-primary-action" do
+                    ' Browse the directory
+                    i.fa.fa-arrow-right.ms-1
+                = link_to "View statistics", statistics_path, class: "btn home-secondary-action"
+            = form_tag companies_path, class: "home-search mx-auto", method: :get do
+                .position-relative
+                    i.fa.fa-search.home-search-icon
+                    = text_field_tag :query, params[:query], class: "form-control", placeholder: "Search tools, categories, or companies - e.g. \"contract review\"", id: "search-input"
 
-.bg-body-tertiary.border-bottom
-    .container.py-4
-        h2.h4 Statistics
+- categories = Category.where.not(name: "Unknown").where.not(id: [12, 13, 14]).sort_by { |category| -category.companies.where(visible: true).count }
+- featured_categories = categories.first(8)
+.home-section.home-categories.border-bottom
+    .container.py-5
+        .home-section-heading.d-flex.flex-wrap.justify-content-between.align-items-end.gap-3.mb-4
+            div
+                .home-kicker Browse
+                h2.home-section-title By category
+            = link_to companies_path, class: "home-section-link" do
+                ' All #{categories.size} categories
+                i.fa.fa-arrow-right.ms-1
+        .home-category-grid
+            - featured_categories.each do |category|
+                - category_count = category.companies.where(visible: true).count
+                = link_to companies_path(category: category.id), class: "home-category-card" do
+                    .home-category-icon
+                        i class="#{category_icon(category.name)}"
+                    div
+                        .home-category-name= category.name
+                        .home-category-count= "#{number_with_delimiter(category_count)} solutions"
+
+.home-section.border-bottom
+    .container.py-5
+        .home-section-heading.mb-4
+            .home-kicker Analyze
+            h2.home-section-title Statistics
         = render partial: 'shared/statistics'
-
-.bg-body-tertiary.border-bottom
-    .container.py-4
-        h2.h4 Companies
-        .row.g-4
-            - Category.all.each do |category|
-                - unless category.name == "Unknown" || [12, 13, 14].include?(category.id)
-                    .col-md-6.col-lg-4
-                        .card.border.h-100
-                            .card-body.px-4.pt-4
-                                .d-flex.justify-content-between.align-items-start.mb-3
-                                    = link_to companies_path(category: category.id), class: "rounded d-flex justify-content-center align-items-center text-decoration-none", style: "background-color:#8c15151a; width: 40px; height: 40px;" do
-                                        i class="#{category_icon(category.name)} text-cardinal-red text-decoration-none"
-                                    span.badge.bg-light.text-dark #{category.companies.count} companies
-                                h3.h5.card-title.mb-2
-                                    = link_to category.name, companies_path(category: category.id), class: "text-decoration-none text-dark"
-                                p.mb-0.card-text.text-muted.small
-                                    = category.description
-                            .card-footer.bg-white.border-top-0.px-4.pb-4
-                                = link_to companies_path(category: category.id), class: "text-decoration-none d-flex align-items-center " do
-                                    span.fs-sm style="color: rgb(140 21 21)"
-                                        b
-                                            ' View companies
-                                        i.fa.fa-arrow-right.ms-2
-.container
-    .card.border.my-5
-        .card-body.p-4.p-lg-5
-            h2.h4.mb-3 About the Codex TechIndex
-            p.text-muted
-                | The Codex TechIndex is a research initiative that tracks and analyzes the evolving landscape of legal technology. It aims to provide insight into technological innovations transforming legal practice, regulatory compliance, and access to justice.
-            p.text-muted.mb-0
+.home-about
+    .container.py-5
+        .home-about-panel
+            .home-kicker About
+            h2.home-section-title.mb-3 About the CodeX TechIndex
+            p.home-about-copy
+                | The CodeX TechIndex is a research initiative that tracks and analyzes the evolving landscape of legal technology. It aims to provide insight into technological innovations transforming legal practice, regulatory compliance, and access to justice.
+            p.home-about-copy.mb-0
                 | This resource serves researchers, practitioners, and decision-makers in understanding technology adoption trends, market dynamics, and the impact of innovation on legal service delivery.
 
 css:
+    .home-hero {
+        background: #fff;
+        padding: 4.5rem 0 3.5rem;
+    }
+
+    .home-hero-inner {
+        max-width: 46rem;
+    }
+
+    .home-kicker {
+        color: #8c1515;
+        font-size: 0.68rem;
+        font-weight: 900;
+        letter-spacing: 0.16em;
+        margin-bottom: 0.65rem;
+        text-transform: uppercase;
+    }
+
+    .home-title {
+        color: #1f1b17;
+        font-size: clamp(2.4rem, 6vw, 4.1rem);
+        font-weight: 500;
+        letter-spacing: -0.04em;
+        line-height: 1;
+        margin-bottom: 1.15rem;
+    }
+
+    .home-lead {
+        color: #5f574f;
+        font-size: 1.02rem;
+        line-height: 1.65;
+        margin: 0 auto 1.5rem;
+        max-width: 38rem;
+    }
+
+    .home-actions {
+        margin-bottom: 2rem;
+    }
+
+    .home-primary-action {
+        background: #8c1515;
+        border-color: #8c1515;
+        color: #fff;
+        font-size: 0.86rem;
+        font-weight: 800;
+        padding: 0.7rem 1.2rem;
+    }
+
+    .home-primary-action:hover {
+        background: #6f1111;
+        border-color: #6f1111;
+        color: #fff;
+    }
+
+    .home-secondary-action {
+        background: #fff;
+        border-color: #ded7ca;
+        color: #3f3933;
+        font-size: 0.86rem;
+        font-weight: 700;
+        padding: 0.7rem 1.2rem;
+    }
+
+    .home-secondary-action:hover {
+        background: #f5f3ee;
+        border-color: #cfc6b8;
+        color: #1f1b17;
+    }
+
+    .home-search {
+        max-width: 39rem;
+    }
+
+    .home-search-icon {
+        color: #9ca3af;
+        left: 1rem;
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+    }
+
+    .home-search .form-control {
+        background: #f8f7f3;
+        border-color: #ded7ca;
+        border-radius: 0.7rem;
+        font-size: 0.9rem;
+        min-height: 3rem;
+        padding-left: 2.6rem;
+    }
+
+    .home-section {
+        background: #f5f3ee;
+    }
+
+    .home-section-title {
+        color: #1f1b17;
+        font-size: 1.85rem;
+        font-weight: 500;
+        letter-spacing: -0.03em;
+        margin: 0;
+    }
+
+    .home-section-link {
+        color: #8c1515;
+        font-size: 0.82rem;
+        font-weight: 900;
+        text-decoration: none;
+    }
+
+    .home-section-link:hover {
+        color: #6f1111;
+        text-decoration: underline;
+    }
+
+    .home-category-grid {
+        display: grid;
+        gap: 0.85rem;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .home-category-card {
+        align-items: center;
+        background: #fff;
+        border: 1px solid #e5dfd5;
+        border-radius: 0.7rem;
+        box-shadow: 0 1px 2px rgba(17, 24, 39, 0.04);
+        color: inherit;
+        display: flex;
+        gap: 0.85rem;
+        min-height: 4.2rem;
+        padding: 0.9rem 1rem;
+        text-decoration: none;
+    }
+
+    .home-category-card:hover {
+        border-color: #d7cabb;
+        box-shadow: 0 4px 14px rgba(17, 24, 39, 0.07);
+        color: inherit;
+        transform: translateY(-1px);
+    }
+
+    .home-category-icon {
+        align-items: center;
+        background: #f6e5e5;
+        border-radius: 0.45rem;
+        color: #8c1515;
+        display: flex;
+        flex: 0 0 auto;
+        font-size: 0.82rem;
+        height: 2rem;
+        justify-content: center;
+        width: 2rem;
+    }
+
+    .home-category-name {
+        color: #1f1b17;
+        font-size: 0.86rem;
+        font-weight: 800;
+        line-height: 1.2;
+    }
+
+    .home-category-count {
+        color: #8b8379;
+        font-size: 0.76rem;
+        margin-top: 0.15rem;
+    }
+
+    .home-about {
+        background: #f5f3ee;
+        padding-bottom: 0.75rem;
+    }
+
+    .home-about-panel {
+        background: #fffdf8;
+        border: 1px solid #e5dfd5;
+        border-radius: 0.85rem;
+        box-shadow: 0 1px 2px rgba(17, 24, 39, 0.04);
+        padding: 2rem;
+    }
+
+    .home-about-copy {
+        color: #5f574f;
+        font-size: 0.92rem;
+        line-height: 1.65;
+        max-width: 62rem;
+    }
 
     .bg-cardinal-red {
         background-color: #8c1515;
     }
     .text-cardinal-red {
         color: #8c1515;
+    }
+
+    @media (max-width: 992px) {
+        .home-category-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+
+    @media (max-width: 640px) {
+        .home-hero {
+            padding: 3rem 0 2.5rem;
+        }
+
+        .home-category-grid {
+            grid-template-columns: 1fr;
+        }
     }

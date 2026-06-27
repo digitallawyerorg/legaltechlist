@@ -1,4 +1,25 @@
 css:
+    html,
+    body {
+        background: #f5f3ee;
+        font-family: "Source Sans 3", "Source Sans 3 Fallback", "Helvetica Neue", helvetica, arial, sans-serif;
+    }
+
+    .public-page {
+        background: #f5f3ee;
+    }
+
+    .public-page h1,
+    .public-page h2,
+    .public-page .public-display-title {
+        font-family: edict, "edict Fallback", Georgia, Cambria, "Times New Roman", Times, serif;
+    }
+
+    .public-page .bg-body,
+    .public-page .bg-body-tertiary {
+        background-color: #f5f3ee !important;
+    }
+
     .fs-sm {
         font-size: 0.875rem !important;
     }
@@ -92,6 +113,6 @@ html
 
     body
         = render "shared/navbar"
-        div style="margin-top: 60px"
+        .public-page style="margin-top: 60px"
             = yield
         = render "shared/footer"

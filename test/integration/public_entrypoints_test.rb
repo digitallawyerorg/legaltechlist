@@ -15,6 +15,15 @@ class PublicEntrypointsTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
+  test "home page prioritizes category browsing before statistics" do
+    get root_path
+
+    assert_response :success
+    assert_select ".home-title", "CodeX TechIndex"
+    assert_select ".home-category-card"
+    assert_operator @response.body.index(">By category</h2>"), :<, @response.body.index(">Statistics</h2>")
+  end
+
   test "admin login route is reachable" do
     get new_admin_user_session_path
 
