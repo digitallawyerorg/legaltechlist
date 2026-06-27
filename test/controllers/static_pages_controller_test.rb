@@ -4,6 +4,15 @@ class StaticPagesControllerTest < ActionController::TestCase
   test "should get home" do
     get :home
     assert_response :success
+    assert_select "title", text: "Legal Tech Company Database"
+    assert_select "meta[name=?][content*='curated ecosystem data']", "description"
+  end
+
+  test "should get about" do
+    get :about
+    assert_response :success
+    assert_select "title", text: "About"
+    assert_select "meta[name=?][content*='Stanford CodeX']", "description"
   end
 
   test "should get statistics" do

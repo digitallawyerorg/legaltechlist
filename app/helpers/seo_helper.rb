@@ -23,6 +23,20 @@ module SeoHelper
     content_for?(:canonical) ? content_for(:canonical) : "#{site_url}#{request.path}"
   end
 
+  def paginated_page_url(page)
+    params = request.query_parameters.symbolize_keys
+    page_number = page.to_i
+    params = page_number > 1 ? params.merge(page: page_number) : params.except(:page)
+    query = params.to_query
+    query.present? ? "#{site_url}#{request.path}?#{query}" : "#{site_url}#{request.path}"
+  end
+
+  def pagination_rel_link(page, rel)
+    return unless page
+
+    tag.link(rel: rel, href: paginated_page_url(page))
+  end
+
   def google_analytics_id
     ENV["GOOGLE_ANALYTICS_ID"].presence || ENV["GA_MEASUREMENT_ID"].presence
   end

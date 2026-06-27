@@ -250,6 +250,27 @@ css:
         padding-top: 1.25rem;
     }
 
+    .public-footer-bottom-row {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem 1.5rem;
+        justify-content: space-between;
+    }
+
+    .public-footer-meta-link {
+        color: rgba(255, 255, 255, 0.52);
+        font-size: 0.72rem;
+        margin-left: auto;
+        text-decoration: none;
+        white-space: nowrap;
+    }
+
+    .public-footer-meta-link:hover {
+        color: rgba(255, 255, 255, 0.72);
+        text-decoration: underline;
+    }
+
     .public-footer-disclaimer {
         color: rgba(255, 255, 255, 0.38);
         font-size: 0.68rem;
@@ -285,6 +306,8 @@ html
         meta name="viewport" content="width=device-width, initial-scale=1.0"
         meta name="description" content=seo_description
         link rel="canonical" href=canonical_url
+        = pagination_rel_link(@companies&.prev_page, "prev") if defined?(@companies) && @companies.respond_to?(:prev_page)
+        = pagination_rel_link(@companies&.next_page, "next") if defined?(@companies) && @companies.respond_to?(:next_page)
         meta property="og:type" content="website"
         meta property="og:site_name" content="CodeX TechIndex"
         meta property="og:title" content=seo_full_title
