@@ -1,13 +1,18 @@
 css:
     .public-company-index { background: #f5f3ee; min-height: calc(100vh - 60px); }
-    .company-shell { display: grid; grid-template-columns: 13rem minmax(0, 1fr); min-height: calc(100vh - 60px); }
-    .company-sidebar { background: #eee9df; border-right: 1px solid #ded7ca; padding: 1rem 0.85rem; }
-    .company-sidebar-title { color: #6b6258; font-size: 0.68rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; }
-    .company-filter-group { border-top: 1px solid #ded7ca; margin-top: 0.85rem; padding-top: 0.85rem; }
-    .company-filter-link { align-items: center; border-radius: 0.4rem; color: #4b5563; display: flex; font-size: 0.78rem; justify-content: space-between; padding: 0.28rem 0.35rem; text-decoration: none; }
-    .company-filter-link:hover { background: rgba(255, 255, 255, 0.55); color: #111827; }
-    .company-filter-link.is-active { background: #fff; color: #8c1515; font-weight: 700; }
-    .company-filter-count { color: #9ca3af; font-size: 0.72rem; margin-left: 0.75rem; }
+    .company-shell { display: grid; grid-template-columns: 15.5rem minmax(0, 1fr); min-height: calc(100vh - 60px); }
+    .company-sidebar { background: #eee9df; border-right: 1px solid #ded7ca; padding: 1.25rem 1rem; }
+    .company-sidebar-heading { align-items: center; display: flex; justify-content: space-between; margin-bottom: 1.15rem; }
+    .company-sidebar-title { color: #3f3933; font-size: 0.76rem; font-weight: 900; letter-spacing: 0.14em; text-transform: uppercase; }
+    .company-sidebar-reset { color: #8c1515; font-size: 0.78rem; font-weight: 800; text-decoration: none; }
+    .company-sidebar-reset:hover { color: #6f1111; text-decoration: underline; }
+    .company-filter-group { margin-top: 1.35rem; }
+    .company-filter-heading { color: #7c7369; font-size: 0.7rem; font-weight: 900; letter-spacing: 0.14em; margin-bottom: 0.65rem; text-transform: uppercase; }
+    .company-filter-link { align-items: center; border-radius: 0.55rem; color: #4b5563; display: flex; font-size: 0.78rem; font-weight: 500; gap: 0.8rem; justify-content: space-between; line-height: 1.2; padding: 0.46rem 0.65rem; text-decoration: none; }
+    .company-filter-link:hover { background: rgba(255, 255, 255, 0.5); color: #111827; }
+    .company-filter-link.is-active { background: #f6e5e5; color: #8c1515; font-weight: 800; }
+    .company-filter-count { color: #a3a09a; flex: 0 0 auto; font-size: 0.76rem; font-weight: 600; letter-spacing: 0.04em; margin-left: 0.75rem; }
+    .company-filter-link.is-active .company-filter-count { color: #a3a09a; }
     .company-main { padding: 1rem; }
     .company-toolbar { align-items: center; display: flex; flex-wrap: wrap; gap: 0.6rem; justify-content: space-between; margin-bottom: 0.7rem; }
     .company-results-title { color: #111827; font-size: 0.95rem; font-weight: 700; margin: 0; }
@@ -38,9 +43,12 @@ css:
 .public-company-index
     .company-shell
         aside.company-sidebar
-            .company-sidebar-title Filter
-            .company-filter-group.mt-2.pt-0.border-0
-                .company-sidebar-title Category
+            .company-sidebar-heading
+                .company-sidebar-title Filter
+                - if active_params.slice(:category, :status, :location, :query).any?
+                    = link_to "Reset", companies_path(clear_params), class: "company-sidebar-reset"
+            .company-filter-group.mt-0
+                .company-filter-heading Category
                 = link_to companies_path(active_params.except(:category, :page)), class: "company-filter-link #{selected_category.blank? ? 'is-active' : ''}" do
                     span All categories
                     span.company-filter-count= number_with_delimiter(@base_companies.count)
@@ -50,7 +58,7 @@ css:
                         span.company-filter-count= number_with_delimiter(category[:count])
             - if @status_counts.any?
                 .company-filter-group
-                    .company-sidebar-title Status
+                    .company-filter-heading Status
                     = link_to companies_path(active_params.except(:status, :page)), class: "company-filter-link #{selected_status.blank? ? 'is-active' : ''}" do
                         span Any status
                         span.company-filter-count= number_with_delimiter(@base_companies.count)
@@ -59,7 +67,7 @@ css:
                             span= status.to_s.humanize
                             span.company-filter-count= number_with_delimiter(count)
             .company-filter-group
-                .company-sidebar-title Location
+                .company-filter-heading Location
                 = form_with url: companies_path, method: :get, local: true do
                     = hidden_field_tag :query, params[:query] if params[:query].present?
                     = hidden_field_tag :category, params[:category] if params[:category].present?
@@ -67,9 +75,6 @@ css:
                     = hidden_field_tag :sort, params[:sort] if params[:sort].present?
                     = text_field_tag :location, params[:location], class: "form-control form-control-sm mt-2", placeholder: "City, region, country"
                     button.btn.btn-sm.btn-outline-secondary.w-100.mt-2 type="submit" Apply
-            - if active_params.slice(:category, :status, :location, :query).any?
-                .company-filter-group
-                    = link_to "Reset filters", companies_path(clear_params), class: "company-filter-link is-active"
 
         main.company-main
             .company-toolbar
