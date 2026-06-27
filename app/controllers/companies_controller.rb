@@ -20,7 +20,7 @@ class CompaniesController < ApplicationController
       @companies = @companies.where("LOWER(TRIM(status)) = ?", normalized_status_param) if normalized_status_param.present?
 
       # Sorting
-      case params[:sort] || 'updated_desc'
+      case params[:sort] || 'founded_desc'
       when 'name_asc'
         @companies = @companies.order(name: :asc)
       when 'name_desc'
@@ -38,7 +38,7 @@ class CompaniesController < ApplicationController
       @total_count = @companies.count
       @category_counts = category_counts
       @status_counts = status_counts
-      @sort_options = [["Recently updated", "updated_desc"], ["Newest companies", "founded_desc"], ["Oldest companies", "founded_asc"], ["Company name (A-Z)", "name_asc"], ["Company name (Z-A)", "name_desc"], ["Most funding raised", "funding_desc"]]
+      @sort_options = [["Newest companies", "founded_desc"], ["Oldest companies", "founded_asc"], ["Company name (A-Z)", "name_asc"], ["Company name (Z-A)", "name_desc"], ["Most funding raised", "funding_desc"]]
       @companies = @companies.page(params[:page]).per(25)
     rescue => e
       Rails.logger.error "Error in companies#index: #{e.message}"

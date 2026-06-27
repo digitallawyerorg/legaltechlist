@@ -97,7 +97,7 @@ css:
                     = hidden_field_tag :category, params[:category] if params[:category].present?
                     = hidden_field_tag :status, params[:status] if params[:status].present?
                     = hidden_field_tag :location, params[:location] if params[:location].present?
-                    = select_tag :sort, options_for_select(@sort_options, params[:sort].presence || "updated_desc"), class: "form-select form-select-sm company-sort", onchange: "this.form.submit()", aria: { label: "Sort companies" }
+                    = select_tag :sort, options_for_select(@sort_options, params[:sort].presence || "founded_desc"), class: "form-select form-select-sm company-sort", onchange: "this.form.submit()", aria: { label: "Sort companies" }
 
             .company-table-card
                 .table-responsive

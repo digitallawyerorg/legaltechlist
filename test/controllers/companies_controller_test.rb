@@ -23,7 +23,8 @@ class CompaniesControllerTest < ActionController::TestCase
     assert_select ".company-search input[placeholder='Search companies by name, category, or location']"
     assert_select ".company-pagination-count", text: /Showing \d+-\d+ of \d+ companies/
     assert_select "select[name='sort']"
-    assert_select "select[name='sort'] option[selected='selected']", "Recently updated"
+    assert_select "select[name='sort'] option[selected='selected']", "Newest companies"
+    assert_select "option", text: "Recently updated", count: 0
     assert_select "option", "Company name (A-Z)"
     assert_select "option", "Most funding raised"
   end
