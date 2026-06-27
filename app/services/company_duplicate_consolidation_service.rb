@@ -179,6 +179,7 @@ class CompanyDuplicateConsolidationService
     [
       company.visible? ? 1_000 : 0,
       quality_status_score(company),
+      domain_identity_score(company),
       taxonomy_score(company),
       source_score(company),
       description_score(company),
@@ -194,6 +195,17 @@ class CompanyDuplicateConsolidationService
     when "duplicate_hidden", "rejected" then -200
     else 0
     end
+  end
+
+  def domain_identity_score(company)
+    domain_label = company.canonical_main_domain.to_s.split(".").first.to_s.gsub(/[^a-z0-9]/, "")
+    name_label = company.normalized_name.gsub(/\s+/, "")
+    return 0 if domain_label.blank? || name_label.blank?
+    return 180 if name_label == domain_label
+    return 120 if domain_label.length >= 4 && name_label.include?(domain_label)
+    return 80 if name_label.length >= 4 && domain_label.include?(name_label)
+
+    0
   end
 
   def taxonomy_score(company)

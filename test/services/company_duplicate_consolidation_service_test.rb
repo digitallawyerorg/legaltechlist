@@ -71,4 +71,26 @@ class CompanyDuplicateConsolidationServiceTest < ActiveSupport::TestCase
     assert_nil Company.find_by(id: duplicate.id)
     assert_equal [duplicate.id], run.details["results"].first["deleted_company_ids"]
   end
+
+  test "prefers keeper whose name matches the domain" do
+    keeper = companies(:one)
+    duplicate = companies(:two)
+    keeper.update_columns(
+      name: "Onit",
+      main_url: "https://www.onit.com",
+      canonical_domain: "onit.com",
+      description: "Onit provides workflow automation for legal operations and enterprise legal management."
+    )
+    duplicate.update_columns(
+      name: "McCarthyFinch",
+      main_url: "https://www.onit.com",
+      canonical_domain: "onit.com",
+      description: "McCarthyFinch develops artificial intelligence products for contract automation, legal review, and document workflows."
+    )
+
+    run = CompanyDuplicateConsolidationService.call(domains: ["onit.com"], reviewer: "test@example.com")
+
+    assert_equal keeper.id, run.details["results"].first["keeper_id"]
+    assert_nil Company.find_by(id: duplicate.id)
+  end
 end
