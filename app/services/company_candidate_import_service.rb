@@ -1,6 +1,25 @@
 class CompanyCandidateImportService
   SOURCE = "legaltechatlas_csv".freeze
   DEFAULT_LIMIT = AtlasCandidateImportReviewService::DEFAULT_MAX_LIMIT
+  DUPLICATE_MERGE_FIELDS = %w[
+    main_url
+    location
+    founded_date
+    description
+    category_id
+    sub_category_id
+    business_model_id
+    target_client_id
+    crunchbase_url
+    linkedin_url
+    total_funding_amount_usd
+    funding_status
+    number_of_funding_rounds
+    employee_count
+    founders
+    source
+    source_url
+  ].freeze
 
   def self.call(**kwargs)
     new(**kwargs).call
@@ -40,7 +59,7 @@ class CompanyCandidateImportService
     proposal.reload
 
     quality = CompanyProposalQualityService.call(proposal)
-    return result_payload(candidate, index, proposal, "needs_duplicate_review", "Duplicate or existing-record signal found.") if proposal.duplicate_blocking?
+    return resolve_duplicate_candidate(candidate, index, proposal) if proposal.duplicate_blocking?
     return result_payload(candidate, index, proposal, "needs_review", Array(quality["blockers"]).first) unless auto_draft_ready?(proposal, quality)
     return result_payload(candidate, index, proposal, "already_drafted", "Proposal already has a company draft.") if proposal.company_id.present?
 
@@ -97,6 +116,59 @@ class CompanyCandidateImportService
     )
 
     company
+  end
+
+  def resolve_duplicate_candidate(candidate, index, proposal)
+    match = duplicate_company_match(proposal)
+    merged_fields = match ? fill_blank_company_fields!(match, proposal) : []
+    reason = if match
+      "Duplicate matched existing company; filled blank fields: #{merged_fields.to_sentence.presence || 'none'}."
+    else
+      "Duplicate matched multiple existing companies; no new company created."
+    end
+
+    proposal.update!(
+      status: "rejected",
+      company: match,
+      rejected_at: Time.current,
+      reviewed_at: Time.current,
+      admin_user: admin_user,
+      rejection_reason: reason,
+      reviewer_notes: [proposal.reviewer_notes, reason].compact_blank.join("\n")
+    )
+
+    result_payload(candidate, index, proposal.reload, match ? "duplicate_merged" : "duplicate_rejected", reason, match).merge(
+      "merged_fields" => merged_fields
+    )
+  end
+
+  def duplicate_company_match(proposal)
+    matches = Array(proposal.duplicate_signals["domain_matches"]) + Array(proposal.duplicate_signals["name_matches"])
+    ids = matches.filter_map { |match| match["id"] }.uniq
+    return unless ids.one?
+
+    Company.find_by(id: ids.first)
+  end
+
+  def fill_blank_company_fields!(company, proposal)
+    changes = proposal.final_changes.slice(*DUPLICATE_MERGE_FIELDS)
+    updates = changes.each_with_object({}) do |(field, value), attrs|
+      next if value.blank?
+      next unless company.respond_to?(field)
+      next if company.public_send(field).present?
+
+      attrs[field] = value
+    end
+
+    return [] if updates.empty?
+
+    company.assign_attributes(updates)
+    company.canonical_domain = company.canonical_main_domain if company.respond_to?(:canonical_domain) && company.canonical_domain.blank?
+    company.fingerprint = company.calculated_fingerprint if company.respond_to?(:fingerprint) && company.fingerprint.blank?
+    company.enriched_at ||= Time.current if company.respond_to?(:enriched_at)
+    company.skip_geocoding = true
+    company.save!(validate: false)
+    updates.keys
   end
 
   def auto_draft_ready?(proposal, quality)
@@ -173,6 +245,8 @@ class CompanyCandidateImportService
       "already_drafted" => results.count { |result| result["action"] == "already_drafted" },
       "needs_review" => results.count { |result| result["action"] == "needs_review" },
       "needs_duplicate_review" => results.count { |result| result["action"] == "needs_duplicate_review" },
+      "duplicate_merged" => results.count { |result| result["action"] == "duplicate_merged" },
+      "duplicate_rejected" => results.count { |result| result["action"] == "duplicate_rejected" },
       "already_published" => results.count { |result| result["action"] == "already_published" },
       "errored" => results.count { |result| result["action"] == "errored" },
       "created_at" => Time.current.utc.iso8601

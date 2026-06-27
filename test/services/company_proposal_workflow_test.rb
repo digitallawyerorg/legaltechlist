@@ -166,7 +166,8 @@ class CompanyProposalWorkflowTest < ActiveSupport::TestCase
     assert_equal 3, automation["processed_rows"]
     assert_equal 1, automation["auto_drafted"]
     assert_equal 1, automation["needs_review"]
-    assert_equal 1, automation["needs_duplicate_review"]
+    assert_equal 0, automation["needs_duplicate_review"]
+    assert_equal 1, automation["duplicate_merged"]
 
     clean_proposal = CompanyProposal.find_by!(source_identifier: "clean-research.example")
     assert_equal "approved_to_draft", clean_proposal.status
@@ -182,10 +183,12 @@ class CompanyProposalWorkflowTest < ActiveSupport::TestCase
     assert_includes CompanyProposalQualityService.call(ambiguous_proposal)["missing_required_fields"], "category_id"
 
     duplicate_proposal = CompanyProposal.find_by!(source_identifier: "example.com")
-    assert_nil duplicate_proposal.company
+    assert_equal "rejected", duplicate_proposal.status
+    assert_equal companies(:one), duplicate_proposal.company
     assert duplicate_proposal.duplicate_blocking?
     assert duplicate_proposal.final_changes["description"].present?
     assert duplicate_proposal.agent_details["taxonomy_suggestion"].present?
+    assert_match(/Duplicate matched existing company/i, duplicate_proposal.rejection_reason)
   end
 
   test "candidate import is idempotent by source identifier" do
