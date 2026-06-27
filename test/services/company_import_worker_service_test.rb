@@ -38,6 +38,30 @@ class CompanyImportWorkerServiceTest < ActiveSupport::TestCase
     assert_equal "succeeded", run.reload.status
   end
 
+  test "worker resolves duplicate rows without enrichment" do
+    run = nil
+    with_import_csv do |path|
+      run = CompanyImportSeedService.call(file: path, filename: "worker-test.csv", reviewer: "test@example.com", limit: 2)
+    end
+    run.company_import_rows.find_by!(row_number: 1).mark_skipped!(result: { "action" => "test_skip" })
+
+    original_call = CompanyProposalEnrichmentService.method(:call)
+    CompanyProposalEnrichmentService.define_singleton_method(:call) { |**| raise "duplicate row should not be enriched" }
+
+    begin
+      assert_no_difference "Company.count" do
+        assert_equal 1, CompanyImportWorkerService.drain(run_id: run.id, batch_limit: 1)
+      end
+    ensure
+      CompanyProposalEnrichmentService.define_singleton_method(:call, original_call)
+    end
+
+    duplicate_row = run.company_import_rows.find_by!(row_number: 2)
+    assert_equal "completed", duplicate_row.status
+    assert_equal "duplicate_merged", duplicate_row.action
+    assert_equal companies(:one), duplicate_row.company
+  end
+
   test "worker recovers stale processing rows" do
     run = nil
     with_import_csv do |path|

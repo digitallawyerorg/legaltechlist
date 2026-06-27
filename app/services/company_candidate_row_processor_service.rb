@@ -17,12 +17,12 @@ class CompanyCandidateRowProcessorService
     consolidate_visible_domain_duplicates!
     proposal = upsert_proposal
     return result_payload(proposal, "already_published", "Company is already published.") if proposal.status == "published" || proposal.company&.visible?
+    return resolve_duplicate_candidate(proposal) if proposal.duplicate_blocking?
 
     CompanyProposalEnrichmentService.call(proposal: proposal, admin_user: admin_user) if enrichment_needed?(proposal)
     proposal.reload
 
     quality = CompanyProposalQualityService.call(proposal)
-    return resolve_duplicate_candidate(proposal) if proposal.duplicate_blocking?
     return result_payload(proposal, "needs_review", Array(quality["blockers"]).first) unless auto_draft_ready?(proposal, quality)
     return result_payload(proposal, "already_drafted", "Proposal already has a company draft.") if proposal.company_id.present?
 
