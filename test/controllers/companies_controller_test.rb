@@ -11,12 +11,14 @@ class CompaniesControllerTest < ActionController::TestCase
     assert_not_nil assigns(:companies)
   end
 
-  test "index renders dense table and filter sidebar" do
+  test "index renders dense table and horizontal filter bar" do
     get :index
 
     assert_response :success
-    assert_select ".company-sidebar-title", "Filter"
-    assert_select ".company-filter-link", text: /All categories/
+    assert_select ".company-filter-bar"
+    assert_select ".company-filter-btn", minimum: 2
+    assert_select ".company-filter-option", text: /All categories/
+    assert_select ".company-sidebar", count: 0
     assert_select "table.company-table"
     assert_select "th", "Company"
     assert_select "th", "HQ"
@@ -52,7 +54,36 @@ class CompaniesControllerTest < ActionController::TestCase
     assert_response :success
     assert_includes assigns(:companies), @company
     assert_not_includes assigns(:companies), companies(:two)
-    assert_select ".company-filter-link.is-active", text: /Active/
+    assert_select ".company-filter-btn", text: /Active/
+    assert_select ".company-filter-option.active", text: /Active/
+  end
+
+  test "index filters by category" do
+    get :index, params: { category: @company.category_id }
+
+    assert_response :success
+    assert_includes assigns(:companies), @company
+    assert assigns(:companies).all? { |company| company.category_id == @company.category_id }
+    assert_select ".company-filter-option.active", text: /#{Regexp.escape(@company.category.name)}/
+  end
+
+  test "index filters by location" do
+    @company.update_columns(location: "San Francisco, CA")
+    companies(:two).update_columns(location: "New York, NY")
+
+    get :index, params: { location: "San Francisco" }
+
+    assert_response :success
+    assert_includes assigns(:companies), @company
+    assert_not_includes assigns(:companies), companies(:two)
+    assert_select ".company-filter-btn", text: /San Francisco/
+  end
+
+  test "index shows reset link when filters are active" do
+    get :index, params: { category: @company.category_id, status: "active" }
+
+    assert_response :success
+    assert_select ".company-filter-reset", text: "Reset"
   end
 
   test "index combines status facet variants case-insensitively" do

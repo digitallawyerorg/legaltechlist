@@ -1,30 +1,34 @@
 css:
     .public-company-index { flex: 1; min-height: 100%; }
-    .company-shell { display: grid; grid-template-columns: 15.5rem minmax(0, 1fr); min-height: 100%; }
-    .company-sidebar { background: #eee9df; border-right: 1px solid #ded7ca; padding: 1.25rem 1rem; }
-    .company-sidebar-heading { align-items: center; display: flex; justify-content: space-between; margin-bottom: 1.15rem; }
-    .company-sidebar-title { color: #3f3933; font-size: 0.76rem; font-weight: 900; letter-spacing: 0.14em; text-transform: uppercase; }
-    .company-sidebar-reset { color: #8c1515; font-size: 0.78rem; font-weight: 800; text-decoration: none; }
-    .company-sidebar-reset:hover { color: #6f1111; text-decoration: underline; }
-    .company-filter-toggle { display: none; }
-    .company-filter-toggle-label { display: none; }
-    .company-filter-group { margin-top: 1.35rem; }
-    .company-filter-heading { color: #7c7369; font-size: 0.7rem; font-weight: 900; letter-spacing: 0.14em; margin-bottom: 0.65rem; text-transform: uppercase; }
-    .company-filter-link { align-items: center; border-radius: 0.55rem; color: #4b5563; display: flex; font-size: 0.78rem; font-weight: 500; gap: 0.8rem; justify-content: space-between; line-height: 1.2; padding: 0.46rem 0.65rem; text-decoration: none; }
-    .company-filter-link:hover { background: rgba(255, 255, 255, 0.5); color: #111827; }
-    .company-filter-link.is-active { background: #f6e5e5; color: #8c1515; font-weight: 800; }
-    .company-filter-count { color: #a3a09a; flex: 0 0 auto; font-size: 0.76rem; font-weight: 600; letter-spacing: 0.04em; margin-left: 0.75rem; }
-    .company-filter-link.is-active .company-filter-count { color: #a3a09a; }
+    .company-shell { min-height: 100%; }
     .company-main { padding: 0.7rem 1rem 1rem; }
     .company-index-title { color: #2a2723; font-family: edict, "edict Fallback", Georgia, Cambria, "Times New Roman", Times, serif; font-size: clamp(1.35rem, 2.2vw, 1.65rem); font-weight: 500; letter-spacing: -0.01em; line-height: 1.2; margin: 0 0 0.75rem; }
-    .company-toolbar { align-items: center; display: grid; gap: 0.65rem; grid-template-columns: minmax(18rem, 1fr) auto; margin-bottom: 0.6rem; }
-    .company-toolbar form { margin: 0; }
-    .company-search { min-width: 0; }
+    .company-toolbar { margin-bottom: 0.6rem; }
+    .company-filter-bar { align-items: center; display: flex; flex-wrap: wrap; gap: 0.55rem; }
+    .company-filter-bar form { margin: 0; }
+    .company-search { flex: 0 1 17.5rem; max-width: 17.5rem; min-width: 0; width: 100%; }
     .company-search-field { position: relative; }
     .company-search-icon { color: #9ca3af; font-size: 0.82rem; left: 0.95rem; position: absolute; top: 50%; transform: translateY(-50%); }
-    .company-search .form-control { background: rgba(255, 255, 255, 0.86); border-color: #ded7ca; border-radius: 0.55rem; font-size: 0.9rem; min-height: 2.85rem; padding-left: 2.3rem; }
+    .company-search .form-control { background: rgba(255, 255, 255, 0.86); border-color: #ded7ca; border-radius: 0.55rem; font-size: 0.9rem; min-height: 2.55rem; padding-left: 2.3rem; }
     .company-search .form-control:focus { border-color: #cbbfae; box-shadow: 0 0 0 0.15rem rgba(140, 21, 21, 0.08); }
-    .company-sort { border-color: #ded7ca; border-radius: 0.55rem; font-size: 0.9rem; min-height: 2.85rem; min-width: 10.25rem; }
+    .company-filter-controls { align-items: center; display: flex; flex: 1 1 auto; flex-wrap: wrap; gap: 0.45rem; }
+    .company-filter-btn { align-items: center; background: #fff; border: 1px solid #ded7ca; border-radius: 0.55rem; color: #4b5563; display: inline-flex; font-size: 0.84rem; font-weight: 600; gap: 0.35rem; min-height: 2.55rem; padding: 0.4rem 0.85rem; white-space: nowrap; }
+    .company-filter-btn:hover, .company-filter-btn:focus { background: #faf8f3; border-color: #cbbfae; color: #2a2723; }
+    .company-filter-btn.dropdown-toggle::after { margin-left: 0.2rem; vertical-align: 0.12em; }
+    .company-filter-menu { border-color: #e5dfd5; border-radius: 0.65rem; box-shadow: 0 10px 28px rgba(17, 24, 39, 0.1); min-width: 14rem; padding: 0.55rem; width: min(20rem, 92vw); }
+    .company-filter-search { margin-bottom: 0.45rem; }
+    .company-filter-search .form-control { border-color: #ded7ca; border-radius: 0.45rem; font-size: 0.82rem; }
+    .company-filter-list { max-height: 16rem; overflow-y: auto; padding-right: 0.1rem; }
+    .company-filter-option { align-items: center; border-radius: 0.45rem; display: flex; font-size: 0.82rem; gap: 0.65rem; justify-content: space-between; padding: 0.42rem 0.55rem; }
+    .company-filter-option.active, .company-filter-menu .dropdown-item.active { background: #f6e5e5; color: #8c1515; font-weight: 700; }
+    .company-filter-count { color: #a3a09a; flex: 0 0 auto; font-size: 0.74rem; font-weight: 600; }
+    .company-filter-option.active .company-filter-count { color: #b08a8a; }
+    .company-filter-location-menu { min-width: 15rem; }
+    .company-filter-location-form { padding: 0.15rem 0.1rem 0; }
+    .company-filter-reset { color: #8c1515; flex: 0 0 auto; font-size: 0.82rem; font-weight: 800; text-decoration: none; white-space: nowrap; }
+    .company-filter-reset:hover { color: #6f1111; text-decoration: underline; }
+    .company-sort-form { flex: 0 0 auto; margin-left: auto; }
+    .company-sort { border-color: #ded7ca; border-radius: 0.55rem; font-size: 0.9rem; min-height: 2.55rem; min-width: 10.25rem; }
     .company-table-card { background: #fff; border: 1px solid #e5dfd5; border-radius: 0.6rem; overflow: hidden; }
     .company-table { font-size: 0.82rem; margin-bottom: 0; min-width: 860px; }
     .company-hq-cell { align-items: center; display: inline-flex; gap: 0.35rem; }
@@ -47,8 +51,8 @@ css:
     .company-pagination .page-link:hover { background: #f6e5e5; color: #8c1515; }
     .company-pagination .page-item.active .page-link { background: #8c1515; border-color: #8c1515; color: #fff; }
     .company-pagination .page-item.disabled .page-link { background: transparent; color: #b7afa4; }
-    @media (max-width: 900px) { .company-shell { grid-template-columns: 1fr; } .company-sidebar { border-right: 0; border-bottom: 1px solid #ded7ca; } .company-toolbar { grid-template-columns: 1fr; } }
-    @media (max-width: 640px) { .public-company-index { min-height: auto; } .company-shell { min-height: auto; } .company-sidebar { border-bottom: 1px solid #ded7ca; padding: 0.55rem 0.65rem; } .company-sidebar-heading { display: none; } .company-filter-toggle-label { align-items: center; background: #fff; border: 1px solid #ded7ca; border-radius: 0.6rem; color: #3f3933; display: flex; font-size: 0.86rem; font-weight: 800; justify-content: space-between; min-height: 2.45rem; padding: 0 0.8rem; } .company-filter-toggle-label::after { color: #8c1515; content: "Show"; font-size: 0.74rem; font-weight: 900; letter-spacing: 0.06em; text-transform: uppercase; } .company-filter-toggle:checked + .company-filter-toggle-label::after { content: "Hide"; } .company-filter-content { display: none; max-height: 18rem; overflow-y: auto; padding-top: 0.65rem; } .company-filter-toggle:checked ~ .company-filter-content { display: block; } .company-filter-group { margin-top: 0.9rem; } .company-filter-link { padding: 0.42rem 0.55rem; } .company-main { padding: 0.45rem 0.65rem 0.9rem; } .company-toolbar { gap: 0.45rem; margin-bottom: 0.55rem; } .company-search .form-control, .company-sort { font-size: 0.86rem; min-height: 2.45rem; width: 100%; } .company-search .form-control { padding-left: 2.15rem; } .company-search-icon { left: 0.85rem; } .company-table-card { background: transparent; border: 0; border-radius: 0; overflow: visible; } .company-table { border-collapse: collapse; border-spacing: 0; min-width: 0; } .company-table thead { display: none; } .company-table tbody, .company-table tr, .company-table td { display: block; width: 100%; } .company-table tbody tr { background: #fff; border: 1px solid #e5dfd5; border-radius: 0.75rem; box-shadow: 0 1px 4px rgba(17, 24, 39, 0.04); margin-bottom: 0.85rem; overflow: hidden; } .company-table tbody td { align-items: center; border-top: 1px solid #f3eee6; display: flex; gap: 0.75rem; justify-content: space-between; padding: 0.58rem 0.75rem; } .company-table tbody td:first-child { border-top: 0; display: block; padding: 0.72rem 0.75rem; } .company-table tbody td:not(:first-child)::before { color: #8b8379; content: attr(data-label); flex: 0 0 auto; font-size: 0.62rem; font-weight: 900; letter-spacing: 0.08em; text-transform: uppercase; } .company-name-cell { align-items: flex-start; } .company-logo { height: 2rem; width: 2rem; } .company-description { max-width: none; } .company-pagination { align-items: flex-start; flex-direction: column; gap: 0.55rem; padding: 0.3rem 0.1rem 0; } .company-pagination .pagination { flex-wrap: wrap; } }
+    @media (max-width: 900px) { .company-sort-form { margin-left: 0; width: 100%; } .company-sort { width: 100%; } }
+    @media (max-width: 640px) { .public-company-index { min-height: auto; } .company-shell { min-height: auto; } .company-main { padding: 0.45rem 0.65rem 0.9rem; } .company-toolbar { margin-bottom: 0.55rem; } .company-filter-bar { gap: 0.45rem; } .company-search { flex-basis: 100%; max-width: none; } .company-filter-controls { flex-basis: 100%; } .company-filter-btn { flex: 1 1 calc(50% - 0.25rem); justify-content: space-between; min-width: 0; } .company-filter-reset { flex-basis: 100%; } .company-search .form-control, .company-sort, .company-filter-btn { font-size: 0.86rem; min-height: 2.45rem; } .company-search .form-control { padding-left: 2.15rem; } .company-search-icon { left: 0.85rem; } .company-table-card { background: transparent; border: 0; border-radius: 0; overflow: visible; } .company-table { border-collapse: collapse; border-spacing: 0; min-width: 0; } .company-table thead { display: none; } .company-table tbody, .company-table tr, .company-table td { display: block; width: 100%; } .company-table tbody tr { background: #fff; border: 1px solid #e5dfd5; border-radius: 0.75rem; box-shadow: 0 1px 4px rgba(17, 24, 39, 0.04); margin-bottom: 0.85rem; overflow: hidden; } .company-table tbody td { align-items: center; border-top: 1px solid #f3eee6; display: flex; gap: 0.75rem; justify-content: space-between; padding: 0.58rem 0.75rem; } .company-table tbody td:first-child { border-top: 0; display: block; padding: 0.72rem 0.75rem; } .company-table tbody td:not(:first-child)::before { color: #8b8379; content: attr(data-label); flex: 0 0 auto; font-size: 0.62rem; font-weight: 900; letter-spacing: 0.08em; text-transform: uppercase; } .company-name-cell { align-items: flex-start; } .company-logo { height: 2rem; width: 2rem; } .company-description { max-width: none; } .company-pagination { align-items: flex-start; flex-direction: column; gap: 0.55rem; padding: 0.3rem 0.1rem 0; } .company-pagination .pagination { flex-wrap: wrap; } }
 
 - content_for :title, "Legal Tech Companies"
 - content_for :description, "Browse and search #{number_with_delimiter(@total_count)} legal technology companies in the CodeX TechIndex — filter by category, location, status, and funding."
@@ -61,61 +65,10 @@ css:
 
 .public-company-index
     .company-shell
-        aside.company-sidebar
-            .company-sidebar-heading
-                .company-sidebar-title Filter
-                - if active_params.slice(:category, :status, :location, :query).any?
-                    = link_to "Reset", companies_path(clear_params), class: "company-sidebar-reset"
-            input#company-filter-toggle.company-filter-toggle type="checkbox"
-            label.company-filter-toggle-label for="company-filter-toggle"
-                span Filter companies
-            .company-filter-content
-                .company-filter-group.mt-0
-                    .company-filter-heading Category
-                    = link_to companies_path(active_params.except(:category, :page)), class: "company-filter-link #{selected_category.blank? ? 'is-active' : ''}" do
-                        span All categories
-                        span.company-filter-count= number_with_delimiter(@base_company_count)
-                    - @category_counts.each do |category|
-                        = link_to companies_path(active_params.merge(category: category[:id]).except(:page)), class: "company-filter-link #{selected_category.to_s == category[:id].to_s ? 'is-active' : ''}" do
-                            span= category[:name]
-                            span.company-filter-count= number_with_delimiter(category[:count])
-                - if @status_counts.any?
-                    .company-filter-group
-                        .company-filter-heading Status
-                        = link_to companies_path(active_params.except(:status, :page)), class: "company-filter-link #{selected_status.blank? ? 'is-active' : ''}" do
-                            span Any status
-                            span.company-filter-count= number_with_delimiter(@base_company_count)
-                        - @status_counts.each do |status, count|
-                            = link_to companies_path(active_params.merge(status: status).except(:page)), class: "company-filter-link #{selected_status == status ? 'is-active' : ''}" do
-                                span= status.to_s.humanize
-                                span.company-filter-count= number_with_delimiter(count)
-                .company-filter-group
-                    .company-filter-heading Location
-                    = form_with url: companies_path, method: :get, local: true do
-                        = hidden_field_tag :query, params[:query] if params[:query].present?
-                        = hidden_field_tag :category, params[:category] if params[:category].present?
-                        = hidden_field_tag :status, params[:status] if params[:status].present?
-                        = hidden_field_tag :sort, params[:sort] if params[:sort].present?
-                        = text_field_tag :location, params[:location], class: "form-control form-control-sm mt-2", placeholder: "City, region, country"
-                        button.btn.btn-sm.btn-outline-secondary.w-100.mt-2 type="submit" Apply
-
         main.company-main
             h1.company-index-title Legal Tech Companies
             .company-toolbar
-                = form_with url: companies_path, method: :get, local: true, html: { class: "company-search" } do
-                    = hidden_field_tag :category, params[:category] if params[:category].present?
-                    = hidden_field_tag :status, params[:status] if params[:status].present?
-                    = hidden_field_tag :location, params[:location] if params[:location].present?
-                    = hidden_field_tag :sort, params[:sort] if params[:sort].present?
-                    .company-search-field
-                        i.fa.fa-search.company-search-icon aria-hidden="true"
-                        = search_field_tag :query, params[:query], class: "form-control", placeholder: "Search companies by name, category, or location", aria: { label: "Search companies" }
-                = form_with url: companies_path, method: :get, local: true do
-                    = hidden_field_tag :query, params[:query] if params[:query].present?
-                    = hidden_field_tag :category, params[:category] if params[:category].present?
-                    = hidden_field_tag :status, params[:status] if params[:status].present?
-                    = hidden_field_tag :location, params[:location] if params[:location].present?
-                    = select_tag :sort, options_for_select(@sort_options, params[:sort].presence || "founded_desc"), class: "form-select form-select-sm company-sort", onchange: "this.form.submit()", aria: { label: "Sort companies" }
+                = render "filter_bar", active_params: active_params, clear_params: clear_params, selected_category: selected_category, selected_status: selected_status
 
             .company-table-card
                 .table-responsive
@@ -157,3 +110,28 @@ css:
                 .company-pagination
                     .company-pagination-count= "Showing #{result_start}-#{result_end} of #{number_with_delimiter(@total_count)} companies"
                     = paginate @companies
+
+javascript:
+    (function() {
+        function bindCompanyFilterSearch() {
+            document.querySelectorAll("[data-company-filter-search]").forEach(function(input) {
+                if (input.dataset.bound) return;
+                input.dataset.bound = "true";
+
+                input.addEventListener("input", function() {
+                    let query = input.value.trim().toLowerCase();
+                    let menu = input.closest(".company-filter-menu");
+                    if (!menu) return;
+
+                    menu.querySelectorAll(".company-filter-option[data-filter-name]").forEach(function(option) {
+                        let name = option.dataset.filterName || "";
+                        option.style.display = !query || name.indexOf(query) !== -1 ? "" : "none";
+                    });
+                });
+            });
+        }
+
+        document.addEventListener("turbo:load", bindCompanyFilterSearch);
+        document.addEventListener("turbo:render", bindCompanyFilterSearch);
+        bindCompanyFilterSearch();
+    })();
