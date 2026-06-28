@@ -105,6 +105,65 @@ class UserSubmissionWorkflowTest < ActiveSupport::TestCase
     assert_equal "review", proposal.agent_details.dig("triage", "verdict")
   end
 
+  test "processor interprets suggestions even when triage queues for review" do
+    proposal = user_suggestion_proposal(
+      message: "Founded year should be 2014.",
+      founded_date: @company.founded_date
+    )
+
+    CompanyUserSubmissionProcessorService.call(proposal: proposal)
+
+    proposal.reload
+    assert_equal "ready_for_review", proposal.status
+    assert_equal "review", proposal.agent_details.dig("triage", "verdict")
+    assert_equal "2014", proposal.agent_details.dig("suggestion_interpretation", "delta", "founded_date")
+    assert_equal "2014", proposal.final_changes["founded_date"]
+  end
+
+  test "processor auto-applies interpreted suggestions to published companies" do
+    with_env("USER_SUGGESTION_AUTO_APPLY" => "true") do
+      proposal = user_suggestion_proposal(
+        message: "Founded year should be 2014.",
+        founded_date: @company.founded_date
+      )
+
+      CompanyUserSubmissionProcessorService.call(proposal: proposal)
+
+      proposal.reload
+      assert_equal "published", proposal.status
+      assert_equal "2014", @company.reload.founded_date
+    end
+  end
+
+  test "processor leaves ambiguous suggestions for manual review" do
+    with_env("USER_SUGGESTION_AUTO_APPLY" => "true") do
+      proposal = user_suggestion_proposal(
+        message: "Please improve the company description.",
+        founded_date: @company.founded_date
+      )
+
+      CompanyUserSubmissionProcessorService.call(proposal: proposal)
+
+      proposal.reload
+      assert_equal "ready_for_review", proposal.status
+      assert_equal({}, proposal.agent_details.dig("suggestion_interpretation", "delta"))
+      assert_equal @company.founded_date, proposal.final_changes["founded_date"]
+    end
+  end
+
+  test "processor rejects spam suggestions without interpretation" do
+    proposal = user_suggestion_proposal(
+      message: "Buy viagra cheap casino now",
+      founded_date: @company.founded_date
+    )
+
+    CompanyUserSubmissionProcessorService.call(proposal: proposal)
+
+    proposal.reload
+    assert_equal "rejected", proposal.status
+    assert_nil proposal.agent_details["suggestion_interpretation"]
+  end
+
   test "apply update service updates existing company for user suggestion" do
     proposal = CompanyProposal.create!(
       status: "ready_for_review",
@@ -164,5 +223,50 @@ class UserSubmissionWorkflowTest < ActiveSupport::TestCase
         "description" => description
       }
     )
+  end
+
+  def user_suggestion_proposal(message:, founded_date:)
+    snapshot = {
+      "name" => @company.name,
+      "main_url" => @company.main_url,
+      "location" => @company.location,
+      "founded_date" => founded_date,
+      "status" => @company.status,
+      "description" => @company.description,
+      "category_id" => @company.category_id,
+      "business_model_id" => @company.business_model_id,
+      "target_client_id" => @company.target_client_id
+    }
+
+    CompanyProposal.create!(
+      status: "pending",
+      proposal_type: "user_suggestion",
+      source: "user_suggestion",
+      source_identifier: SecureRandom.uuid,
+      company: @company,
+      submitter_email: "reviewer@example.com",
+      issue_type: "incorrect_details",
+      user_message: message,
+      source_payload: { "company_id" => @company.id },
+      proposed_changes: snapshot,
+      final_changes: snapshot
+    )
+  end
+
+  def with_env(vars)
+    previous = {}
+    vars.each do |key, value|
+      previous[key] = ENV[key]
+      ENV[key] = value
+    end
+    yield
+  ensure
+    previous.each do |key, value|
+      if value.nil?
+        ENV.delete(key)
+      else
+        ENV[key] = value
+      end
+    end
   end
 end
