@@ -8,7 +8,7 @@ module SeoHelper
   end
 
   def seo_page_title
-    content_for?(:title) ? content_for(:title) : SITE_NAME
+    seo_full_title
   end
 
   def seo_full_title
