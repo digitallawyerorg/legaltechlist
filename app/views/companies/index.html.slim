@@ -37,15 +37,23 @@ css:
     .company-sort-form { flex: 0 0 auto; margin-left: auto; }
     .company-sort { border-color: #ded7ca; border-radius: 0.55rem; font-size: 0.9rem; min-height: 2.55rem; min-width: 10.25rem; }
     .company-table-card { background: #fff; border: 1px solid #e5dfd5; border-radius: 0.6rem; overflow: hidden; }
-    .company-table { font-size: 0.82rem; margin-bottom: 0; min-width: 860px; table-layout: fixed; width: 100%; }
-    .company-table th:not(:first-child), .company-table td:not(:first-child) { width: 1%; white-space: nowrap; }
+    .company-list-scroll { overflow-x: auto; }
+    .company-list { font-size: 0.82rem; min-width: 860px; }
+    .company-list-header { align-items: center; background: #faf8f3; border-bottom: 1px solid #e5dfd5; display: flex; }
+    .company-list-header .company-list-col { color: #6b7280; font-size: 0.66rem; font-weight: 800; letter-spacing: 0.05em; padding: 0.58rem 0.75rem; text-transform: uppercase; white-space: nowrap; }
+    .company-list-row { align-items: center; border-top: 1px solid #f0ebe3; display: flex; }
+    .company-list-row:hover { background: #fffdf8; }
+    .company-list-col { flex: 0 0 auto; padding: 0.58rem 0.75rem; white-space: nowrap; }
+    .company-list-company { flex: 1 1 auto; min-width: 0; overflow: hidden; white-space: normal; }
+    .company-list-category { flex: 0 0 11.5rem; }
+    .company-list-founded { flex: 0 0 5.5rem; }
+    .company-list-hq { flex: 0 0 9rem; }
+    .company-list-status { flex: 0 0 6.5rem; }
+    .company-list-empty { color: #9ca3af; padding: 1.5rem 0.75rem; text-align: center; }
     .company-hq-cell { align-items: center; display: inline-flex; gap: 0.35rem; }
     .company-hq-flag { flex: 0 0 auto; font-size: 1rem; line-height: 1; }
-    .company-table thead th { background: #faf8f3; border-bottom: 1px solid #e5dfd5; color: #6b7280; font-size: 0.66rem; font-weight: 800; letter-spacing: 0.05em; padding: 0.58rem 0.75rem; text-transform: uppercase; white-space: nowrap; }
-    .company-table tbody td { border-top-color: #f0ebe3; padding: 0.58rem 0.75rem; vertical-align: middle; }
-    .company-table tbody tr:hover { background: #fffdf8; }
     .company-name-cell { align-items: center; display: flex; gap: 0.6rem; min-width: 0; }
-    .company-name-cell > div { flex: 1 1 auto; min-width: 0; }
+    .company-name-cell > div { flex: 1 1 auto; min-width: 0; overflow: hidden; }
     .company-logo { background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 0.25rem; flex: 0 0 auto; height: 1.75rem; object-fit: contain; padding: 0.12rem; width: 1.75rem; }
     .company-name-link { color: #111827; display: block; font-weight: 700; text-decoration: none; }
     .company-name-link:hover { color: #8c1515; text-decoration: underline; }
@@ -61,7 +69,7 @@ css:
     .company-pagination .page-item.active .page-link { background: #8c1515; border-color: #8c1515; color: #fff; }
     .company-pagination .page-item.disabled .page-link { background: transparent; color: #b7afa4; }
     @media (max-width: 900px) { .company-sort-form { margin-left: 0; width: 100%; } .company-sort { width: 100%; } }
-    @media (max-width: 640px) { .public-company-index { min-height: auto; } .company-shell { min-height: auto; } .company-main { padding: 0.45rem 0.65rem 0.9rem; } .company-toolbar { margin-bottom: 0.55rem; } .company-filter-bar { gap: 0.45rem; } .company-search { flex-basis: 100%; max-width: none; } .company-filter-controls { flex-basis: 100%; } .company-filter-btn { flex: 1 1 calc(50% - 0.25rem); justify-content: space-between; min-width: 0; } .company-filter-reset { flex-basis: 100%; } .company-search .form-control, .company-sort, .company-filter-btn { font-size: 0.86rem; min-height: 2.45rem; } .company-search .form-control { padding-left: 2.15rem; } .company-search-icon { left: 0.85rem; } .company-table-card { background: transparent; border: 0; border-radius: 0; overflow: visible; } .company-table { border-collapse: collapse; border-spacing: 0; min-width: 0; } .company-table thead { display: none; } .company-table tbody, .company-table tr, .company-table td { display: block; width: 100%; } .company-table tbody tr { background: #fff; border: 1px solid #e5dfd5; border-radius: 0.75rem; box-shadow: 0 1px 4px rgba(17, 24, 39, 0.04); margin-bottom: 0.85rem; overflow: hidden; } .company-table tbody td { align-items: center; border-top: 1px solid #f3eee6; display: flex; gap: 0.75rem; justify-content: space-between; padding: 0.58rem 0.75rem; } .company-table tbody td:first-child { border-top: 0; display: block; padding: 0.72rem 0.75rem; } .company-table tbody td:not(:first-child)::before { color: #8b8379; content: attr(data-label); flex: 0 0 auto; font-size: 0.62rem; font-weight: 900; letter-spacing: 0.08em; text-transform: uppercase; } .company-name-cell { align-items: flex-start; } .company-logo { height: 2rem; width: 2rem; } .company-pagination { align-items: flex-start; flex-direction: column; gap: 0.55rem; padding: 0.3rem 0.1rem 0; } .company-pagination .pagination { flex-wrap: wrap; } }
+    @media (max-width: 640px) { .public-company-index { min-height: auto; } .company-shell { min-height: auto; } .company-main { padding: 0.45rem 0.65rem 0.9rem; } .company-toolbar { margin-bottom: 0.55rem; } .company-filter-bar { gap: 0.45rem; } .company-search { flex-basis: 100%; max-width: none; } .company-filter-controls { flex-basis: 100%; } .company-filter-btn { flex: 1 1 calc(50% - 0.25rem); justify-content: space-between; min-width: 0; } .company-filter-reset { flex-basis: 100%; } .company-search .form-control, .company-sort, .company-filter-btn { font-size: 0.86rem; min-height: 2.45rem; } .company-search .form-control { padding-left: 2.15rem; } .company-search-icon { left: 0.85rem; } .company-table-card { background: transparent; border: 0; border-radius: 0; overflow: visible; } .company-list-scroll { overflow-x: visible; } .company-list { min-width: 0; } .company-list-header { display: none; } .company-list-row { background: #fff; border: 1px solid #e5dfd5; border-radius: 0.75rem; box-shadow: 0 1px 4px rgba(17, 24, 39, 0.04); display: block; margin-bottom: 0.85rem; overflow: hidden; } .company-list-row .company-list-col { align-items: center; border-top: 1px solid #f3eee6; display: flex; flex: none; gap: 0.75rem; justify-content: space-between; padding: 0.58rem 0.75rem; white-space: normal; width: 100%; } .company-list-row .company-list-company { border-top: 0; display: block; padding: 0.72rem 0.75rem; } .company-list-row .company-list-col:not(.company-list-company)::before { color: #8b8379; content: attr(data-label); flex: 0 0 auto; font-size: 0.62rem; font-weight: 900; letter-spacing: 0.08em; text-transform: uppercase; } .company-name-cell { align-items: flex-start; } .company-logo { height: 2rem; width: 2rem; } .company-pagination { align-items: flex-start; flex-direction: column; gap: 0.55rem; padding: 0.3rem 0.1rem 0; } .company-pagination .pagination { flex-wrap: wrap; } }
 
 - content_for :title, "Legal Tech Companies"
 - content_for :description, "Browse and search #{number_with_delimiter(@total_count)} legal technology companies in the CodeX TechIndex — filter by category, location, status, and funding."
@@ -80,42 +88,39 @@ css:
                 = render "filter_bar", clear_params: clear_params, selected_category_ids: selected_category_ids, selected_statuses: selected_statuses
 
             .company-table-card
-                .table-responsive
-                    table.table.company-table.align-middle
-                        thead
-                            tr
-                                th Company
-                                th Category
-                                th Founded
-                                th HQ
-                                th Status
-                        tbody
-                            - @companies.each do |company|
-                                tr
-                                    td
-                                        .company-name-cell
-                                            = image_tag company.logo, class: "company-logo", alt: "#{company.name} logo", loading: "lazy"
-                                            div
-                                                = link_to company.name, company_path(company, companies_nav_context_params), class: "company-name-link"
-                                                .company-description.text-truncate= company.description.to_s
-                                    td data-label="Category"
-                                        span.company-pill= company.category&.name || "Uncategorized"
-                                    td data-label="Founded"= company.founded_date.presence || "N/A"
-                                    td data-label="HQ"
-                                        - if company.display_location.present?
-                                            - formatted_location = company_display_location(company)
-                                            - location_flag = country_flag_emoji(company_country_iso_code(company))
-                                            span.company-hq-cell
-                                                - if location_flag.present?
-                                                    span.company-hq-flag aria-hidden="true"= location_flag
-                                                span= formatted_location
-                                        - else
-                                            | N/A
-                                    td data-label="Status"
-                                        span.company-pill.company-status= company.status.presence&.humanize || "Active"
-                            - if @companies.empty?
-                                tr
-                                    td.text-center.company-muted py="4" colspan="5" No companies match these filters.
+                .company-list-scroll
+                    .company-list
+                        .company-list-header
+                            .company-list-col.company-list-company Company
+                            .company-list-col.company-list-category Category
+                            .company-list-col.company-list-founded Founded
+                            .company-list-col.company-list-hq HQ
+                            .company-list-col.company-list-status Status
+                        - @companies.each do |company|
+                            .company-list-row
+                                .company-list-col.company-list-company
+                                    .company-name-cell
+                                        = image_tag company.logo, class: "company-logo", alt: "#{company.name} logo", loading: "lazy"
+                                        div
+                                            = link_to company.name, company_path(company, companies_nav_context_params), class: "company-name-link text-truncate"
+                                            .company-description.text-truncate= company.description.to_s
+                                .company-list-col.company-list-category data-label="Category"
+                                    span.company-pill= company.category&.name || "Uncategorized"
+                                .company-list-col.company-list-founded data-label="Founded"= company.founded_date.presence || "N/A"
+                                .company-list-col.company-list-hq data-label="HQ"
+                                    - if company.display_location.present?
+                                        - formatted_location = company_display_location(company)
+                                        - location_flag = country_flag_emoji(company_country_iso_code(company))
+                                        span.company-hq-cell
+                                            - if location_flag.present?
+                                                span.company-hq-flag aria-hidden="true"= location_flag
+                                            span= formatted_location
+                                    - else
+                                        | N/A
+                                .company-list-col.company-list-status data-label="Status"
+                                    span.company-pill.company-status= company.status.presence&.humanize || "Active"
+                        - if @companies.empty?
+                            .company-list-empty No companies match these filters.
                 .company-pagination
                     .company-pagination-count= "Showing #{result_start}-#{result_end} of #{number_with_delimiter(@total_count)} companies"
                     = paginate @companies

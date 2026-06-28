@@ -21,10 +21,10 @@ class CompaniesControllerTest < ActionController::TestCase
     assert_select "input[name='category[]'][type='checkbox']", minimum: 1
     assert_select "input[name='category[]'][type='checkbox'][checked='checked']", minimum: 1
     assert_select ".company-sidebar", count: 0
-    assert_select "table.company-table"
-    assert_select "th", "Company"
-    assert_select "th", "HQ"
-    refute_includes css_select("th").map(&:text), "Funding"
+    assert_select ".company-list"
+    assert_select ".company-list-header .company-list-col", "Company"
+    assert_select ".company-list-header .company-list-col", "HQ"
+    refute_includes css_select(".company-list-header .company-list-col").map(&:text), "Funding"
     assert_select ".company-search input[placeholder='Search companies']"
     assert_select ".company-filter-master input[data-company-filter-master='category']"
     assert_select ".company-filter-master .company-filter-checkbox-label", text: "All categories"
