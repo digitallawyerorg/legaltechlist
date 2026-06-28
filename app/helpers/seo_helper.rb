@@ -110,7 +110,7 @@ module SeoHelper
       { name: "Geographic Distribution", url: statistics_country_distribution_url },
       { name: "Category Expansion", url: statistics_category_evolution_5_years_url },
       { name: "Business Model", url: statistics_business_model_url },
-      { name: "Target Market", url: statistics_target_client_url },
+      { name: "Target Audience", url: statistics_target_client_url },
       { name: "Funding by Category", url: statistics_funding_by_category_url },
       { name: "Funding by Region", url: statistics_funding_by_region_url },
       { name: "AI in Legal Tech", url: statistics_ai_trends_url },
