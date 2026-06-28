@@ -27,4 +27,4 @@
                             td.text-end= number_with_delimiter(country_data[:companies])
                             td.text-end= number_to_currency(country_data[:total_funding], precision: 0)
                             td.text-end= number_to_currency(country_data[:avg_funding], precision: 0)
-= render partial: "shared/stats_chart_page", locals: { title: "Disclosed Funding by Region", chart: chart_html, table: table_html, chart_id: chart_id, download_filename: "funding_by_region", csv_path: statistics_funding_by_region_path(format: :csv), table_title: "Region and country breakdown", show_funding_caveat: true, funding_caveat_banner: true }
+= render partial: "shared/stats_chart_page", locals: { title: "Disclosed Funding by Region", chart: chart_html, table: table_html, chart_id: chart_id, download_filename: "funding_by_region", csv_path: statistics_funding_by_region_path(format: :csv), table_title: "Region and country breakdown" }

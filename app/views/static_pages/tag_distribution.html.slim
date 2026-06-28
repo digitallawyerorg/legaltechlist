@@ -19,4 +19,4 @@
                         td.text-end= number_to_percentage(metric[:percentage], precision: 1)
                         td.text-end= number_to_currency(metric[:avg_funding], precision: 0)
 - chart_html = column_chart(chart_data, height: 620, colors: ["#8c1515"], id: chart_id, library: { plugins: { legend: { display: false } }, scales: { x: { grid: { display: false }, ticks: { maxRotation: 60, minRotation: 45, font: { size: 11 } } }, y: { min: 0, grid: { display: true, drawBorder: false }, ticks: { font: { size: 12 }, precision: 0 } } } })
-= render partial: "shared/stats_chart_page", locals: { title: "Companies by Tag", chart: chart_html, table: table_html, chart_id: chart_id, download_filename: "tag_distribution", csv_path: download_tag_distribution_path(format: :csv), table_title: "Tag breakdown", show_funding_caveat: true }
+= render partial: "shared/stats_chart_page", locals: { title: "Companies by Tag", chart: chart_html, table: table_html, chart_id: chart_id, download_filename: "tag_distribution", csv_path: download_tag_distribution_path(format: :csv), table_title: "Tag breakdown" }

@@ -73,14 +73,16 @@ class StatisticsHelperTest < ActiveSupport::TestCase
     helper = Class.new { include StatisticsHelper }.new
     metrics = {
       "United States" => {
-        "United States" => { companies: 10, total_funding: 500_000, funded_companies: 5 }
+        "United States" => { companies: 10, total_funding: BigDecimal("500000.0"), funded_companies: 5 }
       }
     }
 
     tree = helper.region_country_sunburst_tree(metrics, root: StatisticsHelper::REGION_COUNTRY_FUNDING_ROOT, value_key: :total_funding)
 
     assert_equal "Disclosed funding", tree[:name]
-    assert_equal 500_000, tree[:children].first[:children].first[:value]
+    assert_equal 500_000.0, tree[:children].first[:children].first[:value]
+    assert_includes tree.to_json, '"value":500000.0'
+    assert_not_includes tree.to_json, '"value":"500000'
   end
 
   test "build_funding_region_table_data sorts by total funding" do

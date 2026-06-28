@@ -32,7 +32,7 @@ class PublicEntrypointsTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select ".stats-index-card", count: 10
-    ["Ecosystem Growth", "Companies by Country", "Companies by Region", "Category Evolution", "Technology Themes", "Market Focus", "AI in Legal Tech", "Funding by Category", "Funding by Region", "Revenue Model Insights"].each do |title|
+    ["Total Companies", "Companies by Country", "Companies by Region", "Category Evolution", "Technology Themes", "Market Focus", "AI in Legal Tech", "Funding by Category", "Funding by Region", "Revenue Model Insights"].each do |title|
       assert_select ".stats-index-card-title", text: title
     end
     assert_select ".stats-index-card-title", text: "Exit Patterns", count: 0

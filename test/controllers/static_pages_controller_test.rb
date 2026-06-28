@@ -73,6 +73,8 @@ class StaticPagesControllerTest < ActionController::TestCase
   test "should get total_companies cumulative view" do
     get :total_companies
     assert_response :success
+    assert_select "h1.stats-chart-title", text: "Total Companies"
+    assert_select ".stats-segment-control .stats-segment.is-active", text: "Cumulative"
     assert_select ".stats-chart-nav .stats-chart-nav-prev .stats-chart-nav-title", text: "Revenue Model Insights"
     assert_select ".stats-chart-nav .stats-chart-nav-next .stats-chart-nav-title", text: "Companies by Country"
     assert_select ".stats-page-back", count: 0
@@ -89,6 +91,7 @@ class StaticPagesControllerTest < ActionController::TestCase
   test "should get total_companies annual view" do
     get :total_companies, params: { view: "annual" }
     assert_response :success
+    assert_select ".stats-segment-control .stats-segment.is-active", text: "By Year"
   end
 
   test "companies_founded redirects to unified growth page" do

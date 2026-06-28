@@ -4,7 +4,7 @@ module StatisticsHelper
   REGION_SANKEY_TOP_COUNTRIES = 5
 
   STATS_CHART_PAGES = [
-    { actions: %w[total_companies], title: "Ecosystem Growth", path: :statistics_total_companies_path },
+    { actions: %w[total_companies], title: "Total Companies", path: :statistics_total_companies_path },
     { actions: %w[country_distribution], title: "Companies by Country", path: :statistics_country_distribution_path },
     { actions: %w[companies_by_region], title: "Companies by Region", path: :statistics_companies_by_region_path },
     { actions: %w[category_evolution_5_years], title: "Category Evolution", path: :statistics_category_evolution_5_years_path },
@@ -59,8 +59,8 @@ module StatisticsHelper
       top_rows, other_rows = sorted_countries.partition.with_index { |_, index| index < top_countries }
 
       top_rows.each do |country, metrics|
-        value = metrics[value_key]
-        next unless value.to_f.positive?
+        value = metrics[value_key].to_f
+        next unless value.positive?
 
         label = region_country_chart_label(region, country)
         unless node_names.include?(label)
@@ -89,15 +89,21 @@ module StatisticsHelper
   def region_country_sunburst_tree(region_country_metrics, root: REGION_COUNTRY_COMPANIES_ROOT, value_key: :companies)
     {
       name: root,
-      children: region_country_metrics.sort_by { |_, countries| -countries.values.sum { |metrics| metrics[value_key].to_f } }.map do |region, countries|
+      children: region_country_metrics.sort_by { |_, countries| -countries.values.sum { |metrics| metrics[value_key].to_f } }.filter_map do |region, countries|
+        region_children = countries.sort_by { |_, metrics| -metrics[value_key].to_f }.filter_map do |country, metrics|
+          value = metrics[value_key].to_f
+          next unless value.positive?
+
+          {
+            name: region_country_chart_label(region, country),
+            value: value
+          }
+        end
+        next if region_children.empty?
+
         {
           name: region,
-          children: countries.sort_by { |_, metrics| -metrics[value_key].to_f }.map do |country, metrics|
-            {
-              name: region_country_chart_label(region, country),
-              value: metrics[value_key]
-            }
-          end
+          children: region_children
         }
       end
     }

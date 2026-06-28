@@ -106,7 +106,7 @@ module SeoHelper
 
   def statistics_index_json_ld
     items = [
-      { name: "Ecosystem Growth", url: statistics_total_companies_url },
+      { name: "Total Companies", url: statistics_total_companies_url },
       { name: "Companies by Country", url: statistics_country_distribution_url },
       { name: "Companies by Region", url: statistics_companies_by_region_url },
       { name: "Category Evolution", url: statistics_category_evolution_5_years_url },

@@ -3,7 +3,7 @@
 - embedded = local_assigns.fetch(:embedded, false)
 - stats_index_cards = capture do
     .stats-index-grid
-        = render partial: "shared/stats_index_card", locals: { path: statistics_total_companies_path, title: "Ecosystem Growth", description: "Growth of the legal tech ecosystem", sparkline_variant: 1 }
+        = render partial: "shared/stats_index_card", locals: { path: statistics_total_companies_path, title: "Total Companies", description: "Growth of the legal tech ecosystem", sparkline_variant: 1 }
         = render partial: "shared/stats_index_card", locals: { path: statistics_country_distribution_path, title: "Companies by Country", description: "Geographic concentration by country", sparkline_variant: 2 }
         = render partial: "shared/stats_index_card", locals: { path: statistics_companies_by_region_path, title: "Companies by Region", description: "Regional hubs and headquarters", sparkline_variant: 2 }
         = render partial: "shared/stats_index_card", locals: { path: statistics_category_evolution_5_years_path, title: "Category Evolution", description: "Segment trends over time", sparkline_variant: 3 }

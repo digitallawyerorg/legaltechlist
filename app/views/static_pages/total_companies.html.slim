@@ -1,12 +1,13 @@
 - is_annual = @growth_view == "annual"
-- chart_title = is_annual ? "Total Companies (By Year)" : "Total Companies (Cumulative)"
-- content_for :title, chart_title
+- chart_title = "Total Companies"
+- page_title = is_annual ? "Total Companies (By Year)" : "Total Companies (Cumulative)"
+- content_for :title, page_title
 - content_for :description, is_annual ? "Annual company formation in legal tech since 2000, based on visible CodeX TechIndex profiles." : "Cumulative growth of the legal technology ecosystem since 2000, based on visible CodeX TechIndex profiles."
 - chart_id = is_annual ? "ecosystem-growth-annual-chart" : "total-companies-chart"
 - cumulative_path = statistics_total_companies_path
 - annual_path = statistics_total_companies_path(view: "annual")
-- view_dropdown_html = capture do
-    = render partial: "shared/stats_growth_view_dropdown", locals: { current_view: @growth_view, cumulative_url: cumulative_path, annual_url: annual_path }
+- view_toggle_html = capture do
+    = render partial: "shared/stats_growth_view_toggle", locals: { current_view: @growth_view, cumulative_url: cumulative_path, annual_url: annual_path }
 - table_html = capture do
     .table-responsive
         table.table.table-hover.align-middle#totalCompaniesTable
@@ -38,4 +39,4 @@
 - csv_path = is_annual ? statistics_companies_founded_path(format: :csv) : statistics_total_companies_path(format: :csv)
 - xlsx_path = is_annual ? statistics_companies_founded_path(format: :xlsx) : statistics_total_companies_path(format: :xlsx)
 - download_filename = is_annual ? "companies_founded" : "total_companies"
-= render partial: "shared/stats_chart_page", locals: { title: chart_title, chart: chart_html, table: table_html, chart_id: chart_id, download_filename: download_filename, csv_path: csv_path, xlsx_path: xlsx_path, view_dropdown: view_dropdown_html, table_title: "Yearly breakdown" }
+= render partial: "shared/stats_chart_page", locals: { title: chart_title, chart: chart_html, table: table_html, chart_id: chart_id, download_filename: download_filename, csv_path: csv_path, xlsx_path: xlsx_path, toggles: view_toggle_html, table_title: "Yearly breakdown" }
