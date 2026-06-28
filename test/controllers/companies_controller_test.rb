@@ -238,6 +238,13 @@ class CompaniesControllerTest < ActionController::TestCase
     assert_select "nav.company-show-nav a.company-show-nav-next[href=?]", company_path(companies(:two), sort: "founded_desc")
   end
 
+  test "show with text search query resolves neighbor navigation without ambiguous sql" do
+    get :show, params: { id: @company, query: @company.name, sort: "founded_desc" }
+
+    assert_response :success
+    assert_select "nav.company-show-nav"
+  end
+
   test "show omits visit website button and renders external link after url" do
     get :show, params: { id: @company }
 

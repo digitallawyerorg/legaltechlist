@@ -351,7 +351,10 @@ class Company < ActiveRecord::Base
   end
 
   scope :text_search, ->(query) {
-    where("name ILIKE :q OR description ILIKE :q OR location ILIKE :q OR city ILIKE :q OR country ILIKE :q", q: "%#{query}%")
+    where(
+      "companies.name ILIKE :q OR companies.description ILIKE :q OR companies.location ILIKE :q OR companies.city ILIKE :q OR companies.country ILIKE :q",
+      q: "%#{query}%"
+    )
   }
 
   def logo

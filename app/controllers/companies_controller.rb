@@ -190,9 +190,9 @@ class CompaniesController < ApplicationController
     def apply_company_sort(companies, sort_param)
       case sort_param.presence || "founded_desc"
       when "name_asc"
-        companies.order(name: :asc, id: :asc)
+        companies.order(Arel.sql("companies.name ASC, companies.id ASC"))
       when "name_desc"
-        companies.order(name: :desc, id: :desc)
+        companies.order(Arel.sql("companies.name DESC, companies.id DESC"))
       when "founded_desc"
         companies.order(founded_date: :desc, id: :desc)
       when "founded_asc"
