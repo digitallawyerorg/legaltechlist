@@ -38,4 +38,20 @@ class DiscoveryCandidateNormalizerServiceTest < ActiveSupport::TestCase
     assert_empty normalized["name_matches"]
     assert_empty normalized["domain_matches"]
   end
+
+  test "rejects nonprofit advocacy candidates" do
+    normalized = DiscoveryCandidateNormalizerService.call(
+      "name" => "Upsolve",
+      "website" => "https://upsolve.org",
+      "location" => "New York, NY",
+      "founded_date" => "2016",
+      "description" => "Nonprofit helping consumers file bankruptcy for free.",
+      "why_discovered" => "Consumer debt relief advocacy nonprofit.",
+      "discovery_type" => "category",
+      "website_verified" => true
+    )
+
+    assert_equal "rejected_nonprofit_advocacy", normalized["status"]
+    assert normalized["rejection_reason"].present?
+  end
 end

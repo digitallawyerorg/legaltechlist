@@ -1,57 +1,78 @@
-/ locals: active_params, clear_params, selected_category, selected_status
-- selected_category_name = @category_counts.find { |category| category[:id].to_s == selected_category.to_s }&.dig(:name)
-- category_button_label = selected_category_name.presence || "All categories"
-- status_button_label = selected_status.present? ? selected_status.humanize : "Any status"
+/ locals: clear_params, selected_category_ids, selected_statuses
+- category_button_label = company_filter_category_label(@category_counts, selected_category_ids)
+- status_button_label = company_filter_status_label(@status_counts, selected_statuses)
 - location_button_label = params[:location].presence || "Location"
-- filters_active = active_params.slice(:category, :status, :location, :query).any?
+- filters_active = selected_category_ids.any? || selected_statuses.any? || params[:location].present? || params[:query].present?
 - show_category_search = @category_counts.size > 8
+- category_btn_class = "company-filter-btn dropdown-toggle #{'company-filter-btn-active' if selected_category_ids.any?}"
+- status_btn_class = "company-filter-btn dropdown-toggle #{'company-filter-btn-active' if selected_statuses.any?}"
 
 .company-filter-bar
     = form_with url: companies_path, method: :get, local: true, html: { class: "company-search" } do
-        = hidden_field_tag :category, params[:category] if params[:category].present?
-        = hidden_field_tag :status, params[:status] if params[:status].present?
+        - selected_category_ids.each do |category_id|
+            = hidden_field_tag "category[]", category_id
+        - selected_statuses.each do |status|
+            = hidden_field_tag "status[]", status
         = hidden_field_tag :location, params[:location] if params[:location].present?
         = hidden_field_tag :sort, params[:sort] if params[:sort].present?
         .company-search-field
             i.fa.fa-search.company-search-icon aria-hidden="true"
-            = search_field_tag :query, params[:query], class: "form-control", placeholder: "Search companies by name, category, or location", aria: { label: "Search companies" }
+            = search_field_tag :query, params[:query], class: "form-control", placeholder: "Search by name, category, or location", aria: { label: "Search companies" }
     .company-filter-controls
         .dropdown.company-filter-dropdown
-            button.company-filter-btn.dropdown-toggle type="button" data-bs-toggle="dropdown" data-bs-auto-close="true" aria-expanded="false"
+            button type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" class=category_btn_class
                 span= category_button_label
             .dropdown-menu.company-filter-menu
-                - if show_category_search
-                    .company-filter-search
-                        input.form-control.form-control-sm type="text" placeholder="Search categories..." aria-label="Search categories" data-company-filter-search="category"
-                .company-filter-list
-                    = link_to companies_path(active_params.except(:category, :page)), class: "dropdown-item company-filter-option #{'active' if selected_category.blank?}", data: { filter_name: "all categories" } do
-                        span All categories
-                        span.company-filter-count= number_with_delimiter(@base_company_count)
-                    - @category_counts.each do |category|
-                        = link_to companies_path(active_params.merge(category: category[:id]).except(:page)), class: "dropdown-item company-filter-option #{'active' if selected_category.to_s == category[:id].to_s}", data: { filter_name: category[:name].downcase } do
-                            span= category[:name]
-                            span.company-filter-count= number_with_delimiter(category[:count])
+                = form_with url: companies_path, method: :get, local: true, html: { class: "company-filter-checkbox-form", data: { company_filter_form: "category" } } do
+                    = hidden_field_tag :query, params[:query] if params[:query].present?
+                    = hidden_field_tag :location, params[:location] if params[:location].present?
+                    = hidden_field_tag :sort, params[:sort] if params[:sort].present?
+                    - selected_statuses.each do |status|
+                        = hidden_field_tag "status[]", status
+                    - if show_category_search
+                        .company-filter-search
+                            input.form-control.form-control-sm type="text" placeholder="Search categories..." aria-label="Search categories" data-company-filter-search="category"
+                    .company-filter-actions
+                        button.btn.btn-sm.btn-link.company-filter-action type="button" data-company-filter-select-all="category" Select all
+                        button.btn.btn-sm.btn-link.company-filter-action type="button" data-company-filter-clear="category" Clear
+                    .company-filter-list
+                        - @category_counts.each do |category|
+                            - category_checked = selected_category_ids.include?(category[:id].to_i)
+                            label.company-filter-checkbox-option data-filter-name=category[:name].downcase
+                                = check_box_tag "category[]", category[:id], category_checked
+                                span.company-filter-checkbox-label= category[:name]
+                                span.company-filter-count= number_with_delimiter(category[:count])
         - if @status_counts.any?
             .dropdown.company-filter-dropdown
-                button.company-filter-btn.dropdown-toggle type="button" data-bs-toggle="dropdown" data-bs-auto-close="true" aria-expanded="false"
+                button type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" class=status_btn_class
                     span= status_button_label
                 .dropdown-menu.company-filter-menu
-                    .company-filter-list
-                        = link_to companies_path(active_params.except(:status, :page)), class: "dropdown-item company-filter-option #{'active' if selected_status.blank?}", data: { filter_name: "any status" } do
-                            span Any status
-                            span.company-filter-count= number_with_delimiter(@base_company_count)
-                        - @status_counts.each do |status, count|
-                            = link_to companies_path(active_params.merge(status: status).except(:page)), class: "dropdown-item company-filter-option #{'active' if selected_status == status}", data: { filter_name: status.to_s.humanize.downcase } do
-                                span= status.to_s.humanize
-                                span.company-filter-count= number_with_delimiter(count)
+                    = form_with url: companies_path, method: :get, local: true, html: { class: "company-filter-checkbox-form", data: { company_filter_form: "status" } } do
+                        = hidden_field_tag :query, params[:query] if params[:query].present?
+                        = hidden_field_tag :location, params[:location] if params[:location].present?
+                        = hidden_field_tag :sort, params[:sort] if params[:sort].present?
+                        - selected_category_ids.each do |category_id|
+                            = hidden_field_tag "category[]", category_id
+                        .company-filter-actions
+                            button.btn.btn-sm.btn-link.company-filter-action type="button" data-company-filter-select-all="status" Select all
+                            button.btn.btn-sm.btn-link.company-filter-action type="button" data-company-filter-clear="status" Clear
+                        .company-filter-list
+                            - @status_counts.each do |status, count|
+                                - status_checked = selected_statuses.include?(status)
+                                label.company-filter-checkbox-option data-filter-name=status.to_s.humanize.downcase
+                                    = check_box_tag "status[]", status, status_checked
+                                    span.company-filter-checkbox-label= status.to_s.humanize
+                                    span.company-filter-count= number_with_delimiter(count)
         .dropdown.company-filter-dropdown
             button.company-filter-btn.dropdown-toggle type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false"
                 span= location_button_label
             .dropdown-menu.company-filter-menu.company-filter-location-menu
                 = form_with url: companies_path, method: :get, local: true, html: { class: "company-filter-location-form" } do
                     = hidden_field_tag :query, params[:query] if params[:query].present?
-                    = hidden_field_tag :category, params[:category] if params[:category].present?
-                    = hidden_field_tag :status, params[:status] if params[:status].present?
+                    - selected_category_ids.each do |category_id|
+                        = hidden_field_tag "category[]", category_id
+                    - selected_statuses.each do |status|
+                        = hidden_field_tag "status[]", status
                     = hidden_field_tag :sort, params[:sort] if params[:sort].present?
                     = text_field_tag :location, params[:location], class: "form-control form-control-sm", placeholder: "City, region, country", aria: { label: "Filter by location" }
                     button.btn.btn-sm.btn-outline-secondary.w-100.mt-2 type="submit" Apply
@@ -59,7 +80,9 @@
             = link_to "Reset", companies_path(clear_params), class: "company-filter-reset"
     = form_with url: companies_path, method: :get, local: true, html: { class: "company-sort-form" } do
         = hidden_field_tag :query, params[:query] if params[:query].present?
-        = hidden_field_tag :category, params[:category] if params[:category].present?
-        = hidden_field_tag :status, params[:status] if params[:status].present?
+        - selected_category_ids.each do |category_id|
+            = hidden_field_tag "category[]", category_id
+        - selected_statuses.each do |status|
+            = hidden_field_tag "status[]", status
         = hidden_field_tag :location, params[:location] if params[:location].present?
         = select_tag :sort, options_for_select(@sort_options, params[:sort].presence || "founded_desc"), class: "form-select form-select-sm company-sort", onchange: "this.form.submit()", aria: { label: "Sort companies" }

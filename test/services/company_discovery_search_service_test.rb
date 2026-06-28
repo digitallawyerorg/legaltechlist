@@ -63,4 +63,28 @@ class CompanyDiscoverySearchServiceTest < ActiveSupport::TestCase
 
     assert_match(/headquartered in Germany/, result["query"])
   end
+
+  test "retries once when search returns zero companies" do
+    calls = 0
+    retry_client = lambda do |_prompt|
+      calls += 1
+      if calls == 1
+        { content: { "companies" => [] }.to_json, search_urls: [], raw_search_call_count: 1 }
+      else
+        StubSearchClient.call(_prompt)
+      end
+    end
+
+    result = CompanyDiscoverySearchService.call(
+      discovery_type: "year",
+      context: { year: "2024" },
+      exclusion_list: { "names" => [], "domains" => [] },
+      limit: 5,
+      search_client: retry_client
+    )
+
+    assert_equal 2, calls
+    assert_equal true, result["empty_result_retry"]
+    assert_equal 1, result["companies"].size
+  end
 end

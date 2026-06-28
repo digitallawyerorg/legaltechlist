@@ -2,6 +2,8 @@ require "timeout"
 
 class CompanyDiscoverySearchService
   DISCOVERY_TYPES = %w[category competitors year country funding_year].freeze
+  DEFAULT_TIMEOUT_SECONDS = 180
+  EMPTY_RESULT_RETRY_BACKOFF_SECONDS = 3
 
   def self.call(**kwargs)
     new(**kwargs).call
@@ -18,19 +20,9 @@ class CompanyDiscoverySearchService
   def call
     return disabled_payload unless web_search_enabled?
 
-    response = resolved_search_client.call(search_prompt)
-    parsed = parse_companies_json(response[:content])
-    search_urls = Array(response[:search_urls])
-    companies = Array(parsed["companies"]).first(limit).filter_map { |company| build_company_payload(company, search_urls) }
-
-    {
-      "mode" => "openai_responses_web_search",
-      "discovery_type" => discovery_type,
-      "query" => search_query,
-      "companies" => companies,
-      "raw_search_call_count" => response[:raw_search_call_count],
-      "generated_at" => Time.current.utc.iso8601
-    }
+    payload = perform_search_with_retry
+    log_empty_result_outcome(payload)
+    payload
   rescue StandardError => e
     disabled_payload.merge(
       "mode" => "openai_responses_web_search_error",
@@ -89,7 +81,46 @@ class CompanyDiscoverySearchService
   end
 
   def llm_timeout_seconds
-    ENV.fetch("DISCOVERY_TIMEOUT_SECONDS", ENV.fetch("PROPOSAL_RESEARCH_TIMEOUT_SECONDS", "90")).to_i
+    ENV.fetch("DISCOVERY_TIMEOUT_SECONDS", ENV.fetch("PROPOSAL_RESEARCH_TIMEOUT_SECONDS", DEFAULT_TIMEOUT_SECONDS.to_s)).to_i
+  end
+
+  def perform_search_with_retry
+    response = resolved_search_client.call(search_prompt)
+    payload = build_search_payload(response)
+    return payload if payload["companies"].any? || payload["error_message"].present?
+
+    sleep(EMPTY_RESULT_RETRY_BACKOFF_SECONDS)
+    retry_response = resolved_search_client.call(search_prompt)
+    retry_payload = build_search_payload(retry_response)
+    retry_payload.merge(
+      "empty_result_retry" => true,
+      "discovered_count_before_retry" => 0,
+      "retry_discovered_count" => retry_payload["companies"].size
+    )
+  end
+
+  def build_search_payload(response)
+    parsed = parse_companies_json(response[:content])
+    search_urls = Array(response[:search_urls])
+    companies = Array(parsed["companies"]).first(limit).filter_map { |company| build_company_payload(company, search_urls) }
+
+    {
+      "mode" => "openai_responses_web_search",
+      "discovery_type" => discovery_type,
+      "query" => search_query,
+      "companies" => companies,
+      "raw_search_call_count" => response[:raw_search_call_count],
+      "generated_at" => Time.current.utc.iso8601
+    }
+  end
+
+  def log_empty_result_outcome(payload)
+    return if payload["error_message"].present?
+
+    count = Array(payload["companies"]).size
+    if count.zero?
+      Rails.logger.debug("[CompanyDiscoverySearchService] discovery_type=#{discovery_type} returned 0 companies query=#{search_query} retry=#{payload['empty_result_retry'] || false}")
+    end
   end
 
   def search_query
@@ -136,7 +167,12 @@ class CompanyDiscoverySearchService
     when "country"
       "Focus on legal-tech vendors headquartered in #{context.fetch(:country)}. Prefer companies with a clear HQ location in that country."
     when "funding_year"
-      "Focus on legal-tech vendors that raised venture or growth funding in #{context.fetch(:funding_year)}. Include only companies where the funding round year is documented in search results."
+      <<~GUIDANCE.squish
+        Focus on commercial legal-tech vendors (software/platforms sold to law firms, corporate legal teams, or legal departments) that raised venture or growth funding in #{context.fetch(:funding_year)}.
+        Include only companies where the funding round year is documented in search results.
+        Exclude nonprofits, legal-aid organizations, advocacy groups, and companies already well-covered in TechIndex.
+        Prefer net-new vendors not already in the exclusion list; avoid repeating the same well-known incumbents.
+      GUIDANCE
     else
       ""
     end

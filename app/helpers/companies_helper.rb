@@ -1,4 +1,26 @@
 module CompaniesHelper
+  def company_filter_category_ids
+    Array(params[:category]).map(&:presence).compact.map(&:to_i)
+  end
+
+  def company_filter_statuses
+    Array(params[:status]).map { |status| status.to_s.strip.downcase }.reject(&:blank?)
+  end
+
+  def company_filter_category_label(category_counts, selected_ids)
+    return "All categories" if selected_ids.empty?
+    return category_counts.find { |category| category[:id].to_i == selected_ids.first }&.dig(:name) || "1 category" if selected_ids.size == 1
+
+    "#{selected_ids.size} categories"
+  end
+
+  def company_filter_status_label(status_counts, selected_statuses)
+    return "Any status" if selected_statuses.empty?
+    return selected_statuses.first.humanize if selected_statuses.size == 1
+
+    "#{selected_statuses.size} statuses"
+  end
+
   def tag_links(tags)
     return '' if tags.blank?
     

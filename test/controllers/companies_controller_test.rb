@@ -17,13 +17,14 @@ class CompaniesControllerTest < ActionController::TestCase
     assert_response :success
     assert_select ".company-filter-bar"
     assert_select ".company-filter-btn", minimum: 2
-    assert_select ".company-filter-option", text: /All categories/
+    assert_select ".company-filter-checkbox-form", minimum: 1
+    assert_select "input[name='category[]'][type='checkbox']", minimum: 1
     assert_select ".company-sidebar", count: 0
     assert_select "table.company-table"
     assert_select "th", "Company"
     assert_select "th", "HQ"
     refute_includes css_select("th").map(&:text), "Funding"
-    assert_select ".company-search input[placeholder='Search companies by name, category, or location']"
+    assert_select ".company-search input[placeholder='Search by name, category, or location']"
     assert_select ".company-pagination-count", text: /Showing \d+-\d+ of \d+ companies/
     assert_select "select[name='sort']"
     assert_select "select[name='sort'] option[selected='selected']", "Newest companies"
@@ -54,8 +55,8 @@ class CompaniesControllerTest < ActionController::TestCase
     assert_response :success
     assert_includes assigns(:companies), @company
     assert_not_includes assigns(:companies), companies(:two)
-    assert_select ".company-filter-btn", text: /Active/
-    assert_select ".company-filter-option.active", text: /Active/
+    assert_select ".company-filter-btn-active", text: /Active/
+    assert_select "input[name='status[]'][value='active'][checked='checked']"
   end
 
   test "index filters by category" do
@@ -64,7 +65,29 @@ class CompaniesControllerTest < ActionController::TestCase
     assert_response :success
     assert_includes assigns(:companies), @company
     assert assigns(:companies).all? { |company| company.category_id == @company.category_id }
-    assert_select ".company-filter-option.active", text: /#{Regexp.escape(@company.category.name)}/
+    assert_select ".company-filter-btn-active", text: /#{Regexp.escape(@company.category.name)}/
+    assert_select "input[name='category[]'][value='#{@company.category_id}'][checked='checked']"
+  end
+
+  test "index filters by multiple categories with or logic" do
+    get :index, params: { category: [@company.category_id, companies(:two).category_id] }
+
+    assert_response :success
+    assert_includes assigns(:companies), @company
+    assert_includes assigns(:companies), companies(:two)
+    assert_select ".company-filter-btn-active", text: /2 categories/
+  end
+
+  test "index filters by multiple statuses with or logic" do
+    @company.update_columns(status: "active")
+    companies(:two).update_columns(status: "acquired")
+
+    get :index, params: { status: %w[active acquired] }
+
+    assert_response :success
+    assert_includes assigns(:companies), @company
+    assert_includes assigns(:companies), companies(:two)
+    assert_select ".company-filter-btn-active", text: /2 statuses/
   end
 
   test "index filters by location" do

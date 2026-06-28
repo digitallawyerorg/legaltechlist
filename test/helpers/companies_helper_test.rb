@@ -29,4 +29,27 @@ class CompaniesHelperTest < ActionView::TestCase
     assert_equal "🇪🇸 Seville, Andalucia", format_location_with_flag("Seville, Andalucia")
     assert_equal "🇺🇸 Tampa, Florida", format_location_with_flag("Tampa, Florida")
   end
+
+  test "company_filter_category_ids normalizes single and array params" do
+    params[:category] = "3"
+    assert_equal [3], company_filter_category_ids
+
+    params[:category] = %w[1 2]
+    assert_equal [1, 2], company_filter_category_ids
+  end
+
+  test "company_filter_statuses normalizes single and array params" do
+    params[:status] = "Active"
+    assert_equal ["active"], company_filter_statuses
+
+    params[:status] = %w[active acquired]
+    assert_equal %w[active acquired], company_filter_statuses
+  end
+
+  test "company_filter_category_label summarizes selection count" do
+    category_counts = [{ id: 1, name: "Legal Research", count: 5 }]
+    assert_equal "All categories", company_filter_category_label(category_counts, [])
+    assert_equal "Legal Research", company_filter_category_label(category_counts, [1])
+    assert_equal "2 categories", company_filter_category_label(category_counts, [1, 2])
+  end
 end

@@ -18,9 +18,9 @@ class CompaniesController < ApplicationController
       @companies = @companies.text_search(params[:query]) if params[:query].present?
 
       # Filters
-      @companies = @companies.where(category_id: params[:category]) if params[:category].present?
+      @companies = @companies.where(category_id: selected_category_ids) if selected_category_ids.any?
       @companies = @companies.where("location ILIKE ?", "%#{params[:location]}%") if params[:location].present?
-      @companies = @companies.where("LOWER(TRIM(status)) = ?", normalized_status_param) if normalized_status_param.present?
+      @companies = @companies.where("LOWER(TRIM(status)) IN (?)", selected_statuses) if selected_statuses.any?
 
       # Sorting
       case params[:sort] || 'founded_desc'
@@ -183,8 +183,12 @@ class CompaniesController < ApplicationController
       @base_companies.where.not(status: [nil, ""]).group("LOWER(TRIM(status))").order("LOWER(TRIM(status))").count
     end
 
-    def normalized_status_param
-      params[:status].to_s.strip.downcase.presence
+    def selected_category_ids
+      Array(params[:category]).map(&:presence).compact.map(&:to_i)
+    end
+
+    def selected_statuses
+      Array(params[:status]).map { |status| status.to_s.strip.downcase }.reject(&:blank?)
     end
 
     # Use callbacks to share common setup or constraints between actions.

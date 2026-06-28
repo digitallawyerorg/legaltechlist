@@ -5,6 +5,7 @@ class CompanyDiscoveryService
   PROPOSAL_TYPE = "discovery_candidate".freeze
   DISCOVERY_TYPES = %w[category competitors year country funding_year].freeze
   DEFAULT_LIMIT = 25
+  FUNDING_YEAR_DEFAULT_LIMIT = 10
   DEFAULT_MAX_LIMIT = 50
   DEFAULT_MAX_COST_USD = 5.0
   ESTIMATED_COST_PER_SEARCH_USD = 0.15
@@ -15,9 +16,9 @@ class CompanyDiscoveryService
     new(**kwargs).call
   end
 
-  def initialize(discovery_type:, limit: DEFAULT_LIMIT, dry_run: true, queue_proposals: false, reviewer: nil, notes: nil, max_limit: DEFAULT_MAX_LIMIT, max_cost_usd: DEFAULT_MAX_COST_USD, category: nil, company_id: nil, company_name: nil, year: nil, country: nil, funding_year: nil, search_service: CompanyDiscoverySearchService, admin_user: nil)
+  def initialize(discovery_type:, limit: nil, dry_run: true, queue_proposals: false, reviewer: nil, notes: nil, max_limit: DEFAULT_MAX_LIMIT, max_cost_usd: DEFAULT_MAX_COST_USD, category: nil, company_id: nil, company_name: nil, year: nil, country: nil, funding_year: nil, search_service: CompanyDiscoverySearchService, admin_user: nil)
     @discovery_type = discovery_type.to_s
-    @limit = limit.to_i
+    @limit = (limit || default_limit_for(@discovery_type)).to_i
     @dry_run = ActiveModel::Type::Boolean.new.cast(dry_run)
     @queue_proposals = ActiveModel::Type::Boolean.new.cast(queue_proposals)
     @reviewer = reviewer
@@ -212,19 +213,41 @@ class CompanyDiscoveryService
   end
 
   def summary(candidates, proposal_results, search_payload)
+    discovered_count = Array(search_payload["companies"]).size
+    duplicate_count = candidates.count { |candidate| candidate["status"] == "existing_or_possible_duplicate" }
+    ops_note = ops_visibility_note(discovered_count, duplicate_count, candidates, search_payload)
+
     {
       "requested_limit" => limit,
-      "discovered_count" => Array(search_payload["companies"]).size,
+      "discovered_count" => discovered_count,
       "normalized_count" => candidates.size,
       "absent_candidates" => candidates.count { |candidate| candidate["status"] == "absent_candidate" },
-      "existing_or_possible_duplicates" => candidates.count { |candidate| candidate["status"] == "existing_or_possible_duplicate" },
+      "existing_or_possible_duplicates" => duplicate_count,
+      "rejected_nonprofit_advocacy" => candidates.count { |candidate| candidate["status"] == "rejected_nonprofit_advocacy" },
       "verified_websites" => candidates.count { |candidate| candidate["website_verified"] },
       "queued_proposals" => proposal_results.size,
       "search_mode" => search_payload["mode"],
+      "empty_result_retry" => search_payload["empty_result_retry"],
+      "ops_note" => ops_note,
       "dry_run_message" => dry_run ? "Dry run only; no proposals were created." : nil,
       "queue_proposals_message" => !dry_run && !queue_proposals ? "Search completed; set QUEUE_PROPOSALS=true to create proposals." : nil,
       "search_error" => search_payload["error_message"]
     }.compact
+  end
+
+  def default_limit_for(type)
+    type == "funding_year" ? FUNDING_YEAR_DEFAULT_LIMIT : DEFAULT_LIMIT
+  end
+
+  def ops_visibility_note(discovered_count, duplicate_count, candidates, search_payload)
+    if search_payload["error_message"].present?
+      "Search error: #{search_payload['error_message']}"
+    elsif discovered_count.zero?
+      retry_note = search_payload["empty_result_retry"] ? " (retried once)" : ""
+      "Zero companies returned from search#{retry_note}."
+    elsif duplicate_count.positive? && candidates.count { |candidate| candidate["status"] == "absent_candidate" }.zero?
+      "All #{discovered_count} discovered companies were duplicates or filtered."
+    end
   end
 
   def enforce_cost_cap!(search_payload)

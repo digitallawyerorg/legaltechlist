@@ -9,7 +9,8 @@ class DiscoveryCandidateNormalizerService
 
   def call
     normalized = AtlasCandidateNormalizerService.call(atlas_row)
-    normalized.merge(discovery_metadata)
+    normalized = normalized.merge(discovery_metadata)
+    apply_nonprofit_advocacy_filter(normalized)
   end
 
   private
@@ -25,6 +26,16 @@ class DiscoveryCandidateNormalizerService
       "Description" => discovery_hash["description"],
       "Operating Status" => discovery_hash["operating_status"].presence || "Active"
     }
+  end
+
+  def apply_nonprofit_advocacy_filter(normalized)
+    return normalized unless normalized["status"] == "absent_candidate"
+    return normalized unless DiscoveryNonprofitAdvocacyFilter.rejected?(discovery_hash.merge(normalized.slice("name", "website", "description", "why_discovered", "location")))
+
+    normalized.merge(
+      "status" => "rejected_nonprofit_advocacy",
+      "rejection_reason" => DiscoveryNonprofitAdvocacyFilter.rejection_reason(discovery_hash.merge(normalized.slice("name", "website", "description", "why_discovered", "location")))
+    )
   end
 
   def discovery_metadata
