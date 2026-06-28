@@ -627,7 +627,6 @@ css:
 - company_reference_links << { label: "Website", icon: "fa-solid fa-globe", icon_color: "#2563eb", url: website_url, host: short_host_for.call(website_url) } if website_url.present?
 - company_reference_links << { label: "X/Twitter", icon: "fa-brands fa-x-twitter", icon_color: "#111827", url: twitter_url, host: short_host_for.call(twitter_url) } if twitter_url.present?
 - external_reference_links = []
-- external_reference_links << { label: "AngelList", icon: "fa-solid fa-seedling", icon_color: "#047857", url: @company.angellist_url, host: short_host_for.call(@company.angellist_url) } if @company.angellist_url.present? && @company.angellist_url != "n/a"
 - external_reference_links << { label: "Crunchbase", icon: "fa-solid fa-chart-line", icon_color: "#047857", url: @company.crunchbase_url, host: short_host_for.call(@company.crunchbase_url) } if @company.crunchbase_url.present? && @company.crunchbase_url != "n/a"
 - external_reference_links << { label: "Legal.io", icon: "fa-solid fa-briefcase", icon_color: "#8c1515", url: @company.legalio_url, host: short_host_for.call(@company.legalio_url) } if @company.legalio_url.present? && @company.legalio_url != "n/a"
 - atlas_reference = company_legaltech_atlas_reference(@company)

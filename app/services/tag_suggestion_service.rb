@@ -25,7 +25,8 @@ class TagSuggestionService
     return skip("llm_disabled") unless llm_enabled?
 
     suggestion = llm_suggestion
-    names = Array(suggestion["tag_names"]).map { |name| TagNormalizationService.canonical_name(name) }.compact.uniq.first(max_tags)
+    names = Array(suggestion["tag_names"]).map { |name| TagNormalizationService.canonical_name(name) }.compact.uniq
+    names = TagTaxonomyService.filter_assignable(names).first(max_tags)
     confidence = suggestion["confidence"].to_f
     return skip("no_suggestion", names, confidence, suggestion["mode"]) if names.empty?
     return skip("low_confidence", names, confidence, suggestion["mode"]) if confidence < min_confidence
@@ -88,15 +89,13 @@ class TagSuggestionService
         category: company.category&.name,
         target_clients: company.audience_names
       },
-      preferred_tag_vocabulary: preferred_tag_vocabulary,
-      instruction: "Return JSON with tag_names (array of 1-#{max_tags} lowercase technology or theme keywords for this legal-technology company) and confidence (0.0-1.0). Prefer preferred_tag_vocabulary terms when they fit. Use generic legal-tech themes only when supported by the company profile."
+      preferred_tag_vocabulary: TagTaxonomyService.discoverable_canonical_names,
+      instruction: "Return JSON with tag_names (array of 1-#{max_tags} lowercase technology or theme keywords for this legal-technology company) and confidence (0.0-1.0). Use only terms from preferred_tag_vocabulary. Do not repeat category, revenue model, or target client information — those are captured elsewhere."
     }.to_json
   end
 
   def preferred_tag_vocabulary
-    path = Rails.root.join("config/taxonomy/tag_aliases.yml")
-    data = YAML.safe_load(File.read(path), permitted_classes: [], aliases: true) || {}
-    data.keys.map { |name| TagNormalizationService.normalize_name(name) }.uniq.sort
+    TagTaxonomyService.discoverable_canonical_names
   end
 
   def effective_description

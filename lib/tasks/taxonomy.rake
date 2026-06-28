@@ -164,6 +164,13 @@ namespace :taxonomy do
     puts "normalize_tags complete mode=#{dry_run ? 'dry-run' : 'write'} counts=#{counts.inspect}"
   end
 
+  desc "Remove tags redundant with category/revenue/target-client fields. DRY_RUN=false to write."
+  task cleanup_redundant_tags: :environment do
+    dry_run = ENV.fetch("DRY_RUN", "true") != "false"
+    counts = TagCleanupService.call(dry_run: dry_run)
+    puts "cleanup_redundant_tags complete mode=#{dry_run ? 'dry-run' : 'write'} counts=#{counts.inspect}"
+  end
+
   desc "Seed canonical target clients from MethodologyHelper. DRY_RUN=false to write."
   task seed_target_clients: :environment do
     dry_run = ENV.fetch("DRY_RUN", "true") != "false"

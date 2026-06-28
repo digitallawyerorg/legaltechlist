@@ -1,6 +1,7 @@
 - category_options = Category.where.not(name: "Unknown").order(:name)
 - revenue_model_options = BusinessModel.canonical.order(:name)
 - target_client_options = TargetClient.canonical.order(:name)
+- tag_options = Tag.discoverable_for_form
 - contribution_form = @contribution_form || CompanyContributionForm.new
 = form_with model: contribution_form, url: companies_path, scope: :company_contribution, local: true, html: { class: "company-suggest-form" } do |f|
     div style="display:none" aria-hidden="true"
@@ -18,17 +19,17 @@
         .row.g-3
             .col-md-6
                 = f.label :contact_name, required_label_text("Name"), class: "form-label"
-                = f.text_field :contact_name, class: "form-control", autocomplete: "name", required: true
+                = f.text_field :contact_name, class: "form-control", autocomplete: "name", placeholder: "Jane Smith", required: true
             .col-md-6
                 = f.label :contact_email, required_label_text("Email"), class: "form-label"
-                = f.email_field :contact_email, class: "form-control", autocomplete: "email", required: true
+                = f.email_field :contact_email, class: "form-control", autocomplete: "email", placeholder: "you@example.com", required: true
 
     section.company-suggest-section
         .company-suggest-section-label Company profile
         .row.g-3
             .col-md-6
                 = f.label :name, required_label_text("Company name"), class: "form-label"
-                = f.text_field :name, class: "form-control", required: true
+                = f.text_field :name, class: "form-control", placeholder: "Acme Legal Tech", required: true
             .col-md-6
                 = f.label :main_url, required_label_text("Website"), class: "form-label"
                 = f.url_field :main_url, class: "form-control", placeholder: "https://", required: true
@@ -61,9 +62,13 @@
                             = builder.check_box class: "form-check-input"
                             = builder.label class: "form-check-label"
             .col-12
-                = f.label :all_tags, "Tags", class: "form-label"
-                = f.text_field :all_tags, class: "form-control", placeholder: "e.g. artificial intelligence, contract management, saas"
-                .form-text Comma-separated technology or theme keywords.
+                = f.label :tag_names, required_label_text("Tags"), class: "form-label"
+                .company-suggest-checkbox-grid
+                    = f.collection_check_boxes :tag_names, tag_options, :name, :name do |builder|
+                        .form-check
+                            = builder.check_box class: "form-check-input"
+                            = builder.label class: "form-check-label"
+                .form-text Select one or more technology or theme tags from our curated list.
 
     section.company-suggest-section
         .company-suggest-section-label Links & status
@@ -73,25 +78,22 @@
                 = f.select :status, [["Active", "active"], ["Inactive", "inactive"], ["Acquired", "acquired"]], { include_blank: "Select status" }, { class: "form-select", required: true }
             .col-md-6
                 = f.label :crunchbase_url, "Crunchbase URL", class: "form-label"
-                = f.url_field :crunchbase_url, class: "form-control", placeholder: "Optional"
+                = f.url_field :crunchbase_url, class: "form-control", placeholder: "https://www.crunchbase.com/organization/harvey"
             .col-md-6
                 = f.label :linkedin_url, "LinkedIn URL", class: "form-label"
-                = f.url_field :linkedin_url, class: "form-control", placeholder: "Optional"
+                = f.url_field :linkedin_url, class: "form-control", placeholder: "https://www.linkedin.com/company/harvey/"
             .col-md-6
                 = f.label :twitter_url, "X / Twitter URL", class: "form-label"
-                = f.url_field :twitter_url, class: "form-control", placeholder: "Optional"
+                = f.url_field :twitter_url, class: "form-control", placeholder: "https://x.com/harvey"
             .col-md-6
                 = f.label :facebook_url, "Facebook URL", class: "form-label"
-                = f.url_field :facebook_url, class: "form-control", placeholder: "Optional"
-            .col-md-6
-                = f.label :angellist_url, "AngelList / Wellfound URL", class: "form-label"
-                = f.url_field :angellist_url, class: "form-control", placeholder: "Optional"
+                = f.url_field :facebook_url, class: "form-control", placeholder: "https://www.facebook.com/harvey"
             .col-md-6
                 = f.label :legalio_url, "Legal.io URL", class: "form-label"
-                = f.url_field :legalio_url, class: "form-control", placeholder: "Optional"
+                = f.url_field :legalio_url, class: "form-control", placeholder: "https://www.legal.io/legal-software/130/Legal-io"
             .col-md-6
                 = f.label :legaltech_atlas_url, "LegalTech Atlas URL", class: "form-label"
-                = f.url_field :legaltech_atlas_url, class: "form-control", placeholder: "Optional"
+                = f.url_field :legaltech_atlas_url, class: "form-control", placeholder: "https://legaltechatlas.com/companies/harvey"
 
     - if recaptcha_required?
         .company-suggest-section

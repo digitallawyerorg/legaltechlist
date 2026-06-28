@@ -127,15 +127,13 @@ class CompanyProposalTaxonomySuggestionService
       allowed_category_names: Category.order(:name).pluck(:name),
       allowed_revenue_model_names: MethodologyHelper::REVENUE_MODEL_NAMES,
       allowed_target_client_names: TaxonomyNormalizationService::CANONICAL_TARGET_CLIENTS,
-      preferred_tag_vocabulary: preferred_tag_vocabulary,
-      instruction: "Return JSON with category_name, category_confidence, secondary_category_name (optional, from allowed categories, must differ from primary), secondary_category_confidence, revenue_model_names (array, 1-3 items from allowed list), revenue_model_confidence, target_client_name, target_client_confidence, target_client_names (array, 1-3 from allowed list), tag_names (array, 1-5 lowercase technology/theme keywords), tags_confidence. Use only allowed names for categories, revenue models, and target clients. Confidence must be 0.0-1.0."
+      preferred_tag_vocabulary: TagTaxonomyService.discoverable_canonical_names,
+      instruction: "Return JSON with category_name, category_confidence, secondary_category_name (optional, from allowed categories, must differ from primary), secondary_category_confidence, revenue_model_names (array, 1-3 items from allowed list), revenue_model_confidence, target_client_name, target_client_confidence, target_client_names (array, 1-3 from allowed list), tag_names (array, 1-5 from preferred_tag_vocabulary only), tags_confidence. Use only allowed names for categories, revenue models, and target clients. Do not duplicate structured taxonomy in tag_names. Confidence must be 0.0-1.0."
     }.to_json
   end
 
   def preferred_tag_vocabulary
-    path = Rails.root.join("config/taxonomy/tag_aliases.yml")
-    data = YAML.safe_load(File.read(path), permitted_classes: [], aliases: true) || {}
-    data.keys.map { |name| TagNormalizationService.normalize_name(name) }.uniq.sort
+    TagTaxonomyService.discoverable_canonical_names
   end
 
   def matched_name(rules)
@@ -157,7 +155,7 @@ class CompanyProposalTaxonomySuggestionService
   def matched_tag_names
     CompanyTagBackfillService::DESCRIPTION_PATTERNS.filter_map do |tag, pattern|
       tag if evidence_text.match?(pattern)
-    end.uniq.first(5)
+    end.uniq.then { |names| TagTaxonomyService.filter_assignable(names) }.first(5)
   end
 
   def map_target_clients(names, confidence)
@@ -182,7 +180,7 @@ class CompanyProposalTaxonomySuggestionService
   end
 
   def map_tags(names, confidence)
-    names = Array(names).map { |name| TagNormalizationService.canonical_name(name) }.compact.uniq
+    names = TagTaxonomyService.filter_assignable(names)
     names = matched_tag_names if names.empty?
     confidence_value = confidence.to_f
     confidence_value = 0.85 if confidence_value.zero? && names.any?

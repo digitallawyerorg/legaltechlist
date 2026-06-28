@@ -1,4 +1,7 @@
 # Canonical tag name => list of alias strings (matched case-insensitively after normalize)
+# Full vocabulary roots: Tag.canonical_names
+# Form/agent assignment uses Tag.discoverable_names (excludes tags redundant with
+# Category, Revenue model, or Target client structured fields).
 artificial intelligence:
   - ai
   - ai-powered

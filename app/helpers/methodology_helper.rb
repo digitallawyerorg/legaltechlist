@@ -73,7 +73,6 @@ module MethodologyHelper
     {
       label: "External references",
       fields: [
-        { name: "angellist_url", type: "URL", description: "AngelList / Wellfound profile." },
         { name: "crunchbase_url", type: "URL", description: "Crunchbase profile." },
         { name: "legalio_url", type: "URL", description: "Legal.io profile." }
       ]

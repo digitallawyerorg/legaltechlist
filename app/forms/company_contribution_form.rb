@@ -13,25 +13,27 @@ class CompanyContributionForm
   attribute :status, :string
   attribute :business_model_ids, default: -> { [] }
   attribute :target_client_ids, default: -> { [] }
-  attribute :all_tags, :string
+  attribute :tag_names, default: -> { [] }
   attribute :crunchbase_url, :string
   attribute :linkedin_url, :string
   attribute :twitter_url, :string
   attribute :facebook_url, :string
-  attribute :angellist_url, :string
   attribute :legalio_url, :string
   attribute :legaltech_atlas_url, :string
+  attribute :logo_url, :string
 
   validates :contact_name, :contact_email, :name, :main_url, :location, :founded_date, :category_id, :description, :status, presence: true
   validate :revenue_models_present
   validate :target_clients_present
+  validate :tags_present
+  validate :tags_must_be_discoverable
 
   def self.from_params(params)
     permitted = params.require(:company_contribution).permit(
       :contact_name, :contact_email, :name, :main_url, :location, :founded_date,
-      :category_id, :description, :status, :all_tags, :crunchbase_url, :linkedin_url,
-      :twitter_url, :facebook_url, :angellist_url, :legalio_url, :legaltech_atlas_url,
-      business_model_ids: [], target_client_ids: []
+      :category_id, :description, :status, :crunchbase_url, :linkedin_url,
+      :twitter_url, :facebook_url, :legalio_url, :legaltech_atlas_url, :logo_url,
+      business_model_ids: [], target_client_ids: [], tag_names: []
     )
     new(permitted.to_h)
   end
@@ -49,14 +51,14 @@ class CompanyContributionForm
       "business_model_id" => normalized_business_model_ids.first,
       "target_client_ids" => normalized_target_client_ids,
       "target_client_id" => normalized_target_client_ids.first,
-      "all_tags" => all_tags.to_s.strip.presence,
+      "all_tags" => normalized_tag_names.join(", ").presence,
       "crunchbase_url" => crunchbase_url.to_s.strip.presence,
       "linkedin_url" => linkedin_url.to_s.strip.presence,
       "twitter_url" => twitter_url.to_s.strip.presence,
       "facebook_url" => facebook_url.to_s.strip.presence,
-      "angellist_url" => angellist_url.to_s.strip.presence,
       "legalio_url" => legalio_url.to_s.strip.presence,
       "legaltech_atlas_url" => legaltech_atlas_url.to_s.strip.presence,
+      "logo_url" => logo_url.to_s.strip.presence,
       "source" => "User contribution",
       "source_url" => main_url.to_s.strip.presence
     }.compact
@@ -86,5 +88,20 @@ class CompanyContributionForm
 
   def target_clients_present
     errors.add(:target_client_ids, "can't be blank") if normalized_target_client_ids.empty?
+  end
+
+  def tags_present
+    errors.add(:tag_names, "can't be blank") if normalized_tag_names.empty?
+  end
+
+  def tags_must_be_discoverable
+    invalid = Array(tag_names).map(&:presence).compact.reject { |name| TagTaxonomyService.assignable?(name) }
+    return if invalid.empty?
+
+    errors.add(:tag_names, "must be selected from the curated tag list")
+  end
+
+  def normalized_tag_names
+    @normalized_tag_names ||= TagTaxonomyService.filter_assignable(tag_names)
   end
 end

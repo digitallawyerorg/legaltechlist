@@ -15,6 +15,22 @@ class UserSubmissionWorkflowTest < ActiveSupport::TestCase
     assert_includes form.errors[:contact_name], "can't be blank"
   end
 
+  test "contribution form requires at least one discoverable tag" do
+    form = valid_contribution_form
+    form.tag_names = []
+
+    assert_not form.valid?
+    assert_includes form.errors[:tag_names], "can't be blank"
+  end
+
+  test "contribution form rejects non-curated tags" do
+    form = valid_contribution_form
+    form.tag_names = ["saas"]
+
+    assert_not form.valid?
+    assert_includes form.errors[:tag_names], "must be selected from the curated tag list"
+  end
+
   test "contribution intake creates proposal not company" do
     form = valid_contribution_form
 
@@ -103,7 +119,8 @@ class UserSubmissionWorkflowTest < ActiveSupport::TestCase
       description: "Contract workflow software for in-house teams.",
       status: "active",
       business_model_ids: [business_models(:one).id],
-      target_client_ids: [target_clients(:one).id]
+      target_client_ids: [target_clients(:one).id],
+      tag_names: ["artificial intelligence"]
     )
   end
 

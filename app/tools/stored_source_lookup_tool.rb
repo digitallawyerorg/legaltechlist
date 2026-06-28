@@ -24,8 +24,7 @@ class StoredSourceLookupTool < RubyLLM::Tool
       "crunchbase_url" => company.crunchbase_url,
       "linkedin_url" => company.linkedin_url,
       "twitter_url" => company.twitter_url,
-      "facebook_url" => company.facebook_url,
-      "angellist_url" => company.angellist_url
+      "facebook_url" => company.facebook_url
     }.filter_map do |label, url|
       next if url.blank?
 

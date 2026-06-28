@@ -171,9 +171,10 @@ class CompaniesControllerTest < ActionController::TestCase
     assert_response :success
   end
 
-  test "new shows canonical revenue model and target client checkboxes only" do
+  test "new shows canonical revenue model, target client, and tag checkboxes only" do
     compound_target_client = TargetClient.create!(name: "Corporate Legal, Law Firms", description: "Legacy compound")
     compound_revenue_model = BusinessModel.create!(name: "Subscription, Services", description: "Legacy compound")
+    non_discoverable_tag = Tag.create!(name: "saas")
 
     get :new
 
@@ -181,13 +182,23 @@ class CompaniesControllerTest < ActionController::TestCase
     checkbox_labels = css_select("label.form-check-label").map(&:text)
     refute_includes checkbox_labels, compound_target_client.name
     refute_includes checkbox_labels, compound_revenue_model.name
+    refute_includes checkbox_labels, non_discoverable_tag.name
     refute checkbox_labels.any? { |label| label.include?(",") }, "expected no combinatorial checkbox labels"
     assert_includes checkbox_labels, business_models(:one).name
     assert_includes checkbox_labels, business_models(:two).name
     assert_includes checkbox_labels, target_clients(:one).name
     assert_includes checkbox_labels, target_clients(:two).name
+    assert_includes checkbox_labels, "artificial intelligence"
     assert_equal BusinessModel.canonical.order(:name).pluck(:name), checkbox_labels & BusinessModel.canonical.pluck(:name)
     assert_equal TargetClient.canonical.order(:name).pluck(:name), checkbox_labels & TargetClient.canonical.pluck(:name)
+    assert_equal Tag.discoverable.pluck(:name), checkbox_labels & Tag.discoverable.pluck(:name)
+  end
+
+  test "new form omits deprecated AngelList field" do
+    get :new
+
+    assert_response :success
+    assert_select "input[name='company_contribution[angellist_url]']", count: 0
   end
 
   test "rejects contribution without contact name" do
@@ -224,7 +235,8 @@ class CompaniesControllerTest < ActionController::TestCase
       description: "A long enough description for a suggested legal technology company.",
       status: "active",
       business_model_ids: [@company.business_model_id],
-      target_client_ids: [@company.target_client_id]
+      target_client_ids: [@company.target_client_id],
+      tag_names: ["artificial intelligence"]
     }
   end
 

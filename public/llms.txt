@@ -4,7 +4,7 @@
 
 ## About this dataset
 
-The CodeX TechIndex currently tracks legal-technology companies across 12 primary functional categories. Companies are added on an ongoing basis and requests for corrections are welcomed. Each profile is one company or brand with fields for description, website, primary and secondary category, revenue models, target clients, tags, headquarters, founding year, lifecycle status, successor links, disclosed funding, company references (website and social profiles), external references (Crunchbase, Legal.io, AngelList), and provenance. Public statistics dashboards summarize ecosystem growth, geography, funding, and market segments.
+The CodeX TechIndex currently tracks legal-technology companies across 12 primary functional categories. Companies are added on an ongoing basis and requests for corrections are welcomed. Each profile is one company or brand with fields for description, website, primary and secondary category, revenue models, target clients, tags, headquarters, founding year, lifecycle status, successor links, disclosed funding, company references (website and social profiles), external references (Crunchbase, Legal.io, LegalTech Atlas), and provenance. Public statistics dashboards summarize ecosystem growth, geography, funding, and market segments.
 
 A legal technology company is a market-facing vendor whose principal business is software, data, or technology-enabled services for legal work. Each index entry is one company or brand, not an individual product. The index excludes law firms and consultancies engaged primarily in legal service delivery, standalone products for companies already indexed, and vendors not substantially focused on legal use cases.
 
