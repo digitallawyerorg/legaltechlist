@@ -274,53 +274,13 @@ class StaticPagesController < ApplicationController
   end
 
   def business_model
-    metrics = build_revenue_model_metrics
-    @model_metrics = metrics[:model_metrics]
-    @model_data = metrics[:model_data]
-
-    respond_to do |format|
-      format.html
-      format.csv do
-        csv_data = CSV.generate do |csv|
-          csv << ["Revenue Model", "Companies", "Percentage", "Average Funding"]
-          @model_metrics.each do |row|
-            csv << [
-              row[:model],
-              row[:count],
-              row[:percentage],
-              row[:avg_funding].round(2)
-            ]
-          end
-        end
-        send_data csv_data, filename: "business_model_analysis_#{Time.current.strftime('%Y%m%d')}.csv"
-      end
-    end
+    redirect_to statistics_category_evolution_5_years_path(dimension: "revenue_model"), status: :moved_permanently
   end
 
   def target_client
-    @growth_view = growth_view_param
-    metrics = build_target_client_yearly_metrics(annual: @growth_view == "annual")
-    @chart_series = metrics[:table_data]
-    @summary_data = metrics[:summary_data]
-    @chart_colors = CATEGORY_EVOLUTION_CHART_COLORS.cycle.take(@chart_series.size).to_a
-
-    respond_to do |format|
-      format.html
-      format.csv do
-        csv_data = CSV.generate do |csv|
-          csv << ["Target Client", "Companies", "Percentage", "Average Funding"]
-          @summary_data.each do |metrics|
-            csv << [
-              metrics[:client],
-              metrics[:total_companies],
-              metrics[:percentage].round(1),
-              metrics[:avg_funding].round(2)
-            ]
-          end
-        end
-        send_data csv_data, filename: "target_client_analysis_#{Time.current.strftime('%Y%m%d')}.csv"
-      end
-    end
+    redirect_params = { dimension: "market_focus" }
+    redirect_params[:view] = params[:view] if params[:view].present?
+    redirect_to statistics_category_evolution_5_years_path(redirect_params), status: :moved_permanently
   end
 
   def country_distribution
@@ -357,7 +317,7 @@ class StaticPagesController < ApplicationController
   end
 
   def funding_by_region
-    redirect_to statistics_funding_by_category_path(params.permit(:view).merge(view: "region")), status: :moved_permanently
+    redirect_to statistics_funding_by_category_path(dimension: "region"), status: :moved_permanently
   end
 
   def download_category_evolution
@@ -366,39 +326,25 @@ class StaticPagesController < ApplicationController
   end
 
   def download_target_client
-    send_data generate_csv(@client_metrics, ['Target Client', 'Companies', 'Percentage', 'Average Funding']),
-             filename: "target_client_analysis_#{Time.current.strftime('%Y%m%d')}.csv"
+    redirect_params = { dimension: "market_focus", format: :csv }
+    redirect_params[:view] = params[:view] if params[:view].present?
+    redirect_to statistics_category_evolution_5_years_path(redirect_params), status: :moved_permanently
   end
 
   def download_business_model
-    redirect_to statistics_business_model_path(format: :csv)
+    redirect_to statistics_category_evolution_5_years_path(dimension: "revenue_model", format: :csv), status: :moved_permanently
   end
 
   def venture_stage
-    metrics = helpers.build_venture_stage_metrics
-    @stage_metrics = metrics[:stage_metrics]
-    @stage_data = metrics[:stage_data]
-
-    respond_to do |format|
-      format.html
-      format.csv do
-        csv_data = CSV.generate do |csv|
-          csv << ["Venture Stage", "Companies", "Percentage"]
-          @stage_metrics.each do |row|
-            csv << [row[:stage], row[:count], row[:percentage]]
-          end
-        end
-        send_data csv_data, filename: "venture_stage_analysis_#{Time.current.strftime('%Y%m%d')}.csv"
-      end
-    end
+    redirect_to statistics_funding_by_category_path(dimension: "venture_stage"), status: :moved_permanently
   end
 
   def download_venture_stage
-    redirect_to statistics_venture_stage_path(format: :csv)
+    redirect_to statistics_funding_by_category_path(dimension: "venture_stage", format: :csv), status: :moved_permanently
   end
 
   def funding_stages
-    redirect_to statistics_venture_stage_path, status: :moved_permanently
+    redirect_to statistics_funding_by_category_path(dimension: "venture_stage"), status: :moved_permanently
   end
 
   def funding_efficiency
@@ -560,7 +506,7 @@ class StaticPagesController < ApplicationController
   end
 
   def download_funding_stages
-    redirect_to statistics_venture_stage_path(format: :csv), status: :moved_permanently
+    redirect_to statistics_funding_by_category_path(dimension: "venture_stage", format: :csv), status: :moved_permanently
   end
 
   def download_funding_efficiency
@@ -602,41 +548,37 @@ class StaticPagesController < ApplicationController
   end
 
   def category_evolution_5_years
-    cached = Rails.cache.fetch(
-      "statistics/category_evolution_5_years/#{company_cache_version}/#{category_cache_version}",
-      expires_in: 10.minutes
-    ) do
-      build_category_evolution_yearly_metrics
-    end
+    load_industry_focus_data
 
-    @table_data = cached[:table_data]
-    @summary_data = cached[:summary_data]
-    @chart_series = @table_data
-    @chart_colors = CATEGORY_EVOLUTION_CHART_COLORS.cycle.take(@chart_series.size).to_a
+    respond_to do |format|
+      format.html
+      format.csv do
+        send_data industry_focus_csv_data,
+                  filename: industry_focus_csv_filename,
+                  type: "text/csv",
+                  disposition: "attachment"
+      end
+    end
   end
 
   def download_category_evolution_5_years
-    category_evolution_5_years if @table_data.nil?
-
-    years = (@table_data.first&.dig(:yearly_data)&.keys || []).sort
-    csv_data = CSV.generate do |csv|
-      csv << ["Category"] + years
-      @table_data.each do |data|
-        csv << [data[:category]] + years.map { |year| data[:yearly_data][year] || 0 }
-      end
-    end
-
-    send_data csv_data,
-              filename: "category_evolution_#{Time.current.strftime('%Y%m%d')}.csv",
-              type: "text/csv",
-              disposition: "attachment"
+    download_params = { format: :csv }
+    dimension = industry_focus_dimension_param
+    download_params[:dimension] = dimension if dimension != "industry"
+    download_params[:view] = params[:view] if dimension == "market_focus" && params[:view].present?
+    redirect_to statistics_category_evolution_5_years_path(download_params), status: :moved_permanently
   end
 
   def funding_by_category
-    @funding_view = funding_view_param
+    @funding_dimension = funding_dimension_param
 
-    if @funding_view == "region"
+    case @funding_dimension
+    when "region"
       load_funding_by_region_data
+    when "venture_stage"
+      metrics = helpers.build_venture_stage_metrics
+      @stage_metrics = metrics[:stage_metrics]
+      @stage_data = metrics[:stage_data]
     else
       load_funding_by_category_data
     end
@@ -644,7 +586,15 @@ class StaticPagesController < ApplicationController
     respond_to do |format|
       format.html
       format.csv do
-        if @funding_view == "region"
+        if @funding_dimension == "venture_stage"
+          csv_data = CSV.generate do |csv|
+            csv << ["Venture Stage", "Companies", "Percentage"]
+            @stage_metrics.each do |row|
+              csv << [row[:stage], row[:count], row[:percentage]]
+            end
+          end
+          send_data csv_data, filename: "venture_stage_analysis_#{Time.current.strftime('%Y%m%d')}.csv"
+        elsif @funding_dimension == "region"
           send_data generate_region_country_csv, filename: "funding_by_region.csv", type: "text/csv; charset=utf-8", disposition: "attachment"
         else
           csv_data = CSV.generate do |csv|
@@ -666,9 +616,9 @@ class StaticPagesController < ApplicationController
         end
       end
       format.xlsx do
-        if @funding_view == "region"
+        if @funding_dimension == "region"
           send_data generate_region_country_xlsx, filename: "funding_by_region.xlsx"
-        else
+        elsif @funding_dimension != "venture_stage"
           p = Axlsx::Package.new
           wb = p.workbook
           wb.add_worksheet(name: "Funding by Category") do |sheet|
@@ -693,13 +643,18 @@ class StaticPagesController < ApplicationController
   end
 
   def download_funding_by_category
-    redirect_to statistics_funding_by_category_path(format: :csv)
+    download_params = { format: :csv }
+    dimension = funding_dimension_param
+    download_params[:dimension] = dimension if dimension != "category"
+    redirect_to statistics_funding_by_category_path(download_params), status: :moved_permanently
   end
 
   private
 
   GROWTH_VIEWS = %w[cumulative annual].freeze
   GEO_VIEWS = %w[country region].freeze
+  INDUSTRY_FOCUS_DIMENSIONS = %w[industry revenue_model market_focus].freeze
+  FUNDING_DIMENSIONS = %w[category region venture_stage].freeze
   CATEGORY_EVOLUTION_CHART_COLORS = [
     "#8c1515", "#175e54", "#2986cc", "#8e5fa2", "#d55e00", "#37a4a6",
     "#5a865a", "#ae6a59", "#5b9bd5", "#6b6b8d", "#c67171", "#820000"
@@ -721,6 +676,85 @@ class StaticPagesController < ApplicationController
     return "region" if view.in?(%w[region regions])
 
     "category"
+  end
+
+  def funding_dimension_param
+    dimension = params[:dimension].presence_in(FUNDING_DIMENSIONS)
+    return dimension if dimension
+
+    funding_view_param == "region" ? "region" : "category"
+  end
+
+  def industry_focus_dimension_param
+    params[:dimension].presence_in(INDUSTRY_FOCUS_DIMENSIONS) || "industry"
+  end
+
+  def load_industry_focus_data
+    @focus_dimension = industry_focus_dimension_param
+    @growth_view = growth_view_param
+
+    case @focus_dimension
+    when "revenue_model"
+      metrics = build_revenue_model_metrics
+      @model_metrics = metrics[:model_metrics]
+      @model_data = metrics[:model_data]
+    when "market_focus"
+      metrics = build_target_client_yearly_metrics(annual: @growth_view == "annual")
+      @chart_series = metrics[:table_data]
+      @summary_data = metrics[:summary_data]
+      @chart_colors = CATEGORY_EVOLUTION_CHART_COLORS.cycle.take(@chart_series.size).to_a
+    else
+      cached = Rails.cache.fetch(
+        "statistics/category_evolution_5_years/#{company_cache_version}/#{category_cache_version}",
+        expires_in: 10.minutes
+      ) do
+        build_category_evolution_yearly_metrics
+      end
+
+      @table_data = cached[:table_data]
+      @summary_data = cached[:summary_data]
+      @chart_series = @table_data
+      @chart_colors = CATEGORY_EVOLUTION_CHART_COLORS.cycle.take(@chart_series.size).to_a
+    end
+  end
+
+  def industry_focus_csv_data
+    case @focus_dimension
+    when "revenue_model"
+      CSV.generate do |csv|
+        csv << ["Revenue Model", "Companies", "Percentage", "Average Funding"]
+        @model_metrics.each do |row|
+          csv << [row[:model], row[:count], row[:percentage], row[:avg_funding].round(2)]
+        end
+      end
+    when "market_focus"
+      CSV.generate do |csv|
+        csv << ["Target Client", "Companies", "Percentage", "Average Funding"]
+        @summary_data.each do |row|
+          csv << [row[:client], row[:total_companies], row[:percentage].round(1), row[:avg_funding].round(2)]
+        end
+      end
+    else
+      years = (@table_data.first&.dig(:yearly_data)&.keys || []).sort
+      CSV.generate do |csv|
+        csv << ["Category"] + years
+        @table_data.each do |data|
+          csv << [data[:category]] + years.map { |year| data[:yearly_data][year] || 0 }
+        end
+      end
+    end
+  end
+
+  def industry_focus_csv_filename
+    timestamp = Time.current.strftime("%Y%m%d")
+    case @focus_dimension
+    when "revenue_model"
+      "business_model_analysis_#{timestamp}.csv"
+    when "market_focus"
+      "target_client_analysis_#{timestamp}.csv"
+    else
+      "category_evolution_#{timestamp}.csv"
+    end
   end
 
   def load_country_distribution_data

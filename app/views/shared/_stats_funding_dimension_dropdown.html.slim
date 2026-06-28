@@ -1,0 +1,7 @@
+/ locals: current_dimension, category_url, region_url, venture_stage_url
+.stats-industry-focus-dimension
+    label.visually-hidden for="funding-dimension" Funding analysis dimension
+    select#funding-dimension.form-select.stats-dimension-select aria-label="Funding analysis dimension" onchange="window.location.href=this.value"
+        option value=category_url selected=(current_dimension == "category") By Category
+        option value=region_url selected=(current_dimension == "region") By Region
+        option value=venture_stage_url selected=(current_dimension == "venture_stage") By Venture Stage

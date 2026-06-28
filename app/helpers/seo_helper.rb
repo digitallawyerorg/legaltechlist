@@ -109,12 +109,9 @@ module SeoHelper
       { name: "Total Companies", url: statistics_total_companies_url },
       { name: "Geographic Distribution", url: statistics_country_distribution_url },
       { name: "Industry Focus", url: statistics_category_evolution_5_years_url },
-      { name: "Technology Themes", url: statistics_tag_distribution_url },
-      { name: "Market Focus", url: statistics_target_client_url },
-      { name: "AI in Legal Tech", url: statistics_ai_trends_url },
       { name: "Funding", url: statistics_funding_by_category_url },
-      { name: "Venture Stage", url: statistics_venture_stage_url },
-      { name: "Revenue Model Insights", url: statistics_business_model_url }
+      { name: "AI in Legal Tech", url: statistics_ai_trends_url },
+      { name: "Technology Themes", url: statistics_tag_distribution_url }
     ]
     item_list_json_ld(
       name: "CodeX TechIndex Statistics",

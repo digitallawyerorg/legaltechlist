@@ -13,13 +13,13 @@ class StatisticsHelperTest < ActiveSupport::TestCase
     context.new.stats_chart_neighbors
   end
 
-  test "stats_chart_neighbors returns wrapped prev and next for venture stage" do
-    neighbors = neighbors_for("venture_stage")
+  test "stats_chart_neighbors returns wrapped prev and next for funding" do
+    neighbors = neighbors_for("funding_by_category")
 
-    assert_equal "Funding", neighbors[:prev][:title]
-    assert_equal statistics_funding_by_category_path, neighbors[:prev][:path]
-    assert_equal "Market Focus", neighbors[:next][:title]
-    assert_equal statistics_target_client_path, neighbors[:next][:path]
+    assert_equal "Industry Focus", neighbors[:prev][:title]
+    assert_equal statistics_category_evolution_5_years_path, neighbors[:prev][:path]
+    assert_equal "AI in Legal Tech", neighbors[:next][:title]
+    assert_equal statistics_ai_trends_path, neighbors[:next][:path]
   end
 
   test "stats_chart_neighbors returns wrapped prev and next for ecosystem growth" do

@@ -22,16 +22,16 @@ class StaticPagesControllerTest < ActionController::TestCase
   test "should get statistics" do
     get :statistics
     assert_response :success
-    assert_select ".stats-index-card", count: 9
+    assert_select ".stats-index-card", count: 6
   end
 
-  test "should get business_model" do
+  test "business_model redirects to industry focus revenue model view" do
     get :business_model
-    assert_response :success
+    assert_redirected_to statistics_category_evolution_5_years_path(dimension: "revenue_model")
   end
 
-  test "business_model uses canonical revenue model names" do
-    get :business_model
+  test "industry focus revenue model dimension uses canonical revenue model names" do
+    get :category_evolution_5_years, params: { dimension: "revenue_model" }
     assert_response :success
 
     models = assigns(:model_metrics).map { |row| row[:model] }
@@ -81,7 +81,7 @@ class StaticPagesControllerTest < ActionController::TestCase
 
   test "funding by region redirects to unified funding page" do
     get :funding_by_region
-    assert_redirected_to statistics_funding_by_category_path(view: "region")
+    assert_redirected_to statistics_funding_by_category_path(dimension: "region")
   end
 
   test "funding by category renders category chart by default" do
@@ -89,28 +89,41 @@ class StaticPagesControllerTest < ActionController::TestCase
     assert_response :success
     assert_includes @response.body, "funding-by-category-chart"
     assert_select "h1.stats-chart-title", text: "Funding"
-    assert_select ".stats-segment-control .stats-segment.is-active", text: "Category"
+    assert_select "#funding-dimension option[selected]", text: "By Category"
     assert_not_includes @response.body, "funding-by-region-chart"
   end
 
   test "funding by category region view renders sankey chart" do
-    get :funding_by_category, params: { view: "region" }
+    get :funding_by_category, params: { dimension: "region" }
     assert_response :success
     assert_includes @response.body, "funding-by-region-chart"
     assert_includes @response.body, "funding-by-region-data"
     assert_includes @response.body, "drawRegionCountrySankeyChart"
     assert_includes @response.body, "type: \"sankey\""
     assert_select "h1.stats-chart-title", text: "Funding"
-    assert_select ".stats-segment-control .stats-segment.is-active", text: "Region"
+    assert_select "#funding-dimension option[selected]", text: "By Region"
     assert assigns(:region_sankey_data).present?
     assert_equal "Disclosed funding", assigns(:region_sankey_data)[:nodes].first[:name]
-    assert_select ".stats-chart-nav .stats-chart-nav-next .stats-chart-nav-title", text: "Venture Stage"
+    assert_select ".stats-chart-nav .stats-chart-nav-next .stats-chart-nav-title", text: "AI in Legal Tech"
   end
 
-  test "should get venture_stage" do
-    get :venture_stage
+  test "legacy funding region view param still works" do
+    get :funding_by_category, params: { view: "region" }
     assert_response :success
-    assert_select "h1.stats-chart-title", text: "Venture Stage"
+    assert_select "#funding-dimension option[selected]", text: "By Region"
+  end
+
+  test "venture stage redirects to funding venture stage view" do
+    get :venture_stage
+    assert_redirected_to statistics_funding_by_category_path(dimension: "venture_stage")
+  end
+
+  test "funding venture stage dimension renders stage chart" do
+    get :funding_by_category, params: { dimension: "venture_stage" }
+    assert_response :success
+    assert_includes @response.body, "venture-stage-chart"
+    assert_select "h1.stats-chart-title", text: "Funding"
+    assert_select "#funding-dimension option[selected]", text: "By Venture Stage"
     assert assigns(:stage_metrics).all? { |row| StatisticsHelper::VENTURE_STAGE_ORDER.include?(row[:stage]) }
     refute_includes assigns(:stage_metrics).map { |row| row[:stage] }, "For Profit"
   end
@@ -204,23 +217,29 @@ class StaticPagesControllerTest < ActionController::TestCase
   end
 
   test "statistics pages include methodology partial" do
-    get :target_client
+    get :category_evolution_5_years, params: { dimension: "market_focus" }
     assert_response :success
     assert_includes @response.body, "stats-methodology"
   end
 
-  test "target client renders cumulative line chart by default" do
+  test "target client redirects to industry focus market view" do
     get :target_client
+    assert_redirected_to statistics_category_evolution_5_years_path(dimension: "market_focus")
+  end
+
+  test "industry focus market view renders cumulative line chart by default" do
+    get :category_evolution_5_years, params: { dimension: "market_focus" }
     assert_response :success
     assert_includes @response.body, "target-client-chart"
     assert_includes @response.body, "LineChart"
-    assert_select "h1.stats-chart-title", text: "Market Focus"
+    assert_select "h1.stats-chart-title", text: "Industry Focus"
     assert_select ".stats-segment-control .stats-segment.is-active", text: "Cumulative"
+    assert_select "#industry-focus-dimension option[selected]", text: "By Market Focus"
     assert assigns(:chart_series).present?
   end
 
-  test "target client annual view renders by year line chart" do
-    get :target_client, params: { view: "annual" }
+  test "industry focus market view annual mode renders by year line chart" do
+    get :category_evolution_5_years, params: { dimension: "market_focus", view: "annual" }
     assert_response :success
     assert_select ".stats-segment-control .stats-segment.is-active", text: "By Year"
     assert assigns(:chart_series).present?
@@ -247,7 +266,8 @@ class StaticPagesControllerTest < ActionController::TestCase
     assert_response :success
     assert_includes @response.body, "category-evolution-chart"
     assert_includes @response.body, "LineChart"
-    assert_select "h1.stats-chart-title", text: "Companies by Category (Cumulative)"
+    assert_select "h1.stats-chart-title", text: "Industry Focus"
+    assert_select "#industry-focus-dimension option[selected]", text: "By Industry"
     assert_select ".stats-category-filter-checkbox", minimum: 1
     assert_equal assigns(:table_data).size, assigns(:chart_series).size
   end

@@ -1,14 +1,41 @@
-- is_region = @funding_view == "region"
 - chart_title = "Funding"
-- page_title = is_region ? "Funding (By Region)" : "Funding (By Category)"
-- content_for :title, page_title
-- content_for :description, is_region ? "Distribution of disclosed venture capital by innovation hub region and headquarters country in the CodeX TechIndex." : "Distribution of disclosed venture capital across legal tech categories in the CodeX TechIndex. Companies without reported funding are excluded."
-- category_path = statistics_funding_by_category_path
-- region_path = statistics_funding_by_category_path(view: "region")
-- view_toggle_html = capture do
-    = render partial: "shared/stats_funding_view_toggle", locals: { current_view: @funding_view, category_url: category_path, region_url: region_path }
+- is_region = @funding_dimension == "region"
+- is_venture_stage = @funding_dimension == "venture_stage"
+- is_category = !is_region && !is_venture_stage
+- category_url = statistics_funding_by_category_path
+- region_url = statistics_funding_by_category_path(dimension: "region")
+- venture_stage_url = statistics_funding_by_category_path(dimension: "venture_stage")
+- dimension_dropdown_html = capture { render partial: "shared/stats_funding_dimension_dropdown", locals: { current_dimension: @funding_dimension, category_url: category_url, region_url: region_url, venture_stage_url: venture_stage_url } }
+- chart_controls_html = capture do
+    .stats-pill-group= dimension_dropdown_html
 - category_chart_library = { indexAxis: "y", plugins: { legend: { display: false } }, scales: { x: { min: 0, grid: { display: true, drawBorder: false }, ticks: { font: { size: 12 } } }, y: { grid: { display: false }, ticks: { font: { size: 12 } } } }, interaction: { intersect: false, mode: "index" } }
-- if is_region
+- if is_venture_stage
+    - content_for :title, "Funding (By Venture Stage)"
+    - content_for :description, "How legal tech companies are distributed across bootstrapped, venture-backed, and exited funding stages in the CodeX TechIndex."
+    - chart_id = "venture-stage-chart"
+    - chart_options = { height: 620, id: chart_id, library: { indexAxis: "y", plugins: { legend: { display: false } }, scales: { x: { grid: { display: true, drawBorder: false }, ticks: { precision: 0 } }, y: { grid: { display: false }, ticks: { font: { size: 12 } } } } } }
+    - chart_html = bar_chart(@stage_data, colors: ["#175e54"], **chart_options)
+    - table_html = capture do
+        .table-responsive
+            table.table.table-hover.align-middle#ventureStageTable
+                thead
+                    tr
+                        th Venture Stage
+                        th.text-end Companies
+                        th.text-end Percentage
+                tbody
+                    - @stage_metrics.each do |row|
+                        tr
+                            td= row[:stage]
+                            td.text-end= row[:count]
+                            td.text-end= number_to_percentage(row[:percentage], precision: 1)
+    - csv_path = statistics_funding_by_category_path(dimension: "venture_stage", format: :csv)
+    - download_filename = "venture_stage"
+    - table_title = "Venture stage breakdown"
+    - xlsx_path = nil
+- elsif is_region
+    - content_for :title, "Funding (By Region)"
+    - content_for :description, "Distribution of disclosed venture capital by innovation hub region and headquarters country in the CodeX TechIndex."
     - chart_id = "funding-by-region-chart"
     - chart_html = render partial: "shared/stats_region_country_sankey", locals: { chart_id: chart_id, sankey: @region_sankey_data, data_script_id: "funding-by-region-data", tooltip_mode: "currency" }
     - table_html = capture do
@@ -36,11 +63,13 @@
                                 td.text-end= number_with_delimiter(country_data[:companies])
                                 td.text-end= number_to_currency(country_data[:total_funding], precision: 0)
                                 td.text-end= number_to_currency(country_data[:avg_funding], precision: 0)
-    - csv_path = statistics_funding_by_category_path(view: "region", format: :csv)
-    - xlsx_path = statistics_funding_by_category_path(view: "region", format: :xlsx)
+    - csv_path = statistics_funding_by_category_path(dimension: "region", format: :csv)
+    - xlsx_path = statistics_funding_by_category_path(dimension: "region", format: :xlsx)
     - download_filename = "funding_by_region"
     - table_title = "Region and country breakdown"
 - else
+    - content_for :title, "Funding (By Category)"
+    - content_for :description, "Distribution of disclosed venture capital across legal tech categories in the CodeX TechIndex. Companies without reported funding are excluded."
     - chart_id = "funding-by-category-chart"
     - chart_html = bar_chart(@chart_data[:data], height: 620, colors: ["#175e54"], thousands: ",", library: category_chart_library, id: chart_id, suffix: "M", round: 2, prefix: "$", delimiter: ",")
     - table_html = capture do
@@ -67,4 +96,4 @@
     - xlsx_path = statistics_funding_by_category_path(format: :xlsx)
     - download_filename = "funding_by_category"
     - table_title = "Category breakdown"
-= render partial: "shared/stats_chart_page", locals: { title: chart_title, chart: chart_html, table: table_html, chart_id: chart_id, download_filename: download_filename, csv_path: csv_path, xlsx_path: xlsx_path, toggles: view_toggle_html, table_title: table_title }
+= render partial: "shared/stats_chart_page", locals: { title: chart_title, chart: chart_html, table: table_html, chart_id: chart_id, download_filename: download_filename, csv_path: csv_path, xlsx_path: xlsx_path, toggles: chart_controls_html, table_title: table_title }

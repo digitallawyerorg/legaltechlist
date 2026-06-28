@@ -8,11 +8,8 @@ class SitemapController < ApplicationController
       { path: statistics_category_evolution_5_years_path, updated_at: Time.current },
       { path: statistics_country_distribution_path, updated_at: Time.current },
       { path: statistics_tag_distribution_path, updated_at: Time.current },
-      { path: statistics_target_client_path, updated_at: Time.current },
-      { path: statistics_business_model_path, updated_at: Time.current },
       { path: statistics_ai_trends_path, updated_at: Time.current },
       { path: statistics_funding_by_category_path, updated_at: Time.current },
-      { path: statistics_venture_stage_path, updated_at: Time.current },
       { path: statistics_methodology_path, updated_at: Time.current }
     ]
     @static_pages = [

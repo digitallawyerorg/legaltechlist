@@ -1,25 +1,99 @@
-- content_for :title, "Companies by Category (Cumulative)"
-- content_for :description, "Cumulative growth of legal tech companies by category since 2000, based on visible CodeX TechIndex profiles."
-- chart_id = "category-evolution-chart"
-- view_dropdown_html = capture do
-    = render partial: "shared/stats_category_filter_dropdown", locals: { categories: @table_data, chart_id: chart_id }
-- table_html = capture do
-    .table-responsive
-        table.table.table-hover.align-middle
-            thead
-                tr
-                    th Category
-                    th Total Companies
-                    th Growth Rate
-                    th Market Share
-            tbody
-                - @summary_data.each_with_index do |data, index|
-                    tr data-category-row=index
-                        td= data[:category]
-                        td= data[:total_companies]
-                        td
-                            span class=growth_rate_class(data[:growth_rate])
-                                = growth_rate_content(data[:growth_rate])
-                        td= "#{data[:market_share].round(1)}%"
-- chart_html = line_chart(@chart_series.map { |d| { name: d[:category], data: d[:yearly_data].sort.map { |year, count| [year, count] } } }, height: 620, colors: @chart_colors, library: { plugins: { legend: { position: "bottom" } }, scales: { x: { grid: { display: true, drawBorder: false }, ticks: { font: { size: 12 }, maxRotation: 0 } }, y: { min: 0, grid: { display: true, drawBorder: false }, ticks: { font: { size: 12 } } } }, interaction: { intersect: false, mode: "index" } }, id: chart_id)
-= render partial: "shared/stats_chart_page", locals: { title: "Companies by Category (Cumulative)", chart: chart_html, table: table_html, chart_id: chart_id, download_filename: "category_evolution", csv_path: download_category_evolution_5_years_path(format: :csv), view_dropdown: view_dropdown_html, table_title: "Category breakdown" }
+- chart_title = "Industry Focus"
+- is_revenue_model = @focus_dimension == "revenue_model"
+- is_market_focus = @focus_dimension == "market_focus"
+- is_industry = !is_revenue_model && !is_market_focus
+- is_annual = is_market_focus && @growth_view == "annual"
+- industry_url = statistics_category_evolution_5_years_path
+- revenue_model_url = statistics_category_evolution_5_years_path(dimension: "revenue_model")
+- market_focus_url = is_annual ? statistics_category_evolution_5_years_path(dimension: "market_focus", view: "annual") : statistics_category_evolution_5_years_path(dimension: "market_focus")
+- dimension_dropdown_html = capture { render partial: "shared/stats_industry_focus_dimension_dropdown", locals: { current_dimension: @focus_dimension, industry_url: industry_url, revenue_model_url: revenue_model_url, market_focus_url: market_focus_url } }
+- if is_revenue_model
+    - content_for :title, "Industry Focus (By Revenue Model)"
+    - content_for :description, "How legal tech companies monetize — subscription, services, transaction fees, and other revenue patterns in the CodeX TechIndex."
+    - chart_id = "business-model-chart"
+    - chart_options = { height: 620, id: chart_id, library: { indexAxis: "y", plugins: { legend: { display: false } }, scales: { x: { grid: { display: true, drawBorder: false }, ticks: { precision: 0 } }, y: { grid: { display: false }, ticks: { font: { size: 12 } } } } } }
+    - chart_html = bar_chart(@model_data, colors: ["#8c1515"], **chart_options)
+    - table_html = capture do
+        .table-responsive
+            table.table.table-hover.align-middle#businessModelTable
+                thead
+                    tr
+                        th Revenue Model
+                        th.text-end Companies
+                        th.text-end Percentage
+                        th.text-end Avg Funding
+                tbody
+                    - @model_metrics.each do |data|
+                        tr
+                            td= data[:model]
+                            td.text-end= data[:count]
+                            td.text-end= number_to_percentage(data[:percentage], precision: 1)
+                            td.text-end= number_to_currency(data[:avg_funding], precision: 0)
+    - csv_path = statistics_category_evolution_5_years_path(dimension: "revenue_model", format: :csv)
+    - download_filename = "revenue_model"
+    - table_title = "Revenue model breakdown"
+    - view_toggle_html = nil
+    - category_filter_html = nil
+- elsif is_market_focus
+    - content_for :title, is_annual ? "Industry Focus (Market Focus By Year)" : "Industry Focus (Market Focus Cumulative)"
+    - content_for :description, is_annual ? "New legal tech companies by target client segment founded each year since 2000." : "Cumulative growth of legal tech companies by target client segment since 2000."
+    - chart_id = "target-client-chart"
+    - cumulative_path = statistics_category_evolution_5_years_path(dimension: "market_focus")
+    - annual_path = statistics_category_evolution_5_years_path(dimension: "market_focus", view: "annual")
+    - view_toggle_html = capture { render partial: "shared/stats_growth_view_toggle", locals: { current_view: @growth_view, cumulative_url: cumulative_path, annual_url: annual_path, aria_label: "Market focus chart view" } }
+    - line_chart_library = { plugins: { legend: { position: "bottom" } }, scales: { x: { grid: { display: true, drawBorder: false }, ticks: { font: { size: 12 }, maxRotation: 0 } }, y: { min: 0, grid: { display: true, drawBorder: false }, ticks: { font: { size: 12 }, precision: 0 } } }, interaction: { intersect: false, mode: "index" } }
+    - chart_html = line_chart(@chart_series.map { |d| { name: d[:client], data: d[:yearly_data].sort.map { |year, count| [year, count] } } }, height: 620, colors: @chart_colors, library: line_chart_library, id: chart_id)
+    - table_html = capture do
+        .table-responsive
+            table.table.table-hover.align-middle#clientTable
+                thead
+                    tr
+                        th Target Client
+                        th.text-end Companies
+                        th.text-end Percentage
+                        th.text-end Avg Funding
+                tbody
+                    - @summary_data.each do |data|
+                        tr
+                            td= data[:client]
+                            td.text-end= data[:total_companies]
+                            td.text-end= number_to_percentage(data[:percentage], precision: 1)
+                            td.text-end= number_to_currency(data[:avg_funding], precision: 0)
+    - csv_path = is_annual ? statistics_category_evolution_5_years_path(dimension: "market_focus", view: "annual", format: :csv) : statistics_category_evolution_5_years_path(dimension: "market_focus", format: :csv)
+    - download_filename = "target_client"
+    - table_title = "Client segment breakdown"
+    - category_filter_html = nil
+- else
+    - content_for :title, "Industry Focus (By Industry)"
+    - content_for :description, "Cumulative growth of legal tech companies by category since 2000, based on visible CodeX TechIndex profiles."
+    - chart_id = "category-evolution-chart"
+    - category_filter_html = capture { render partial: "shared/stats_category_filter_dropdown", locals: { categories: @table_data, chart_id: chart_id } }
+    - chart_html = line_chart(@chart_series.map { |d| { name: d[:category], data: d[:yearly_data].sort.map { |year, count| [year, count] } } }, height: 620, colors: @chart_colors, library: { plugins: { legend: { position: "bottom" } }, scales: { x: { grid: { display: true, drawBorder: false }, ticks: { font: { size: 12 }, maxRotation: 0 } }, y: { min: 0, grid: { display: true, drawBorder: false }, ticks: { font: { size: 12 } } } }, interaction: { intersect: false, mode: "index" } }, id: chart_id)
+    - table_html = capture do
+        .table-responsive
+            table.table.table-hover.align-middle
+                thead
+                    tr
+                        th Category
+                        th Total Companies
+                        th Growth Rate
+                        th Market Share
+                tbody
+                    - @summary_data.each_with_index do |data, index|
+                        tr data-category-row=index
+                            td= data[:category]
+                            td= data[:total_companies]
+                            td
+                                span class=growth_rate_class(data[:growth_rate])
+                                    = growth_rate_content(data[:growth_rate])
+                            td= "#{data[:market_share].round(1)}%"
+    - csv_path = statistics_category_evolution_5_years_path(format: :csv)
+    - download_filename = "category_evolution"
+    - table_title = "Category breakdown"
+    - view_toggle_html = nil
+- chart_controls_html = capture do
+    .stats-pill-group
+        = dimension_dropdown_html
+        - if view_toggle_html.present?
+            == view_toggle_html
+= render partial: "shared/stats_chart_page", locals: { title: chart_title, chart: chart_html, table: table_html, chart_id: chart_id, download_filename: download_filename, csv_path: csv_path, toggles: chart_controls_html, view_dropdown: category_filter_html, table_title: table_title }

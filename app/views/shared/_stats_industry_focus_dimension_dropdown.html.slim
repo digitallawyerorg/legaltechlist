@@ -1,0 +1,7 @@
+/ locals: current_dimension, industry_url, revenue_model_url, market_focus_url
+.stats-industry-focus-dimension
+    label.visually-hidden for="industry-focus-dimension" Analysis dimension
+    select#industry-focus-dimension.form-select.stats-dimension-select aria-label="Analysis dimension" onchange="window.location.href=this.value"
+        option value=industry_url selected=(current_dimension == "industry") By Industry
+        option value=revenue_model_url selected=(current_dimension == "revenue_model") By Revenue Model
+        option value=market_focus_url selected=(current_dimension == "market_focus") By Market Focus

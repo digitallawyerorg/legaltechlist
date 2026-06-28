@@ -39,10 +39,7 @@ module StatisticsHelper
     { actions: %w[country_distribution], title: "Geographic Distribution", path: :statistics_country_distribution_path },
     { actions: %w[category_evolution_5_years], title: "Industry Focus", path: :statistics_category_evolution_5_years_path },
     { actions: %w[funding_by_category], title: "Funding", path: :statistics_funding_by_category_path },
-    { actions: %w[venture_stage], title: "Venture Stage", path: :statistics_venture_stage_path },
-    { actions: %w[target_client], title: "Market Focus", path: :statistics_target_client_path },
     { actions: %w[ai_trends], title: "AI in Legal Tech", path: :statistics_ai_trends_path },
-    { actions: %w[business_model], title: "Revenue Model Insights", path: :statistics_business_model_path },
     { actions: %w[tag_distribution], title: "Technology Themes", path: :statistics_tag_distribution_path }
   ].freeze
 
