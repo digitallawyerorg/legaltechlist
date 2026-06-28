@@ -66,17 +66,12 @@ html
             | .admin-metric { background: #fff; border: 1px solid #edf2f7; border-radius: 0.65rem; padding: 0.55rem 0.7rem; }
             | .admin-metric-label { color: #64748b; font-size: 0.68rem; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase; }
             | .admin-metric-value { color: #0f172a; font-size: 1.05rem; font-weight: 700; line-height: 1.2; }
-            | .admin-quality-grid { display: grid; gap: 0; grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr)); }
-            | .admin-quality-item { border-top: 1px solid #edf2f7; color: inherit; display: flex; flex-direction: column; gap: 0.15rem; min-height: 3.1rem; padding: 0.5rem 0.6rem; text-decoration: none; }
-            | .admin-quality-item + .admin-quality-item { border-left: 1px solid #edf2f7; }
-            | .admin-quality-link:hover { background: #f8fafc; }
-            | .admin-quality-link:hover .admin-quality-label { color: #0f172a; }
-            | .admin-quality-label { color: #64748b; font-size: 0.66rem; font-weight: 700; letter-spacing: 0.04em; line-height: 1.2; text-transform: uppercase; }
-            | .admin-quality-value { color: #0f172a; font-size: 0.98rem; line-height: 1.1; }
-            | .admin-quality-item.is-warning .admin-quality-value { color: #a16207; }
-            | .admin-quality-item.is-danger .admin-quality-value { color: #b91c1c; }
-            | .admin-quality-item.is-success .admin-quality-value { color: #166534; }
-            | .admin-quality-item.is-info .admin-quality-value { color: #0369a1; }
+            | .admin-metrics-table { font-size: 0.82rem; width: 100%; }
+            | .admin-metrics-table thead th { background: #f8fafc; color: #475569; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.04em; padding: 0.55rem 0.8rem; text-transform: uppercase; white-space: nowrap; }
+            | .admin-metrics-table tbody td { border-top-color: #edf2f7; padding: 0.55rem 0.8rem; vertical-align: middle; }
+            | .admin-metrics-table tbody tr:nth-child(even) { background: #fcfdff; }
+            | .admin-metrics-table tbody tr:hover { background: #f5f9ff; }
+            | .admin-metrics-table .admin-quality-label { color: #0f172a; font-size: 0.82rem; font-weight: 500; letter-spacing: normal; text-transform: none; }
             | .admin-filter-toolbar { align-items: center; display: flex; flex-wrap: wrap; gap: 0.3rem; }
             | .admin-proposal-batch-actions { align-items: center; border-left: 1px solid #e2e8f0; display: flex; flex-wrap: wrap; gap: 0.3rem; margin-left: auto; padding-left: 0.55rem; }
             | .admin-filter-toolbar .btn { --bs-btn-font-size: 0.68rem; --bs-btn-padding-y: 0.12rem; --bs-btn-padding-x: 0.48rem; }
