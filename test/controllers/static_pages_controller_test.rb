@@ -30,6 +30,16 @@ class StaticPagesControllerTest < ActionController::TestCase
     assert_response :success
   end
 
+  test "business_model uses canonical revenue model names" do
+    get :business_model
+    assert_response :success
+
+    models = assigns(:model_metrics).map { |row| row[:model] }
+    assert models.all? { |name| MethodologyHelper::REVENUE_MODEL_NAMES.include?(name) }
+    refute_includes models, "Legal Tech"
+    refute_includes models, "Unknown"
+  end
+
   test "country distribution renders map chart by default" do
     get :country_distribution
     assert_response :success
@@ -69,13 +79,31 @@ class StaticPagesControllerTest < ActionController::TestCase
     assert_redirected_to statistics_country_distribution_path(view: "region")
   end
 
-  test "funding by region renders funding sunburst chart" do
+  test "funding by region redirects to unified funding page" do
     get :funding_by_region
+    assert_redirected_to statistics_funding_by_category_path(view: "region")
+  end
+
+  test "funding by category renders category chart by default" do
+    get :funding_by_category
+    assert_response :success
+    assert_includes @response.body, "funding-by-category-chart"
+    assert_select "h1.stats-chart-title", text: "Funding"
+    assert_select ".stats-segment-control .stats-segment.is-active", text: "Category"
+    assert_not_includes @response.body, "funding-by-region-chart"
+  end
+
+  test "funding by category region view renders sankey chart" do
+    get :funding_by_category, params: { view: "region" }
     assert_response :success
     assert_includes @response.body, "funding-by-region-chart"
     assert_includes @response.body, "funding-by-region-data"
-    assert_select "h1.stats-chart-title", text: "Disclosed Funding by Region"
-    assert_equal "Disclosed funding", assigns(:region_sunburst_tree)[:name]
+    assert_includes @response.body, "drawRegionCountrySankeyChart"
+    assert_includes @response.body, "type: \"sankey\""
+    assert_select "h1.stats-chart-title", text: "Funding"
+    assert_select ".stats-segment-control .stats-segment.is-active", text: "Region"
+    assert assigns(:region_sankey_data).present?
+    assert_equal "Disclosed funding", assigns(:region_sankey_data)[:nodes].first[:name]
   end
 
   test "should get total_companies cumulative view" do
@@ -83,7 +111,7 @@ class StaticPagesControllerTest < ActionController::TestCase
     assert_response :success
     assert_select "h1.stats-chart-title", text: "Total Companies"
     assert_select ".stats-segment-control .stats-segment.is-active", text: "Cumulative"
-    assert_select ".stats-chart-nav .stats-chart-nav-prev .stats-chart-nav-title", text: "Revenue Model Insights"
+    assert_select ".stats-chart-nav .stats-chart-nav-prev .stats-chart-nav-title", text: "Technology Themes"
     assert_select ".stats-chart-nav .stats-chart-nav-next .stats-chart-nav-title", text: "Geographic Distribution"
     assert_select ".stats-page-back", count: 0
   end
@@ -171,6 +199,39 @@ class StaticPagesControllerTest < ActionController::TestCase
     get :target_client
     assert_response :success
     assert_includes @response.body, "stats-methodology"
+  end
+
+  test "target client renders cumulative line chart by default" do
+    get :target_client
+    assert_response :success
+    assert_includes @response.body, "target-client-chart"
+    assert_includes @response.body, "LineChart"
+    assert_select "h1.stats-chart-title", text: "Market Focus"
+    assert_select ".stats-segment-control .stats-segment.is-active", text: "Cumulative"
+    assert assigns(:chart_series).present?
+  end
+
+  test "target client annual view renders by year line chart" do
+    get :target_client, params: { view: "annual" }
+    assert_response :success
+    assert_select ".stats-segment-control .stats-segment.is-active", text: "By Year"
+    assert assigns(:chart_series).present?
+  end
+
+  test "ai trends renders cumulative chart by default" do
+    get :ai_trends
+    assert_response :success
+    assert_includes @response.body, "ai-trends-cumulative-chart"
+    assert_select "h1.stats-chart-title", text: "AI in Legal Tech"
+    assert_select ".stats-segment-control .stats-segment.is-active", text: "Cumulative"
+    assert assigns(:table_data).present?
+  end
+
+  test "ai trends annual view renders by year chart" do
+    get :ai_trends, params: { view: "annual" }
+    assert_response :success
+    assert_includes @response.body, "ai-trends-annual-chart"
+    assert_select ".stats-segment-control .stats-segment.is-active", text: "By Year"
   end
 
   test "should get category_evolution_5_years with cumulative line chart" do

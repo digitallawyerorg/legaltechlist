@@ -3,16 +3,17 @@
 - embedded = local_assigns.fetch(:embedded, false)
 - current_year = Time.current.year
 - geo_card_visual = capture { render partial: "shared/stats_index_card_country_bars", locals: { country_rows: stats_region_distribution_preview } }
+- market_card_visual = capture { render partial: "shared/stats_index_card_country_bars", locals: { country_rows: stats_target_client_preview, label_width: "7.5rem" } }
 - stats_index_cards = capture do
     .stats-index-grid
         = render partial: "shared/stats_index_card", locals: { path: statistics_total_companies_path, title: "Ecosystem Growth", description: "The headline measure of how the legal tech sector has compounded over time.", meta: "2000 – #{current_year}", sparkline_variant: 1 }
         = render partial: "shared/stats_index_card", locals: { path: statistics_country_distribution_path, title: "Geographic Distribution", description: "Where legal tech companies are headquartered, by country and region.", meta: "Country & region", visual_html: geo_card_visual }
         = render partial: "shared/stats_index_card", locals: { path: statistics_category_evolution_5_years_path, title: "Industry Focus", description: "Insight into the legal tech categories that have grown fastest over time.", meta: "Cumulative by category", sparkline_variant: 6 }
-        = render partial: "shared/stats_index_card", locals: { path: statistics_tag_distribution_path, title: "Technology Themes", description: "The technology tags most commonly applied across companies in the index.", meta: "Ranked by adoption", sparkline_variant: 3 }
-        = render partial: "shared/stats_index_card", locals: { path: statistics_target_client_path, title: "Market Focus", description: "Which client segments legal tech companies most often serve.", meta: "By client segment", sparkline_variant: 2 }
-        = render partial: "shared/stats_index_card", locals: { path: statistics_ai_trends_path, title: "AI in Legal Tech", description: "Growth in AI-focused legal tech companies founded since 2000.", meta: "2000 – #{current_year}", sparkline_variant: 1 }
-        = render partial: "shared/stats_index_card_funding"
+        = render partial: "shared/stats_index_card", locals: { path: statistics_funding_by_category_path, title: "Funding", description: "Disclosed venture capital allocated across legal tech categories and regions.", meta: "Category & region", sparkline_variant: 7 }
+        = render partial: "shared/stats_index_card", locals: { path: statistics_target_client_path, title: "Market Focus", description: "Which client segments legal tech companies most often serve.", meta: "Cumulative | By year", visual_html: market_card_visual }
+        = render partial: "shared/stats_index_card", locals: { path: statistics_ai_trends_path, title: "AI in Legal Tech", description: "Growth in AI-focused legal tech companies founded since 2000.", meta: "Cumulative | By year", sparkline_variant: 1 }
         = render partial: "shared/stats_index_card", locals: { path: statistics_business_model_path, title: "Revenue Model Insights", description: "How legal tech companies generate revenue — subscriptions, services, and fees.", meta: "By revenue model", sparkline_variant: 4 }
+        = render partial: "shared/stats_index_card", locals: { path: statistics_tag_distribution_path, title: "Technology Themes", description: "The technology tags most commonly applied across companies in the index.", meta: "Ranked by adoption", sparkline_variant: 3 }
 - if embedded
     == stats_index_cards
 - else
@@ -25,4 +26,3 @@
             - if show_title
                 h2.stats-chart-title.mb-3 Statistics
             == stats_index_cards
-= render partial: "shared/stats_index_funding_toggle_script"

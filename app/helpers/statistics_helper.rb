@@ -7,12 +7,11 @@ module StatisticsHelper
     { actions: %w[total_companies], title: "Total Companies", path: :statistics_total_companies_path },
     { actions: %w[country_distribution], title: "Geographic Distribution", path: :statistics_country_distribution_path },
     { actions: %w[category_evolution_5_years], title: "Industry Focus", path: :statistics_category_evolution_5_years_path },
-    { actions: %w[tag_distribution], title: "Technology Themes", path: :statistics_tag_distribution_path },
+    { actions: %w[funding_by_category], title: "Funding", path: :statistics_funding_by_category_path },
     { actions: %w[target_client], title: "Market Focus", path: :statistics_target_client_path },
     { actions: %w[ai_trends], title: "AI in Legal Tech", path: :statistics_ai_trends_path },
-    { actions: %w[funding_by_category], title: "Funding by Category", path: :statistics_funding_by_category_path },
-    { actions: %w[funding_by_region], title: "Funding by Region", path: :statistics_funding_by_region_path },
-    { actions: %w[business_model], title: "Revenue Model Insights", path: :statistics_business_model_path }
+    { actions: %w[business_model], title: "Revenue Model Insights", path: :statistics_business_model_path },
+    { actions: %w[tag_distribution], title: "Technology Themes", path: :statistics_tag_distribution_path }
   ].freeze
 
   def stats_chart_neighbors
@@ -196,6 +195,32 @@ module StatisticsHelper
     rows = top_rows.map { |region, count| { label: region, share: ((count.to_f / total) * 100).round } }
     if rest_count.positive?
       rows << { label: "Rest of world", share: 100 - rows.sum { |row| row[:share] } }
+    end
+    rows
+  end
+
+  def stats_target_client_preview(top_count: 3)
+    client_counts = Hash.new(0)
+    total = 0
+
+    stats_geographic_distribution_scope.includes(:target_client, :target_clients).find_each do |company|
+      company.audience_names.each do |target|
+        next if target.blank? || target == "Unknown"
+
+        client_counts[target] += 1
+        total += 1
+      end
+    end
+
+    return [] unless total.positive?
+
+    sorted = client_counts.sort_by { |_, count| -count }
+    top_rows, rest_rows = sorted.partition.with_index { |_, index| index < top_count }
+    rest_count = rest_rows.sum { |_, count| count }
+
+    rows = top_rows.map { |client, count| { label: client, share: ((count.to_f / total) * 100).round } }
+    if rest_count.positive?
+      rows << { label: "Rest", share: 100 - rows.sum { |row| row[:share] } }
     end
     rows
   end

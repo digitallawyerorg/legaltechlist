@@ -274,59 +274,21 @@ class StaticPagesController < ApplicationController
   end
 
   def business_model
-    @companies = Company.where(visible: true)
-                       .where('founded_date >= ? AND founded_date <= ? AND founded_date ~ ?',
-                             '2000',
-                             Time.current.year.to_s,
-                             '^\d{4}$')
-                       .includes(:business_models, :business_model)
-                       .to_a
-
-    model_counts = Hash.new(0)
-    model_companies = Hash.new { |h, k| h[k] = [] }
-
-    @companies.each do |company|
-      company.revenue_models.each do |revenue_model|
-        next if revenue_model.name.blank?
-
-        model_name = revenue_model.name
-        model_counts[model_name] += 1
-        model_companies[model_name] << company
-      end
-    end
-
-    total_companies = @companies.count.to_f
-    @model_metrics = []
-    @model_data = {}
-
-    model_counts.each do |model_name, count|
-      companies_for_model = model_companies[model_name]
-      total_funding = companies_for_model.sum { |c| c.total_funding_amount_usd.to_f }
-      avg_funding = companies_for_model.any? ? (total_funding / companies_for_model.size) : 0
-
-      @model_metrics << {
-        model: model_name,
-        count: count,
-        percentage: (count.to_f / total_companies * 100).round(1),
-        avg_funding: avg_funding
-      }
-      @model_data[model_name] = count
-    end
-
-    @model_metrics.sort_by! { |m| -m[:count] }
-    @model_data = @model_data.sort_by { |_, count| -count }.to_h
+    metrics = build_revenue_model_metrics
+    @model_metrics = metrics[:model_metrics]
+    @model_data = metrics[:model_data]
 
     respond_to do |format|
       format.html
       format.csv do
         csv_data = CSV.generate do |csv|
           csv << ["Revenue Model", "Companies", "Percentage", "Average Funding"]
-          @model_metrics.each do |metrics|
+          @model_metrics.each do |row|
             csv << [
-              metrics[:model],
-              metrics[:count],
-              metrics[:percentage],
-              metrics[:avg_funding].round(2)
+              row[:model],
+              row[:count],
+              row[:percentage],
+              row[:avg_funding].round(2)
             ]
           end
         end
@@ -336,62 +298,22 @@ class StaticPagesController < ApplicationController
   end
 
   def target_client
-    @companies = Company.where(visible: true)
-                       .where('founded_date >= ? AND founded_date <= ? AND founded_date ~ ?',
-                             '2000',
-                             Time.current.year.to_s,
-                             '^\d{4}$')
-                       .includes(:target_client, :target_clients)
-                       .to_a
-
-    individual_counts = Hash.new(0)
-    client_companies = Hash.new { |h, k| h[k] = [] }
-
-    @companies.each do |company|
-      company.audience_names.each do |target|
-        individual_counts[target] += 1
-        client_companies[target] << company
-      end
-    end
-
-    # Calculate total for percentages
-    total_companies = @companies.count.to_f
-
-    # Prepare metrics
-    @client_metrics = []
-    @client_data = {}
-
-    # Process each individual target client
-    individual_counts.each do |client_name, count|
-      companies_for_client = client_companies[client_name]
-      total_funding = companies_for_client.sum { |c| c.total_funding_amount_usd.to_f }
-      avg_funding = companies_for_client.any? ? (total_funding / companies_for_client.size) : 0
-
-      metrics = {
-        client: client_name,
-        count: count,
-        percentage: (count.to_f / total_companies * 100).round(1),
-        avg_funding: avg_funding
-      }
-
-      @client_metrics << metrics
-      @client_data[client_name] = count
-    end
-
-    # Sort by count descending
-    @client_metrics.sort_by! { |m| -m[:count] }
-    @client_data = @client_data.sort_by { |_, count| -count }.to_h
+    @growth_view = growth_view_param
+    metrics = build_target_client_yearly_metrics(annual: @growth_view == "annual")
+    @chart_series = metrics[:table_data]
+    @summary_data = metrics[:summary_data]
+    @chart_colors = CATEGORY_EVOLUTION_CHART_COLORS.cycle.take(@chart_series.size).to_a
 
     respond_to do |format|
       format.html
       format.csv do
         csv_data = CSV.generate do |csv|
           csv << ["Target Client", "Companies", "Percentage", "Average Funding"]
-          @client_metrics.each do |metrics|
+          @summary_data.each do |metrics|
             csv << [
               metrics[:client],
-              metrics[:count],
-              metrics[:percentage],
+              metrics[:total_companies],
+              metrics[:percentage].round(1),
               metrics[:avg_funding].round(2)
             ]
           end
@@ -435,19 +357,7 @@ class StaticPagesController < ApplicationController
   end
 
   def funding_by_region
-    companies = located_companies_scope.where.not(total_funding_amount_usd: [nil, 0])
-    region_country_metrics = build_region_country_metrics(companies)
-    @region_table_data = helpers.build_funding_region_table_data(region_country_metrics)
-    @region_sunburst_tree = helpers.region_country_sunburst_tree(
-      region_country_metrics,
-      root: StatisticsHelper::REGION_COUNTRY_FUNDING_ROOT,
-      value_key: :total_funding
-    )
-
-    respond_to do |format|
-        format.html
-        format.csv { send_data generate_region_country_csv, filename: "funding_by_region.csv", type: "text/csv; charset=utf-8", disposition: "attachment" }
-    end
+    redirect_to statistics_funding_by_category_path(params.permit(:view).merge(view: "region")), status: :moved_permanently
   end
 
   def download_category_evolution
@@ -759,39 +669,22 @@ class StaticPagesController < ApplicationController
   end
 
   def ai_trends
-    ai_tags = TagNormalizationService.ai_related_tag_ids
-
-    @ai_companies_by_year = Company.joins(:taggings)
-                                   .where(taggings: { tag_id: ai_tags })
-                                   .where(visible: true)
-                                   .where("founded_date ~ '^[0-9]{4}$'")
-                                   .group("CAST(founded_date AS INTEGER)")
-                                   .count
-                                   .select { |year, _| year >= 2010 } # Filter for years >= 2010
-                                   .sort_by { |year, _| year }
-
-    @table_data = @ai_companies_by_year.map { |year, count| [year.to_s, count] }
+    @growth_view = growth_view_param
+    @table_data = ai_trends_table_data
 
     respond_to do |format|
       format.html
+      format.csv do
+        send_data generate_ai_trends_csv(@table_data),
+                  filename: "ai_trends_analysis_#{Time.current.strftime('%Y%m%d')}.csv",
+                  type: "text/csv",
+                  disposition: "attachment"
+      end
     end
   end
 
   def download_ai_trends
-    ai_tags = TagNormalizationService.ai_related_tag_ids
-
-    ai_companies_by_year = Company.joins(:taggings)
-                                  .where(taggings: { tag_id: ai_tags })
-                                  .where(visible: true)
-                                  .where("founded_date ~ '^[0-9]{4}$'")
-                                  .group("CAST(founded_date AS INTEGER)")
-                                  .count
-                                  .sort_by { |year, count| year }
-
-    csv_data = ai_companies_by_year.map { |year, count| { year: year.to_s, count: count } }
-
-    send_data generate_csv(csv_data, ['Year', 'AI Companies Founded']),
-              filename: "ai_trends_analysis_#{Time.current.strftime('%Y%m%d')}.csv"
+    redirect_to statistics_ai_trends_path(format: :csv, view: params[:view])
   end
 
   def category_evolution_5_years
@@ -826,91 +719,61 @@ class StaticPagesController < ApplicationController
   end
 
   def funding_by_category
-    # Get companies with funding data
-    companies = Company.where(visible: true)
-                      .where.not(total_funding_amount_usd: [nil, 0])
-                      .includes(:category)
-                      .where('founded_date >= ? AND founded_date <= ? AND founded_date ~ ?',
-                             '2000',
-                             Time.current.year.to_s,
-                             '^\d{4}$')
+    @funding_view = funding_view_param
 
-    # Group by category and calculate funding metrics
-    funding_by_category = {}
-
-    companies.group_by { |c| c.category&.name || "Unknown" }.each do |category, companies_in_category|
-      total_funding = companies_in_category.sum(&:total_funding_amount_usd)
-      company_count = companies_in_category.count
-
-      funding_by_category[category] = {
-        total_funding: total_funding,
-        company_count: company_count,
-        avg_funding: company_count > 0 ? total_funding / company_count : 0
-      }
+    if @funding_view == "region"
+      load_funding_by_region_data
+    else
+      load_funding_by_category_data
     end
-
-    # Calculate total funding for market share percentage
-    total_funding = funding_by_category.sum { |_, v| v[:total_funding] }
-
-    # Prepare data for view
-    @table_data = funding_by_category.map do |category, metrics|
-      {
-        category: category,
-        total_funding: metrics[:total_funding],
-        company_count: metrics[:company_count],
-        avg_funding: metrics[:avg_funding],
-        market_share: total_funding > 0 ? metrics[:total_funding] / total_funding * 100 : 0
-      }
-    end
-
-    # Sort by total funding (descending)
-    @table_data.sort_by! { |item| -item[:total_funding] }
-
-    # Prepare chart data
-    @chart_data = {
-      name: 'Total Funding',
-      data: @table_data.first(10).map { |d| [d[:category], d[:total_funding]] }
-    }
 
     respond_to do |format|
       format.html
       format.csv do
-        csv_data = CSV.generate do |csv|
-          csv << ["Category", "Total Funding", "Company Count", "Average Funding", "Market Share (%)"]
-          @table_data.each do |data|
-            csv << [
-              data[:category],
-              data[:total_funding],
-              data[:company_count],
-              data[:avg_funding].round(2),
-              data[:market_share].round(1)
-            ]
+        if @funding_view == "region"
+          send_data generate_region_country_csv, filename: "funding_by_region.csv", type: "text/csv; charset=utf-8", disposition: "attachment"
+        else
+          csv_data = CSV.generate do |csv|
+            csv << ["Category", "Total Funding", "Company Count", "Average Funding", "Market Share (%)"]
+            @table_data.each do |data|
+              csv << [
+                data[:category],
+                data[:total_funding],
+                data[:company_count],
+                data[:avg_funding].round(2),
+                data[:market_share].round(1)
+              ]
+            end
           end
+          send_data csv_data,
+                    filename: "funding_by_category_#{Time.current.strftime('%Y%m%d')}.csv",
+                    type: "text/csv",
+                    disposition: "attachment"
         end
-        send_data csv_data,
-                  filename: "funding_by_category_#{Time.current.strftime('%Y%m%d')}.csv",
-                  type: 'text/csv',
-                  disposition: 'attachment'
       end
       format.xlsx do
-        p = Axlsx::Package.new
-        wb = p.workbook
-        wb.add_worksheet(name: "Funding by Category") do |sheet|
-          sheet.add_row ["Category", "Total Funding", "Company Count", "Average Funding", "Market Share (%)"]
-          @table_data.each do |data|
-            sheet.add_row [
-              data[:category],
-              data[:total_funding],
-              data[:company_count],
-              data[:avg_funding].round(2),
-              data[:market_share].round(1)
-            ]
+        if @funding_view == "region"
+          send_data generate_region_country_xlsx, filename: "funding_by_region.xlsx"
+        else
+          p = Axlsx::Package.new
+          wb = p.workbook
+          wb.add_worksheet(name: "Funding by Category") do |sheet|
+            sheet.add_row ["Category", "Total Funding", "Company Count", "Average Funding", "Market Share (%)"]
+            @table_data.each do |data|
+              sheet.add_row [
+                data[:category],
+                data[:total_funding],
+                data[:company_count],
+                data[:avg_funding].round(2),
+                data[:market_share].round(1)
+              ]
+            end
           end
+          send_data p.to_stream.read,
+                    filename: "funding_by_category_#{Time.current.strftime('%Y%m%d')}.xlsx",
+                    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    disposition: "attachment"
         end
-        send_data p.to_stream.read,
-                  filename: "funding_by_category_#{Time.current.strftime('%Y%m%d')}.xlsx",
-                  type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                  disposition: 'attachment'
       end
     end
   end
@@ -937,6 +800,13 @@ class StaticPagesController < ApplicationController
     return "region" if view.in?(%w[region regions])
 
     "country"
+  end
+
+  def funding_view_param
+    view = params[:view].to_s
+    return "region" if view.in?(%w[region regions])
+
+    "category"
   end
 
   def load_country_distribution_data
@@ -1105,6 +975,153 @@ class StaticPagesController < ApplicationController
     end
 
     { table_data: table_data, summary_data: summary_data }
+  end
+
+  def build_revenue_model_metrics
+    companies = stats_scoped_companies.includes(:business_models, :business_model).to_a
+    model_counts = Hash.new(0)
+    model_companies = Hash.new { |hash, key| hash[key] = [] }
+
+    companies.each do |company|
+      TaxonomyNormalizationService.canonical_revenue_model_names(company.revenue_model_names.join(", ")).each do |model_name|
+        model_counts[model_name] += 1
+        model_companies[model_name] << company
+      end
+    end
+
+    total_companies = companies.size.to_f
+    model_metrics = model_counts.map do |model_name, count|
+      companies_for_model = model_companies[model_name]
+      total_funding = companies_for_model.sum { |company| company.total_funding_amount_usd.to_f }
+      avg_funding = companies_for_model.any? ? total_funding / companies_for_model.size : 0
+
+      {
+        model: model_name,
+        count: count,
+        percentage: total_companies.positive? ? (count / total_companies * 100).round(1) : 0,
+        avg_funding: avg_funding
+      }
+    end.sort_by { |row| -row[:count] }
+
+    {
+      model_metrics: model_metrics,
+      model_data: model_metrics.to_h { |row| [row[:model], row[:count]] }
+    }
+  end
+
+  def stats_scoped_companies
+    Company.where(visible: true)
+           .where("founded_date >= ? AND founded_date <= ? AND founded_date ~ ?",
+                  "2000",
+                  Time.current.year.to_s,
+                  FOUR_DIGIT_YEAR_REGEX)
+  end
+
+  def build_target_client_yearly_metrics(annual: false)
+    companies = Company.where(visible: true)
+                       .where("founded_date >= ? AND founded_date <= ? AND founded_date ~ ?",
+                              "2000",
+                              Time.current.year.to_s,
+                              FOUR_DIGIT_YEAR_REGEX)
+                       .includes(:target_client, :target_clients)
+                       .to_a
+
+    start_year = 2000
+    end_year = Time.current.year
+    years = (start_year..end_year).map(&:to_s)
+    client_data = {}
+    client_companies = Hash.new { |hash, key| hash[key] = [] }
+
+    companies.each do |company|
+      year = company.founded_date.to_i
+      next unless year.between?(start_year, end_year)
+
+      company.audience_names.each do |target|
+        next if target.blank? || target == "Unknown"
+
+        client_data[target] ||= { client: target, yearly_data: years.index_with { 0 }, total_companies: 0 }
+        client_companies[target] << company
+
+        if annual
+          client_data[target][:yearly_data][year.to_s] += 1
+        else
+          (year..end_year).each do |y|
+            client_data[target][:yearly_data][y.to_s] += 1
+          end
+        end
+
+        client_data[target][:total_companies] += 1
+      end
+    end
+
+    total_assignments = client_data.values.sum { |data| data[:total_companies] }
+    table_data = client_data.values.sort_by { |data| -data[:total_companies] }
+
+    summary_data = table_data.map do |data|
+      prev_year = (end_year - 1).to_s
+      current_year = end_year.to_s
+      growth_rate = if data[:yearly_data][prev_year].to_i.positive?
+                      ((data[:yearly_data][current_year].to_i - data[:yearly_data][prev_year].to_i) / data[:yearly_data][prev_year].to_f) * 100
+                    else
+                      0
+                    end
+      companies_for_client = client_companies[data[:client]]
+      total_funding = companies_for_client.sum { |company| company.total_funding_amount_usd.to_f }
+      avg_funding = companies_for_client.any? ? total_funding / companies_for_client.size : 0
+
+      {
+        client: data[:client],
+        total_companies: data[:total_companies],
+        percentage: total_assignments.positive? ? (data[:total_companies] / total_assignments.to_f * 100) : 0,
+        growth_rate: growth_rate,
+        avg_funding: avg_funding
+      }
+    end
+
+    { table_data: table_data, summary_data: summary_data }
+  end
+
+  def ai_trends_table_data
+    running_total = 0
+    ai_company_counts_by_year.map do |year, new_companies|
+      previous_total = running_total
+      running_total += new_companies
+      growth_rate = previous_total.positive? ? ((running_total - previous_total) / previous_total.to_f * 100) : 0
+
+      {
+        year: year,
+        new_companies: new_companies,
+        total_companies: running_total,
+        growth_rate: growth_rate
+      }
+    end
+  end
+
+  def ai_company_counts_by_year
+    ai_tags = TagNormalizationService.ai_related_tag_ids
+
+    Company.joins(:taggings)
+           .where(taggings: { tag_id: ai_tags })
+           .where(visible: true)
+           .where("founded_date ~ ?", FOUR_DIGIT_YEAR_REGEX)
+           .group("CAST(founded_date AS INTEGER)")
+           .count
+           .select { |year, _| year >= 2010 }
+           .sort_by { |year, _| year }
+  end
+
+  def generate_ai_trends_csv(table_data)
+    CSV.generate do |csv|
+      csv << ["Year", "New AI Companies", "Total AI Companies", "Growth Rate (%)"]
+      table_data.each do |data|
+        csv << [
+          data[:year],
+          data[:new_companies],
+          data[:total_companies],
+          data[:growth_rate].round(1)
+        ]
+      end
+    end
   end
 
   def build_tag_distribution_metrics
@@ -1382,6 +1399,54 @@ class StaticPagesController < ApplicationController
 
   def normalize_country_name(country)
     ::LocationCountryResolver.normalize_country_name(country)
+  end
+
+  def load_funding_by_category_data
+    companies = funded_companies_scope.includes(:category)
+
+    funding_by_category = {}
+
+    companies.group_by { |c| c.category&.name || "Unknown" }.each do |category, companies_in_category|
+      total_funding = companies_in_category.sum(&:total_funding_amount_usd)
+      company_count = companies_in_category.count
+
+      funding_by_category[category] = {
+        total_funding: total_funding,
+        company_count: company_count,
+        avg_funding: company_count > 0 ? total_funding / company_count : 0
+      }
+    end
+
+    total_funding = funding_by_category.sum { |_, v| v[:total_funding] }
+
+    @table_data = funding_by_category.map do |category, metrics|
+      {
+        category: category,
+        total_funding: metrics[:total_funding],
+        company_count: metrics[:company_count],
+        avg_funding: metrics[:avg_funding],
+        market_share: total_funding > 0 ? metrics[:total_funding] / total_funding * 100 : 0
+      }
+    end.sort_by { |item| -item[:total_funding] }
+
+    @chart_data = {
+      name: "Total Funding",
+      data: @table_data.first(10).map { |d| [d[:category], d[:total_funding]] }
+    }
+  end
+
+  def load_funding_by_region_data
+    region_country_metrics = build_region_country_metrics(funded_companies_scope)
+    @region_table_data = helpers.build_funding_region_table_data(region_country_metrics)
+    @region_sankey_data = helpers.region_country_sankey_data(
+      region_country_metrics,
+      root: StatisticsHelper::REGION_COUNTRY_FUNDING_ROOT,
+      value_key: :total_funding
+    )
+  end
+
+  def funded_companies_scope
+    located_companies_scope.where.not(total_funding_amount_usd: [nil, 0])
   end
 
   def located_companies_scope

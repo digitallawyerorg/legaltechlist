@@ -1,0 +1,8 @@
+/ locals: current_view, category_url, region_url
+.stats-segment-control role="group" aria-label="Funding view"
+    - if current_view == "region"
+        = link_to "Category", category_url, class: "stats-segment"
+        span.stats-segment.is-active aria-current="page" Region
+    - else
+        span.stats-segment.is-active aria-current="page" Category
+        = link_to "Region", region_url, class: "stats-segment"

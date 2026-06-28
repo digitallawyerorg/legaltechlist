@@ -16,8 +16,8 @@ class StatisticsHelperTest < ActiveSupport::TestCase
   test "stats_chart_neighbors returns wrapped prev and next for ecosystem growth" do
     neighbors = neighbors_for("total_companies")
 
-    assert_equal "Revenue Model Insights", neighbors[:prev][:title]
-    assert_equal statistics_business_model_path, neighbors[:prev][:path]
+    assert_equal "Technology Themes", neighbors[:prev][:title]
+    assert_equal statistics_tag_distribution_path, neighbors[:prev][:path]
     assert_equal "Geographic Distribution", neighbors[:next][:title]
     assert_equal statistics_country_distribution_path, neighbors[:next][:path]
   end
@@ -140,6 +140,17 @@ class StatisticsHelperTest < ActiveSupport::TestCase
     assert preview.any?
     assert preview.size <= 4
     assert_equal "Rest of world", preview.last[:label] if preview.size > 1
+    assert_equal 100, preview.sum { |row| row[:share] }
+    assert preview.all? { |row| row[:label].present? && row[:share].positive? }
+    assert_equal preview.map { |row| row[:share] }, preview.map { |row| row[:share] }.sort.reverse
+  end
+
+  test "stats_target_client_preview returns top segments and rest" do
+    helper = Class.new { include StatisticsHelper }.new
+    preview = helper.stats_target_client_preview
+
+    assert preview.any?
+    assert preview.size <= 4
     assert_equal 100, preview.sum { |row| row[:share] }
     assert preview.all? { |row| row[:label].present? && row[:share].positive? }
     assert_equal preview.map { |row| row[:share] }, preview.map { |row| row[:share] }.sort.reverse

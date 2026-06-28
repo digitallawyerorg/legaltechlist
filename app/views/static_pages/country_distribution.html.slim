@@ -24,14 +24,18 @@
                     - @region_table_data.each do |region_data|
                         tr.stats-region-row
                             td.fw-semibold= region_data[:region]
-                            td.text-muted= region_data[:country_label].presence || "—"
+                            td.text-muted
+                                - if region_data[:country_label].present?
+                                    = render partial: "shared/stats_country_name", locals: { country_name: region_data[:country_label] }
+                                - else
+                                    | —
                             td.text-end.fw-semibold= number_with_delimiter(region_data[:companies])
                             td.text-end.fw-semibold= number_to_currency(region_data[:total_funding], precision: 0)
                             td.text-end.fw-semibold= number_to_currency(region_data[:avg_funding], precision: 0)
                         - region_data[:countries].each do |country_data|
                             tr
                                 td
-                                td= country_data[:country]
+                                td= render partial: "shared/stats_country_name", locals: { country_name: country_data[:country] }
                                 td.text-end= number_with_delimiter(country_data[:companies])
                                 td.text-end= number_to_currency(country_data[:total_funding], precision: 0)
                                 td.text-end= number_to_currency(country_data[:avg_funding], precision: 0)
@@ -43,7 +47,22 @@
     - chart_id = "country-distribution-chart"
     - geo_library = { backgroundColor: "#ffffff", datalessRegionColor: "#f8f9fa", defaultColor: "#f8f9fa", colorAxis: { minValue: 0, maxValue: @geo_map_max, colors: ["#f3e1e1", "#8c1515"] }, tooltip: { isHtml: false }, region: "world", displayMode: "regions", resolution: "countries" }
     - chart_html = render partial: "shared/stats_country_geo_map", locals: { chart_id: chart_id, chart_data: @chart_data, library: geo_library }
-    - table_html = render(partial: "shared/data_table", locals: { headers: ["Country", "Companies", "Total Funding", "Avg Funding"], rows: @table_data.map { |data| [data[:country], data[:companies], number_to_currency(data[:total_funding], precision: 0), number_to_currency(data[:avg_funding], precision: 0)] } })
+    - table_html = capture do
+        .table-responsive
+            table.table.table-hover.align-middle
+                thead
+                    tr
+                        th Country
+                        th.text-end Companies
+                        th.text-end Total Funding
+                        th.text-end Avg Funding
+                tbody
+                    - @table_data.each do |data|
+                        tr
+                            td= render partial: "shared/stats_country_name", locals: { country_name: data[:country] }
+                            td.text-end= number_with_delimiter(data[:companies])
+                            td.text-end= number_to_currency(data[:total_funding], precision: 0)
+                            td.text-end= number_to_currency(data[:avg_funding], precision: 0)
     - csv_path = statistics_country_distribution_path(format: :csv)
     - xlsx_path = statistics_country_distribution_path(format: :xlsx)
     - download_filename = "country_distribution"

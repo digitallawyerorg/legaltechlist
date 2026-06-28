@@ -1,15 +1,40 @@
-- content_for :title, "AI Companies (By Year)"
-- content_for :description, "Annual count of new AI-focused legal tech companies founded since 2010, based on AI-related technology tags in the CodeX TechIndex."
+- is_annual = @growth_view == "annual"
+- chart_title = "AI in Legal Tech"
+- page_title = is_annual ? "AI in Legal Tech (By Year)" : "AI in Legal Tech (Cumulative)"
+- content_for :title, page_title
+- content_for :description, is_annual ? "Annual count of new AI-focused legal tech companies founded since 2010, based on AI-related technology tags in the CodeX TechIndex." : "Cumulative growth of AI-focused legal tech companies founded since 2010, based on AI-related technology tags in the CodeX TechIndex."
+- chart_id = is_annual ? "ai-trends-annual-chart" : "ai-trends-cumulative-chart"
+- cumulative_path = statistics_ai_trends_path
+- annual_path = statistics_ai_trends_path(view: "annual")
+- view_toggle_html = capture do
+    = render partial: "shared/stats_growth_view_toggle", locals: { current_view: @growth_view, cumulative_url: cumulative_path, annual_url: annual_path, aria_label: "AI in legal tech chart view" }
+- bar_chart_library = { plugins: { legend: { display: false } }, scales: { x: { grid: { display: true, drawBorder: false }, ticks: { font: { size: 12 }, maxRotation: is_annual ? 90 : 0, minRotation: is_annual ? 90 : 0 } }, y: { min: 0, grid: { display: true, drawBorder: false }, ticks: { font: { size: 12 }, precision: 0 } } } }
+- chart_html = is_annual ? column_chart(@table_data.map { |d| [d[:year], d[:new_companies]] }, height: 620, colors: ["#8c1515"], library: bar_chart_library, id: chart_id) : column_chart(@table_data.map { |d| [d[:year], d[:total_companies]] }, height: 620, colors: ["#8c1515"], library: bar_chart_library, id: chart_id)
 - table_html = capture do
     .table-responsive
         table.table.table-hover.align-middle#aiTrendsTable
             thead
                 tr
                     th Year
-                    th AI Companies Founded
+                    th New AI Companies
+                    th Total AI Companies
+                    th Growth Rate
             tbody
-                - @table_data.each do |year, count|
+                - @table_data.each do |data|
                     tr
-                        td= year
-                        td= count
-= render partial: "shared/stats_chart_page", locals: { title: "AI Companies (By Year)", chart: column_chart(@table_data, height: 620, colors: ["#8c1515"], id: "ai-trends-chart", library: { plugins: { legend: { display: false } }, scales: { x: { ticks: { maxRotation: 90, minRotation: 90 } }, y: { beginAtZero: true, ticks: { precision: 0 } } } }), table: table_html, chart_id: "ai-trends-chart", download_filename: "ai_trends", csv_path: download_ai_trends_path(format: :csv), table_title: "Yearly data" }
+                        td= data[:year]
+                        td= data[:new_companies]
+                        td= data[:total_companies]
+                        td
+                            - if data[:growth_rate] > 0
+                                .badge.bg-success-subtle.text-success
+                                    |+
+                                    = number_to_percentage(data[:growth_rate], precision: 1)
+                            - elsif data[:growth_rate] < 0
+                                .badge.bg-danger-subtle.text-danger
+                                    | -
+                                    = number_to_percentage(data[:growth_rate], precision: 1)
+                            - else
+                                .badge.bg-secondary-subtle.text-secondary 0%
+- csv_path = is_annual ? statistics_ai_trends_path(view: "annual", format: :csv) : statistics_ai_trends_path(format: :csv)
+= render partial: "shared/stats_chart_page", locals: { title: chart_title, chart: chart_html, table: table_html, chart_id: chart_id, download_filename: "ai_trends", csv_path: csv_path, toggles: view_toggle_html, table_title: "Yearly breakdown" }

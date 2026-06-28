@@ -1,0 +1,6 @@
+/ locals: country_name
+- country_flag = country_flag_emoji(location_country_iso_code(country_name))
+span.stats-country-cell
+    - if country_flag.present?
+        span.stats-country-flag aria-hidden="true"= country_flag
+    span= country_name

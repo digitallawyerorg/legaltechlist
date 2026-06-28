@@ -100,6 +100,18 @@ css:
         background: rgba(140, 21, 21, 0.04);
     }
 
+    .stats-country-cell {
+        align-items: center;
+        display: inline-flex;
+        gap: 0.4rem;
+    }
+
+    .stats-country-flag {
+        flex: 0 0 auto;
+        font-size: 1rem;
+        line-height: 1;
+    }
+
     .stats-region-sunburst,
     .stats-region-sankey {
         min-height: 480px;
@@ -203,7 +215,7 @@ css:
 
     .stats-index-card-visual:has(.stats-index-card-country-bars) {
         justify-content: flex-start;
-        min-height: 0;
+        min-height: 88px;
     }
 
     .stats-index-card-country-bars {
@@ -211,6 +223,7 @@ css:
         flex-direction: column;
         gap: 0.42rem;
         padding-bottom: 0.15rem;
+        padding-top: 0.95rem;
         width: 100%;
     }
 
@@ -279,23 +292,6 @@ css:
         font-weight: 600;
         gap: 0.35rem;
         margin-left: auto;
-    }
-
-    .stats-index-card-funding {
-        cursor: pointer;
-    }
-
-    .stats-index-card-funding .stats-index-card-desc.is-hidden {
-        display: none;
-    }
-
-    .stats-index-card-funding-toggle {
-        margin: -0.35rem 0 1rem;
-    }
-
-    .stats-segment-control button.stats-segment {
-        background: transparent;
-        cursor: pointer;
     }
 
     .stats-chart-card {

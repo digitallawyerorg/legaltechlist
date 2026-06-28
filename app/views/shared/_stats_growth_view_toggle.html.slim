@@ -1,5 +1,6 @@
-/ locals: current_view, cumulative_url, annual_url
-.stats-segment-control role="group" aria-label="Total companies chart view"
+/ locals: current_view, cumulative_url, annual_url, aria_label (optional)
+- aria_label ||= "Chart view"
+.stats-segment-control role="group" aria-label=aria_label
     - if current_view == "annual"
         = link_to "Cumulative", cumulative_url, class: "stats-segment"
         span.stats-segment.is-active aria-current="page" By Year

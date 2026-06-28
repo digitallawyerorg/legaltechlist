@@ -112,8 +112,7 @@ module SeoHelper
       { name: "Technology Themes", url: statistics_tag_distribution_url },
       { name: "Market Focus", url: statistics_target_client_url },
       { name: "AI in Legal Tech", url: statistics_ai_trends_url },
-      { name: "Funding by Category", url: statistics_funding_by_category_url },
-      { name: "Funding by Region", url: statistics_funding_by_region_url },
+      { name: "Funding", url: statistics_funding_by_category_url },
       { name: "Revenue Model Insights", url: statistics_business_model_url }
     ]
     item_list_json_ld(

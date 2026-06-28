@@ -1,4 +1,4 @@
-/ locals: path, title, description, meta (optional), visual_html (optional), sparkline_variant (optional, 1-4, 6)
+/ locals: path, title, description, meta (optional), visual_html (optional), sparkline_variant (optional, 1-4, 6-7)
 - sparkline_variant ||= (title.hash.abs % 4) + 1
 = link_to path, class: "stats-index-card" do
     h3.stats-index-card-title= title
@@ -37,6 +37,16 @@
         - elsif sparkline_variant == 4
             svg viewBox="0 0 240 48" preserveAspectRatio="none" width="100%" height="100%"
                 path fill="none" stroke="#8c1515" stroke-width="2" stroke-linecap="round" d="M0,24 L60,24 L60,8 L120,8 L120,32 L180,32 L180,16 L240,16"
+        - elsif sparkline_variant == 7
+            svg viewBox="0 0 240 48" preserveAspectRatio="none" width="100%" height="100%"
+                rect x="8" y="28" width="18" height="20" fill="#175e54" rx="2"
+                rect x="38" y="20" width="18" height="28" fill="#175e54" rx="2"
+                rect x="68" y="24" width="18" height="24" fill="#175e54" rx="2"
+                rect x="98" y="14" width="18" height="34" fill="#175e54" rx="2"
+                rect x="128" y="18" width="18" height="30" fill="#175e54" rx="2"
+                rect x="158" y="10" width="18" height="38" fill="#175e54" rx="2"
+                rect x="188" y="16" width="18" height="32" fill="#175e54" rx="2"
+                rect x="218" y="8" width="18" height="40" fill="#175e54" rx="2"
         - else
             svg viewBox="0 0 240 48" preserveAspectRatio="none" width="100%" height="100%"
                 path fill="none" stroke="#175e54" stroke-width="2" stroke-linecap="round" d="M0,38 L30,34 L60,30 L90,26 L120,20 L150,16 L180,10 L210,8 L240,4"

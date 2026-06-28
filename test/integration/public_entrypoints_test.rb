@@ -32,11 +32,9 @@ class PublicEntrypointsTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select ".stats-index-card", count: 8
-    ["Ecosystem Growth", "Geographic Distribution", "Industry Focus", "Technology Themes", "Market Focus", "AI in Legal Tech", "Funding", "Revenue Model Insights"].each do |title|
+    ["Ecosystem Growth", "Geographic Distribution", "Industry Focus", "Funding", "Market Focus", "AI in Legal Tech", "Revenue Model Insights", "Technology Themes"].each do |title|
       assert_select ".stats-index-card-title", text: title
     end
-    assert_select ".stats-index-card-funding .stats-segment-control [data-stats-funding-view='category'].is-active"
-    assert_select ".stats-index-card-funding .stats-segment-control [data-stats-funding-view='region']"
     assert_select ".stats-index-card-title", text: "Funding by Category", count: 0
     assert_select ".stats-index-card-title", text: "Funding by Region", count: 0
     assert_select ".stats-index-card-title", text: "Exit Patterns", count: 0
@@ -55,6 +53,13 @@ class PublicEntrypointsTest < ActionDispatch::IntegrationTest
     get "/statistics/innovation_hubs"
 
     assert_redirected_to "/statistics/country_distribution?view=region"
+    assert_equal 301, response.status
+  end
+
+  test "legacy funding by region url redirects to unified funding page" do
+    get "/statistics/funding_by_region"
+
+    assert_redirected_to "/statistics/funding_by_category?view=region"
     assert_equal 301, response.status
   end
 
