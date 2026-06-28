@@ -4,7 +4,7 @@ css:
     .company-suggest-update-modal { align-items: center; display: none; inset: 0; justify-content: center; overflow-y: auto; padding: 1.5rem 1rem; position: fixed; z-index: 2100; }
     .company-suggest-update-modal.is-open { display: flex; }
     .company-suggest-update-modal-backdrop { background: rgba(15, 23, 42, 0.72); inset: 0; position: absolute; }
-    .company-suggest-update-modal-panel { background: #fff; border-radius: 0.85rem; box-shadow: 0 24px 64px rgba(15, 23, 42, 0.28); display: flex; flex-direction: column; margin: auto; max-height: min(36rem, calc(100vh - 3rem)); max-width: 34rem; overflow: hidden; position: relative; width: 100%; }
+    .company-suggest-update-modal-panel { background: #fff; border-radius: 0.85rem; box-shadow: 0 24px 64px rgba(15, 23, 42, 0.28); display: flex; flex-direction: column; margin: auto; max-height: min(36rem, calc(100vh - 3rem)); max-width: 34rem; min-height: 0; overflow: hidden; position: relative; width: 100%; }
     .company-suggest-update-modal-header { align-items: center; border-bottom: 1px solid #e1dccf; display: grid; gap: 0.75rem; grid-template-columns: 2rem minmax(0, 1fr) 2rem; padding: 1.1rem 1.15rem 0.95rem; }
     .company-suggest-update-modal-header-main { grid-column: 2; min-width: 0; text-align: left; }
     .company-suggest-update-modal.is-form-step .company-suggest-update-modal-header-main { text-align: center; }
@@ -16,8 +16,7 @@ css:
     .company-suggest-update-modal.is-form-step .company-suggest-update-modal-back { opacity: 1; pointer-events: auto; visibility: visible; }
     .company-suggest-update-modal-back:hover { background: #f6f1e7; color: #2b2926; }
     .company-suggest-update-modal-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
-    .company-suggest-update-modal.is-form-step .company-suggest-update-modal-body { display: flex; flex: 0 0 auto; flex-direction: column; overflow: visible; }
-    .company-suggest-update-modal.is-form-step .company-suggest-update-modal-panel { height: auto; }
+    .company-suggest-update-modal.is-form-step .company-suggest-update-modal-body { display: flex; flex: 1 1 auto; flex-direction: column; min-height: 0; overflow: hidden; }
     .company-suggest-update-modal-step { display: none; }
     .company-suggest-update-modal-step.is-active { display: block; }
     .company-suggest-update-modal-step[data-suggest-update-step="form"].is-active { display: flex; flex: 1 1 auto; flex-direction: column; min-height: 0; }
@@ -31,9 +30,8 @@ css:
     .company-suggest-update-modal-option-description { color: #8b8379; font-size: 0.82rem; line-height: 1.35; }
     .company-suggest-update-modal-option-chevron { color: #b7afa4; flex: 0 0 auto; font-size: 0.72rem; margin-left: 0.15rem; }
     .company-suggest-update-modal-form { display: flex; flex: 1 1 auto; flex-direction: column; min-height: 0; padding: 0; }
-    .company-suggest-update-modal.is-form-step .company-suggest-update-modal-form { flex: 0 0 auto; min-height: auto; }
+    .company-suggest-update-modal.is-form-step .company-suggest-update-modal-form { flex: 1 1 auto; min-height: 0; }
     .company-suggest-update-modal-form-fields { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 1rem 1.15rem 0; }
-    .company-suggest-update-modal.is-form-step .company-suggest-update-modal-form-fields { flex: 0 0 auto; min-height: auto; overflow-y: visible; }
     .company-suggest-update-modal-form-actions { background: #fff; border-top: 1px solid #e1dccf; flex-shrink: 0; padding: 0.65rem 1.15rem 0.75rem; }
     .company-suggest-update-modal-banner { align-items: center; background: #f6e5e5; border: 0; border-radius: 0.75rem; display: flex; gap: 0.75rem; margin-bottom: 0.85rem; padding: 0.7rem 0.85rem; }
     .company-suggest-update-modal-banner-icon { align-items: center; background: rgba(255, 255, 255, 0.55); border-radius: 0.55rem; color: #8c1515; display: flex; flex: 0 0 2.15rem; font-size: 0.82rem; height: 2.15rem; justify-content: center; width: 2.15rem; }
@@ -97,9 +95,6 @@ css:
                         .company-suggest-update-modal-field
                             label.company-suggest-update-modal-label for="company_suggest_update_submitter_email" Your email
                             = email_field_tag :submitter_email, nil, id: "company_suggest_update_submitter_email", class: "company-suggest-update-modal-input", placeholder: "you@institution.edu", autocomplete: "email", required: true
-                        - if recaptcha_required?
-                            .company-suggest-update-modal-field
-                                = recaptcha_tags
                         .company-suggest-update-modal-note
                             i.fa-solid.fa-circle-info.company-suggest-update-modal-note-icon aria-hidden="true"
                             span Every suggestion is reviewed before any change is published.

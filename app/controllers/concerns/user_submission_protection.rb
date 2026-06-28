@@ -17,11 +17,6 @@ module UserSubmissionProtection
       render_submission_form_unprocessable(status: :too_many_requests)
       return
     end
-
-    return if recaptcha_valid?
-
-    flash.now[:alert] = "Please confirm you are not a robot and try again."
-    render_submission_form_unprocessable
   end
 
   def silently_reject_bot
@@ -37,25 +32,7 @@ module UserSubmissionProtection
     true
   end
 
-  def recaptcha_valid?
-    return true unless recaptcha_required?
-
-    verify_recaptcha(action: submission_recaptcha_action, minimum_score: recaptcha_minimum_score)
-  end
-
-  def recaptcha_required?
-    !Rails.env.test? && ENV["RECAPTCHA_SITE_KEY"].present? && ENV["RECAPTCHA_SECRET_KEY"].present?
-  end
-
-  def recaptcha_minimum_score
-    ENV.fetch("RECAPTCHA_MINIMUM_SCORE", "0.5").to_f
-  end
-
   def submission_rate_limit_action
-    action_name == "create" ? "company_contribution" : "company_suggestion"
-  end
-
-  def submission_recaptcha_action
     action_name == "create" ? "company_contribution" : "company_suggestion"
   end
 

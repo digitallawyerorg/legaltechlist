@@ -330,7 +330,6 @@ GEM
       erb
       psych (>= 4.0.0)
       tsort
-    recaptcha (5.19.0)
     redis (5.4.1)
       redis-client (>= 0.22.0)
     redis-client (0.30.0)
@@ -477,7 +476,6 @@ DEPENDENCIES
   puma
   rails (~> 8.0.0)
   rails-controller-testing
-  recaptcha
   redis (~> 5.0)
   ruby-openai
   ruby_llm (~> 1.16)

@@ -21,10 +21,6 @@ module ApplicationHelper
     end
   end
 
-  def recaptcha_required?
-    !Rails.env.test? && ENV["RECAPTCHA_SITE_KEY"].present? && ENV["RECAPTCHA_SECRET_KEY"].present?
-  end
-
   def category_icon(category_name)
     case category_name.downcase
     when /analytics/ then 'fa fa-chart-bar'

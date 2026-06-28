@@ -52,8 +52,6 @@ gem 'google-analytics-rails', '1.1.0'
 gem 'twitter', '~> 7.0'
 gem 'ffi', '~> 1.17.0'
 
-gem 'recaptcha', require: 'recaptcha/rails'
-
 group :development, :test do
   gem 'byebug', '~> 11.1.3'
   gem 'minitest', '~> 5.25'

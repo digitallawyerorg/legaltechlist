@@ -94,10 +94,6 @@
                 = f.label :legaltech_atlas_url, "LegalTech Atlas URL", class: "form-label"
                 = f.url_field :legaltech_atlas_url, class: "form-control", placeholder: "https://legaltechatlas.com/companies/harvey"
 
-    - if recaptcha_required?
-        .company-suggest-section
-            = recaptcha_tags
-
     .company-suggest-actions
         = link_to "Cancel", companies_path, class: "company-suggest-cancel"
         = f.submit "Submit suggestion", class: "company-suggest-submit"
