@@ -1,90 +1,86 @@
 - content_for :title, "LLM Company Discovery"
-
-.d-flex.justify-content-between.align-items-start.mb-4
-    div
-        h1.h3.mb-1 LLM Company Discovery
-        p.text-muted.mb-0 Search the web for legal-tech companies missing from TechIndex, then queue editable proposals for absent candidates.
-    = link_to "Activity", custom_admin_pipeline_runs_path(activity: "discovery_runs"), class: "btn btn-outline-secondary"
+- discovery_type_options = [["Category — vendors in a taxonomy category", "category"], ["Competitors — alternatives to an indexed company", "competitors"], ["Founded year — companies founded in a year", "year"], ["Country — companies headquartered in a country", "country"], ["Funding year — companies that raised funding in a year", "funding_year"]]
 
 - unless @web_search_available
-    .alert.alert-danger.mb-4
-        strong OpenAI web search unavailable.
-        |  Set OPENAI_API_KEY and ensure DISCOVERY_USE_WEB_SEARCH is not disabled before running discovery.
+    .alert.alert-danger.mb-3.py-2.small
+        strong Web search unavailable.
+        |  Set OPENAI_API_KEY and ensure DISCOVERY_USE_WEB_SEARCH is enabled.
 
-.card.border-0.shadow-sm.mb-4
-    .card-body
-        .row.g-3
-            .col-md-4
-                .admin-kicker Index context
-                .fw-semibold= "#{number_with_delimiter(@visible_company_count)} visible companies"
-                .text-muted.small Discovery excludes these names and domains from LLM results.
-            .col-md-4
-                .admin-kicker Estimated cost
-                .fw-semibold ≈ $#{format('%.2f', @estimated_cost_per_search)} per search
-                .text-muted.small Hard cap defaults to $#{format('%.2f', @max_cost_usd)} per run.
-            .col-md-4
-                .admin-kicker Safety
-                .fw-semibold Proposal-only workflow
-                .text-muted.small Preview first. Queueing creates proposals only — no auto-publish or visible company writes.
-
-.card.border-0.shadow-sm
+.card.border-0.shadow-sm.admin-compact-card
+    .card-header.bg-white
+        .d-flex.flex-wrap.justify-content-between.align-items-center.gap-2
+            div
+                h1.h4.mb-0 LLM Company Discovery
+                p.text-muted.small.mb-0.mt-1 Find legal-tech companies missing from TechIndex and queue editable proposals.
+            .admin-table-summary
+                span.admin-table-summary-item
+                    | Indexed
+                    strong= number_with_delimiter(@visible_company_count)
+                span.admin-table-summary-item
+                    | Est. cost
+                    strong= "≈ $#{format('%.2f', @estimated_cost_per_search)}/search"
+                span.admin-table-summary-item
+                    | Cap
+                    strong= "$#{format('%.2f', @max_cost_usd)}/run"
+                span.admin-status-pill.text-bg-light Proposal-only
     .card-body
         = form_with url: custom_admin_discoveries_path, scope: :discovery, local: true, html: { id: "discovery-form" } do |f|
-            .mb-4
-                = f.label :discovery_type, "Discovery type", class: "form-label fw-semibold"
-                = f.select :discovery_type, options_for_select([["Category — find vendors in a taxonomy category", "category"], ["Competitors — find alternatives to an indexed company", "competitors"], ["Founded year — companies founded in a given year", "year"], ["Country — companies headquartered in a country", "country"], ["Funding year — companies that raised funding in a year", "funding_year"]], "category"), {}, class: "form-select", id: "discovery-discovery_type"
-                .form-text Choose what the LLM should search for.
+            .row.g-3.mb-3
+                .col-lg-5
+                    = f.label :discovery_type, "Discovery type", class: "form-label fw-semibold small mb-1"
+                    = f.select :discovery_type, options_for_select(discovery_type_options, "category"), {}, class: "form-select", id: "discovery-discovery_type"
+                    .form-text What the LLM should search for.
+                .col-lg-7
+                    .discovery-field data-discovery-field="category"
+                        = f.label :category_id, "Category", class: "form-label fw-semibold small mb-1"
+                        = f.collection_select :category_id, @categories, :id, :name, { include_blank: "Select a category" }, class: "form-select"
+                        .form-text TechIndex taxonomy category.
+                    .discovery-field.d-none data-discovery-field="competitors"
+                        = f.label :company_id, "Indexed company", class: "form-label fw-semibold small mb-1"
+                        = f.collection_select :company_id, @companies, :id, :name, { include_blank: "Select a company" }, class: "form-select"
+                        .form-text Or enter a name below if not listed.
+                        = f.label :company_name, "Company name (optional)", class: "form-label small mb-1 mt-2"
+                        = f.text_field :company_name, class: "form-control", placeholder: "e.g. Clio"
+                    .discovery-field.d-none data-discovery-field="year"
+                        = f.label :year, "Founded year", class: "form-label fw-semibold small mb-1"
+                        = f.number_field :year, class: "form-control", min: 1900, max: Time.current.year, placeholder: "2024"
+                        .form-text Companies founded in this calendar year.
+                    .discovery-field.d-none data-discovery-field="country"
+                        = f.label :country, "Country", class: "form-label fw-semibold small mb-1"
+                        = f.text_field :country, class: "form-control", placeholder: "Germany", list: "discovery-country-options"
+                        datalist#discovery-country-options
+                            - @country_options.each do |country|
+                                option value=country
+                        .form-text Companies headquartered in this country.
+                    .discovery-field.d-none data-discovery-field="funding_year"
+                        = f.label :funding_year, "Funding year", class: "form-label fw-semibold small mb-1"
+                        = f.number_field :funding_year, class: "form-control", min: 1900, max: Time.current.year, placeholder: "2024"
+                        .form-text Companies that raised venture or growth funding in this year.
 
-            .discovery-field.mb-4 data-discovery-field="category"
-                = f.label :category_id, "Category", class: "form-label fw-semibold"
-                = f.collection_select :category_id, @categories, :id, :name, { include_blank: "Select a category" }, class: "form-select"
-                .form-text Matches companies against the TechIndex category taxonomy.
+            .row.g-3.mb-3
+                .col-md-3
+                    = f.label :limit, "Result limit", class: "form-label fw-semibold small mb-1"
+                    .input-group.input-group-sm
+                        = f.number_field :limit, class: "form-control", min: 5, max: @max_limit, step: 5, value: @default_limit, id: "discovery-limit-input"
+                        span.input-group-text companies
+                    .form-text 5–#{@max_limit}, step 5. Excludes indexed names and domains.
+                .col-md-9
+                    = f.label :notes, "Notes (optional)", class: "form-label fw-semibold small mb-1"
+                    = f.text_area :notes, class: "form-control", rows: 3, placeholder: "Why you're running this discovery"
 
-            .discovery-field.mb-4.d-none data-discovery-field="competitors"
-                = f.label :company_id, "Indexed company", class: "form-label fw-semibold"
-                = f.collection_select :company_id, @companies, :id, :name, { include_blank: "Select a company" }, class: "form-select"
-                .form-text Or enter a name below if the company is not in the dropdown.
-                = f.label :company_name, "Company name (optional override)", class: "form-label mt-3"
-                = f.text_field :company_name, class: "form-control", placeholder: "e.g. Clio"
+            .alert.alert-warning.py-2.small.mb-3
+                i.fas.fa-exclamation-triangle.me-1
+                | Each preview issues one LLM web search. Review absent candidates before queueing proposals — no auto-publish.
 
-            .discovery-field.mb-4.d-none data-discovery-field="year"
-                = f.label :year, "Founded year", class: "form-label fw-semibold"
-                = f.number_field :year, class: "form-control", min: 1900, max: Time.current.year, placeholder: "2024"
-                .form-text Legal-tech companies founded in this calendar year.
-
-            .discovery-field.mb-4.d-none data-discovery-field="country"
-                = f.label :country, "Country", class: "form-label fw-semibold"
-                = f.text_field :country, class: "form-control", placeholder: "Germany", list: "discovery-country-options"
-                datalist#discovery-country-options
-                    - @country_options.each do |country|
-                        option value=country
-                .form-text Legal-tech companies headquartered in this country.
-
-            .discovery-field.mb-4.d-none data-discovery-field="funding_year"
-                = f.label :funding_year, "Funding year", class: "form-label fw-semibold"
-                = f.number_field :funding_year, class: "form-control", min: 1900, max: Time.current.year, placeholder: "2024"
-                .form-text Legal-tech companies that raised venture or growth funding in this year.
-
-            .row.g-3.mb-4
-                .col-md-4
-                    = f.label :limit, "Result limit", class: "form-label fw-semibold"
-                    = f.range_field :limit, class: "form-range", min: 5, max: @max_limit, step: 5, value: @default_limit, id: "discovery-limit-range", oninput: "document.getElementById('discovery-limit-value').textContent = this.value"
-                    .form-text
-                        | Up to
-                        span#discovery-limit-value= @default_limit
-                        |  companies (max #{@max_limit})
-                .col-md-8
-                    = f.label :notes, "Notes (optional)", class: "form-label fw-semibold"
-                    = f.text_area :notes, class: "form-control", rows: 2, placeholder: "Why you're running this discovery run"
-
-            .alert.alert-warning
-                strong LLM usage warning.
-                |  Each preview issues a web-search LLM call. Review results before queueing proposals for absent candidates.
-
-            .d-flex.flex-wrap.gap-2
-                = f.submit "Preview (dry run)", class: "btn btn-primary", data: { turbo_confirm: "Run LLM web search preview without creating proposals?" }
-                = f.submit "Discover & queue all absent", class: "btn btn-warning", data: { turbo_confirm: "Run discovery and immediately queue proposals for all absent candidates? No companies will be published." }
-                = link_to "Cancel", custom_admin_root_path, class: "btn btn-outline-secondary"
+            .admin-proposal-toolbar
+                .admin-proposal-toolbar-secondary
+                    = link_to "Cancel", custom_admin_root_path, class: "btn btn-outline-secondary"
+                    = link_to custom_admin_pipeline_runs_path(activity: "discovery_runs"), class: "btn btn-outline-secondary" do
+                        i.fas.fa-clock-rotate-left.me-1
+                        | Discovery activity
+                .admin-proposal-toolbar-primary
+                    = f.submit "Preview (dry run)", class: "btn btn-outline-primary", data: { turbo_confirm: "Run LLM web search preview without creating proposals?" }
+                    = f.submit "Discover & queue all absent", class: "btn btn-success", data: { turbo_confirm: "Run discovery and queue proposals for all absent candidates? No companies will be published." }
 
 javascript:
     | (function () {
