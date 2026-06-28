@@ -22,7 +22,7 @@ class StaticPagesControllerTest < ActionController::TestCase
   test "should get statistics" do
     get :statistics
     assert_response :success
-    assert_select ".stats-index-card", count: 9
+    assert_select ".stats-index-card", count: 8
   end
 
   test "should get business_model" do

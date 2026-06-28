@@ -1,0 +1,11 @@
+/ locals: country_rows
+- max_share = country_rows.map { |row| row[:share] }.max.to_f
+- max_share = 1.0 if max_share <= 0
+.stats-index-card-country-bars
+    - country_rows.each do |row|
+        - bar_width = (row[:share].to_f / max_share * 100).round(1)
+        .stats-index-card-country-row
+            span.stats-index-card-country-label= row[:label]
+            .stats-index-card-country-track
+                .stats-index-card-country-fill style="width: #{bar_width}%;"
+            span.stats-index-card-country-share= "#{row[:share]}%"

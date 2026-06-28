@@ -24,7 +24,7 @@
                     - @region_table_data.each do |region_data|
                         tr.stats-region-row
                             td.fw-semibold= region_data[:region]
-                            td.text-muted —
+                            td.text-muted= region_data[:country_label].presence || "—"
                             td.text-end.fw-semibold= number_with_delimiter(region_data[:companies])
                             td.text-end.fw-semibold= number_to_currency(region_data[:total_funding], precision: 0)
                             td.text-end.fw-semibold= number_to_currency(region_data[:avg_funding], precision: 0)

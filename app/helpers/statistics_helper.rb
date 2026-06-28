@@ -6,7 +6,7 @@ module StatisticsHelper
   STATS_CHART_PAGES = [
     { actions: %w[total_companies], title: "Total Companies", path: :statistics_total_companies_path },
     { actions: %w[country_distribution], title: "Geographic Distribution", path: :statistics_country_distribution_path },
-    { actions: %w[category_evolution_5_years], title: "Category Evolution", path: :statistics_category_evolution_5_years_path },
+    { actions: %w[category_evolution_5_years], title: "Industry Focus", path: :statistics_category_evolution_5_years_path },
     { actions: %w[tag_distribution], title: "Technology Themes", path: :statistics_tag_distribution_path },
     { actions: %w[target_client], title: "Market Focus", path: :statistics_target_client_path },
     { actions: %w[ai_trends], title: "AI in Legal Tech", path: :statistics_ai_trends_path },
@@ -128,13 +128,15 @@ module StatisticsHelper
 
       funded_companies = countries.values.sum { |metrics| metrics[:funded_companies] }
       avg_funding = funded_companies.positive? ? region_totals[:total_funding] / funded_companies : 0
+      country_label = country_rows.size == 1 ? country_rows.first[:country] : nil
 
       {
         region: region,
+        country_label: country_label,
         companies: region_totals[:companies],
         total_funding: region_totals[:total_funding],
         avg_funding: avg_funding,
-        countries: country_rows
+        countries: country_label ? [] : country_rows
       }
     end.sort_by { |row| -row[:companies] }
   end
@@ -145,5 +147,64 @@ module StatisticsHelper
         countries: region_data[:countries].sort_by { |row| -row[:total_funding] }
       )
     end
+  end
+
+  def stats_country_distribution_preview(top_count: 4)
+    country_counts = Hash.new(0)
+    total = 0
+
+    stats_geographic_distribution_scope.find_each do |company|
+      country = LocationCountryResolver.country_name_for(company.location)
+      next if country.blank?
+
+      country_counts[country] += 1
+      total += 1
+    end
+
+    return [] unless total.positive?
+
+    sorted = country_counts.sort_by { |_, count| -count }
+    top_rows, rest_rows = sorted.partition.with_index { |_, index| index < top_count }
+    rest_count = rest_rows.sum { |_, count| count }
+
+    rows = top_rows.map { |country, count| { label: country, share: ((count.to_f / total) * 100).round } }
+    if rest_count.positive?
+      rows << { label: "Rest of world", share: 100 - rows.sum { |row| row[:share] } }
+    end
+    rows
+  end
+
+  def stats_region_distribution_preview(top_count: 3)
+    region_counts = Hash.new(0)
+    total = 0
+
+    stats_geographic_distribution_scope.find_each do |company|
+      country = LocationCountryResolver.country_name_for(company.location)
+      next if country.blank?
+
+      region = LocationRegionResolver.region_for_country(country)
+      region_counts[region] += 1
+      total += 1
+    end
+
+    return [] unless total.positive?
+
+    sorted = region_counts.sort_by { |_, count| -count }
+    top_rows, rest_rows = sorted.partition.with_index { |_, index| index < top_count }
+    rest_count = rest_rows.sum { |_, count| count }
+
+    rows = top_rows.map { |region, count| { label: region, share: ((count.to_f / total) * 100).round } }
+    if rest_count.positive?
+      rows << { label: "Rest of world", share: 100 - rows.sum { |row| row[:share] } }
+    end
+    rows
+  end
+
+  private
+
+  def stats_geographic_distribution_scope
+    Company.where(visible: true)
+           .where.not(location: [nil, "", "Location unknown"])
+           .where("founded_date >= ? AND founded_date <= ? AND founded_date ~ ?", "2000", Time.current.year.to_s, '^\d{4}$')
   end
 end

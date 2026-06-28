@@ -113,7 +113,35 @@ class StatisticsHelperTest < ActiveSupport::TestCase
 
     assert_equal 1, table_data.size
     assert_equal "Canada", table_data.first[:region]
+    assert_equal "Canada", table_data.first[:country_label]
     assert_equal 10, table_data.first[:companies]
-    assert_equal 1, table_data.first[:countries].size
+    assert_empty table_data.first[:countries]
+  end
+
+  test "build_region_table_data keeps country sub-rows for multi-country regions" do
+    helper = Class.new { include StatisticsHelper }.new
+    metrics = {
+      "Europe" => {
+        "Germany" => { companies: 40, total_funding: 0, funded_companies: 0 },
+        "France" => { companies: 30, total_funding: 0, funded_companies: 0 }
+      }
+    }
+
+    table_data = helper.build_region_table_data(metrics)
+
+    assert_nil table_data.first[:country_label]
+    assert_equal 2, table_data.first[:countries].size
+  end
+
+  test "stats_region_distribution_preview returns top regions and rest of world" do
+    helper = Class.new { include StatisticsHelper }.new
+    preview = helper.stats_region_distribution_preview
+
+    assert preview.any?
+    assert preview.size <= 4
+    assert_equal "Rest of world", preview.last[:label] if preview.size > 1
+    assert_equal 100, preview.sum { |row| row[:share] }
+    assert preview.all? { |row| row[:label].present? && row[:share].positive? }
+    assert_equal preview.map { |row| row[:share] }, preview.map { |row| row[:share] }.sort.reverse
   end
 end

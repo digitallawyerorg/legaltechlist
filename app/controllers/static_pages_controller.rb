@@ -224,13 +224,13 @@ class StaticPagesController < ApplicationController
                             '^\d{4}$')
 
     # Group companies by region
-    regions = companies.group_by { |c| extract_region(c.location) }
+    regions = companies.group_by { |c| LocationRegionResolver.region_for_location(c.location) }
                       .transform_values(&:count)
 
     # Calculate funding metrics per region
     region_metrics = {}
 
-    companies.group_by { |c| extract_region(c.location) }.each do |region, companies_in_region|
+    companies.group_by { |c| LocationRegionResolver.region_for_location(c.location) }.each do |region, companies_in_region|
         funded_companies = companies_in_region.reject { |c| c.total_funding_amount_usd.nil? || c.total_funding_amount_usd.zero? }
         total_funding = funded_companies.sum { |c| c.total_funding_amount_usd }
         company_count = companies_in_region.count
@@ -1237,16 +1237,6 @@ class StaticPagesController < ApplicationController
     funded_companies.average(:total_funding_amount_usd).to_f
   end
 
-  def extract_region(location)
-    # Simple region mapping - could be made more sophisticated
-    return "United States" if location.match?(/United States|USA|US$|California|New York|Texas/i)
-    return "United Kingdom" if location.match?(/United Kingdom|UK|England|London/i)
-    return "European Union" if location.match?(/Germany|France|Spain|Italy|Netherlands|Sweden|Denmark|Belgium/i)
-    return "Canada" if location.match?(/Canada|Toronto|Vancouver|Montreal/i)
-    return "Asia Pacific" if location.match?(/China|Japan|Singapore|Hong Kong|Australia|India/i)
-    "Other"
-  end
-
   def calculate_success_rate(companies)
     return 0 if companies.empty?
     successful = companies.count { |c| ['Public', 'Acquired'].include?(self.class.stage_mapping[c.funding_status]) }
@@ -1410,7 +1400,7 @@ class StaticPagesController < ApplicationController
         country = extract_country(company.location)
         next unless country
 
-        region = extract_region(company.location)
+        region = LocationRegionResolver.region_for_country(country)
         region_country_metrics[region][country][:companies] += 1
 
         if company.total_funding_amount_usd && company.total_funding_amount_usd > 0
@@ -1426,14 +1416,24 @@ class StaticPagesController < ApplicationController
     CSV.generate do |csv|
         csv << ['Region', 'Country', 'Companies', 'Total Funding', 'Avg Funding']
         @region_table_data.each do |region_data|
-            region_data[:countries].each do |country_data|
+            if region_data[:country_label].present?
                 csv << [
                     region_data[:region],
-                    country_data[:country],
-                    country_data[:companies],
-                    country_data[:total_funding],
-                    country_data[:avg_funding]
+                    region_data[:country_label],
+                    region_data[:companies],
+                    region_data[:total_funding],
+                    region_data[:avg_funding]
                 ]
+            else
+                region_data[:countries].each do |country_data|
+                    csv << [
+                        region_data[:region],
+                        country_data[:country],
+                        country_data[:companies],
+                        country_data[:total_funding],
+                        country_data[:avg_funding]
+                    ]
+                end
             end
         end
     end
@@ -1444,14 +1444,24 @@ class StaticPagesController < ApplicationController
         package.workbook.add_worksheet(name: 'Companies by Region') do |sheet|
             sheet.add_row ['Region', 'Country', 'Companies', 'Total Funding', 'Avg Funding']
             @region_table_data.each do |region_data|
-                region_data[:countries].each do |country_data|
+                if region_data[:country_label].present?
                     sheet.add_row [
                         region_data[:region],
-                        country_data[:country],
-                        country_data[:companies],
-                        country_data[:total_funding],
-                        country_data[:avg_funding]
+                        region_data[:country_label],
+                        region_data[:companies],
+                        region_data[:total_funding],
+                        region_data[:avg_funding]
                     ]
+                else
+                    region_data[:countries].each do |country_data|
+                        sheet.add_row [
+                            region_data[:region],
+                            country_data[:country],
+                            country_data[:companies],
+                            country_data[:total_funding],
+                            country_data[:avg_funding]
+                        ]
+                    end
                 end
             end
         end

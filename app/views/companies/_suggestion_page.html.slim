@@ -10,7 +10,7 @@ css:
 
     .company-suggest-page .company-suggest-container {
         flex: 1;
-        max-width: 760px;
+        max-width: 920px;
     }
 
     .company-suggest-page .company-suggest-back-link {
@@ -93,60 +93,78 @@ css:
     }
 
     .company-suggest-page .company-suggest-section {
-        margin-bottom: 2rem;
+        margin-bottom: 2.75rem;
     }
 
     .company-suggest-page .company-suggest-section-label {
-        color: #8b8379;
-        font-size: 0.72rem;
-        font-weight: 700;
-        letter-spacing: 0.12em;
-        margin-bottom: 0.85rem;
-        text-transform: uppercase;
-    }
-
-    .company-suggest-page .company-suggest-panel {
-        background: #fff;
-        border: 1px solid #e1dccf;
-        border-radius: 0.85rem;
-        padding: 1.25rem 1.15rem;
+        color: #2b2926;
+        font-family: edict, "edict Fallback", Georgia, Cambria, "Times New Roman", Times, serif;
+        font-size: 1.35rem;
+        font-weight: 500;
+        letter-spacing: -0.01em;
+        line-height: 1.2;
+        margin-bottom: 1.15rem;
     }
 
     .company-suggest-page .company-suggest-form .form-label {
         color: #2b2926;
-        font-size: 0.88rem;
+        font-size: 0.9rem;
         font-weight: 700;
-        margin-bottom: 0.35rem;
+        margin-bottom: 0.45rem;
     }
 
     .company-suggest-page .company-suggest-form .form-text {
-        color: #6b645b;
+        color: #8b8379;
         font-size: 0.82rem;
+        margin-top: 0.35rem;
+    }
+
+    .company-suggest-page .company-suggest-form .form-text a {
+        color: #8c1515;
+        font-weight: 600;
+        text-decoration: none;
+    }
+
+    .company-suggest-page .company-suggest-form .form-text a:hover {
+        color: #6f1111;
+        text-decoration: underline;
     }
 
     .company-suggest-page .company-suggest-form .form-control,
     .company-suggest-page .company-suggest-form .form-select {
-        background: rgba(255, 255, 255, 0.92);
-        border-color: #ded7ca;
-        border-radius: 0.55rem;
-        font-size: 0.92rem;
-        min-height: 2.65rem;
+        background: #fff;
+        border: 1px solid #ded7ca;
+        border-radius: 0.6rem;
+        color: #2b2926;
+        font-size: 0.94rem;
+        min-height: 2.75rem;
+        padding: 0.6rem 0.85rem;
+    }
+
+    .company-suggest-page .company-suggest-form .form-control::placeholder {
+        color: #a39a8f;
     }
 
     .company-suggest-page .company-suggest-form .form-control:focus,
     .company-suggest-page .company-suggest-form .form-select:focus {
-        border-color: #cbbfae;
-        box-shadow: 0 0 0 0.15rem rgba(140, 21, 21, 0.08);
+        background: #fff;
+        border-color: #8c1515;
+        box-shadow: 0 0 0 0.15rem rgba(140, 21, 21, 0.1);
     }
 
     .company-suggest-page .company-suggest-form textarea.form-control {
-        min-height: 7rem;
+        min-height: 8.5rem;
+        padding-top: 0.75rem;
     }
 
     .company-suggest-page .company-suggest-form .input-group-text {
         background: #f0ebe3;
         border-color: #ded7ca;
         color: #6b645b;
+    }
+
+    .company-suggest-page .company-suggest-form .row.g-3 {
+        --bs-gutter-y: 1.15rem;
     }
 
     .company-suggest-page .company-suggest-actions {
@@ -234,7 +252,7 @@ css:
 
         .company-suggest-note
             p.mb-0
-                | Submissions are reviewed before publication. We list companies — market-facing vendors — not individual products.
+                | Submissions are reviewed before publication. We list companies, not individual products.
                 = link_to " See how we classify companies", statistics_methodology_path
 
         - if notice.present?

@@ -1,0 +1,63 @@
+javascript:
+    (function() {
+        if (window.__statsFundingToggleInit) return;
+        window.__statsFundingToggleInit = true;
+
+        function setFundingView(card, view) {
+            var categoryPath = card.dataset.categoryPath;
+            var regionPath = card.dataset.regionPath;
+            var path = view === "region" ? regionPath : categoryPath;
+
+            card.dataset.currentView = view;
+            card.setAttribute("aria-label", view === "region" ? "Funding by region" : "Funding by category");
+
+            card.querySelectorAll("[data-stats-funding-desc]").forEach(function(desc) {
+                desc.classList.toggle("is-hidden", desc.dataset.statsFundingDesc !== view);
+            });
+
+            card.querySelectorAll("[data-stats-funding-view]").forEach(function(button) {
+                var isActive = button.dataset.statsFundingView === view;
+                button.classList.toggle("is-active", isActive);
+                button.setAttribute("aria-pressed", isActive ? "true" : "false");
+            });
+        }
+
+        function navigateFundingCard(card) {
+            var view = card.dataset.currentView || "category";
+            var path = view === "region" ? card.dataset.regionPath : card.dataset.categoryPath;
+            if (path) window.location.assign(path);
+        }
+
+        function initFundingCard(card) {
+            if (card.dataset.statsFundingReady === "true") return;
+            card.dataset.statsFundingReady = "true";
+            setFundingView(card, "category");
+
+            card.querySelectorAll("[data-stats-funding-view]").forEach(function(button) {
+                button.addEventListener("click", function(event) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    setFundingView(card, button.dataset.statsFundingView);
+                });
+            });
+
+            card.addEventListener("click", function(event) {
+                if (event.target.closest(".stats-segment-control")) return;
+                navigateFundingCard(card);
+            });
+
+            card.addEventListener("keydown", function(event) {
+                if (event.key !== "Enter" && event.key !== " ") return;
+                if (event.target.closest(".stats-segment-control")) return;
+                event.preventDefault();
+                navigateFundingCard(card);
+            });
+        }
+
+        function bootFundingCards() {
+            document.querySelectorAll("[data-stats-funding-card]").forEach(initFundingCard);
+        }
+
+        document.addEventListener("DOMContentLoaded", bootFundingCards);
+        document.addEventListener("turbo:load", bootFundingCards);
+    })();

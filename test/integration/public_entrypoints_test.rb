@@ -22,19 +22,23 @@ class PublicEntrypointsTest < ActionDispatch::IntegrationTest
     assert_select ".home-title", "CodeX TechIndex"
     assert_select ".home-category-card"
     assert_operator @response.body.index(">By category</h2>"), :<, @response.body.index(">Statistics</h2>")
-    assert_select ".stats-index-card", count: 9
+    assert_select ".stats-index-card", count: 8
     assert_select ".stats-hero-title", count: 0
     assert_select "h2.stats-chart-title", count: 0
   end
 
-  test "statistics index shows ten curated cards" do
+  test "statistics index shows eight curated cards" do
     get statistics_path
 
     assert_response :success
-    assert_select ".stats-index-card", count: 9
-    ["Total Companies", "Geographic Distribution", "Category Evolution", "Technology Themes", "Market Focus", "AI in Legal Tech", "Funding by Category", "Funding by Region", "Revenue Model Insights"].each do |title|
+    assert_select ".stats-index-card", count: 8
+    ["Ecosystem Growth", "Geographic Distribution", "Industry Focus", "Technology Themes", "Market Focus", "AI in Legal Tech", "Funding", "Revenue Model Insights"].each do |title|
       assert_select ".stats-index-card-title", text: title
     end
+    assert_select ".stats-index-card-funding .stats-segment-control [data-stats-funding-view='category'].is-active"
+    assert_select ".stats-index-card-funding .stats-segment-control [data-stats-funding-view='region']"
+    assert_select ".stats-index-card-title", text: "Funding by Category", count: 0
+    assert_select ".stats-index-card-title", text: "Funding by Region", count: 0
     assert_select ".stats-index-card-title", text: "Exit Patterns", count: 0
     assert_select ".stats-index-card-title", text: "Founder's Journey", count: 0
     assert_select ".stats-index-card-title", text: "Funding Stage Progression", count: 0
