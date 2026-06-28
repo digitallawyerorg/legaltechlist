@@ -15,8 +15,7 @@ css:
     .company-search-modal-item { align-items: center; color: inherit; display: flex; gap: 0.85rem; min-height: 3.25rem; padding: 0.65rem 1rem; text-decoration: none; transition: background 0.12s ease; }
     .company-search-modal-item:hover, .company-search-modal-item.is-active { background: #f8fafc; color: inherit; text-decoration: none; }
     .company-search-modal-item + .company-search-modal-item { border-top: 1px solid #f3f4f6; }
-    .company-search-modal-item-icon { align-items: center; background: #f3efe6; border-radius: 0.45rem; color: #6b6258; display: flex; flex: 0 0 auto; font-size: 0.82rem; height: 2.15rem; justify-content: center; width: 2.15rem; }
-    .company-search-modal-item-logo { background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 0.35rem; flex: 0 0 auto; height: 2.15rem; object-fit: contain; padding: 0.12rem; width: 2.15rem; }
+    .company-search-modal-item-icon { align-items: center; background: #f6e5e5; border-radius: 0.45rem; color: #8c1515; display: flex; flex: 0 0 auto; font-size: 0.82rem; height: 2.15rem; justify-content: center; width: 2.15rem; }
     .company-search-modal-item-copy { display: flex; flex: 1 1 auto; flex-direction: column; gap: 0.15rem; justify-content: center; min-width: 0; }
     .company-search-modal-item-title { color: #111827; display: block; font-size: 0.92rem; font-weight: 600; line-height: 1.3; }
     .company-search-modal-item-subtitle { color: #9ca3af; display: block; font-size: 0.78rem; line-height: 1.25; }
@@ -162,13 +161,12 @@ javascript:
                     link.className = "company-search-modal-item";
                     link.href = company.url;
 
-                    const logo = document.createElement("img");
-                    logo.className = "company-search-modal-item-logo";
-                    logo.alt = "";
-                    logo.src = company.logo;
-                    logo.onerror = function() {
-                        logo.src = "https://placehold.co/64x64?text=" + encodeURIComponent((company.name || "?").charAt(0));
-                    };
+                    const icon = document.createElement("span");
+                    icon.className = "company-search-modal-item-icon";
+                    const iconGlyph = document.createElement("i");
+                    iconGlyph.className = "fa fa-building";
+                    iconGlyph.setAttribute("aria-hidden", "true");
+                    icon.appendChild(iconGlyph);
 
                     const copy = document.createElement("span");
                     copy.className = "company-search-modal-item-copy";
@@ -190,7 +188,7 @@ javascript:
                     chevron.className = "fa fa-chevron-right company-search-modal-item-chevron";
                     chevron.setAttribute("aria-hidden", "true");
 
-                    link.appendChild(logo);
+                    link.appendChild(icon);
                     link.appendChild(copy);
                     link.appendChild(chevron);
                     resultsList.appendChild(link);

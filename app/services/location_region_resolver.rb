@@ -1,18 +1,16 @@
 class LocationRegionResolver
-  UNITED_STATES = "United States".freeze
-  CANADA = "Canada".freeze
-  UK_IRELAND = "United Kingdom & Ireland".freeze
+  NORTH_AMERICA = "North America".freeze
   EUROPE = "Europe".freeze
   ASIA_PACIFIC = "Asia-Pacific".freeze
   LATIN_AMERICA = "Latin America".freeze
-  MIDDLE_EAST_AFRICA = "Middle East & Africa".freeze
+  MIDDLE_EAST = "Middle East".freeze
+  AFRICA = "Africa".freeze
   OTHER = "Other".freeze
 
   REGION_ISO_CODES = {
-    UNITED_STATES => %w[US].freeze,
-    CANADA => %w[CA].freeze,
-    UK_IRELAND => %w[GB IE].freeze,
+    NORTH_AMERICA => %w[US CA].freeze,
     EUROPE => %w[
+      GB IE
       AL AD AM AT BY BE BA BG HR CY CZ DK EE FI FR DE GE GR HU IS IT LV LI LT LU MT MD ME NL MK NO PL PT RO RS RU SK SI ES SE CH TR UA
       XK MC SM VA
     ].freeze,
@@ -20,8 +18,9 @@ class LocationRegionResolver
       AF AU BD BN KH CN HK IN ID JP KZ KG LA MY MN MM NP NZ PK PH SG KR LK TW TH TJ TM UZ VN
     ].freeze,
     LATIN_AMERICA => %w[AR BO BR CL CO CR CU DO EC SV GT HN JM KY MX NI PA PY PE PR TT UY VE].freeze,
-    MIDDLE_EAST_AFRICA => %w[
-      DZ AO BH BW BI CM CV CF TD KM CD CI DJ EG GQ ER SZ ET GA GM GH GN GW IQ IR IL JO KE KW LB LS LR LY MG MW ML MR MU MA MZ NA NE NG OM PS QA RW ST SA SN SC SL SO ZA SS SD SY TZ TG TN UG AE EH YE ZM ZW
+    MIDDLE_EAST => %w[BH EG IQ IR IL JO KW LB OM PS QA SA SY AE YE].freeze,
+    AFRICA => %w[
+      DZ AO BW BI CM CV CF TD KM CD CI DJ GQ ER SZ ET GA GM GH GN GW KE LS LR LY MG MW ML MR MU MA MZ NA NE NG RW ST SN SC SL SO ZA SS SD TZ TG TN UG EH ZM ZW
     ].freeze
   }.freeze
 
