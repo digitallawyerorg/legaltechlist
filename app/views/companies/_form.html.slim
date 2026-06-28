@@ -17,8 +17,8 @@
         .company-suggest-section-label Your contact
         .row.g-3
             .col-md-6
-                = f.label :contact_name, "Name", class: "form-label"
-                = f.text_field :contact_name, class: "form-control", autocomplete: "name"
+                = f.label :contact_name, required_label_text("Name"), class: "form-label"
+                = f.text_field :contact_name, class: "form-control", autocomplete: "name", required: true
             .col-md-6
                 = f.label :contact_email, required_label_text("Email"), class: "form-label"
                 = f.email_field :contact_email, class: "form-control", autocomplete: "email", required: true

@@ -23,7 +23,7 @@ class UserContributionIntakeService
       final_changes: form.proposed_changes,
       duplicate_signals: duplicate_signals,
       submitter_email: form.contact_email.to_s.strip,
-      submitter_name: form.contact_name.to_s.strip.presence,
+      submitter_name: form.contact_name.to_s.strip,
       agent_details: { "intake" => { "request_ip" => request_ip, "channel" => "public_contribute_form" } }
     )
 

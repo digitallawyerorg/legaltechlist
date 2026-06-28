@@ -190,6 +190,15 @@ class CompaniesControllerTest < ActionController::TestCase
     assert_equal TargetClient.canonical.order(:name).pluck(:name), checkbox_labels & TargetClient.canonical.pluck(:name)
   end
 
+  test "rejects contribution without contact name" do
+    assert_no_difference("CompanyProposal.count") do
+      post :create, params: { company_contribution: contribution_params.except(:contact_name) }
+    end
+
+    assert_response :unprocessable_entity
+    assert_select ".company-suggest-errors"
+  end
+
   test "should create proposal from contribution form" do
     assert_no_difference('Company.count') do
       assert_difference('CompanyProposal.count', 1) do

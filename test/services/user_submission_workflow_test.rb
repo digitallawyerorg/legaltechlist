@@ -7,6 +7,14 @@ class UserSubmissionWorkflowTest < ActiveSupport::TestCase
     @company = companies(:one)
   end
 
+  test "contribution form requires contact name" do
+    form = valid_contribution_form
+    form.contact_name = nil
+
+    assert_not form.valid?
+    assert_includes form.errors[:contact_name], "can't be blank"
+  end
+
   test "contribution intake creates proposal not company" do
     form = valid_contribution_form
 

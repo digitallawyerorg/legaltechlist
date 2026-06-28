@@ -23,7 +23,7 @@ class CompanyContributionForm
   attribute :legaltech_atlas_url, :string
   attribute :logo_url, :string
 
-  validates :contact_email, :name, :main_url, :location, :founded_date, :category_id, :description, :status, presence: true
+  validates :contact_name, :contact_email, :name, :main_url, :location, :founded_date, :category_id, :description, :status, presence: true
   validate :revenue_models_present
   validate :target_clients_present
 
@@ -66,7 +66,7 @@ class CompanyContributionForm
 
   def source_payload
     proposed_changes.merge(
-      "contact_name" => contact_name.to_s.strip.presence,
+      "contact_name" => contact_name.to_s.strip,
       "contact_email" => contact_email.to_s.strip,
       "submission_channel" => "public_contribute_form"
     )
