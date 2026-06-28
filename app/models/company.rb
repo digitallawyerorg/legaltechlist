@@ -7,6 +7,7 @@ class Company < ActiveRecord::Base
   before_update :publish_tweet, :if => :visible_changed?
   before_update :publish_to_list, :if => :visible_changed?
   before_validation :normalize_status
+  before_validation :sync_structured_location_fields
 
   has_many :taggings,  dependent: :destroy
   has_many :tags, through: :taggings
@@ -52,6 +53,8 @@ class Company < ActiveRecord::Base
   scope :unknown_target_client, -> { left_joins(:target_client).where(target_clients: { name: "Unknown" }) }
   scope :duplicate_name_candidates, -> { where(id: duplicate_name_candidate_ids) }
   scope :duplicate_domain_candidates, -> { where(id: duplicate_domain_candidate_ids) }
+  scope :with_resolved_country, -> { where.not(country: [nil, ""]) }
+  scope :with_location_data, -> { where.not(location: [nil, ""]).or(with_resolved_country) }
 
   #geocoding
 
@@ -165,6 +168,36 @@ class Company < ActiveRecord::Base
 
   def normalize_status
     self.status = status.to_s.strip.downcase.presence
+  end
+
+  def sync_structured_location_fields
+    if will_save_change_to_country? || will_save_change_to_city?
+      composed = compose_location(city, country)
+      self.location = composed if composed.present?
+    elsif will_save_change_to_location?
+      parsed = LocationCountryResolver.parse(location)
+      self.country = parsed[:country] if parsed[:country].present?
+      self.city = parsed[:city]
+    end
+  end
+
+  def compose_location(city_value, country_value)
+    if city_value.present? && country_value.present?
+      "#{city_value}, #{country_value}"
+    elsif country_value.present?
+      country_value
+    elsif city_value.present?
+      city_value
+    end
+  end
+
+  def resolved_country
+    country.presence || LocationCountryResolver.country_name_for(location)
+  end
+
+  def display_location
+    composed = compose_location(city, country)
+    composed.presence || location
   end
 
   def must_have_at_least_one_revenue_model
@@ -291,11 +324,11 @@ class Company < ActiveRecord::Base
   end
 
   def self.ransackable_attributes(auth_object = nil)
-    %w[name location founded_date category business_model target_client
+    %w[name location country city founded_date category business_model target_client
        description main_url twitter_url angellist_url crunchbase_url
        linkedin_url facebook_url legalio_url status visible
        contact_name contact_email codex_presenter codex_presentation_date
-       employee_count latitude longitude created_at updated_at
+       latitude longitude created_at updated_at
        quality_status verification_verdict quality_score verified_at enriched_at
        quality_reviewed_at human_reviewed_at fingerprint canonical_domain source source_url]
   end
@@ -305,7 +338,7 @@ class Company < ActiveRecord::Base
   end
 
   scope :text_search, ->(query) {
-    where("name ILIKE :q OR description ILIKE :q OR location ILIKE :q", q: "%#{query}%")
+    where("name ILIKE :q OR description ILIKE :q OR location ILIKE :q OR city ILIKE :q OR country ILIKE :q", q: "%#{query}%")
   }
 
   def logo

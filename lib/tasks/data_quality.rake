@@ -144,6 +144,46 @@ namespace :data_quality do
     puts "Normalize locations complete mode=#{mode} category_id=#{category_id || 'all'} changed=#{changed} still_missing_flag=#{still_missing_flag}"
   end
 
+  desc "Backfill structured country and city fields from location text. Defaults to dry-run; set DRY_RUN=false to write."
+  task backfill_location_fields: :environment do
+    dry_run = ENV.fetch("DRY_RUN", "true") != "false"
+    overwrite = ENV.fetch("OVERWRITE", "false") == "true"
+    verbose = ENV.fetch("VERBOSE", "false") == "true"
+    category_id = ENV["CATEGORY_ID"]
+    applied = 0
+    skipped = Hash.new(0)
+    examples = []
+
+    scope = Company.all
+    scope = scope.where(category_id: category_id) if category_id.present?
+
+    total = scope.count
+    resolved = 0
+
+    scope.find_each do |company|
+      result = CompanyLocationBackfillService.call(company: company, dry_run: dry_run, overwrite: overwrite)
+      action = result["action"]
+      if action == "applied" || action == "would_apply"
+        applied += 1
+        resolved += 1 if result["country"].present?
+        if dry_run && verbose
+          puts "DRY RUN company_id=#{company.id} country=#{result['country'].inspect} city=#{result['city'].inspect}"
+        elsif dry_run && examples.size < 20
+          examples << "DRY RUN company_id=#{company.id} country=#{result['country'].inspect} city=#{result['city'].inspect}"
+        end
+      else
+        skipped[action] += 1
+      end
+    end
+
+    with_location = scope.where.not(location: [nil, ""]).count
+    country_rate = with_location.positive? ? ((resolved.to_f / with_location) * 100).round(1) : 0.0
+
+    mode = dry_run ? "dry-run" : "write"
+    puts examples if dry_run && !verbose
+    puts "Backfill location fields complete mode=#{mode} category_id=#{category_id || 'all'} total=#{total} applied=#{applied} country_resolution_rate=#{country_rate}% skipped=#{skipped.sort.to_h}"
+  end
+
   # Locations corrupted by an earlier normalize_locations run before small-country ISO codes existed.
   CORRUPTED_LOCATION_FIXES = {
     "https://www.crunchbase.com/organization/korporatio" => "Victoria, Seychelles",

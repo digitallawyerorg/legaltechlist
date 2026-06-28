@@ -19,6 +19,8 @@ class CompaniesController < ApplicationController
 
       # Filters
       @companies = @companies.where(category_id: selected_category_ids) if selected_category_ids.any?
+      @companies = @companies.where(country: params[:country]) if params[:country].present?
+      @companies = @companies.where("city ILIKE ?", "%#{params[:city]}%") if params[:city].present?
       @companies = @companies.where("location ILIKE ?", "%#{params[:location]}%") if params[:location].present?
       @companies = @companies.where("LOWER(TRIM(status)) IN (?)", selected_statuses) if selected_statuses.any?
 
@@ -41,6 +43,7 @@ class CompaniesController < ApplicationController
       @total_count = @companies.count
       @category_counts = category_counts
       @status_counts = status_counts
+      @country_counts = country_counts
       @sort_options = [["Newest companies", "founded_desc"], ["Oldest companies", "founded_asc"], ["Company name (A-Z)", "name_asc"], ["Company name (Z-A)", "name_desc"], ["Most funding raised", "funding_desc"]]
       @companies = @companies.page(params[:page]).per(25)
     rescue => e
@@ -183,6 +186,10 @@ class CompaniesController < ApplicationController
       @base_companies.where.not(status: [nil, ""]).group("LOWER(TRIM(status))").order("LOWER(TRIM(status))").count
     end
 
+    def country_counts
+      @base_companies.with_resolved_country.group(:country).order(:country).count
+    end
+
     def selected_category_ids
       Array(params[:category]).map(&:presence).compact.map(&:to_i)
     end
@@ -199,10 +206,10 @@ class CompaniesController < ApplicationController
 
     # Never trust parameters from the scary internet, only allow the white list through.
     def company_params
-      params.require(:company).permit(:name, :location, :founded_date, :category, :secondary_category,
+      params.require(:company).permit(:name, :location, :country, :city, :founded_date, :category, :secondary_category,
                                       :business_model, :target_client, :description, :main_url,
                                       :twitter_url, :angellist_url, :crunchbase_url, :linkedin_url,
-                                      :facebook_url, :legalio_url, :status, :employee_count,
+                                      :facebook_url, :legalio_url, :status,
                                       :all_tags, :category_id, :secondary_category_id, :target_client_id,
                                       :business_model_id, :visible, :contact_name, :contact_email,
                                       :codex_presenter, :codex_presentation_date)

@@ -306,7 +306,57 @@ class LocationCountryResolver
     "West Sussex", "Wigan", "Wiltshire", "Wolverhampton", "Worcestershire", "Bournemouth", "Bolton"
   ].freeze
 
+  PLACEHOLDER_LOCATIONS = [
+    "Location unknown",
+    "No location yet",
+    "Nowhere",
+    "Global",
+    "na"
+  ].freeze
+
   class << self
+    def parse(location)
+      return { country: nil, city: nil } if placeholder_location?(location)
+
+      country = country_name_for(location)
+      city = city_name_for(location, country: country)
+      { country: country, city: city }
+    end
+
+    def city_name_for(location, country: nil)
+      return if placeholder_location?(location)
+
+      country ||= country_name_for(location)
+      display = format_for_display(location)
+      if display.present? && display.include?(",")
+        candidate = display.split(",").first.to_s.strip
+        return candidate if valid_city_candidate?(candidate, country)
+      end
+
+      parts = split_parts(location)
+      return if parts.empty?
+
+      if parts.size == 1
+        return parts.first if country.present? && city_country_for(parts.first) == country
+        return parts.first if country.blank? && city_country_for(parts.first).present?
+
+        return
+      end
+
+      candidate = parts.first
+      return if normalize_token(candidate) == normalize_token(country)
+      return unless valid_city_candidate?(candidate, country)
+
+      candidate
+    end
+
+    def placeholder_location?(location)
+      normalized = location.to_s.strip
+      return true if normalized.blank?
+
+      PLACEHOLDER_LOCATIONS.any? { |placeholder| normalized.casecmp?(placeholder) }
+    end
+
     def country_name_for(location)
       parts = split_parts(location)
       return if parts.empty?
@@ -560,6 +610,16 @@ class LocationCountryResolver
       end
 
       nil
+    end
+
+    def valid_city_candidate?(candidate, country)
+      cleaned = cleaned_part(candidate)
+      return false if cleaned.blank?
+      return false if normalize_token(cleaned) == normalize_token(country)
+      return false if explicit_country_part?(cleaned)
+      return false if administrative_region_country(cleaned).present? && country.blank?
+
+      true
     end
 
     COUNTRY_ISO_CODES = CompaniesHelper::COUNTRY_ISO_CODES

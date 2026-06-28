@@ -142,4 +142,22 @@ class CompanyTest < ActiveSupport::TestCase
 
     refute company.logo_placeholder?
   end
+
+  test "sync_structured_location_fields parses location into country and city" do
+    company = companies(:one)
+    company.skip_geocoding = true
+    company.update!(location: "Berlin, Germany")
+
+    assert_equal "Germany", company.country
+    assert_equal "Berlin", company.city
+    assert_equal "Berlin, Germany", company.location
+  end
+
+  test "sync_structured_location_fields composes location from country and city" do
+    company = companies(:one)
+    company.skip_geocoding = true
+    company.update!(country: "Netherlands", city: "Amsterdam", location: "Old value")
+
+    assert_equal "Amsterdam, Netherlands", company.location
+  end
 end

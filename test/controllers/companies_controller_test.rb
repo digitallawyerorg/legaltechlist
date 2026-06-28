@@ -106,15 +106,15 @@ class CompaniesControllerTest < ActionController::TestCase
   end
 
   test "index filters by location" do
-    @company.update_columns(location: "San Francisco, CA")
-    companies(:two).update_columns(location: "New York, NY")
+    @company.update_columns(location: "San Francisco, CA", country: "United States", city: "San Francisco")
+    companies(:two).update_columns(location: "New York, NY", country: "United States", city: "New York")
 
-    get :index, params: { location: "San Francisco" }
+    get :index, params: { country: "United States", city: "San Francisco" }
 
     assert_response :success
     assert_includes assigns(:companies), @company
     assert_not_includes assigns(:companies), companies(:two)
-    assert_select ".company-filter-btn", text: /San Francisco/
+    assert_select ".company-filter-btn-active", text: /San Francisco/
   end
 
   test "index shows reset link when filters are active" do
@@ -181,7 +181,6 @@ class CompaniesControllerTest < ActionController::TestCase
           target_client_id: @company.target_client_id,
           crunchbase_url: @company.crunchbase_url,
           description: @company.description,
-          employee_count: @company.employee_count,
           founded_date: @company.founded_date,
           location: @company.location,
           main_url: @company.main_url,
@@ -213,9 +212,8 @@ class CompaniesControllerTest < ActionController::TestCase
         business_model_id: @company.business_model_id,
         target_client_id: @company.target_client_id,
         crunchbase_url: @company.crunchbase_url,
-        description: @company.description,
-        employee_count: @company.employee_count,
-        founded_date: @company.founded_date,
+          description: @company.description,
+          founded_date: @company.founded_date,
         location: @company.location,
         main_url: @company.main_url,
         name: @company.name,

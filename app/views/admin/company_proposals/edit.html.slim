@@ -78,7 +78,7 @@
             h2.h5.mb-0 Links And Funding
         .card-body
             .row.g-3
-                - ["crunchbase_url", "linkedin_url", "source", "source_url", "employee_count", "founders", "funding_status", "total_funding_amount_usd", "number_of_funding_rounds"].each do |field|
+                - ["crunchbase_url", "linkedin_url", "source", "source_url", "founders", "funding_status", "total_funding_amount_usd", "number_of_funding_rounds"].each do |field|
                     .col-md-6
                         = label_tag "company_proposal_final_changes_#{field}", field.humanize, class: "form-label"
                         = text_field_tag "company_proposal[final_changes][#{field}]", @final_changes[field], class: "form-control"

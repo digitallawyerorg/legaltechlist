@@ -21,6 +21,18 @@ module CompaniesHelper
     "#{selected_statuses.size} statuses"
   end
 
+  def company_filter_location_label(country, city)
+    if country.present? && city.present?
+      "#{city}, #{country}"
+    elsif country.present?
+      country
+    elsif city.present?
+      city
+    else
+      "Location"
+    end
+  end
+
   def company_filter_category_checked?(category_id, selected_ids)
     selected_ids.empty? || selected_ids.include?(category_id.to_i)
   end
@@ -88,6 +100,26 @@ module CompaniesHelper
 
   def format_location(location)
     location.to_s.gsub(/\bUnited States\b/i, "USA")
+  end
+
+  def company_display_location(company)
+    format_location(company.display_location)
+  end
+
+  def company_country_iso_code(company)
+    if company.country.present?
+      LocationCountryResolver.country_iso_code(company.country)
+    else
+      location_country_iso_code(company.location)
+    end
+  end
+
+  def format_company_location_with_flag(company)
+    formatted = company_display_location(company)
+    return formatted if formatted.blank?
+
+    flag = country_flag_emoji(company_country_iso_code(company))
+    flag.present? ? "#{flag} #{formatted}" : formatted
   end
 
   def format_location_with_flag(location)

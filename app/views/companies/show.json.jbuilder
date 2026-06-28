@@ -1,1 +1,1 @@
-json.extract! @company, :id, :name, :location, :founded_date, :category, :description, :main_url, :twitter_url, :angellist_url, :crunchbase_url, :linkedin_url, :facebook_url, :legalio_url, :status, :employee_count, :created_at, :updated_at
+json.extract! @company, :id, :name, :location, :founded_date, :category, :description, :main_url, :twitter_url, :angellist_url, :crunchbase_url, :linkedin_url, :facebook_url, :legalio_url, :status, :created_at, :updated_at

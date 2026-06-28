@@ -217,20 +217,21 @@ class StaticPagesController < ApplicationController
   def funding_concentration
     # Get companies with funding data and valid locations
     companies = Company.where(visible: true)
-                      .where.not(location: [nil, "", "Location unknown"])
+                      .where.not(country: [nil, ""])
+                      .or(Company.where(visible: true, country: [nil, ""]).where.not(location: [nil, "", "Location unknown"]))
                       .where('founded_date >= ? AND founded_date <= ? AND founded_date ~ ?',
                             '2000',
                             Time.current.year.to_s,
                             '^\d{4}$')
 
     # Group companies by region
-    regions = companies.group_by { |c| LocationRegionResolver.region_for_location(c.location) }
+    regions = companies.group_by { |c| LocationRegionResolver.region_for_country(c.resolved_country) }
                       .transform_values(&:count)
 
     # Calculate funding metrics per region
     region_metrics = {}
 
-    companies.group_by { |c| LocationRegionResolver.region_for_location(c.location) }.each do |region, companies_in_region|
+    companies.group_by { |c| LocationRegionResolver.region_for_country(c.resolved_country) }.each do |region, companies_in_region|
         funded_companies = companies_in_region.reject { |c| c.total_funding_amount_usd.nil? || c.total_funding_amount_usd.zero? }
         total_funding = funded_companies.sum { |c| c.total_funding_amount_usd }
         company_count = companies_in_region.count
@@ -762,7 +763,7 @@ class StaticPagesController < ApplicationController
     country_metrics = Hash.new { |hash, country| hash[country] = { companies: 0, total_funding: 0, funded_companies: 0 } }
 
     companies.each do |company|
-      country = extract_country(company.location)
+      country = extract_country(company)
       next unless country
 
       country_metrics[country][:companies] += 1
@@ -1341,8 +1342,12 @@ class StaticPagesController < ApplicationController
     end.to_stream.read
   end
 
-  def extract_country(location)
-    ::LocationCountryResolver.country_name_for(location)
+  def extract_country(company_or_location)
+    if company_or_location.is_a?(Company)
+      company_or_location.resolved_country
+    else
+      ::LocationCountryResolver.country_name_for(company_or_location)
+    end
   end
 
   def normalize_country_name(country)
@@ -1399,7 +1404,8 @@ class StaticPagesController < ApplicationController
 
   def located_companies_scope
     Company.where(visible: true)
-           .where.not(location: [nil, "", "Location unknown"])
+           .where.not(country: [nil, ""])
+           .or(Company.where(visible: true, country: [nil, ""]).where.not(location: [nil, "", "Location unknown"]))
            .where('founded_date >= ? AND founded_date <= ? AND founded_date ~ ?',
                   '2000',
                   Time.current.year.to_s,
@@ -1410,7 +1416,7 @@ class StaticPagesController < ApplicationController
     region_country_metrics = Hash.new { |regions, region| regions[region] = Hash.new { |countries, country| countries[country] = { companies: 0, total_funding: 0, funded_companies: 0 } } }
 
     companies.each do |company|
-        country = extract_country(company.location)
+        country = extract_country(company)
         next unless country
 
         region = LocationRegionResolver.region_for_country(country)

@@ -495,7 +495,7 @@ css:
 - funding_amount = @company.total_funding_amount_usd.to_f
 - funding_display = (if funding_amount >= 1_000_000_000 then "$#{(funding_amount / 1_000_000_000).round(1).to_s.sub(/\.0$/, '')}B" elsif funding_amount >= 1_000_000 then "$#{(funding_amount / 1_000_000).round}M" elsif funding_amount.positive? then number_to_currency(funding_amount, precision: 0) else nil end)
 - founded_display = (@company.founded_date.present? && @company.founded_date != "0000") ? @company.founded_date : "-"
-- headquarters_display = (@company.location.present? && @company.location != "Nowhere") ? format_location(@company.location) : "-"
+- headquarters_display = (@company.display_location.present? && @company.display_location != "Nowhere") ? company_display_location(@company) : "-"
 - target_market_names = (@company.target_clients.any? ? @company.target_clients : Array(@company.target_client).compact).map(&:name).uniq.reject { |name| name.blank? || name == "Unknown" }
 - target_market_display = target_market_names.any? ? target_market_names.to_sentence : "-"
 - revenue_model_names = @company.revenue_model_names.reject { |name| name.blank? || name == "Unknown" }

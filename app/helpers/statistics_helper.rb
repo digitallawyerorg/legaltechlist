@@ -182,7 +182,7 @@ module StatisticsHelper
     total = 0
 
     stats_geographic_distribution_scope.find_each do |company|
-      country = LocationCountryResolver.country_name_for(company.location)
+      country = company.resolved_country
       next if country.blank?
 
       country_counts[country] += 1
@@ -207,7 +207,7 @@ module StatisticsHelper
     total = 0
 
     stats_geographic_distribution_scope.find_each do |company|
-      country = LocationCountryResolver.country_name_for(company.location)
+      country = company.resolved_country
       next if country.blank?
 
       region = LocationRegionResolver.region_for_country(country)
@@ -441,6 +441,8 @@ module StatisticsHelper
   end
 
   def stats_geographic_distribution_scope
-    stats_index_scope.where.not(location: [nil, "", "Location unknown"])
+    stats_index_scope.where.not(country: [nil, ""]).or(
+      stats_index_scope.where(country: [nil, ""]).where.not(location: [nil, "", "Location unknown"])
+    )
   end
 end

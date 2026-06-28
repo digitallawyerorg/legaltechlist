@@ -58,7 +58,6 @@ class CompanyProposalQueueService
       "total_funding_amount_usd" => candidate["funding_amount_usd"],
       "funding_status" => candidate["company_type"],
       "number_of_funding_rounds" => candidate["number_of_funding_rounds"],
-      "employee_count" => candidate["employee_count"],
       "founders" => candidate["founders"],
       "source" => "LegalTechAtlas CSV",
       "source_url" => candidate["crunchbase_url"].presence || candidate["website"],

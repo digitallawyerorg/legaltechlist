@@ -28,7 +28,7 @@
                 span.text-muted.small Canonical records, taxonomy, visibility, and data quality
             .admin-quality-grid
                 - @company_metrics.each do |metric|
-                    - metric_path = (case metric[:label] when "Total companies" then custom_admin_companies_path when "Public companies" then custom_admin_companies_path(visibility: "visible") when "Missing URLs" then custom_admin_companies_path(review_signal: "missing_url") when "Weak descriptions" then custom_admin_companies_path(review_signal: "weak_description") when "Duplicate-name candidates" then custom_admin_company_reviews_path(queue: "duplicate_name") when "Duplicate-domain candidates" then custom_admin_companies_path(review_signal: "duplicate_domain") when "Unknown category", "Unknown business model", "Unknown target client" then custom_admin_companies_path(review_signal: "unknown_taxonomy") end)
+                    - metric_path = (case metric[:label] when "Total companies" then custom_admin_companies_path when "Public companies" then custom_admin_companies_path(visibility: "visible") when "Missing URLs" then custom_admin_companies_path(review_signal: "missing_url") when "Weak descriptions" then custom_admin_companies_path(review_signal: "weak_description") when "Duplicate-name candidates" then custom_admin_companies_path(review_signal: "duplicate_name") when "Duplicate-domain candidates" then custom_admin_companies_path(review_signal: "duplicate_domain") when "Unknown category", "Unknown business model", "Unknown target client" then custom_admin_companies_path(review_signal: "unknown_taxonomy") end)
                     - metric_classes = "admin-quality-item is-#{metric[:tone]}"
                     - if metric_path.present?
                         = link_to metric_path, class: "#{metric_classes} admin-quality-link", aria: { label: "Review #{metric[:label].downcase}" } do
@@ -44,7 +44,7 @@
                 span.text-muted.small Human and automated review coverage
             .admin-quality-grid
                 - @review_metrics.each do |metric|
-                    - metric_path = (case metric[:label] when "Needs review" then custom_admin_company_reviews_path(queue: "needs_review") when "Verified" then custom_admin_companies_path(quality_status: "verified") when "Rejected" then custom_admin_company_reviews_path(queue: "rejected") end)
+                    - metric_path = (case metric[:label] when "Needs review" then custom_admin_companies_path(review_signal: "needs_review") when "Verified" then custom_admin_companies_path(quality_status: "verified") when "Rejected" then custom_admin_companies_path(review_signal: "rejected") end)
                     - metric_classes = "admin-quality-item is-#{metric[:tone]}"
                     - if metric_path.present?
                         = link_to metric_path, class: "#{metric_classes} admin-quality-link", aria: { label: "Review #{metric[:label].downcase}" } do

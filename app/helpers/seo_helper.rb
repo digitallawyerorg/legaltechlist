@@ -100,7 +100,7 @@ module SeoHelper
     }
     data["description"] = company.description if company.description.present?
     data["foundingDate"] = company.founded_date if company.founded_date.present? && company.founded_date.match?(/^\d{4}$/)
-    data["address"] = company.location if company.location.present?
+    data["address"] = company.display_location if company.display_location.present?
     data.to_json
   end
 

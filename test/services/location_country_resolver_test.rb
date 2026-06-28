@@ -106,4 +106,25 @@ class LocationCountryResolverTest < ActiveSupport::TestCase
     assert_equal "East London", LocationCountryResolver.format_for_display("East London")
     assert_equal "Global", LocationCountryResolver.format_for_display("Global")
   end
+
+  test "parse returns structured country and city" do
+    assert_equal({ country: "United States", city: "San Francisco" }, LocationCountryResolver.parse("San Francisco, CA"))
+    assert_equal({ country: "United Kingdom", city: "London" }, LocationCountryResolver.parse("London, England"))
+    assert_equal({ country: "United States", city: nil }, LocationCountryResolver.parse("United States"))
+    assert_equal({ country: nil, city: nil }, LocationCountryResolver.parse("Location unknown"))
+    assert_equal({ country: "Spain", city: "Seville" }, LocationCountryResolver.parse("Seville, Andalucia"))
+  end
+
+  test "city_name_for returns city when parseable and nil for country-only strings" do
+    assert_equal "Berlin", LocationCountryResolver.city_name_for("Berlin")
+    assert_equal "San Francisco", LocationCountryResolver.city_name_for("San Francisco, CA")
+    assert_nil LocationCountryResolver.city_name_for("United States")
+    assert_nil LocationCountryResolver.city_name_for("Location unknown")
+  end
+
+  test "placeholder_location detects known placeholders" do
+    assert LocationCountryResolver.placeholder_location?("Global")
+    assert LocationCountryResolver.placeholder_location?("Location unknown")
+    refute LocationCountryResolver.placeholder_location?("London")
+  end
 end

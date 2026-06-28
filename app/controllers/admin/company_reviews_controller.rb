@@ -1,20 +1,7 @@
 module Admin
   class CompanyReviewsController < BaseController
-    QUEUES = {
-      "description_review" => "Description review",
-      "missing_url" => "Missing URLs",
-      "weak_description" => "Weak descriptions",
-      "duplicate_name" => "Duplicate-name candidates",
-      "duplicate_domain" => "Duplicate-domain candidates",
-      "needs_review" => "Needs review",
-      "rejected" => "Rejected"
-    }.freeze
-
     def index
-      @queue = params[:queue].presence
-      @queue_label = QUEUES.fetch(@queue, "All companies")
-      @companies = review_scope.page(params[:page]).per(25)
-      @queue_counts = queue_counts
+      redirect_to custom_admin_company_proposals_path
     end
 
     def show
@@ -33,7 +20,7 @@ module Admin
 
     def create_next_description_review
       company = Company.description_review_candidates.order(updated_at: :asc).first
-      return redirect_to custom_admin_company_reviews_path(queue: "description_review"), alert: "No description review candidates found." unless company
+      return redirect_to custom_admin_companies_path(review_signal: "description_review"), alert: "No description review candidates found." unless company
 
       run = CompanyAgentReviewService.call(company: company, reviewer: current_admin_user.email, notes: "Triggered from next description review queue")
 
@@ -49,7 +36,7 @@ module Admin
 
     def create_next_duplicate_domain_review
       company = Company.duplicate_domain_candidates.order(updated_at: :asc).first
-      return redirect_to custom_admin_company_reviews_path(queue: "duplicate_domain"), alert: "No duplicate-domain candidates found." unless company
+      return redirect_to custom_admin_companies_path(review_signal: "duplicate_domain"), alert: "No duplicate-domain candidates found." unless company
 
       run = DuplicateDomainReviewService.call(company: company, reviewer: current_admin_user.email, notes: "Triggered from next duplicate-domain review queue")
 
@@ -57,33 +44,6 @@ module Admin
     end
 
     private
-
-    def review_scope
-      base = Company.includes(:category, :business_model, :target_client).order(updated_at: :desc)
-
-      case @queue
-      when "description_review" then base.description_review_candidates
-      when "missing_url" then base.missing_main_url
-      when "weak_description" then base.weak_description
-      when "duplicate_name" then base.duplicate_name_candidates
-      when "duplicate_domain" then base.duplicate_domain_candidates
-      when "needs_review" then base.needs_review
-      when "rejected" then base.rejected_quality
-      else base
-      end
-    end
-
-    def queue_counts
-      {
-        "description_review" => Company.description_review_candidates.count,
-        "missing_url" => Company.missing_main_url.count,
-        "weak_description" => Company.weak_description.count,
-        "duplicate_name" => Company.duplicate_name_candidate_ids.count,
-        "duplicate_domain" => Company.duplicate_domain_candidate_ids.count,
-        "needs_review" => Company.needs_review.count,
-        "rejected" => Company.rejected_quality.count
-      }
-    end
 
     def duplicate_domain_companies
       domain = @company.canonical_domain.presence || @company.canonical_main_domain

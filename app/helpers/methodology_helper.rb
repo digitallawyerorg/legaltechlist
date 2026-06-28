@@ -37,7 +37,9 @@ module MethodologyHelper
     {
       label: "Location & geography",
       fields: [
-        { name: "location", type: "Text", description: "Headquarters (city, region, and/or country)." },
+        { name: "country", type: "Text", description: "Headquarters country (canonical name for filters and statistics)." },
+        { name: "city", type: "Text", description: "Headquarters city when known." },
+        { name: "location", type: "Text", description: "Legacy display string (city, country). Kept in sync with country and city." },
         { name: "headquarters_region", type: "Text", description: "Regional label when reported separately." },
         { name: "latitude / longitude", type: "Number", description: "Geocoded coordinates when available." }
       ]
@@ -48,7 +50,6 @@ module MethodologyHelper
         { name: "founded_date", type: "Year (YYYY)", description: "Year founded." },
         { name: "status", type: "Text", description: "Active, inactive, acquired, merged, or rebranded. Acquired entries remain in the index." },
         { name: "successor_company", type: "Reference", description: "Link to the successor record after acquisition or rebrand." },
-        { name: "employee_count", type: "Text", description: "Headcount or range when reported." },
         { name: "founders", type: "Text", description: "Named founders when reported." }
       ]
     },

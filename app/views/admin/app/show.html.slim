@@ -4,7 +4,7 @@
     div
         h1.h3.mb-1 TechIndex Admin
     .d-flex.gap-2
-        = link_to "Review", custom_admin_company_reviews_path, class: "btn btn-primary"
+        = link_to "Review", custom_admin_company_proposals_path, class: "btn btn-primary"
         = link_to "Companies", custom_admin_companies_path, class: "btn btn-outline-secondary"
 
 .row.g-3.mb-4
@@ -21,21 +21,21 @@
                 .admin-kicker Evidence gaps
                 .text-muted.small Missing URLs
                 .fs-3.fw-semibold= number_with_delimiter(@missing_url_count)
-                = link_to "Open queue", custom_admin_company_reviews_path(queue: "missing_url"), class: "small"
+                = link_to "Open queue", custom_admin_companies_path(review_signal: "missing_url"), class: "small"
     .col-md-6.col-xl-3
         .card.border-0.shadow-sm.h-100.admin-workflow-card.is-warning
             .card-body
                 .admin-kicker Description quality
                 .text-muted.small Review candidates
                 .fs-3.fw-semibold= number_with_delimiter(@description_review_count)
-                = link_to "Run next review", custom_admin_company_reviews_path(queue: "description_review"), class: "small"
+                = link_to "Open queue", custom_admin_companies_path(review_signal: "description_review"), class: "small"
     .col-md-6.col-xl-3
         .card.border-0.shadow-sm.h-100.admin-workflow-card.is-urgent
             .card-body
                 .admin-kicker Duplicate risk
                 .text-muted.small Duplicate-domain records
                 .fs-3.fw-semibold= number_with_delimiter(@duplicate_domain_count)
-                = link_to "Open duplicate queue", custom_admin_company_reviews_path(queue: "duplicate_domain"), class: "small"
+                = link_to "Open duplicate queue", custom_admin_companies_path(review_signal: "duplicate_domain"), class: "small"
 
 .row.g-3
     .col-xl-7
@@ -51,7 +51,7 @@
                             h3.h6.mb-2 Description review
                             p.text-muted.small.mb-3 Review weak, short, marketing, or source-meta descriptions before homepage/data expansion.
                             .d-grid.gap-2
-                                = link_to "Open description queue", custom_admin_company_reviews_path(queue: "description_review"), class: "btn btn-sm btn-outline-primary"
+                                = link_to "Open description queue", custom_admin_companies_path(review_signal: "description_review"), class: "btn btn-sm btn-outline-primary"
                                 = button_to "Run Next Description Review", custom_admin_next_description_review_path, method: :post, class: "btn btn-sm btn-warning w-100", form: { data: { turbo_confirm: "Run a proposal-only agent review for the next description candidate?" } }
                     .col-md-6
                         .border.rounded.p-3.h-100.bg-light
@@ -59,7 +59,7 @@
                             h3.h6.mb-2 Duplicate review
                             p.text-muted.small.mb-3 Resolve domain/name overlap before importing or expanding public records.
                             .d-grid.gap-2
-                                = link_to "Open duplicate queue", custom_admin_company_reviews_path(queue: "duplicate_domain"), class: "btn btn-sm btn-outline-primary"
+                                = link_to "Open duplicate queue", custom_admin_companies_path(review_signal: "duplicate_domain"), class: "btn btn-sm btn-outline-primary"
                                 = button_to "Run Next Duplicate Review", custom_admin_next_duplicate_domain_review_path, method: :post, class: "btn btn-sm btn-outline-warning w-100", form: { data: { turbo_confirm: "Run a proposal-only duplicate-domain review for the next duplicate candidate?" } }
                     .col-md-6
                         .border.rounded.p-3.h-100.bg-light

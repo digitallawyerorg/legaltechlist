@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_06_27_160000) do
+ActiveRecord::Schema[8.0].define(version: 2026_06_28_062400) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -87,7 +87,6 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_27_160000) do
     t.string "facebook_url"
     t.string "legalio_url"
     t.string "status"
-    t.string "employee_count"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.bigint "category_id"
@@ -122,9 +121,13 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_27_160000) do
     t.string "source_url"
     t.bigint "secondary_category_id"
     t.bigint "successor_company_id"
+    t.string "country"
+    t.string "city"
     t.index ["business_model_id"], name: "index_companies_on_business_model_id"
     t.index ["canonical_domain"], name: "index_companies_on_canonical_domain"
     t.index ["category_id"], name: "index_companies_on_category_id"
+    t.index ["city"], name: "index_companies_on_city"
+    t.index ["country"], name: "index_companies_on_country"
     t.index ["fingerprint"], name: "index_companies_on_fingerprint"
     t.index ["human_reviewed_at"], name: "index_companies_on_human_reviewed_at"
     t.index ["name"], name: "index_companies_on_name", opclass: :gin_trgm_ops, using: :gin

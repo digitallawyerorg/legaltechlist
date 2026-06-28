@@ -16,7 +16,6 @@ class CompanyDuplicateConsolidationService
     total_funding_amount_usd
     funding_status
     number_of_funding_rounds
-    employee_count
     founders
     source
     source_url

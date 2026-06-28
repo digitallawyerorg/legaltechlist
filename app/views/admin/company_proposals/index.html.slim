@@ -1,11 +1,11 @@
-- content_for :title, "Company Proposals"
+- content_for :title, "Review"
 
-= form_with url: batch_custom_admin_company_proposals_path, method: :post, local: true do
+= form_with url: batch_custom_admin_company_proposals_path, method: :post, local: true, html: { data: { proposal_batch_form: true } } do
     = hidden_field_tag :status, @status
     .card.border-0.shadow-sm.admin-compact-card
         .card-header.bg-white
             .d-flex.flex-wrap.justify-content-between.align-items-center.gap-2
-                h1.h4.mb-0 New Candidate Review
+                h1.h4.mb-0 Review
                 .d-flex.flex-wrap.align-items-center.gap-2
                     .admin-table-summary
                         - @review_cockpit_counts.each do |label, count|
@@ -15,20 +15,14 @@
                     = link_to upload_custom_admin_companies_csv_path, class: "btn btn-sm btn-outline-primary rounded-pill px-3" do
                         i.fas.fa-upload.me-2
                         | Review CSV Candidates
-        .card-body.border-bottom.admin-tabs-row
-            .nav.admin-section-tabs
-                = link_to "Existing Companies", custom_admin_company_reviews_path, class: "nav-link"
-                = link_to "New Candidates", custom_admin_company_proposals_path, class: "nav-link active"
         .card-body.border-bottom
             .admin-filter-toolbar
                 - @status_counts.each do |status, count|
                     = link_to "#{status.humanize} #{number_with_delimiter(count)}", custom_admin_company_proposals_path(status: status), class: "btn btn-sm #{@status == status ? 'btn-primary' : 'btn-outline-secondary'} rounded-pill px-3"
-        .card-body.border-bottom
-            .admin-filter-toolbar
-                span.text-muted.small.fw-semibold Batch actions
-                = button_tag "Re-enrich selected", type: "submit", name: "batch_action", value: "reenrich", class: "btn btn-sm btn-outline-primary rounded-pill px-3"
-                = button_tag "Mark needs revision", type: "submit", name: "batch_action", value: "mark_needs_revision", class: "btn btn-sm btn-outline-warning rounded-pill px-3"
-                = button_tag "Publish selected", type: "submit", name: "batch_action", value: "publish", class: "btn btn-sm btn-success rounded-pill px-3", data: { turbo_confirm: "Only publish proposals that pass all readiness gates?" }
+                .admin-proposal-batch-actions.d-none data-proposal-batch-actions=""
+                    = button_tag "Re-enrich selected", type: "submit", name: "batch_action", value: "reenrich", class: "btn btn-sm btn-outline-primary rounded-pill px-3"
+                    = button_tag "Mark needs revision", type: "submit", name: "batch_action", value: "mark_needs_revision", class: "btn btn-sm btn-outline-warning rounded-pill px-3"
+                    = button_tag "Publish selected", type: "submit", name: "batch_action", value: "publish", class: "btn btn-sm btn-success rounded-pill px-3", data: { turbo_confirm: "Only publish proposals that pass all readiness gates?" }
         .table-responsive
             table.table.table-hover.align-middle.mb-0.admin-table.is-compact
                 thead
@@ -103,3 +97,32 @@
                             td.text-muted colspan="10" No proposals in this queue.
         .card-footer.bg-white.py-2
             = paginate @company_proposals
+
+javascript:
+    document.addEventListener("DOMContentLoaded", function() {
+        let form = document.querySelector("[data-proposal-batch-form]");
+        if (!form) return;
+
+        let batchActions = form.querySelector("[data-proposal-batch-actions]");
+        let checkboxes = form.querySelectorAll('input[name="proposal_ids[]"]');
+        let selectAll = form.querySelector("[data-proposal-select-all]");
+
+        function updateBatchActionsVisibility() {
+            if (!batchActions) return;
+            let anyChecked = Array.from(checkboxes).some(function(checkbox) { return checkbox.checked; });
+            batchActions.classList.toggle("d-none", !anyChecked);
+        }
+
+        checkboxes.forEach(function(checkbox) {
+            checkbox.addEventListener("change", updateBatchActionsVisibility);
+        });
+
+        if (selectAll) {
+            selectAll.addEventListener("change", function() {
+                checkboxes.forEach(function(checkbox) {
+                    checkbox.checked = selectAll.checked;
+                });
+                updateBatchActionsVisibility();
+            });
+        }
+    });

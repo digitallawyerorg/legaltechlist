@@ -4,7 +4,7 @@ module ProposalChangesHelper
     category_id secondary_category_id
     business_model_ids business_model_id target_client_ids target_client_id all_tags
     crunchbase_url linkedin_url total_funding_amount_usd funding_status
-    number_of_funding_rounds employee_count founders source source_url
+    number_of_funding_rounds founders source source_url
   ].freeze
 
   def proposal_change_label(field)

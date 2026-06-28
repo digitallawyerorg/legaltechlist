@@ -4,6 +4,8 @@ one:
   id: 1
   name: Test Company One
   location: San Francisco, CA
+  country: United States
+  city: San Francisco
   founded_date: 2020
   description: A test company description that is long enough
   main_url: http://example.com
@@ -12,7 +14,6 @@ one:
   crunchbase_url: http://crunchbase.com/example
   linkedin_url: http://linkedin.com/example
   facebook_url: http://facebook.com/example
-  employee_count: 1-10
   visible: true
   category_id: 1
   business_model_id: 1
@@ -23,6 +24,8 @@ two:
   id: 2
   name: Test Company Two
   location: New York, NY
+  country: United States
+  city: New York
   founded_date: 2021
   description: Another test company description that is long enough
   main_url: http://example2.com
@@ -31,7 +34,6 @@ two:
   crunchbase_url: http://crunchbase.com/example2
   linkedin_url: http://linkedin.com/example2
   facebook_url: http://facebook.com/example2
-  employee_count: 11-50
   visible: true
   category_id: 2
   business_model_id: 2

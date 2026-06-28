@@ -78,6 +78,7 @@ html
             | .admin-quality-item.is-success .admin-quality-value { color: #166534; }
             | .admin-quality-item.is-info .admin-quality-value { color: #0369a1; }
             | .admin-filter-toolbar { align-items: center; display: flex; flex-wrap: wrap; gap: 0.3rem; }
+            | .admin-proposal-batch-actions { align-items: center; border-left: 1px solid #e2e8f0; display: flex; flex-wrap: wrap; gap: 0.3rem; margin-left: auto; padding-left: 0.55rem; }
             | .admin-filter-toolbar .btn { --bs-btn-font-size: 0.68rem; --bs-btn-padding-y: 0.12rem; --bs-btn-padding-x: 0.48rem; }
             | .admin-filter-toolbar .btn-primary { --bs-btn-bg: #f1f5f9; --bs-btn-border-color: #dbe4ee; --bs-btn-color: #0f172a; --bs-btn-hover-bg: #e8eef6; --bs-btn-hover-border-color: #cbd5e1; --bs-btn-hover-color: #0f172a; --bs-btn-active-bg: #e2e8f0; --bs-btn-active-border-color: #cbd5e1; --bs-btn-active-color: #0f172a; font-weight: 700; }
             | .admin-filter-toolbar .form-control, .admin-filter-toolbar .form-select { border-color: #e2e8f0; border-radius: 999px; font-size: 0.72rem; min-height: 1.75rem; padding-bottom: 0.18rem; padding-top: 0.18rem; }
@@ -103,7 +104,7 @@ html
                 button.navbar-toggler type="button" data-bs-toggle="collapse" data-bs-target="#customAdminNav" aria-controls="customAdminNav" aria-expanded="false" aria-label="Toggle navigation"
                     span.navbar-toggler-icon
                 #customAdminNav.collapse.navbar-collapse
-                    - admin_nav_items = [{ label: "Companies", path: custom_admin_companies_path, active_prefixes: ["/admin/app/companies"] }, { label: "Review", path: custom_admin_company_reviews_path, active_prefixes: ["/admin/review/companies", "/admin/proposals"] }, { label: "Discover", path: new_custom_admin_discovery_path, active_prefixes: ["/admin/discoveries"] }, { label: "Activity", path: custom_admin_pipeline_runs_path, active_prefixes: ["/admin/pipeline-runs", "/admin/agent-reviews"] }, { label: "Taxonomy", path: custom_admin_resources_path(resource: "categories"), active_prefixes: ["/admin/app/resources"] }, { label: "Quality", path: custom_admin_quality_path, active_paths: [custom_admin_quality_path] }]
+                    - admin_nav_items = [{ label: "Companies", path: custom_admin_companies_path, active_prefixes: ["/admin/app/companies", "/admin/review/companies"] }, { label: "Review", path: custom_admin_company_proposals_path, active_prefixes: ["/admin/proposals"] }, { label: "Discover", path: new_custom_admin_discovery_path, active_prefixes: ["/admin/discoveries"] }, { label: "Activity", path: custom_admin_pipeline_runs_path, active_prefixes: ["/admin/pipeline-runs", "/admin/agent-reviews"] }, { label: "Taxonomy", path: custom_admin_resources_path(resource: "categories"), active_prefixes: ["/admin/app/resources"] }, { label: "Quality", path: custom_admin_quality_path, active_paths: [custom_admin_quality_path] }]
                     ul.navbar-nav.me-auto.mb-2.mb-lg-0
                         - admin_nav_items.each do |item|
                             - active = Array(item[:active_paths]).include?(request.path) || Array(item[:active_prefixes]).any? { |prefix| request.path.start_with?(prefix) }

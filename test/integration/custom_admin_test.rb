@@ -58,30 +58,23 @@ class CustomAdminTest < ActionDispatch::IntegrationTest
     assert_select ".admin-quality-label", text: "Duplicate-domain candidates"
   end
 
-  test "company review index is available to signed-in admin users" do
+  test "company review index redirects to proposal review" do
     sign_in admin_users(:one)
 
     get custom_admin_company_reviews_path
 
-    assert_response :success
-    assert_select "h1", "Review"
-    assert_select ".admin-section-tabs a.active", "Existing Companies"
-    assert_select ".admin-section-tabs a", "New Candidates"
-    assert_select "button", "Run Next Description Review"
-    assert_select "button", "Run Next Duplicate Review"
-    assert_select "a", /Description review/
-    assert_select "a", "Review"
+    assert_redirected_to custom_admin_company_proposals_path
   end
 
-  test "description review queue is available to signed-in admin users" do
+  test "description review queue is available on companies tab" do
     sign_in admin_users(:one)
     company = companies(:one)
     company.update_columns(description: "Short")
 
-    get custom_admin_company_reviews_path(queue: "description_review")
+    get custom_admin_companies_path(review_signal: "description_review")
 
     assert_response :success
-    assert_select "a.btn-primary", /Description review/
+    assert_select "h1", "Companies"
     assert_select "td", text: /#{Regexp.escape(company.name)}/
   end
 
@@ -411,8 +404,13 @@ class CustomAdminTest < ActionDispatch::IntegrationTest
 
     get custom_admin_company_proposals_path
     assert_response :success
-    assert_select "h1", "New Candidate Review"
-    assert_select ".admin-section-tabs a.active", "New Candidates"
+    assert_select "h1", "Review"
+    assert_select ".admin-section-tabs", false
+    assert_select ".admin-proposal-batch-actions.d-none"
+    assert_select "button", "Re-enrich selected"
+    assert_select "button", "Mark needs revision"
+    assert_select "button", "Publish selected"
+    assert_no_match(/Batch actions/, response.body)
     assert_select "td", text: /Review Proposal/
     assert_select ".admin-table-summary-item", text: /Ready/
 

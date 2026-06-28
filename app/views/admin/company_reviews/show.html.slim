@@ -9,7 +9,7 @@
     div
         h1.h3.mb-1= @company.name
     .d-flex.gap-2
-        = link_to "Back to Review Queue", custom_admin_company_reviews_path, class: "btn btn-outline-secondary"
+        = link_to "Back to Companies", custom_admin_companies_path, class: "btn btn-outline-secondary"
         = link_to "Edit Company", edit_custom_admin_company_path(@company), class: "btn btn-primary"
         = button_to "Run Agent Review", custom_admin_company_agent_review_path(@company), method: :post, class: "btn btn-warning", form: { data: { turbo_confirm: "Run a proposal-only agent review for this company?" } }
         = button_to "Run Duplicate Review", custom_admin_company_duplicate_review_path(@company), method: :post, class: "btn btn-outline-warning", form: { data: { turbo_confirm: "Run a proposal-only duplicate-domain review for this company?" } }
@@ -84,8 +84,6 @@
                     dd.col-sm-9= field_value.call(@company.contact_name)
                     dt.col-sm-3 Contact email
                     dd.col-sm-9= field_value.call(@company.contact_email)
-                    dt.col-sm-3 Employee count
-                    dd.col-sm-9= field_value.call(@company.employee_count)
                     dt.col-sm-3 Founders
                     dd.col-sm-9= field_value.call(@company.founders)
                     dt.col-sm-3 Headquarters region

@@ -20,9 +20,15 @@
                 .col-md-6
                     = f.label :main_url, class: "form-label"
                     = f.text_field :main_url, class: "form-control"
-                .col-md-6
-                    = f.label :location, class: "form-label"
-                    = f.text_field :location, class: "form-control"
+                .col-md-4
+                    = f.label :city, class: "form-label"
+                    = f.text_field :city, class: "form-control", placeholder: "City"
+                .col-md-4
+                    = f.label :country, class: "form-label"
+                    = f.text_field :country, class: "form-control", placeholder: "Country"
+                .col-md-4
+                    = f.label :location, "Display location", class: "form-label"
+                    = f.text_field :location, class: "form-control", placeholder: "Auto-synced from city and country"
                 .col-md-3
                     = f.label :founded_date, class: "form-label"
                     = f.text_field :founded_date, class: "form-control"
@@ -73,7 +79,7 @@
             h2.h5.mb-0 Links And Metadata
         .card-body
             .row.g-3
-                - [:twitter_url, :angellist_url, :crunchbase_url, :linkedin_url, :facebook_url, :legalio_url, :logo_url, :contact_name, :contact_email, :employee_count, :founders, :headquarters_region, :source, :source_url].each do |field|
+                - [:twitter_url, :angellist_url, :crunchbase_url, :linkedin_url, :facebook_url, :legalio_url, :logo_url, :contact_name, :contact_email, :founders, :headquarters_region, :source, :source_url].each do |field|
                     .col-md-6
                         = f.label field, class: "form-label"
                         = f.text_field field, class: "form-control"

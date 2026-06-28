@@ -32,7 +32,6 @@ class AtlasCandidateNormalizerService
       "industries" => split_list(row["Industries"]),
       "funding_amount_usd" => row["Total Funding Amount (in USD)"].to_s.strip.presence,
       "number_of_funding_rounds" => row["Number of Funding Rounds"].to_s.strip.presence,
-      "employee_count" => row["Number of Employees"].to_s.strip.presence,
       "founders" => row["Founders"].to_s.strip.presence,
       "source_description" => row["Description"].to_s.strip.presence,
       "full_source_description" => row["Full Description"].to_s.strip.presence,

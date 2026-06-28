@@ -18,13 +18,6 @@ namespace :csv do
       #Company.create(row)
 
       # clean up data to ensure validation on import
-      # Removing employee count for now
-      # count = row["employee_count"].to_i
-      # if count.nil?
-      #   count = 1
-      # elsif count < 1
-      #   count = 1
-      # end
 
       # Add placeholder when no location is present
       if row["location"].nil? || row["location"] == ""

@@ -36,8 +36,7 @@ class CompanyProposalEnrichmentService
   def enriched_changes
     {
       "description" => proposed_description,
-      "number_of_funding_rounds" => number_of_funding_rounds,
-      "employee_count" => source_payload["employee_count"].presence || source_payload["Number of Employees"].presence
+      "number_of_funding_rounds" => number_of_funding_rounds
     }.compact
   end
 
@@ -147,7 +146,7 @@ class CompanyProposalEnrichmentService
 
   def description_prompt
     {
-      candidate: source_payload.slice("name", "website", "location", "industries", "operating_status", "company_type", "founded_date", "funding_amount_usd", "number_of_funding_rounds", "employee_count", "founders"),
+      candidate: source_payload.slice("name", "website", "location", "industries", "operating_status", "company_type", "founded_date", "funding_amount_usd", "number_of_funding_rounds", "founders"),
       source_evidence: source_evidence,
       web_research: research_payload,
       instruction: "Return JSON with key proposed_description. Draft one neutral, academic directory sentence of 18-32 words. Use concrete product/function language grounded only in evidence. Do not copy source descriptions. Avoid marketing language, source-meta phrasing, customer counts, unverifiable superlatives, and the phrase 'provides or supports'."

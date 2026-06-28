@@ -64,7 +64,7 @@ css:
 - content_for :title, "Legal Tech Companies"
 - content_for :description, "Browse and search #{number_with_delimiter(@total_count)} legal technology companies in the CodeX TechIndex — filter by category, location, status, and funding."
 - active_params = request.query_parameters.symbolize_keys
-- clear_params = active_params.except(:category, :status, :location, :query, :page)
+- clear_params = active_params.except(:category, :status, :country, :city, :query, :page)
 - selected_category_ids = company_filter_category_ids
 - selected_statuses = company_filter_statuses
 - result_start = @companies.empty? ? 0 : @companies.offset_value + 1
@@ -100,9 +100,9 @@ css:
                                         span.company-pill= company.category&.name || "Uncategorized"
                                     td data-label="Founded"= company.founded_date.presence || "N/A"
                                     td data-label="HQ"
-                                        - if company.location.present?
-                                            - formatted_location = format_location(company.location)
-                                            - location_flag = country_flag_emoji(location_country_iso_code(company.location))
+                                        - if company.display_location.present?
+                                            - formatted_location = company_display_location(company)
+                                            - location_flag = country_flag_emoji(company_country_iso_code(company))
                                             span.company-hq-cell
                                                 - if location_flag.present?
                                                     span.company-hq-flag aria-hidden="true"= location_flag

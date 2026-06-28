@@ -66,7 +66,7 @@ module Admin
     end
 
     def country_options
-      Company.where(visible: true).where.not(location: [nil, ""]).pluck(:location).filter_map { |location| LocationCountryResolver.country_name_for(location) }.compact_blank.uniq.sort
+      Company.where(visible: true).with_resolved_country.distinct.order(:country).pluck(:country)
     end
   end
 end
