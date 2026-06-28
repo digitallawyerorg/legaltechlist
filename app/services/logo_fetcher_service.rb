@@ -13,6 +13,45 @@ class LogoFetcherService
     new(scope: scope, dry_run: dry_run, limit: limit, provider: provider, logger: logger, verifier: verifier, downloader: downloader).backfill_missing_logos
   end
 
+  def self.fetch_for_company(company, logger: nil, verifier: nil, downloader: nil)
+    return nil unless company.is_a?(Company)
+
+    backfill_missing_logos(
+      scope: Company.where(id: company.id),
+      dry_run: false,
+      limit: 1,
+      logger: logger,
+      verifier: verifier,
+      downloader: downloader
+    )
+  rescue MissingConfiguration => e
+    Rails.logger.debug("Logo fetch skipped for company #{company.id}: #{e.message}") if defined?(Rails)
+    nil
+  end
+
+  def self.schedule_fetch_for(company, async: fetch_async_enabled?)
+    company_record = company.is_a?(Company) ? company : Company.find_by(id: company)
+    return unless company_record&.logo_fetch_needed?
+
+    if async
+      company_id = company_record.id
+      Rails.application.executor.wrap do
+        Thread.new do
+          Rails.application.executor.wrap do
+            record = Company.find_by(id: company_id)
+            fetch_for_company(record) if record&.logo_fetch_needed?
+          end
+        end
+      end
+    else
+      fetch_for_company(company_record)
+    end
+  end
+
+  def self.fetch_async_enabled?
+    !Rails.env.test?
+  end
+
   def initialize(scope:, dry_run:, limit:, provider:, logger:, verifier:, downloader: nil)
     @scope = scope
     @dry_run = dry_run

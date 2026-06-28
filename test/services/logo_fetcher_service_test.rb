@@ -165,6 +165,28 @@ class LogoFetcherServiceTest < ActiveSupport::TestCase
     end
   end
 
+  test "fetch_for_company stores a logo for one company" do
+    company = companies(:one)
+    company.update!(logo_url: nil)
+
+    with_logo_dev_key("pk_test") do
+      result = LogoFetcherService.fetch_for_company(company, verifier: ->(_url) { true }, downloader: stub_downloader)
+
+      assert_equal 1, result.updated
+      assert_equal "image/png", company.reload.company_logo.content_type
+    end
+  end
+
+  test "fetch_for_company skips when logo dev is not configured" do
+    company = companies(:one)
+    company.update!(logo_url: nil)
+
+    with_logo_dev_key(nil) do
+      assert_nil LogoFetcherService.fetch_for_company(company, verifier: ->(_url) { true }, downloader: stub_downloader)
+      assert_nil company.reload.company_logo
+    end
+  end
+
   test "verifier falls back to get when head is not successful" do
     service = LogoFetcherService.new(scope: Company.none, dry_run: true, limit: nil, provider: :logo_dev, logger: nil, verifier: nil, downloader: nil)
     head_response = Net::HTTPNotFound.new("1.1", "404", "Not Found")

@@ -115,6 +115,8 @@ class CompanyImportWorkerService
       approved_at: Time.current,
       reviewer_notes: [proposal.reviewer_notes, "Agent published after worker import quality gates passed."].compact_blank.join("\n")
     )
+    company.reload
+    LogoFetcherService.schedule_fetch_for(company, async: false)
     result.merge("action" => "published", "reason" => "Published after worker import quality gates passed.", "company_id" => company.id)
   end
 

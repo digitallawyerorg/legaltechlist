@@ -60,6 +60,7 @@ class Company < ActiveRecord::Base
 
   geocoded_by :location
   after_validation :geocode, if: ->(obj) { obj.location.present? && obj.location_changed? && !obj.skip_geocoding }
+  after_commit :schedule_logo_fetch_if_needed, on: [:create, :update]
 
   include PgSearch::Model
   pg_search_scope :search,
@@ -366,5 +367,24 @@ class Company < ActiveRecord::Base
 
   def logo_dev_url?(url)
     self.class.logo_dev_url?(url)
+  end
+
+  def logo_fetch_needed?
+    return false unless visible?
+    return false if company_logo.present?
+    return false if main_url.blank?
+    return false unless canonical_main_domain
+    return false if logo_url.present? && !logo_dev_url?(logo_url)
+
+    true
+  end
+
+  private
+
+  def schedule_logo_fetch_if_needed
+    return unless logo_fetch_needed?
+    return unless previously_new_record? || saved_change_to_visible? || saved_change_to_main_url?
+
+    LogoFetcherService.schedule_fetch_for(self)
   end
 end
