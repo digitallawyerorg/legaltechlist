@@ -1,7 +1,9 @@
 class CompaniesController < ApplicationController
+  include UserSubmissionProtection
+
   FEED_COMPANY_LIMIT = 100
 
-  before_action :set_company, only: [:show, :edit, :update, :destroy, :suggest_update]
+  before_action :set_company, only: [:show, :suggest_update]
 
   # GET /companies
   # GET /companies.json
@@ -87,12 +89,7 @@ class CompaniesController < ApplicationController
 
   # GET /companies/new
   def new
-    @company = Company.new
-  end
-
-  # GET /companies/1/edit
-  def edit
-
+    @contribution_form = CompanyContributionForm.new
   end
 
   # POST /companies/1/suggest_update
@@ -109,62 +106,26 @@ class CompaniesController < ApplicationController
       return
     end
 
-    SuggestionMailer.company_update_suggestion_email(@company, suggestion).deliver_now
+    UserSuggestionIntakeService.call(company: @company, suggestion: suggestion, request_ip: request.remote_ip)
 
     redirect_to @company, notice: "Thank you. Your suggestion has been submitted for review."
   end
 
   # POST /companies
   # POST /companies.json
-  # Actual companies are created in the Admin module. This function will accept
-  # the values from the new form, verify them, and then e-mail them to the
-  # administrator to be added later.
   def create
-    @company = Company.new(company_params)
-    @company.visible = false
+    @contribution_form = CompanyContributionForm.from_params(params)
 
     respond_to do |format|
-      if @company.save
-        # set company to invisible
+      if @contribution_form.valid?
+        UserContributionIntakeService.call(form: @contribution_form, request_ip: request.remote_ip)
 
-        SuggestionMailer.newcompany_email(@company).deliver_now
-
-        format.html { redirect_to @company, notice: t('controllers.company.created_success') }
-        format.json { render :show, status: :created, location: @company }
+        format.html { redirect_to companies_path, notice: "Thank you. Your company suggestion has been submitted for review." }
+        format.json { head :created }
       else
-        format.html { render :new }
-        format.json { render json: @company.errors, status: :unprocessable_entity }
+        format.html { render :new, status: :unprocessable_entity }
+        format.json { render json: @contribution_form.errors, status: :unprocessable_entity }
       end
-    end
-  end
-
-  # PATCH/PUT /companies/1
-  # PATCH/PUT /companies/1.json
-  # Actual companies are edited in the Admin module. This function will accept the
-  # values from the edit form, verify them, and then e-mail them to the
-  # administrator to be added later.
-  def update
-    respond_to do |format|
-      if @company.update(company_params)
-        SuggestionMailer.editcompany_email(@company).deliver_now
-
-        format.html { redirect_to @company, notice: t('controllers.company.updated_success') }
-        format.json { render :show, status: :ok, location: @company }
-      else
-        flash.now[:notice] = "Failed, please try again"
-        format.html { render :edit }
-        format.json { render json: @company.errors, status: :unprocessable_entity }
-      end
-    end
-  end
-
-  # DELETE /companies/1
-  # DELETE /companies/1.json
-  def destroy
-    @company.destroy
-    respond_to do |format|
-      format.html { redirect_to companies_url, notice: t('controllers.company.destroyed_success') }
-      format.json { head :no_content }
     end
   end
 
@@ -266,21 +227,9 @@ class CompaniesController < ApplicationController
       Array(source_params[:status]).map { |status| status.to_s.strip.downcase }.reject(&:blank?)
     end
 
-    # Use callbacks to share common setup or constraints between actions.
     def set_company
       scope = action_name == "show" ? Company.includes(:category, :secondary_category, :successor_company, :business_model, :business_models, :company_logo, :target_client, :target_clients, :tags) : Company
       @company = scope.find(params[:id])
-    end
-
-    # Never trust parameters from the scary internet, only allow the white list through.
-    def company_params
-      params.require(:company).permit(:name, :location, :country, :city, :founded_date, :category, :secondary_category,
-                                      :business_model, :target_client, :description, :main_url,
-                                      :twitter_url, :angellist_url, :crunchbase_url, :linkedin_url,
-                                      :facebook_url, :legalio_url, :status,
-                                      :all_tags, :category_id, :secondary_category_id, :target_client_id,
-                                      :business_model_id, :visible, :contact_name, :contact_email,
-                                      :codex_presenter, :codex_presentation_date)
     end
 
     def suggest_update_params

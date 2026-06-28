@@ -171,26 +171,33 @@ class CompaniesControllerTest < ActionController::TestCase
     assert_response :success
   end
 
-  test "should create company" do
-    assert_difference('Company.count') do
-      post :create, params: {
-        company: {
-          angellist_url: @company.angellist_url,
-          category_id: @company.category_id,
-          business_model_id: @company.business_model_id,
-          target_client_id: @company.target_client_id,
-          crunchbase_url: @company.crunchbase_url,
-          description: @company.description,
-          founded_date: @company.founded_date,
-          location: @company.location,
-          main_url: @company.main_url,
-          name: @company.name,
-          twitter_url: @company.twitter_url
-        }
-      }
+  test "should create proposal from contribution form" do
+    assert_no_difference('Company.count') do
+      assert_difference('CompanyProposal.count', 1) do
+        post :create, params: { company_contribution: contribution_params }
+      end
     end
 
-    assert_redirected_to company_path(assigns(:company))
+    assert_redirected_to companies_path
+    proposal = CompanyProposal.order(:id).last
+    assert_equal "user_contribution", proposal.proposal_type
+    assert_equal "contributor@example.com", proposal.submitter_email
+  end
+
+  def contribution_params
+    {
+      contact_email: "contributor@example.com",
+      contact_name: "Ada Contributor",
+      name: "Suggested Legal Co",
+      main_url: "https://suggested-legal.example",
+      location: "Stanford, CA",
+      founded_date: "2023",
+      category_id: @company.category_id,
+      description: "A long enough description for a suggested legal technology company.",
+      status: "active",
+      business_model_ids: [@company.business_model_id],
+      target_client_ids: [@company.target_client_id]
+    }
   end
 
   test "should show company" do
@@ -286,22 +293,24 @@ class CompaniesControllerTest < ActionController::TestCase
     assert_select "form[action=?][method=?]", suggest_update_company_path(@company), "post"
   end
 
-  test "suggest update sends email and redirects with notice" do
-    assert_difference -> { ActionMailer::Base.deliveries.size }, 1 do
-      post :suggest_update, params: {
-        id: @company,
-        issue_type: "incorrect_details",
-        message: "Founded year should be 2014.",
-        source_url: "https://example.com/about",
-        submitter_email: "reviewer@example.com"
-      }
+  test "suggest update creates proposal and redirects with notice" do
+    assert_no_difference -> { ActionMailer::Base.deliveries.size } do
+      assert_difference "CompanyProposal.count", 1 do
+        post :suggest_update, params: {
+          id: @company,
+          issue_type: "incorrect_details",
+          message: "Founded year should be 2014.",
+          source_url: "https://example.com/about",
+          submitter_email: "reviewer@example.com"
+        }
+      end
     end
 
     assert_redirected_to company_path(@company)
     assert_equal "Thank you. Your suggestion has been submitted for review.", flash[:notice]
-    mail = ActionMailer::Base.deliveries.last
-    assert_includes mail.subject, @company.name
-    assert_includes mail.body.encoded, "Founded year should be 2014."
+    proposal = CompanyProposal.order(:id).last
+    assert_equal "user_suggestion", proposal.proposal_type
+    assert_equal "incorrect_details", proposal.issue_type
   end
 
   test "suggest update requires issue type and message" do
@@ -327,29 +336,24 @@ class CompaniesControllerTest < ActionController::TestCase
     assert_match(/email/i, flash[:alert].to_s)
   end
 
-  test "should get edit" do
-    get :edit, params: { id: @company }
-    assert_response :success
+  test "honeypot silently accepts bot submissions without creating proposals" do
+    assert_no_difference "CompanyProposal.count" do
+      post :create, params: { website_url: "http://bot.example", company_contribution: contribution_params }
+    end
+
+    assert_redirected_to companies_path
   end
 
-  test "should update company" do
-    patch :update, params: {
-      id: @company,
-      company: {
-        angellist_url: @company.angellist_url,
-        category_id: @company.category_id,
-        business_model_id: @company.business_model_id,
-        target_client_id: @company.target_client_id,
-        crunchbase_url: @company.crunchbase_url,
-          description: @company.description,
-          founded_date: @company.founded_date,
-        location: @company.location,
-        main_url: @company.main_url,
-        name: @company.name,
-        twitter_url: @company.twitter_url
-      }
-    }
-    assert_redirected_to company_path(assigns(:company))
+  test "public edit route is not available" do
+    assert_raises(ActionController::UrlGenerationError) do
+      get :edit, params: { id: @company }
+    end
+  end
+
+  test "public update route is not available" do
+    assert_raises(ActionController::UrlGenerationError) do
+      patch :update, params: { id: @company, company_contribution: contribution_params }
+    end
   end
 
   test "public company destroy route is not available" do

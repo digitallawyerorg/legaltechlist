@@ -2,7 +2,8 @@ class CompanyProposal < ActiveRecord::Base
   include TaxonomyCompleteness
 
   STATUSES = %w[pending ready_for_review needs_revision approved_to_draft published rejected].freeze
-  PROPOSAL_TYPES = %w[atlas_candidate discovery_candidate].freeze
+  PROPOSAL_TYPES = %w[atlas_candidate discovery_candidate user_contribution user_suggestion].freeze
+  USER_SUBMISSION_TYPES = %w[user_contribution user_suggestion].freeze
 
   belongs_to :admin_user, optional: true
   belongs_to :company, optional: true
@@ -17,6 +18,9 @@ class CompanyProposal < ActiveRecord::Base
   scope :approved_to_draft, -> { where(status: "approved_to_draft") }
   scope :published, -> { where(status: "published") }
   scope :rejected, -> { where(status: "rejected") }
+  scope :user_submissions, -> { where(proposal_type: USER_SUBMISSION_TYPES) }
+  scope :user_contributions, -> { where(proposal_type: "user_contribution") }
+  scope :user_suggestions, -> { where(proposal_type: "user_suggestion") }
 
   EDITABLE_COMPANY_FIELDS = %w[
     name
@@ -72,5 +76,17 @@ class CompanyProposal < ActiveRecord::Base
 
   def rejected?
     status == "rejected"
+  end
+
+  def user_submission?
+    proposal_type.in?(USER_SUBMISSION_TYPES)
+  end
+
+  def user_contribution?
+    proposal_type == "user_contribution"
+  end
+
+  def user_suggestion?
+    proposal_type == "user_suggestion"
   end
 end

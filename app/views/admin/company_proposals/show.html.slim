@@ -8,6 +8,22 @@
         = link_to "Back to Proposals", custom_admin_company_proposals_path, class: "btn btn-outline-secondary"
         = link_to "Edit Proposal", edit_custom_admin_company_proposal_path(@company_proposal), class: "btn btn-primary"
 
+- if @company_proposal.user_submission?
+    .card.border-0.shadow-sm.mb-3
+        .card-body
+            .text-uppercase.text-muted.small.fw-semibold User submission
+            p.mb-1
+                strong Submitter:
+                = " #{@company_proposal.submitter_email}"
+            - if @company_proposal.issue_type.present?
+                p.mb-1
+                    strong Issue type:
+                    = " #{@company_proposal.issue_type.humanize}"
+            - if @company_proposal.user_message.present?
+                p.mb-0
+                    strong Message:
+                    = " #{@company_proposal.user_message}"
+
 - if @company_proposal.company
     .alert.alert-success
         strong= @company_proposal.company.visible? ? "Published company:" : "Draft created:"
@@ -111,18 +127,24 @@
                     = button_to "Run Proposal Enrichment", enrich_custom_admin_company_proposal_path(@company_proposal), method: :post, class: "btn btn-outline-primary", form: { data: { turbo_confirm: "Generate proposal-only enrichment without changing company records?" } }
                     = link_to "Edit Final Fields", edit_custom_admin_company_proposal_path(@company_proposal), class: "btn btn-primary"
                 hr
-                = form_with url: approve_custom_admin_company_proposal_path(@company_proposal), method: :post, local: true do
-                    - if @company_proposal.duplicate_blocking?
-                        .alert.alert-warning
-                            strong Duplicate signals found.
-                            |  Approval is blocked unless you explicitly confirm the override.
-                        .form-check.mb-3
-                            = check_box_tag :duplicate_override, "1", false, class: "form-check-input", id: "duplicate_override"
-                            = label_tag :duplicate_override, "I reviewed duplicate signals and still want to approve this proposal", class: "form-check-label"
-                    p.text-muted.small The description in Final Editable Fields will be used. If it is blank, a conservative draft will be generated before approval.
-                    .d-grid.gap-2
-                        = button_tag "Approve draft", type: "submit", name: "publish", value: "0", class: "btn btn-outline-success w-100", data: { turbo_confirm: "Approve this proposal as an invisible draft?" }, disabled: @company_proposal.company_id.present?
-                        = button_tag "Publish", type: "submit", name: "publish", value: "1", class: "btn btn-success w-100", data: { turbo_confirm: "Publish this proposal to the public site?" }, disabled: @company_proposal.company_id.present? || !@quality_report["publish_ready"]
+                - if @company_proposal.user_suggestion?
+                    = form_with url: approve_custom_admin_company_proposal_path(@company_proposal), method: :post, local: true do
+                        p.text-muted.small Apply interpreted field changes to the linked company record.
+                        .d-grid.gap-2
+                            = button_tag "Apply update", type: "submit", name: "publish", value: "0", class: "btn btn-success w-100", data: { turbo_confirm: "Apply this suggestion to #{@company_proposal.company&.name}?" }
+                - else
+                    = form_with url: approve_custom_admin_company_proposal_path(@company_proposal), method: :post, local: true do
+                        - if @company_proposal.duplicate_blocking?
+                            .alert.alert-warning
+                                strong Duplicate signals found.
+                                |  Approval is blocked unless you explicitly confirm the override.
+                            .form-check.mb-3
+                                = check_box_tag :duplicate_override, "1", false, class: "form-check-input", id: "duplicate_override"
+                                = label_tag :duplicate_override, "I reviewed duplicate signals and still want to approve this proposal", class: "form-check-label"
+                        p.text-muted.small The description in Final Editable Fields will be used. If it is blank, a conservative draft will be generated before approval.
+                        .d-grid.gap-2
+                            = button_tag "Approve draft", type: "submit", name: "publish", value: "0", class: "btn btn-outline-success w-100", data: { turbo_confirm: "Approve this proposal as an invisible draft?" }, disabled: @company_proposal.company_id.present?
+                            = button_tag "Publish", type: "submit", name: "publish", value: "1", class: "btn btn-success w-100", data: { turbo_confirm: "Publish this proposal to the public site?" }, disabled: @company_proposal.company_id.present? || !@quality_report["publish_ready"]
                 hr
                 = form_with url: reject_custom_admin_company_proposal_path(@company_proposal), method: :post, local: true do
                     .mb-3

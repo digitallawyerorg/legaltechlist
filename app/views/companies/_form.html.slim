@@ -1,10 +1,16 @@
 - category_options = Category.where.not(name: "Unknown").order(:name)
-= form_with model: @company, local: true, html: { class: "company-suggest-form" } do |f|
-    - if @company.errors.any?
+- revenue_model_options = BusinessModel.where.not(name: "Unknown").order(:name)
+- target_client_options = TargetClient.where.not(name: "Unknown").order(:name)
+- contribution_form = @contribution_form || CompanyContributionForm.new
+= form_with model: contribution_form, url: companies_path, scope: :company_contribution, local: true, html: { class: "company-suggest-form" } do |f|
+    div style="display:none" aria-hidden="true"
+        = label_tag :website_url, "Website"
+        = text_field_tag :website_url, nil, tabindex: "-1", autocomplete: "off"
+    - if contribution_form.errors.any?
         .company-suggest-errors
-            h2= pluralize(@company.errors.count, "error") + " prevented this submission"
+            h2= pluralize(contribution_form.errors.count, "error") + " prevented this submission"
             ul
-                - @company.errors.full_messages.each do |message|
+                - contribution_form.errors.full_messages.each do |message|
                     li= message
 
     section.company-suggest-section
@@ -15,7 +21,7 @@
                 = f.text_field :contact_name, class: "form-control", autocomplete: "name"
             .col-md-6
                 = f.label :contact_email, "Email", class: "form-label"
-                = f.email_field :contact_email, class: "form-control", autocomplete: "email"
+                = f.email_field :contact_email, class: "form-control", autocomplete: "email", required: true
 
     section.company-suggest-section
         .company-suggest-section-label Company profile
@@ -25,13 +31,13 @@
                 = f.text_field :name, class: "form-control", required: true
             .col-md-6
                 = f.label :main_url, "Website", class: "form-label"
-                = f.url_field :main_url, class: "form-control", placeholder: "https://"
+                = f.url_field :main_url, class: "form-control", placeholder: "https://", required: true
             .col-md-6
                 = f.label :location, "Headquarters", class: "form-label"
-                = f.text_field :location, class: "form-control", placeholder: "City, region, country"
+                = f.text_field :location, class: "form-control", placeholder: "City, region, country", required: true
             .col-md-6
                 = f.label :founded_date, "Year founded", class: "form-label"
-                = f.text_field :founded_date, class: "form-control", placeholder: "YYYY"
+                = f.text_field :founded_date, class: "form-control", placeholder: "YYYY", required: true
             .col-md-6
                 = f.label :category_id, "Primary category", class: "form-label"
                 = f.collection_select :category_id, category_options, :id, :name, { include_blank: "Select a category" }, { class: "form-select", required: true }
@@ -39,7 +45,19 @@
                     = link_to "Category definitions", statistics_methodology_path
             .col-12
                 = f.label :description, "Description", class: "form-label"
-                = f.text_area :description, class: "form-control", rows: 5, placeholder: "What does the company do? Who does it serve?"
+                = f.text_area :description, class: "form-control", rows: 5, placeholder: "What does the company do? Who does it serve?", required: true
+            .col-12
+                = f.label :business_model_ids, "Revenue model(s)", class: "form-label"
+                = f.collection_check_boxes :business_model_ids, revenue_model_options, :id, :name do |builder|
+                    .form-check
+                        = builder.check_box class: "form-check-input"
+                        = builder.label class: "form-check-label"
+            .col-12
+                = f.label :target_client_ids, "Target client(s)", class: "form-label"
+                = f.collection_check_boxes :target_client_ids, target_client_options, :id, :name do |builder|
+                    .form-check
+                        = builder.check_box class: "form-check-input"
+                        = builder.label class: "form-check-label"
             .col-12
                 = f.label :all_tags, "Tags", class: "form-label"
                 = f.text_field :all_tags, class: "form-control", placeholder: "e.g. artificial intelligence, contract management, saas"
@@ -50,7 +68,7 @@
         .row.g-3
             .col-md-6
                 = f.label :status, "Status", class: "form-label"
-                = f.select :status, [["Active", "active"], ["Inactive", "inactive"], ["Acquired", "acquired"]], { include_blank: "Select status" }, { class: "form-select" }
+                = f.select :status, [["Active", "active"], ["Inactive", "inactive"], ["Acquired", "acquired"]], { include_blank: "Select status" }, { class: "form-select", required: true }
             .col-md-6
                 = f.label :crunchbase_url, "Crunchbase URL", class: "form-label"
                 = f.url_field :crunchbase_url, class: "form-control", placeholder: "Optional"
@@ -78,6 +96,10 @@
                 = f.url_field :logo_url, class: "form-control", placeholder: "Optional direct link to a square logo"
                 .form-text Recommended size: 64×64 px or larger.
 
+    - if recaptcha_required?
+        .company-suggest-section
+            = recaptcha_tags
+
     .company-suggest-actions
-        = link_to "Cancel", @company.persisted? ? company_path(@company) : companies_path, class: "company-suggest-cancel"
-        = f.submit (@company.persisted? ? "Submit update" : "Submit suggestion"), class: "company-suggest-submit"
+        = link_to "Cancel", companies_path, class: "company-suggest-cancel"
+        = f.submit "Submit suggestion", class: "company-suggest-submit"

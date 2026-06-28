@@ -76,4 +76,6 @@ Rails.application.configure do
     'Cache-Control' => 'public, max-age=3600',
     'X-Debug-Path' => 'true'
   }
+
+  config.active_job.queue_adapter = :async
 end

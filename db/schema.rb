@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_06_28_120000) do
+ActiveRecord::Schema[8.0].define(version: 2026_06_28_130000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -233,12 +233,18 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_28_120000) do
     t.datetime "enriched_at"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "submitter_email"
+    t.string "submitter_name"
+    t.string "issue_type"
+    t.string "slack_message_ts"
+    t.text "user_message"
     t.index ["admin_user_id"], name: "index_company_proposals_on_admin_user_id"
     t.index ["company_id"], name: "index_company_proposals_on_company_id"
     t.index ["proposal_type"], name: "index_company_proposals_on_proposal_type"
     t.index ["source"], name: "index_company_proposals_on_source"
     t.index ["source_identifier"], name: "index_company_proposals_on_source_identifier"
     t.index ["status"], name: "index_company_proposals_on_status"
+    t.index ["submitter_email"], name: "index_company_proposals_on_submitter_email"
   end
 
   create_table "company_target_clients", force: :cascade do |t|

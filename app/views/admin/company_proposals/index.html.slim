@@ -29,6 +29,7 @@
                     tr
                         th= check_box_tag :select_all_proposals, "1", false, class: "form-check-input", data: { proposal_select_all: true }, aria: { label: "Select all proposals on this page" }
                         th Candidate
+                        th Submitter
                         th Readiness
                         th Description
                         th Taxonomy
@@ -53,8 +54,19 @@
                                     .admin-cell-secondary= proposal.final_changes["main_url"].presence || proposal.source_payload["website"].presence || "Missing website"
                                     .d-flex.flex-wrap.gap-1.mt-1
                                         span.admin-status-pill.text-bg-light= proposal.status.humanize
+                                        - if proposal.user_submission?
+                                            span.admin-status-pill.text-bg-light= proposal.proposal_type.humanize
+                                        - if proposal.issue_type.present?
+                                            span.admin-status-pill.text-bg-light= proposal.issue_type.humanize
                                         - if import_run_id.present?
                                             span.admin-status-pill.text-bg-light= "Run ##{import_run_id}"
+                            td.small
+                                - if proposal.submitter_email.present?
+                                    .admin-cell-primary= proposal.submitter_email
+                                    - if proposal.submitter_name.present?
+                                        .admin-cell-secondary= proposal.submitter_name
+                                - else
+                                    span.admin-cell-secondary —
                             td
                                 span.admin-status-pill(class=(quality["publish_ready"] ? "text-bg-success" : "text-bg-warning"))= "#{quality['score']}%"
                                 - if Array(quality["blockers"]).any?

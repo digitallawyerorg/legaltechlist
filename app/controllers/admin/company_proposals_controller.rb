@@ -43,10 +43,17 @@ module Admin
     def approve
       load_proposal
       publish = params[:publish] == "1"
-      company = CompanyProposalApprovalService.call(proposal: @company_proposal, admin_user: current_admin_user, duplicate_override: params[:duplicate_override] == "1", publish: publish)
 
-      notice = publish ? "#{company.name} was approved and published." : "Invisible company draft created for #{company.name}. Review once more before publication."
-      redirect_to custom_admin_company_review_path(company), notice: notice
+      if @company_proposal.user_suggestion?
+        company = CompanyProposalApplyUpdateService.call(proposal: @company_proposal, admin_user: current_admin_user, publish: publish)
+        SlackNotifier.contribution_decision(@company_proposal, decision: "approved", admin_user: current_admin_user, note: "Applied update to #{company.name}.")
+        redirect_to custom_admin_company_review_path(company), notice: "Update applied to #{company.name}."
+      else
+        company = CompanyProposalApprovalService.call(proposal: @company_proposal, admin_user: current_admin_user, duplicate_override: params[:duplicate_override] == "1", publish: publish)
+        SlackNotifier.contribution_decision(@company_proposal, decision: "approved", admin_user: current_admin_user, note: publish ? "Published #{company.name}." : "Draft created for #{company.name}.")
+        notice = publish ? "#{company.name} was approved and published." : "Invisible company draft created for #{company.name}. Review once more before publication."
+        redirect_to custom_admin_company_review_path(company), notice: notice
+      end
     rescue ActiveRecord::RecordInvalid, ArgumentError => e
       redirect_to custom_admin_company_proposal_path(@company_proposal), alert: e.message
     end
@@ -68,6 +75,8 @@ module Admin
         reviewed_at: Time.current,
         rejected_at: Time.current
       )
+
+      SlackNotifier.contribution_decision(@company_proposal, decision: "rejected", admin_user: current_admin_user, note: @company_proposal.rejection_reason)
 
       redirect_to custom_admin_company_proposal_path(@company_proposal), notice: "Proposal rejected without changing company data."
     end
@@ -104,6 +113,12 @@ module Admin
         missing_taxonomy_scope
       when "auto_drafted"
         CompanyProposal.approved_to_draft.where.not(company_id: nil)
+      when "user_submissions"
+        CompanyProposal.user_submissions.pending_review
+      when "user_contributions"
+        CompanyProposal.user_contributions.pending_review
+      when "user_suggestions"
+        CompanyProposal.user_suggestions.pending_review
       when "ready"
         CompanyProposal.where(id: ready_proposal_ids)
       when *CompanyProposal::STATUSES
@@ -120,6 +135,9 @@ module Admin
         "missing_taxonomy" => missing_taxonomy_scope.count,
         "ready" => ready_proposal_ids.size,
         "auto_drafted" => CompanyProposal.approved_to_draft.where.not(company_id: nil).count,
+        "user_submissions" => CompanyProposal.user_submissions.pending_review.count,
+        "user_contributions" => CompanyProposal.user_contributions.pending_review.count,
+        "user_suggestions" => CompanyProposal.user_suggestions.pending_review.count,
         "published" => CompanyProposal.published.count,
         "rejected" => CompanyProposal.rejected.count
       }

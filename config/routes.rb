@@ -49,7 +49,7 @@ Rails.application.routes.draw do
   delete 'admin/app/companies/:id', to: 'admin/company_management#destroy'
 
   # Resources
-  resources :companies, except: [:destroy] do
+  resources :companies, only: [:index, :show, :new, :create] do
     member do
       post :suggest_update
     end
