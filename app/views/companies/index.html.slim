@@ -182,6 +182,36 @@ javascript:
             form.requestSubmit ? form.requestSubmit() : form.submit();
         }
 
+        function checkboxStateSnapshot(form) {
+            return Array.from(itemCheckboxes(form)).map(function(checkbox) {
+                return checkbox.checked ? "1" : "0";
+            }).join(",");
+        }
+
+        function snapshotCompanyFilterForm(form) {
+            form.dataset.companyFilterSnapshot = checkboxStateSnapshot(form);
+        }
+
+        function isCompanyFilterFormDirty(form) {
+            if (!form || !form.dataset.companyFilterSnapshot) return false;
+            return form.dataset.companyFilterSnapshot !== checkboxStateSnapshot(form);
+        }
+
+        function handleCompanyFilterItemChange(form, event) {
+            if (!event.target || !event.target.matches('input[type="checkbox"][name$="[]"]')) return;
+
+            let checkboxes = itemCheckboxes(form);
+            let anyChecked = Array.from(checkboxes).some(function(checkbox) { return checkbox.checked; });
+
+            if (!anyChecked) {
+                checkboxes.forEach(function(checkbox) {
+                    checkbox.checked = true;
+                });
+            }
+
+            updateCompanyFilterMaster(form);
+        }
+
         function bindCompanyFilterMasterCheckboxes() {
             document.querySelectorAll("[data-company-filter-master]").forEach(function(master) {
                 if (master.dataset.bound) return;
@@ -199,12 +229,11 @@ javascript:
                         checkbox.checked = master.checked;
                     });
                     updateCompanyFilterMaster(form);
-                    submitCompanyFilterForm(form);
                 });
             });
         }
 
-        function bindCompanyFilterAutoSubmit() {
+        function bindCompanyFilterCheckboxForms() {
             document.querySelectorAll(".company-filter-checkbox-form").forEach(function(form) {
                 if (form.dataset.bound) return;
                 form.dataset.bound = "true";
@@ -213,28 +242,42 @@ javascript:
 
                 form.addEventListener("change", function(event) {
                     if (event.target && event.target.matches("[data-company-filter-master]")) return;
-
-                    if (event.target && event.target.matches('input[type="checkbox"][name$="[]"]')) {
-                        let checkboxes = itemCheckboxes(form);
-                        let anyChecked = Array.from(checkboxes).some(function(checkbox) { return checkbox.checked; });
-
-                        if (!anyChecked) {
-                            checkboxes.forEach(function(checkbox) {
-                                checkbox.checked = true;
-                            });
-                        }
-
-                        updateCompanyFilterMaster(form);
-                        submitCompanyFilterForm(form);
-                    }
+                    handleCompanyFilterItemChange(form, event);
                 });
+            });
+        }
+
+        function bindCompanyFilterDropdownSubmit() {
+            document.querySelectorAll(".company-filter-dropdown").forEach(function(dropdown) {
+                if (dropdown.dataset.boundDropdown) return;
+                dropdown.dataset.boundDropdown = "true";
+
+                dropdown.addEventListener("show.bs.dropdown", function() {
+                    let form = dropdown.querySelector(".company-filter-checkbox-form");
+                    if (form) snapshotCompanyFilterForm(form);
+                });
+
+                dropdown.addEventListener("hidden.bs.dropdown", function() {
+                    let form = dropdown.querySelector(".company-filter-checkbox-form");
+                    if (!form || !isCompanyFilterFormDirty(form)) return;
+                    submitCompanyFilterForm(form);
+                });
+
+                let menu = dropdown.querySelector(".dropdown-menu");
+                if (menu && !menu.dataset.bound) {
+                    menu.dataset.bound = "true";
+                    menu.addEventListener("click", function(event) {
+                        event.stopPropagation();
+                    });
+                }
             });
         }
 
         function bindCompanyFilters() {
             bindCompanyFilterSearch();
             bindCompanyFilterMasterCheckboxes();
-            bindCompanyFilterAutoSubmit();
+            bindCompanyFilterCheckboxForms();
+            bindCompanyFilterDropdownSubmit();
         }
 
         document.addEventListener("turbo:load", bindCompanyFilters);
