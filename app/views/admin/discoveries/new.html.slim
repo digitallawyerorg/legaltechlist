@@ -32,8 +32,8 @@
         = form_with url: custom_admin_discoveries_path, scope: :discovery, local: true, html: { id: "discovery-form" } do |f|
             .mb-4
                 = f.label :discovery_type, "Discovery type", class: "form-label fw-semibold"
-                = f.select :discovery_type, options_for_select([["Category — find vendors in a taxonomy category", "category"], ["Competitors — find alternatives to an indexed company", "competitors"], ["Founded year — companies founded in a given year (coming soon)", "year"], ["Country — companies headquartered in a country (coming soon)", "country"], ["Funding year — companies that raised funding in a year (coming soon)", "funding_year"]], "category"), {}, class: "form-select", id: "discovery-discovery_type"
-                .form-text Choose what the LLM should search for. Category and Competitors are available now.
+                = f.select :discovery_type, options_for_select([["Category — find vendors in a taxonomy category", "category"], ["Competitors — find alternatives to an indexed company", "competitors"], ["Founded year — companies founded in a given year", "year"], ["Country — companies headquartered in a country", "country"], ["Funding year — companies that raised funding in a year", "funding_year"]], "category"), {}, class: "form-select", id: "discovery-discovery_type"
+                .form-text Choose what the LLM should search for.
 
             .discovery-field.mb-4 data-discovery-field="category"
                 = f.label :category_id, "Category", class: "form-label fw-semibold"
@@ -50,17 +50,20 @@
             .discovery-field.mb-4.d-none data-discovery-field="year"
                 = f.label :year, "Founded year", class: "form-label fw-semibold"
                 = f.number_field :year, class: "form-control", min: 1900, max: Time.current.year, placeholder: "2024"
-                .form-text Not yet implemented in v1.
+                .form-text Legal-tech companies founded in this calendar year.
 
             .discovery-field.mb-4.d-none data-discovery-field="country"
                 = f.label :country, "Country", class: "form-label fw-semibold"
-                = f.text_field :country, class: "form-control", placeholder: "United States"
-                .form-text Not yet implemented in v1.
+                = f.text_field :country, class: "form-control", placeholder: "Germany", list: "discovery-country-options"
+                datalist#discovery-country-options
+                    - @country_options.each do |country|
+                        option value=country
+                .form-text Legal-tech companies headquartered in this country.
 
             .discovery-field.mb-4.d-none data-discovery-field="funding_year"
                 = f.label :funding_year, "Funding year", class: "form-label fw-semibold"
                 = f.number_field :funding_year, class: "form-control", min: 1900, max: Time.current.year, placeholder: "2024"
-                .form-text Not yet implemented in v1.
+                .form-text Legal-tech companies that raised venture or growth funding in this year.
 
             .row.g-3.mb-4
                 .col-md-4
@@ -89,14 +92,13 @@ javascript:
     |   if (!form) return;
     |   var typeSelect = form.querySelector("#discovery-discovery_type");
     |   var fields = form.querySelectorAll("[data-discovery-field]");
-    |   var stubTypes = #{@stub_types.to_json};
     |   function syncFields() {
     |     var selected = typeSelect.value;
     |     fields.forEach(function (field) {
     |       var active = field.getAttribute("data-discovery-field") === selected;
     |       field.classList.toggle("d-none", !active);
     |       field.querySelectorAll("input, select, textarea").forEach(function (input) {
-    |         input.disabled = !active || stubTypes.indexOf(selected) >= 0;
+    |         input.disabled = !active;
     |       });
     |     });
     |   }

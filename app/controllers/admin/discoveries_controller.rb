@@ -5,8 +5,7 @@ module Admin
       @companies = Company.where(visible: true).order(:name).limit(500)
       @visible_company_count = Company.where(visible: true).count
       @discovery_types = CompanyDiscoveryService::DISCOVERY_TYPES
-      @implemented_types = CompanyDiscoveryService::IMPLEMENTED_DISCOVERY_TYPES
-      @stub_types = CompanyDiscoveryService::STUB_DISCOVERY_TYPES
+      @country_options = country_options
       @default_limit = CompanyDiscoveryService::DEFAULT_LIMIT
       @max_limit = CompanyDiscoveryService::DEFAULT_MAX_LIMIT
       @estimated_cost_per_search = CompanyDiscoveryService::ESTIMATED_COST_PER_SEARCH_USD
@@ -64,6 +63,10 @@ module Admin
 
     def web_search_available?
       ENV["OPENAI_API_KEY"].present? && ENV.fetch("DISCOVERY_USE_WEB_SEARCH", "true") == "true"
+    end
+
+    def country_options
+      Company.where(visible: true).where.not(location: [nil, ""]).pluck(:location).filter_map { |location| LocationCountryResolver.country_name_for(location) }.compact_blank.uniq.sort
     end
   end
 end

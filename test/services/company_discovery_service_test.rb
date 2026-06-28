@@ -69,4 +69,42 @@ class CompanyDiscoveryServiceTest < ActiveSupport::TestCase
       )
     end
   end
+
+  %w[year country funding_year].each do |discovery_type|
+    test "#{discovery_type} dry run creates discovery pipeline run" do
+      kwargs = {
+        discovery_type: discovery_type,
+        dry_run: true,
+        search_service: StubSearchService,
+        admin_user: admin_users(:one)
+      }
+      kwargs[:year] = "2024" if discovery_type == "year"
+      kwargs[:country] = "Germany" if discovery_type == "country"
+      kwargs[:funding_year] = "2024" if discovery_type == "funding_year"
+
+      run = CompanyDiscoveryService.call(**kwargs)
+
+      assert_equal "succeeded", run.status
+      assert_equal discovery_type, run.details["discovery_type"]
+      assert_equal 1, run.details["summary"]["absent_candidates"]
+    end
+  end
+
+  test "year discovery requires year parameter" do
+    assert_raises(ArgumentError, match: /YEAR is required/) do
+      CompanyDiscoveryService.call(discovery_type: "year", dry_run: true, search_service: StubSearchService)
+    end
+  end
+
+  test "country discovery requires country parameter" do
+    assert_raises(ArgumentError, match: /COUNTRY is required/) do
+      CompanyDiscoveryService.call(discovery_type: "country", dry_run: true, search_service: StubSearchService)
+    end
+  end
+
+  test "funding_year discovery requires funding_year parameter" do
+    assert_raises(ArgumentError, match: /FUNDING_YEAR is required/) do
+      CompanyDiscoveryService.call(discovery_type: "funding_year", dry_run: true, search_service: StubSearchService)
+    end
+  end
 end

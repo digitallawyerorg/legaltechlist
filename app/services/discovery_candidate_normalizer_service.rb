@@ -33,7 +33,10 @@ class DiscoveryCandidateNormalizerService
       "discovery_type" => discovery_hash["discovery_type"],
       "why_discovered" => discovery_hash["why_discovered"].to_s.strip.presence,
       "website_verified" => discovery_hash["website_verified"],
-      "discovery_query" => discovery_hash["discovery_query"]
+      "discovery_query" => discovery_hash["discovery_query"],
+      "funding_round_year" => discovery_hash["funding_round_year"],
+      "funding_round_type" => discovery_hash["funding_round_type"],
+      "funding_amount_hint" => discovery_hash["funding_amount_hint"]
     }.compact
   end
 end

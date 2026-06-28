@@ -3,9 +3,7 @@ class CompanyDiscoveryService
   AGENT_NAME = "CompanyDiscoveryService".freeze
   SOURCE = "llm_discovery".freeze
   PROPOSAL_TYPE = "discovery_candidate".freeze
-  IMPLEMENTED_DISCOVERY_TYPES = %w[category competitors].freeze
-  STUB_DISCOVERY_TYPES = %w[year country funding_year].freeze
-  DISCOVERY_TYPES = (IMPLEMENTED_DISCOVERY_TYPES + STUB_DISCOVERY_TYPES).freeze
+  DISCOVERY_TYPES = %w[category competitors year country funding_year].freeze
   DEFAULT_LIMIT = 25
   DEFAULT_MAX_LIMIT = 50
   DEFAULT_MAX_COST_USD = 5.0
@@ -106,7 +104,9 @@ class CompanyDiscoveryService
     raise ArgumentError, "max_cost_usd must be greater than or equal to 0" if max_cost_usd.negative?
     raise ArgumentError, "CATEGORY is required for category discovery" if discovery_type == "category" && category.blank?
     raise ArgumentError, "COMPANY_ID or COMPANY_NAME is required for competitors discovery" if discovery_type == "competitors" && company_id.blank? && company_name.blank?
-    raise ArgumentError, "#{discovery_type} discovery is not yet implemented. TODO: define query schema and filters." if STUB_DISCOVERY_TYPES.include?(discovery_type)
+    raise ArgumentError, "YEAR is required for year discovery" if discovery_type == "year" && year.blank?
+    raise ArgumentError, "COUNTRY is required for country discovery" if discovery_type == "country" && country.blank?
+    raise ArgumentError, "FUNDING_YEAR is required for funding_year discovery" if discovery_type == "funding_year" && funding_year.blank?
     raise ArgumentError, "queue_proposals requires dry_run=false" if queue_proposals && dry_run
   end
 
@@ -116,6 +116,12 @@ class CompanyDiscoveryService
       "Company discovery: #{category}"
     when "competitors"
       "Company discovery: competitors for #{discovery_context[:company_name]}"
+    when "year"
+      "Company discovery: founded in #{year}"
+    when "country"
+      "Company discovery: #{country}"
+    when "funding_year"
+      "Company discovery: funding in #{funding_year}"
     else
       "Company discovery: #{discovery_type}"
     end

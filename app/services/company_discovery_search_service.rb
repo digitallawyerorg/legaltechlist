@@ -114,6 +114,7 @@ class CompanyDiscoverySearchService
       You are discovering legal-technology companies for the Stanford CodeX TechIndex directory.
 
       Discovery task: #{search_query}
+      #{discovery_task_guidance}
       Return up to #{limit} distinct companies not already listed in TechIndex.
 
       Exclude these existing index entries (name or domain):
@@ -124,19 +125,56 @@ class CompanyDiscoverySearchService
       Do not invent URLs, funding figures, or company details.
 
       Return JSON only with this shape:
-      {
-        "companies": [
-          {
-            "name": "Company Name",
+      #{json_output_schema}
+    PROMPT
+  end
+
+  def discovery_task_guidance
+    case discovery_type
+    when "year"
+      "Focus on legal-tech vendors founded in #{context.fetch(:year)}. Prefer companies whose founding year is documented in search results."
+    when "country"
+      "Focus on legal-tech vendors headquartered in #{context.fetch(:country)}. Prefer companies with a clear HQ location in that country."
+    when "funding_year"
+      "Focus on legal-tech vendors that raised venture or growth funding in #{context.fetch(:funding_year)}. Include only companies where the funding round year is documented in search results."
+    else
+      ""
+    end
+  end
+
+  def json_output_schema
+    base_fields = <<~FIELDS.strip
+      "name": "Company Name",
             "website": "https://example.com",
             "location": "City, Country",
             "founded_date": "2018",
             "description": "One neutral sentence on what the company does for legal workflows.",
             "why_discovered": "Short reason this company matches the discovery task."
+    FIELDS
+
+    funding_fields = <<~FIELDS.strip
+      "name": "Company Name",
+            "website": "https://example.com",
+            "location": "City, Country",
+            "founded_date": "2018",
+            "description": "One neutral sentence on what the company does for legal workflows.",
+            "why_discovered": "Short reason this company matches the discovery task.",
+            "funding_round_year": "2024",
+            "funding_round_type": "Series A",
+            "funding_amount_hint": "Optional amount or range if documented in search results."
+    FIELDS
+
+    fields = discovery_type == "funding_year" ? funding_fields : base_fields
+
+    <<~SCHEMA.strip
+      {
+        "companies": [
+          {
+            #{fields}
           }
         ]
       }
-    PROMPT
+    SCHEMA
   end
 
   def formatted_exclusion_list
@@ -159,7 +197,7 @@ class CompanyDiscoverySearchService
     website = clean_url(company["website"])
     return if name.blank? || website.blank?
 
-    {
+    payload = {
       "name" => name,
       "website" => website,
       "location" => company["location"].to_s.strip.presence,
@@ -169,7 +207,9 @@ class CompanyDiscoverySearchService
       "discovery_type" => discovery_type,
       "discovery_query" => search_query,
       "website_verified" => verified_website?(website, search_urls)
-    }.compact
+    }
+    payload.merge!(funding_hint_payload(company)) if discovery_type == "funding_year"
+    payload.compact
   end
 
   def extract_search_urls(citations, search_calls)
@@ -188,6 +228,14 @@ class CompanyDiscoverySearchService
 
       cited_domain == domain || cited_domain.end_with?(".#{domain}") || domain.end_with?(".#{cited_domain}")
     end
+  end
+
+  def funding_hint_payload(company)
+    {
+      "funding_round_year" => company["funding_round_year"].to_s.strip.presence,
+      "funding_round_type" => company["funding_round_type"].to_s.strip.presence,
+      "funding_amount_hint" => company["funding_amount_hint"].to_s.squish.presence
+    }.compact
   end
 
   def clean_url(url)
