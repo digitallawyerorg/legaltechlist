@@ -1,24 +1,32 @@
-# Canonical tag name => list of alias strings (matched case-insensitively after normalize)
+# Canonical tag name => alias strings (matched case-insensitively after normalize)
 artificial intelligence:
   - ai
   - ai-powered
   - ai powered
-e-discovery:
-  - ediscovery
-  - e discovery
-  - electronic discovery
 generative ai:
   - gen-ai
   - gen ai
   - genai
 machine learning:
   - ml
+e-discovery:
+  - ediscovery
+  - e discovery
+  - electronic discovery
+  - litigation support
 document management:
   - document automation
+  - legal document management
 contract management:
   - clm
+  - contract lifecycle
+  - contract lifecycle management
+  - contract automation
 practice management:
   - legal practice management
+  - legal billing
+  - time & billing
+  - time and billing
 access to justice:
   - a2j
 legal aid:
@@ -30,9 +38,87 @@ matter management:
 enterprise legal management:
   - elm
   - legal operations
+  - corporate legal operations
 e-billing:
   - ebilling
   - e billing
+  - billing software
 consumers:
   - individual consumers
   - b2c
+intellectual property:
+  - ip management
+  - ip services
+  - ip portfolio
+  - intellectual property management
+  - patent management
+  - trademark management
+compliance:
+  - regulatory compliance
+  - legal compliance
+  - compliance management
+automation:
+  - workflow automation
+  - legal automation
+  - legal workflow automation
+  - legal process automation
+  - legal workflow
+marketplace:
+  - legal marketplace
+  - lawyer marketplace
+  - legal services marketplace
+  - attorney marketplace
+  - online marketplace
+analytics:
+  - legal analytics
+  - data analytics
+  - predictive analytics
+  - analytics & insights
+innovation:
+  - legal innovation
+  - legal tech innovation
+  - legal services innovation
+litigation:
+  - litigation management
+law firms:
+  - law firm
+  - law firm management
+  - law firm software
+  - law firm solutions
+  - lawyers
+  - small law firms
+legal research:
+  - research tools
+  - research platform
+knowledge management:
+  - legal knowledge management
+  - legal knowledge
+case management:
+  - legal case management
+e-signature:
+  - esignature
+  - e-signatures
+  - electronic signature
+  - electronic signatures
+  - digital signature
+  - digital signatures
+saas:
+  - software as a service
+  - software-as-a-service
+  - cloud-based software
+  - cloud-based solutions
+  - cloud-based platform
+  - cloud-based solution
+legal tech:
+  - legaltech
+  - legal technology
+  - legal tech platform
+  - legal tech solutions
+  - consumer legal tech
+immigration:
+  - immigration law
+  - immigration management
+  - immigration services
+  - immigration technology
+estate planning:
+  - estate administration
