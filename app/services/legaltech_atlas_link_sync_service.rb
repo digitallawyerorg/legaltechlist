@@ -13,17 +13,22 @@ class LegaltechAtlasLinkSyncService
     keyword_init: true
   )
 
-  def self.call(source:, file: nil, dry_run: true, clear_missing: false, scope: Company.all, sitemap_index: nil)
-    new(source: source, file: file, dry_run: dry_run, clear_missing: clear_missing, scope: scope, sitemap_index: sitemap_index).call
+  def self.call(source: :api, file: nil, dry_run: true, clear_missing: false, scope: Company.all, sitemap_index: nil, api_index: nil)
+    new(source: source, file: file, dry_run: dry_run, clear_missing: clear_missing, scope: scope, sitemap_index: sitemap_index, api_index: api_index).call
   end
 
-  def initialize(source:, file: nil, dry_run: true, clear_missing: false, scope: Company.all, sitemap_index: nil)
+  def self.sync_one(company, dry_run: false)
+    call(source: :api, dry_run: dry_run, scope: Company.where(id: company.id))
+  end
+
+  def initialize(source: :api, file: nil, dry_run: true, clear_missing: false, scope: Company.all, sitemap_index: nil, api_index: nil)
     @source = source.to_sym
     @file = file
     @dry_run = dry_run
     @clear_missing = clear_missing
     @scope = scope
     @sitemap_index = sitemap_index
+    @api_index = api_index
   end
 
   def call
@@ -62,13 +67,88 @@ class LegaltechAtlasLinkSyncService
 
   def build_matches
     case @source
+    when :api
+      build_matches_from_api
     when :csv
       build_matches_from_csv
     when :sitemap
       build_matches_from_sitemap
     else
-      raise ArgumentError, "Unsupported source #{@source.inspect}. Use :csv or :sitemap."
+      raise ArgumentError, "Unsupported source #{@source.inspect}. Use :api, :csv, or :sitemap."
     end
+  end
+
+  def build_matches_from_api
+    records = @api_index || LegaltechAtlas.fetch_companies_index
+    lookups = build_api_lookups(records)
+    atlas_urls_by_company_id = {}
+
+    @scope.where.not(name: [nil, ""]).find_each do |company|
+      atlas_url = match_company_from_api_lookups(company, lookups)
+      atlas_urls_by_company_id[company.id] = atlas_url if atlas_url.present?
+    end
+
+    atlas_urls_by_company_id
+  end
+
+  def build_api_lookups(records)
+    {
+      domain: unique_lookup(records) { |record| canonical_domain_from_api_record(record) },
+      name: unique_lookup(records) { |record| normalized_name_from_api_record(record) },
+      slug: unique_lookup(records) { |record| slug_from_api_record(record) }
+    }
+  end
+
+  def match_company_from_api_lookups(company, lookups)
+    domain = company.canonical_domain.presence || company.canonical_main_domain
+    if domain.present?
+      atlas_url = lookups[:domain][domain]
+      return atlas_url if atlas_url.present?
+    end
+
+    normalized_name = company.normalized_name
+    if normalized_name.present?
+      atlas_url = lookups[:name][normalized_name]
+      return atlas_url if atlas_url.present?
+    end
+
+    slug = LegaltechAtlas.slug_for(company.name)
+    lookups[:slug][slug]
+  end
+
+  def unique_lookup(records)
+    index = {}
+    ambiguous = {}
+
+    records.each do |record|
+      key = yield(record)
+      next if key.blank?
+
+      atlas_url = normalized_atlas_url(record["atlas_url"])
+      next if atlas_url.blank?
+
+      if index.key?(key)
+        ambiguous[key] = true
+      else
+        index[key] = atlas_url
+      end
+    end
+
+    ambiguous.each_key { |key| index.delete(key) }
+    index
+  end
+
+  def canonical_domain_from_api_record(record)
+    domain = record["canonical_domain"].presence || Company.canonical_domain_for(record["website"] || record["website_url"])
+    domain.presence
+  end
+
+  def normalized_name_from_api_record(record)
+    Company.normalized_name_value(record["name"])
+  end
+
+  def slug_from_api_record(record)
+    record["slug"].to_s.downcase.presence
   end
 
   def build_matches_from_csv

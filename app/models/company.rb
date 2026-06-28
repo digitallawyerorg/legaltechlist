@@ -6,6 +6,7 @@ class Company < ActiveRecord::Base
 
   before_update :publish_tweet, :if => :visible_changed?
   before_update :publish_to_list, :if => :visible_changed?
+  after_commit :sync_legaltech_atlas_link, on: :update, if: :should_sync_legaltech_atlas_link?
   before_validation :normalize_status
   before_validation :sync_structured_location_fields
 
@@ -322,6 +323,16 @@ class Company < ActiveRecord::Base
         end
       end
     end
+  end
+
+  def should_sync_legaltech_atlas_link?
+    saved_change_to_visible? && visible? && legaltech_atlas_url.blank?
+  end
+
+  def sync_legaltech_atlas_link
+    LegaltechAtlasLinkSyncService.sync_one(self, dry_run: false)
+  rescue StandardError => e
+    Rails.logger.debug { "LegaltechAtlas link sync failed for company_id=#{id}: #{e.message}" }
   end
 
   def self.ransackable_attributes(auth_object = nil)

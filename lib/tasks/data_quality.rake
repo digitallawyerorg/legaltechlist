@@ -295,9 +295,9 @@ namespace :data_quality do
     puts "Fix brand names complete mode=#{mode} hidden=#{hidden} renamed=#{renamed} total=#{hidden + renamed}"
   end
 
-  desc "Sync LegalTech Atlas profile links onto companies. SOURCE=csv|sitemap FILE=path for csv. Defaults to dry-run; set DRY_RUN=false to write."
+  desc "Sync LegalTech Atlas profile links onto companies. SOURCE=api|csv|sitemap (default api). FILE=path for csv. Defaults to dry-run; set DRY_RUN=false to write. Heroku Scheduler: rake data_quality:sync_legaltech_atlas_links DRY_RUN=false"
   task sync_legaltech_atlas_links: :environment do
-    source = ENV.fetch("SOURCE", "csv").to_sym
+    source = ENV.fetch("SOURCE", "api").to_sym
     file = ENV["FILE"]
     dry_run = ENV.fetch("DRY_RUN", "true") != "false"
     clear_missing = ENV.fetch("CLEAR_MISSING", "false") == "true"
