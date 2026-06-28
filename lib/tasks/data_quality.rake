@@ -190,6 +190,48 @@ namespace :data_quality do
     "https://www.crunchbase.com/organization/legaltechnology-hub" => "New York, Honduras"
   }.freeze
 
+  LEGAL_ENTITY_SUFFIX_PATTERN = /
+    \s+
+    (?:
+      O[Üü] |
+      GmbH |
+      AG |
+      S\.?A\.? |
+      B\.?V\.? |
+      Oy |
+      LLC |
+      LLP |
+      LTD\.? |
+      LIMITED |
+      PRIVATE\s+LIMITED |
+      CO\.?\s+LTD\.?
+    )
+    \z
+  /ix.freeze
+
+  desc "List company names ending with legal entity suffixes (OÜ, Ltd, GmbH, etc.). Read-only."
+  task audit_legal_entity_names: :environment do
+    visible_only = ENV.fetch("VISIBLE_ONLY", "false") == "true"
+    scope = visible_only ? Company.where(visible: true) : Company.all
+    matches = scope.where.not(name: [nil, ""]).select { |company| company.name.match?(LEGAL_ENTITY_SUFFIX_PATTERN) }
+
+    puts "Legal entity suffix audit"
+    puts "Generated at: #{Time.current.utc.iso8601}"
+    puts "Mode: read-only"
+    puts "visible_only: #{visible_only}"
+    puts "matches: #{matches.size}"
+    puts
+
+    matches.sort_by(&:id).each do |company|
+      puts [
+        company.id,
+        company.visible ? "visible" : "hidden",
+        company.name,
+        company.description.to_s[0, 80].gsub(/\s+/, " ")
+      ].join(" | ")
+    end
+  end
+
   desc "Revert known corrupted company locations. Defaults to dry-run; set DRY_RUN=false to write."
   task fix_corrupted_locations: :environment do
     dry_run = ENV.fetch("DRY_RUN", "true") != "false"
@@ -214,5 +256,44 @@ namespace :data_quality do
     mode = dry_run ? "dry-run" : "write"
     puts examples if dry_run && !verbose
     puts "Fix corrupted locations complete mode=#{mode} changed=#{changed}"
+  end
+
+  desc "Fix legal-entity company names and hide consultancy profiles. Defaults to dry-run; set DRY_RUN=false to write."
+  task fix_brand_names: :environment do
+    require Rails.root.join("lib/company_brand_name_fixer")
+
+    dry_run = ENV.fetch("DRY_RUN", "true") != "false"
+    verbose = ENV.fetch("VERBOSE", "false") == "true"
+    hidden = 0
+    renamed = 0
+    changes = []
+
+    Company.where(visible: true).find_each do |company|
+      next unless CompanyBrandNameFixer.legal_entity_caps?(company) ||
+                  CompanyBrandNameFixer.mixed_case_legal_suffix?(company) ||
+                  CompanyBrandNameFixer.consultancy?(company)
+
+      result = CompanyBrandNameFixer.review_company(company)
+      next if result[:action] == :skip
+
+      case result[:action]
+      when :hide
+        hidden += 1
+        line = "HIDE|#{company.id}|#{company.name}|removed/hidden|#{result[:reason]}"
+        changes << line
+        puts(line) if verbose
+        CompanyBrandNameFixer.apply!(company, result, dry_run: dry_run) unless dry_run
+      when :rename
+        renamed += 1
+        line = "RENAME|#{company.id}|#{company.name}|#{result[:new_name]}|#{result[:reason]}"
+        changes << line
+        puts(line) if verbose
+        CompanyBrandNameFixer.apply!(company, result, dry_run: dry_run) unless dry_run
+      end
+    end
+
+    changes.each { |line| puts line } unless verbose
+    mode = dry_run ? "dry-run" : "write"
+    puts "Fix brand names complete mode=#{mode} hidden=#{hidden} renamed=#{renamed} total=#{hidden + renamed}"
   end
 end
