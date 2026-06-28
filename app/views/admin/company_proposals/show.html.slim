@@ -20,16 +20,16 @@
                     span Draft:
                 = link_to @company_proposal.company.name, custom_admin_company_review_path(@company_proposal.company), class: "fw-semibold"
     .admin-proposal-toolbar.is-header
-        = link_to "Edit Proposal", edit_custom_admin_company_proposal_path(@company_proposal), class: "btn btn-primary"
         = button_to "Run Enrichment", enrich_custom_admin_company_proposal_path(@company_proposal), method: :post, class: "btn btn-outline-primary", form: { data: { turbo_confirm: "Generate proposal-only enrichment without changing company records?" } }
+        = link_to "Edit", edit_custom_admin_company_proposal_path(@company_proposal), class: "btn btn-outline-secondary"
         - if @company_proposal.user_suggestion?
             = form_with url: approve_custom_admin_company_proposal_path(@company_proposal), method: :post, local: true, class: "d-inline" do
-                = button_tag "Apply update", type: "submit", name: "publish", value: "0", class: "btn btn-success", data: { turbo_confirm: "Apply this suggestion to #{@company_proposal.company&.name}?" }
+                = button_tag "Apply to Company", type: "submit", name: "publish", value: "0", class: "btn btn-success", data: { turbo_confirm: "Apply this suggestion to #{@company_proposal.company&.name}?" }
         - elsif !@company_proposal.duplicate_blocking?
             = form_with url: approve_custom_admin_company_proposal_path(@company_proposal), method: :post, local: true, class: "d-inline" do
-                = button_tag "Approve draft", type: "submit", name: "publish", value: "0", class: "btn btn-outline-success", data: { turbo_confirm: "Approve this proposal as an invisible draft?" }, disabled: @company_proposal.company_id.present?
+                = button_tag "Approve Draft", type: "submit", name: "publish", value: "0", class: "btn btn-outline-success", data: { turbo_confirm: "Approve this proposal as an invisible draft?" }, disabled: @company_proposal.company_id.present?
                 = button_tag "Publish", type: "submit", name: "publish", value: "1", class: "btn btn-success", data: { turbo_confirm: "Publish this proposal to the public site?" }, disabled: @company_proposal.company_id.present? || !@quality_report["publish_ready"]
-        button.btn.btn-outline-danger type="button" data-bs-toggle="collapse" data-bs-target="#proposalRejectPanel" aria-expanded="false" aria-controls="proposalRejectPanel" Reject
+        button.btn.btn-outline-danger.border-start.ps-3.ms-1 type="button" data-bs-toggle="collapse" data-bs-target="#proposalRejectPanel" aria-expanded="false" aria-controls="proposalRejectPanel" Reject
 
 - if !@company_proposal.user_suggestion? && @company_proposal.duplicate_blocking?
     .card.border-0.shadow-sm.mb-3
@@ -41,7 +41,7 @@
                         = check_box_tag :duplicate_override, "1", false, class: "form-check-input", id: "duplicate_override"
                         = label_tag :duplicate_override, "I reviewed duplicates and still want to approve", class: "form-check-label small"
                     .d-flex.gap-2
-                        = button_tag "Approve draft", type: "submit", name: "publish", value: "0", class: "btn btn-sm btn-outline-success", data: { turbo_confirm: "Approve this proposal as an invisible draft?" }, disabled: @company_proposal.company_id.present?
+                        = button_tag "Approve Draft", type: "submit", name: "publish", value: "0", class: "btn btn-sm btn-outline-success", data: { turbo_confirm: "Approve this proposal as an invisible draft?" }, disabled: @company_proposal.company_id.present?
                         = button_tag "Publish", type: "submit", name: "publish", value: "1", class: "btn btn-sm btn-success", data: { turbo_confirm: "Publish this proposal to the public site?" }, disabled: @company_proposal.company_id.present? || !@quality_report["publish_ready"]
 
 #proposalRejectPanel.collapse.mb-3
@@ -51,7 +51,7 @@
                 .mb-2
                     = label_tag :rejection_reason, "Rejection reason", class: "form-label small mb-1"
                     = text_area_tag :rejection_reason, @company_proposal.rejection_reason, class: "form-control form-control-sm", rows: 2
-                = submit_tag "Confirm rejection", class: "btn btn-sm btn-danger", data: { turbo_confirm: "Reject this proposal without changing company data?" }
+                = submit_tag "Confirm Rejection", class: "btn btn-sm btn-danger", data: { turbo_confirm: "Reject this proposal without changing company data?" }
 
 .row.g-3
     .col-lg-8
