@@ -23,6 +23,8 @@ class TagCleanupService
     counts = { redundant_taggings_removed: 0, companies_affected: 0, redundant_tags: [] }
 
     Tag.joins(:taggings).distinct.find_each do |tag|
+      canonical = TagNormalizationService.canonical_name(tag.name)
+      next if TagTaxonomyService.discoverable_canonical_names.include?(canonical)
       next unless TagTaxonomyService.redundant_with_taxonomy?(tag.name)
 
       taggings = tag.taggings.to_a
