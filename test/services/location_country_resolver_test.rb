@@ -50,6 +50,13 @@ class LocationCountryResolverTest < ActiveSupport::TestCase
     assert_equal "United Kingdom", LocationCountryResolver.country_name_for("Southbourne, Bournemouth")
   end
 
+  test "country_name_for resolves duplicate city segments" do
+    assert_equal "China", LocationCountryResolver.country_name_for("Beijing, Beijing")
+    assert_equal "Norway", LocationCountryResolver.country_name_for("Oslo, Oslo")
+    assert_equal "Brazil", LocationCountryResolver.country_name_for("Petrópolis, Rio de Janeiro")
+    assert_equal "New Zealand", LocationCountryResolver.country_name_for("72 Tuam Street, Christchurch 8011")
+  end
+
   test "normalize_country_name preserves country names over admin regions" do
     assert_equal "Georgia", LocationCountryResolver.normalize_country_name("Georgia")
     assert_equal "Ivory Coast", LocationCountryResolver.normalize_country_name("Côte d'Ivoire")

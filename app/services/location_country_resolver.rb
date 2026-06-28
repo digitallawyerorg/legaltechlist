@@ -71,7 +71,7 @@ class LocationCountryResolver
     "West Bengal" => "India", "Gujarat" => "India",
     "New South Wales" => "Australia", "South Australia" => "Australia", "Victoria" => "Australia",
     "Queensland" => "Australia", "Western Australia" => "Australia",
-    "Auckland" => "New Zealand", "Christchurch 8011" => "New Zealand", "Wellington" => "New Zealand",
+    "Auckland" => "New Zealand", "Christchurch 8011" => "New Zealand", "Christchurch" => "New Zealand", "Wellington" => "New Zealand",
     "Berlin" => "Germany", "Bayern" => "Germany", "Baden-Wurttemberg" => "Germany",
     "Hamburg" => "Germany", "Niedersachsen" => "Germany", "Nordrhein-Westfalen" => "Germany",
     "Noord-Holland" => "Netherlands", "Limburg" => "Netherlands", "Utrecht" => "Netherlands",
@@ -111,7 +111,8 @@ class LocationCountryResolver
     "Seoul-t'ukpyolsi" => "South Korea", "Sachsen" => "Germany", "Sardegna" => "Italy", "Masqat" => "Oman",
     "Parana" => "Brazil", "Jharkhand" => "India", "Setif" => "Algeria", "Geneve" => "Switzerland",
     "Dushet'is Raioni" => "Georgia", "Syddanmark" => "Denmark", "Alger" => "Algeria",
-    "Moscow City" => "Russia", "Budapest" => "Hungary", "Cayman Islands" => "Cayman Islands"
+    "Moscow City" => "Russia", "Budapest" => "Hungary", "Cayman Islands" => "Cayman Islands",
+    "Beijing" => "China", "Oslo" => "Norway", "Rio de Janeiro" => "Brazil"
   }.freeze
 
   # Well-known cities that resolve unambiguously when given without a country.
@@ -286,7 +287,8 @@ class LocationCountryResolver
     "Paris 75001" => "Paris, France",
     "TallinnEstonia" => "Tallinn, Estonia",
     "PunjabIndia" => "Punjab, India",
-    "United States California" => "California, United States"
+    "United States California" => "California, United States",
+    "Santiago Chile  Alicante Spain" => "Santiago, Chile"
   }.freeze
 
   UK_ADMINISTRATIVE_AREAS = [
@@ -318,6 +320,11 @@ class LocationCountryResolver
 
       explicit = explicit_country_name_from_parts(parts)
       return explicit if explicit
+
+      if parts.size == 2 && normalize_token(parts.first) == normalize_token(parts.last)
+        city_country = city_country_for(parts.first)
+        return city_country if city_country.present?
+      end
 
       parts.reverse_each do |part|
         token = normalize_token(part)
@@ -534,7 +541,7 @@ class LocationCountryResolver
     end
 
     def cleaned_part(part)
-      part.to_s.squish.sub(/\ANA\s*-\s*/i, "").sub(/\d+\z/, "")
+      part.to_s.squish.sub(/\ANA\s*-\s*/i, "").sub(/\d+\z/, "").squish
     end
 
     def location_override(location)
