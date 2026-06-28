@@ -45,6 +45,10 @@ class ErrorPagesTest < ActionDispatch::IntegrationTest
       assert_includes response.body, "navbar"
       assert_includes response.body, "public-footer"
       assert_includes response.body, 'content="noindex"'
+      assert_includes response.body, "error-page-card"
+      assert_includes response.body, "error-page-action-primary"
+      assert_includes response.body, "error-page-action-secondary"
+      assert_includes response.body, ".error-page-actions"
       assert_not_includes response.body, "application owner"
     end
   end
