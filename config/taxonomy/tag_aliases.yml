@@ -1,4 +1,4 @@
-# Canonical tag name => alias strings (matched case-insensitively after normalize)
+# Canonical tag name => list of alias strings (matched case-insensitively after normalize)
 artificial intelligence:
   - ai
   - ai-powered
@@ -9,6 +9,13 @@ generative ai:
   - genai
 machine learning:
   - ml
+natural language processing:
+  - nlp
+  - natural language understanding
+chatbot:
+  - chatbots
+  - legal chatbot
+  - conversational ai
 e-discovery:
   - ediscovery
   - e discovery
@@ -74,6 +81,8 @@ analytics:
   - data analytics
   - predictive analytics
   - analytics & insights
+  - data analysis
+  - big data
 innovation:
   - legal innovation
   - legal tech innovation
@@ -102,6 +111,7 @@ e-signature:
   - electronic signatures
   - digital signature
   - digital signatures
+  - digital signing
 saas:
   - software as a service
   - software-as-a-service
@@ -122,3 +132,28 @@ immigration:
   - immigration technology
 estate planning:
   - estate administration
+technology:
+  - information technology
+  - technology platform
+  - technology solutions
+  - litigation technology
+online platform:
+  - legal platform
+  - legal services platform
+  - digital platform
+  - web-based platform
+  - online legal platform
+  - platform
+privacy:
+  - data privacy
+cybersecurity:
+  - cyber security
+  - data security
+  - digital security
+dispute resolution:
+  - online dispute resolution
+  - alternative dispute resolution
+  - adr
+blockchain:
+  - distributed ledger
+  - smart contracts
