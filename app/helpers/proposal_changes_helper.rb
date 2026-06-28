@@ -54,4 +54,27 @@ module ProposalChangesHelper
     end
     shown
   end
+
+  def proposal_suggestion_diffs(proposal)
+    baseline = proposal.proposed_changes || {}
+    current = proposal.final_changes || {}
+    diffs = []
+
+    DISPLAY_ORDER.each do |field|
+      next if field == "business_model_id" && (current["business_model_ids"].present? || baseline["business_model_ids"].present?)
+      next if field == "target_client_id" && (current["target_client_ids"].present? || baseline["target_client_ids"].present?)
+      next unless baseline.key?(field) || current.key?(field)
+
+      old_value = proposal_change_value(baseline, field)
+      new_value = proposal_change_value(current, field)
+      next if old_value.to_s == new_value.to_s
+
+      label = proposal_change_label(field)
+      next if diffs.any? { |diff| diff[:label] == label }
+
+      diffs << { label: label, old_value: old_value, new_value: new_value }
+    end
+
+    diffs
+  end
 end
