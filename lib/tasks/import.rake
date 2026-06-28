@@ -7,6 +7,10 @@ require 'csv'
 namespace :csv do
 
 	task :import => :environment do
+    unless ENV["ALLOW_LEGACY_CSV_IMPORT"] == "true"
+      abort "Legacy csv:import is disabled. Use ImportCsvToCompanyService or set ALLOW_LEGACY_CSV_IMPORT=true."
+    end
+
 		CSV.foreach("#{Rails.root}/lib/presentation_data_03.csv", :headers => true, :encoding => 'UTF-8') do |row|
       row.to_hash
       #9_3_set_2

@@ -275,23 +275,34 @@ namespace :taxonomy do
     puts "resolve_unknown_target_clients complete mode=#{dry_run ? 'dry-run' : 'write'} counts=#{counts.inspect}"
   end
 
-  desc "Backfill tags from description keywords for untagged companies. DRY_RUN=false to write."
+  desc "Backfill tags from description keywords for untagged companies. DRY_RUN=false to write. USE_LLM=true for LLM suggestions."
   task backfill_tags: :environment do
     dry_run = ENV.fetch("DRY_RUN", "true") != "false"
     limit = ENV["LIMIT"]&.to_i
+    use_llm = ENV.fetch("USE_LLM", "false") == "true"
     scope = Company.publicly_visible.left_joins(:taggings).where(taggings: { id: nil }).order(:id)
     scope = scope.limit(limit) if limit.present?
 
     counts = Hash.new(0)
     scope.find_each do |company|
-      result = CompanyTagBackfillService.call(company: company, dry_run: dry_run)
+      result = if use_llm
+        TagSuggestionService.call(company: company, dry_run: dry_run)
+      else
+        CompanyTagBackfillService.call(company: company, dry_run: dry_run)
+      end
       counts[result["action"]] += 1
       next unless result["action"].in?(%w[would_tag tagged])
 
-      puts "tagged company_id=#{company.id} #{result['suggested_tags'].inspect}"
+      puts [
+        result["action"],
+        "company_id=#{company.id}",
+        result["suggested_tags"].inspect,
+        ("confidence=#{result['confidence']}" if result["confidence"]),
+        ("mode=#{result['mode']}" if result["mode"])
+      ].compact.join(" ")
     end
 
-    puts "backfill_tags complete mode=#{dry_run ? 'dry-run' : 'write'} counts=#{counts.inspect}"
+    puts "backfill_tags complete mode=#{dry_run ? 'dry-run' : 'write'} use_llm=#{use_llm} counts=#{counts.inspect}"
   end
 
   desc "Automated hygiene pass (no manual review). DRY_RUN=false to write."
@@ -328,7 +339,7 @@ namespace :taxonomy do
   task resolve_unknown_categories: :environment do
     dry_run = ENV.fetch("DRY_RUN", "true") != "false"
     limit = ENV["LIMIT"]&.to_i
-    scope = Company.unknown_category.includes(:category, :target_client).order(:id)
+    scope = Company.unknown_category.includes(:category, :target_client, :target_clients, :tags).order(:id)
     scope = scope.limit(limit) if limit.present?
 
     counts = Hash.new(0)

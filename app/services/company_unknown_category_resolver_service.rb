@@ -35,8 +35,8 @@ class CompanyUnknownCategoryResolverService
       source_payload: {
         "name" => company.name,
         "website" => company.main_url,
-        "source_description" => company.description,
-        "industries" => [company.target_client&.name, company.category&.name].compact
+        "source_description" => effective_description,
+        "industries" => company.audience_names + [company.category&.name].compact
       },
       final_changes: {}
     )
@@ -91,5 +91,12 @@ class CompanyUnknownCategoryResolverService
       "mode" => mode,
       "action" => "skipped_#{reason}"
     }
+  end
+
+  def effective_description
+    text = company.description.to_s.strip
+    return nil if text.blank? || text == "No description yet"
+
+    text
   end
 end

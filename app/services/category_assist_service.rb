@@ -19,7 +19,12 @@ class CategoryAssistService
   end
 
   def self.signal_match?(company, rule)
-    tag_match?(company, rule) || description_match?(company, rule)
+    name_match?(company, rule) || tag_match?(company, rule) || description_match?(company, rule)
+  end
+
+  def self.name_match?(company, rule)
+    name = company.name.to_s.downcase
+    Array(rule["name_patterns"]).any? { |pattern| name.match?(/#{pattern}/i) }
   end
 
   def self.tag_match?(company, rule)

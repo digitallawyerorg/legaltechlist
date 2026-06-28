@@ -35,3 +35,9 @@
 - target: "Litigation & Dispute Resolution"
   tag_patterns: ["litigation", "dispute resolution", "case management", "arbitration"]
   description_patterns: ["litigation management", "dispute resolution", "case management"]
+- target: "Practice Management"
+  name_patterns: ["lawlytics"]
+  description_patterns: ["marketing tools for lawyers", "marketing platform for law firms", "website builder for lawyers"]
+- target: "Compliance & Risk"
+  name_patterns: ["tapp solutions"]
+  description_patterns: ["software solutions for insurers", "insurance software"]
