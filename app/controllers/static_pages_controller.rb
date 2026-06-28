@@ -894,7 +894,7 @@ class StaticPagesController < ApplicationController
   end
 
   def ai_trends
-    ai_tags = Tag.where("LOWER(name) IN (?)", ['ai', 'artificial intelligence', 'machine learning']).pluck(:id)
+    ai_tags = TagNormalizationService.ai_related_tag_ids
 
     @ai_companies_by_year = Company.joins(:taggings)
                                    .where(taggings: { tag_id: ai_tags })
@@ -913,7 +913,7 @@ class StaticPagesController < ApplicationController
   end
 
   def download_ai_trends
-    ai_tags = Tag.where("LOWER(name) IN (?)", ['ai', 'artificial intelligence', 'machine learning']).pluck(:id)
+    ai_tags = TagNormalizationService.ai_related_tag_ids
 
     ai_companies_by_year = Company.joins(:taggings)
                                   .where(taggings: { tag_id: ai_tags })

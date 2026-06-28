@@ -31,6 +31,23 @@ class TagNormalizationService
     Tag.find_by("LOWER(name) = ?", name) || Tag.create!(name: name)
   end
 
+  AI_CANONICAL_ROOTS = ["ai", "artificial intelligence", "machine learning", "generative ai"].freeze
+
+  def self.ai_related_canonical_names
+    @ai_related_canonical_names ||= AI_CANONICAL_ROOTS.map { |name| normalize_name(name) }.uniq
+  end
+
+  def self.ai_related?(raw)
+    canonical = canonical_name(raw)
+    return false if canonical.blank?
+
+    ai_related_canonical_names.include?(canonical)
+  end
+
+  def self.ai_related_tag_ids
+    Tag.pluck(:id, :name).filter_map { |id, name| id if ai_related?(name) }.uniq
+  end
+
   def self.merge_duplicate_tags!(dry_run: true)
     counts = { merged: 0, taggings_moved: 0, tags_removed: 0 }
     groups = Hash.new { |hash, key| hash[key] = [] }

@@ -51,11 +51,16 @@ class CompanyProposalTaxonomySuggestionService
   def call
     suggestions = llm_suggestions.presence || deterministic_suggestions
     revenue_models = map_revenue_models(suggestions["revenue_model_names"], suggestions["revenue_model_confidence"])
+    target_clients = map_target_clients(suggestions["target_client_names"], suggestions["target_client_confidence"])
+    tags = map_tags(suggestions["tag_names"], suggestions["tags_confidence"])
 
     mapped = {
       "category" => map_suggestion(Category, suggestions["category_name"], suggestions["category_confidence"], "category_id"),
+      "secondary_category" => map_suggestion(Category, suggestions["secondary_category_name"], suggestions["secondary_category_confidence"], "secondary_category_id"),
       "revenue_models" => revenue_models.except("records"),
-      "target_client" => map_suggestion(TargetClient, suggestions["target_client_name"], suggestions["target_client_confidence"], "target_client_id")
+      "target_client" => map_suggestion(TargetClient, suggestions["target_client_name"], suggestions["target_client_confidence"], "target_client_id"),
+      "target_clients" => target_clients.except("records"),
+      "tags" => tags
     }
 
     mapped.merge(
@@ -71,13 +76,19 @@ class CompanyProposalTaxonomySuggestionService
 
   def deterministic_suggestions
     revenue_model_names = matched_revenue_model_names
+    tag_names = matched_tag_names
     {
       "category_name" => matched_name(CATEGORY_RULES),
       "category_confidence" => matched_name(CATEGORY_RULES).present? ? 0.85 : 0.0,
+      "secondary_category_name" => nil,
+      "secondary_category_confidence" => 0.0,
       "revenue_model_names" => revenue_model_names,
       "revenue_model_confidence" => revenue_model_names.any? ? 0.85 : 0.0,
       "target_client_name" => matched_name(TARGET_CLIENT_RULES),
       "target_client_confidence" => matched_name(TARGET_CLIENT_RULES).present? ? 0.85 : 0.0,
+      "target_client_names" => matched_target_client_names,
+      "tag_names" => tag_names,
+      "tags_confidence" => tag_names.any? ? 0.85 : 0.0,
       "mode" => "deterministic_rules"
     }
   end
@@ -89,6 +100,8 @@ class CompanyProposalTaxonomySuggestionService
     response = Timeout.timeout(llm_timeout_seconds) { chat.ask(llm_prompt) }
     parsed = JSON.parse(response.content.to_s)
     parsed["revenue_model_names"] ||= Array(parsed["business_model_name"]).compact
+    parsed["target_client_names"] ||= Array(parsed["target_client_name"]).compact
+    parsed["tag_names"] ||= []
     parsed.merge("mode" => "ruby_llm")
   rescue StandardError
     nil
@@ -114,8 +127,15 @@ class CompanyProposalTaxonomySuggestionService
       allowed_category_names: Category.order(:name).pluck(:name),
       allowed_revenue_model_names: MethodologyHelper::REVENUE_MODEL_NAMES,
       allowed_target_client_names: TaxonomyNormalizationService::CANONICAL_TARGET_CLIENTS,
-      instruction: "Return JSON with category_name, category_confidence, revenue_model_names (array, 1-3 items from allowed list), revenue_model_confidence, target_client_name, target_client_confidence. Use only allowed names. Confidence must be 0.0-1.0."
+      preferred_tag_vocabulary: preferred_tag_vocabulary,
+      instruction: "Return JSON with category_name, category_confidence, secondary_category_name (optional, from allowed categories, must differ from primary), secondary_category_confidence, revenue_model_names (array, 1-3 items from allowed list), revenue_model_confidence, target_client_name, target_client_confidence, target_client_names (array, 1-3 from allowed list), tag_names (array, 1-5 lowercase technology/theme keywords), tags_confidence. Use only allowed names for categories, revenue models, and target clients. Confidence must be 0.0-1.0."
     }.to_json
+  end
+
+  def preferred_tag_vocabulary
+    path = Rails.root.join("config/taxonomy/tag_aliases.yml")
+    data = YAML.safe_load(File.read(path), permitted_classes: [], aliases: true) || {}
+    data.keys.map { |name| TagNormalizationService.normalize_name(name) }.uniq.sort
   end
 
   def matched_name(rules)
@@ -126,6 +146,52 @@ class CompanyProposalTaxonomySuggestionService
     REVENUE_MODEL_RULES.filter_map do |name, matcher|
       name if MethodologyHelper::REVENUE_MODEL_NAMES.include?(name) && evidence_text.match?(matcher)
     end.uniq
+  end
+
+  def matched_target_client_names
+    TARGET_CLIENT_RULES.filter_map do |name, matcher|
+      name if TaxonomyNormalizationService::CANONICAL_TARGET_CLIENTS.include?(name) && evidence_text.match?(matcher)
+    end.uniq
+  end
+
+  def matched_tag_names
+    CompanyTagBackfillService::DESCRIPTION_PATTERNS.filter_map do |tag, pattern|
+      tag if evidence_text.match?(pattern)
+    end.uniq.first(5)
+  end
+
+  def map_target_clients(names, confidence)
+    names = Array(names).map(&:to_s).reject(&:blank?).uniq
+    names = matched_target_client_names if names.empty?
+    if final_changes["target_client_ids"].present?
+      records = TargetClient.where(id: Array(final_changes["target_client_ids"]))
+      confidence_value = 1.0
+    else
+      records = names.filter_map { |name| TargetClient.find_by(name: name) }.uniq
+      confidence_value = confidence.to_f
+      confidence_value = 0.85 if confidence_value.zero? && records.any?
+    end
+
+    {
+      "records" => records.to_a,
+      "ids" => records.map(&:id),
+      "names" => records.map(&:name),
+      "confidence" => records.any? ? confidence_value : 0.0,
+      "accepted" => records.any? && confidence_value >= HIGH_CONFIDENCE
+    }
+  end
+
+  def map_tags(names, confidence)
+    names = Array(names).map { |name| TagNormalizationService.canonical_name(name) }.compact.uniq
+    names = matched_tag_names if names.empty?
+    confidence_value = confidence.to_f
+    confidence_value = 0.85 if confidence_value.zero? && names.any?
+
+    {
+      "names" => names,
+      "confidence" => names.any? ? confidence_value : 0.0,
+      "accepted" => names.any? && confidence_value >= HIGH_CONFIDENCE
+    }
   end
 
   def taxonomy_name_available?(name)

@@ -24,9 +24,13 @@ class CompanyProposal < ActiveRecord::Base
     status
     description
     category_id
+    secondary_category_id
     sub_category_id
     business_model_id
+    business_model_ids
     target_client_id
+    target_client_ids
+    all_tags
     crunchbase_url
     linkedin_url
     total_funding_amount_usd

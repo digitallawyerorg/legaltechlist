@@ -17,7 +17,7 @@ class TagSuggestionService
 
   def call
     return skip("already_tagged") if company.tags.any?
-    return skip("human_reviewed") if company.human_reviewed_at.present?
+    return skip("human_reviewed") if company.human_reviewed_at.present? && !allow_human_reviewed_tags?
 
     keyword_result = CompanyTagBackfillService.call(company: company, dry_run: dry_run, max_tags: max_tags)
     return keyword_result if keyword_result["action"].in?(%w[tagged would_tag])
@@ -104,6 +104,10 @@ class TagSuggestionService
     return nil if text.blank? || text == "No description yet"
 
     text
+  end
+
+  def allow_human_reviewed_tags?
+    ENV.fetch("ALLOW_HUMAN_REVIEWED_TAGS", "false") == "true"
   end
 
   def skip(reason, suggested_tags = nil, confidence = nil, mode = nil)

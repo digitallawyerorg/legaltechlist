@@ -311,14 +311,18 @@ namespace :taxonomy do
     puts "taxonomy:auto_hygiene starting mode=#{dry_run ? 'dry-run' : 'write'}"
 
     steps = [
+      ["taxonomy:normalize_tags", {}],
       ["taxonomy:backfill_tags", {}],
+      ["taxonomy:backfill_tags", { "USE_LLM" => "true", "ALLOW_HUMAN_REVIEWED_TAGS" => "true", "TAG_SUGGESTION_USE_LLM" => "true", "PROPOSAL_TAXONOMY_USE_LLM" => "true" }],
       ["taxonomy:resolve_unknown_categories", { "AUTO_HYGIENE" => "true", "MIN_CONFIDENCE" => "0.55", "PROPOSAL_TAXONOMY_USE_LLM" => "false" }],
       ["taxonomy:resolve_unknown_categories", { "AUTO_HYGIENE" => "true", "MIN_CONFIDENCE" => "0.55", "PROPOSAL_TAXONOMY_USE_LLM" => "true" }],
       ["taxonomy:resolve_unknown_categories", { "FORCE_APPLY_REMAINING" => "true", "PROPOSAL_TAXONOMY_USE_LLM" => "true" }],
+      ["taxonomy:review_unknown_scope", { "AUTO_HYGIENE" => "true", "MIN_CONFIDENCE" => "0.55", "PROPOSAL_TAXONOMY_USE_LLM" => "true" }],
       ["taxonomy:resolve_unknown_target_clients", { "AUTO_HYGIENE" => "true", "MIN_CONFIDENCE" => "0.55", "PROPOSAL_TAXONOMY_USE_LLM" => "false" }],
       ["taxonomy:resolve_unknown_target_clients", { "AUTO_HYGIENE" => "true", "MIN_CONFIDENCE" => "0.55", "PROPOSAL_TAXONOMY_USE_LLM" => "true" }],
       ["taxonomy:backfill_revenue_models", { "OVERWRITE_OTHER_ONLY" => "true", "OVERWRITE_UNKNOWN_ONLY" => "false", "MIN_CONFIDENCE" => "0.65", "PROPOSAL_TAXONOMY_USE_LLM" => "false" }],
       ["taxonomy:backfill_revenue_models", { "OVERWRITE_OTHER_ONLY" => "true", "OVERWRITE_UNKNOWN_ONLY" => "false", "MIN_CONFIDENCE" => "0.65", "PROPOSAL_TAXONOMY_USE_LLM" => "true" }],
+      ["taxonomy:backfill_revenue_models", { "OVERWRITE_OTHER_ONLY" => "true", "OVERWRITE_UNKNOWN_ONLY" => "false", "MIN_CONFIDENCE" => "0.55", "PROPOSAL_TAXONOMY_USE_LLM" => "true" }],
       ["taxonomy:sync_legacy_revenue_fk", {}],
       ["taxonomy:audit", {}]
     ]
@@ -359,6 +363,32 @@ namespace :taxonomy do
     end
 
     puts "resolve_unknown_categories complete mode=#{dry_run ? 'dry-run' : 'write'} counts=#{counts.inspect}"
+  end
+
+  desc "Review remaining Unknown profiles for legal-tech scope. DRY_RUN=false to write."
+  task review_unknown_scope: :environment do
+    dry_run = ENV.fetch("DRY_RUN", "true") != "false"
+    limit = ENV["LIMIT"]&.to_i
+    scope = Company.unknown_category.includes(:category, :target_clients, :tags).order(:id)
+    scope = scope.limit(limit) if limit.present?
+
+    counts = Hash.new(0)
+    scope.find_each do |company|
+      result = CompanyLegalScopeReviewService.call(company: company, dry_run: dry_run)
+      counts[result["action"]] += 1
+      next unless result["action"].in?(%w[would_hide hidden would_categorize categorized])
+
+      puts [
+        result["action"],
+        "company_id=#{company.id}",
+        result["company_name"],
+        result["to_category"],
+        result["reason"],
+        "confidence=#{result['confidence']}"
+      ].compact.join(" ")
+    end
+
+    puts "review_unknown_scope complete mode=#{dry_run ? 'dry-run' : 'write'} counts=#{counts.inspect}"
   end
 
   desc "Seed planned v2 primary categories. DRY_RUN=false to write."

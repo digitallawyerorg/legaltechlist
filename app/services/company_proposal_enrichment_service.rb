@@ -42,11 +42,15 @@ class CompanyProposalEnrichmentService
   end
 
   def taxonomy_changes
+    tag_names = Array(taxonomy_suggestion.dig("tags", "names")).compact
     {
       "category_id" => taxonomy_suggestion.dig("category", "id"),
+      "secondary_category_id" => taxonomy_suggestion.dig("secondary_category", "id"),
       "business_model_id" => taxonomy_suggestion.dig("revenue_models", "ids")&.first,
       "business_model_ids" => taxonomy_suggestion.dig("revenue_models", "ids"),
-      "target_client_id" => taxonomy_suggestion.dig("target_client", "id")
+      "target_client_id" => taxonomy_suggestion.dig("target_clients", "ids")&.first || taxonomy_suggestion.dig("target_client", "id"),
+      "target_client_ids" => taxonomy_suggestion.dig("target_clients", "ids"),
+      "all_tags" => tag_names.join(", ").presence
     }.compact_blank
   end
 

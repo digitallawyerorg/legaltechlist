@@ -31,6 +31,14 @@ class CompanyProposalApprovalService
     end
     company.business_model_ids = revenue_model_ids if revenue_model_ids.any?
 
+    target_client_ids = Array(proposal.final_changes["target_client_ids"]).map(&:presence).compact
+    company.target_client_ids = target_client_ids if target_client_ids.any?
+
+    if proposal.final_changes["all_tags"].present?
+      company.all_tags = proposal.final_changes["all_tags"]
+      company.save!
+    end
+
     proposal.update!(
       status: publish ? "published" : "approved_to_draft",
       company: company,
@@ -64,6 +72,7 @@ class CompanyProposalApprovalService
     changes = proposal.final_changes.slice(*CompanyProposal::EDITABLE_COMPANY_FIELDS)
     changes.except("source_description").merge(
       "category_id" => blank_to_nil(changes["category_id"]),
+      "secondary_category_id" => blank_to_nil(changes["secondary_category_id"]),
       "sub_category_id" => blank_to_nil(changes["sub_category_id"]),
       "business_model_id" => blank_to_nil(changes["business_model_id"]),
       "target_client_id" => blank_to_nil(changes["target_client_id"])
