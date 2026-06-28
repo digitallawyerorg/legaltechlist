@@ -288,7 +288,8 @@ class LocationCountryResolver
     "TallinnEstonia" => "Tallinn, Estonia",
     "PunjabIndia" => "Punjab, India",
     "United States California" => "California, United States",
-    "Santiago Chile  Alicante Spain" => "Santiago, Chile"
+    "Santiago Chile  Alicante Spain" => "Santiago, Chile",
+    "Santiago Chile Alicante Spain" => "Santiago, Chile"
   }.freeze
 
   UK_ADMINISTRATIVE_AREAS = [
