@@ -269,6 +269,57 @@ class CompaniesControllerTest < ActionController::TestCase
     assert_select "a.company-name-link[href=?]", company_path(@company, sort: "name_asc", category: [@company.category_id])
   end
 
+  test "show renders suggest an update button and modal" do
+    get :show, params: { id: @company }
+
+    assert_response :success
+    assert_select "button.company-suggest-update-btn[data-suggest-update-open]", text: /Suggest an update/
+    assert_select "#company-suggest-update-modal"
+    assert_select ".company-suggest-update-modal-option", minimum: 7
+    assert_select "form[action=?][method=?]", suggest_update_company_path(@company), "post"
+  end
+
+  test "suggest update sends email and redirects with notice" do
+    assert_difference -> { ActionMailer::Base.deliveries.size }, 1 do
+      post :suggest_update, params: {
+        id: @company,
+        issue_type: "incorrect_details",
+        message: "Founded year should be 2014.",
+        source_url: "https://example.com/about",
+        submitter_email: "reviewer@example.com"
+      }
+    end
+
+    assert_redirected_to company_path(@company)
+    assert_equal "Thank you. Your suggestion has been submitted for review.", flash[:notice]
+    mail = ActionMailer::Base.deliveries.last
+    assert_includes mail.subject, @company.name
+    assert_includes mail.body.encoded, "Founded year should be 2014."
+  end
+
+  test "suggest update requires issue type and message" do
+    assert_no_difference -> { ActionMailer::Base.deliveries.size } do
+      post :suggest_update, params: { id: @company, issue_type: "", message: "" }
+    end
+
+    assert_redirected_to company_path(@company)
+    assert_match(/issue type/i, flash[:alert].to_s)
+  end
+
+  test "suggest update requires submitter email" do
+    assert_no_difference -> { ActionMailer::Base.deliveries.size } do
+      post :suggest_update, params: {
+        id: @company,
+        issue_type: "incorrect_details",
+        message: "Founded year should be 2014.",
+        submitter_email: ""
+      }
+    end
+
+    assert_redirected_to company_path(@company)
+    assert_match(/email/i, flash[:alert].to_s)
+  end
+
   test "should get edit" do
     get :edit, params: { id: @company }
     assert_response :success

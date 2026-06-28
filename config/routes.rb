@@ -50,6 +50,10 @@ Rails.application.routes.draw do
 
   # Resources
   resources :companies, except: [:destroy] do
+    member do
+      post :suggest_update
+    end
+
     collection do
       get :search
     end

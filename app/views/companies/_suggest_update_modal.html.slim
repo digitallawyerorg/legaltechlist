@@ -1,0 +1,200 @@
+- suggest_issue_types = [{ key: "incorrect_details", title: "Incorrect company details", description: "Name, founding year, headquarters, or description", icon: "fa-solid fa-pen", placeholder: "e.g. Founded year should be 2014, not 2012." }, { key: "status_outdated", title: "Status is out of date", description: "Acquired, shut down, rebranded, or merged", icon: "fa-solid fa-arrows-rotate", placeholder: "e.g. This company was acquired by Thomson Reuters in 2024." }, { key: "wrong_category", title: "Wrong category or tags", description: "Mis-classified or missing taxonomy tags", icon: "fa-solid fa-tags", placeholder: "e.g. Primary category should be Document Automation." }, { key: "broken_link", title: "Broken or wrong link", description: "Website, LinkedIn, Crunchbase, or a reference", icon: "fa-solid fa-link", placeholder: "e.g. The LinkedIn URL points to the wrong company." }, { key: "funding_wrong", title: "Funding information is wrong", description: "Total raised, latest round, or investors", icon: "fa-solid fa-dollar-sign", placeholder: "e.g. Total funding should be $25M, not $15M." }, { key: "suggest_reference", title: "Suggest a reference or source", description: "Add an academic citation or external profile", icon: "fa-solid fa-book", placeholder: "e.g. Add this Crunchbase profile as a supporting source." }, { key: "something_else", title: "Something else", description: "Any other correction or note for the editors", icon: "fa-solid fa-comment", placeholder: "Describe the correction or update you'd like us to make." }]
+
+css:
+    .company-suggest-update-modal { align-items: center; display: none; inset: 0; justify-content: center; overflow-y: auto; padding: 1.5rem 1rem; position: fixed; z-index: 2100; }
+    .company-suggest-update-modal.is-open { display: flex; }
+    .company-suggest-update-modal-backdrop { background: rgba(15, 23, 42, 0.72); inset: 0; position: absolute; }
+    .company-suggest-update-modal-panel { background: #fff; border-radius: 0.85rem; box-shadow: 0 24px 64px rgba(15, 23, 42, 0.28); display: flex; flex-direction: column; margin: auto; max-height: min(36rem, calc(100vh - 3rem)); max-width: 34rem; overflow: hidden; position: relative; width: 100%; }
+    .company-suggest-update-modal-header { align-items: center; border-bottom: 1px solid #e1dccf; display: grid; gap: 0.75rem; grid-template-columns: 2rem minmax(0, 1fr) 2rem; padding: 1.1rem 1.15rem 0.95rem; }
+    .company-suggest-update-modal-header-main { grid-column: 2; min-width: 0; text-align: left; }
+    .company-suggest-update-modal.is-form-step .company-suggest-update-modal-header-main { text-align: center; }
+    .company-suggest-update-modal-title { color: #2b2926; font-family: edict, "edict Fallback", Georgia, Cambria, "Times New Roman", Times, serif; font-size: 1.35rem; font-weight: 500; letter-spacing: -0.01em; line-height: 1.2; margin: 0; }
+    .company-suggest-update-modal-subtitle { color: #8b8379; font-size: 0.84rem; line-height: 1.35; margin: 0.25rem 0 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .company-suggest-update-modal-close { align-items: center; background: transparent; border: 0; border-radius: 0.45rem; color: #8b8379; cursor: pointer; display: flex; flex: 0 0 auto; font-size: 1rem; grid-column: 3; height: 2rem; justify-content: center; justify-self: end; padding: 0; width: 2rem; }
+    .company-suggest-update-modal-close:hover { background: #f6f1e7; color: #2b2926; }
+    .company-suggest-update-modal-back { align-items: center; background: transparent; border: 0; border-radius: 0.45rem; color: #8b8379; cursor: pointer; display: flex; flex: 0 0 auto; font-size: 0.95rem; grid-column: 1; height: 2rem; justify-content: center; opacity: 0; padding: 0; pointer-events: none; visibility: hidden; width: 2rem; }
+    .company-suggest-update-modal.is-form-step .company-suggest-update-modal-back { opacity: 1; pointer-events: auto; visibility: visible; }
+    .company-suggest-update-modal-back:hover { background: #f6f1e7; color: #2b2926; }
+    .company-suggest-update-modal-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
+    .company-suggest-update-modal.is-form-step .company-suggest-update-modal-body { display: flex; flex: 0 0 auto; flex-direction: column; overflow: visible; }
+    .company-suggest-update-modal.is-form-step .company-suggest-update-modal-panel { height: auto; }
+    .company-suggest-update-modal-step { display: none; }
+    .company-suggest-update-modal-step.is-active { display: block; }
+    .company-suggest-update-modal-step[data-suggest-update-step="form"].is-active { display: flex; flex: 1 1 auto; flex-direction: column; min-height: 0; }
+    .company-suggest-update-modal-list { margin: 0; }
+    .company-suggest-update-modal-option { align-items: center; background: transparent; border: 0; color: inherit; cursor: pointer; display: flex; gap: 0.85rem; padding: 0.95rem 1.15rem; text-align: left; transition: background 0.12s ease; width: 100%; }
+    .company-suggest-update-modal-option:hover { background: #faf8f4; }
+    .company-suggest-update-modal-option + .company-suggest-update-modal-option { border-top: 1px solid #f0ebe3; }
+    .company-suggest-update-modal-option-icon { align-items: center; background: #f3efe6; border-radius: 0.55rem; color: #8c1515; display: flex; flex: 0 0 2.35rem; font-size: 0.82rem; height: 2.35rem; justify-content: center; width: 2.35rem; }
+    .company-suggest-update-modal-option-copy { display: flex; flex: 1 1 auto; flex-direction: column; gap: 0.15rem; min-width: 0; }
+    .company-suggest-update-modal-option-title { color: #2b2926; font-size: 0.94rem; font-weight: 700; line-height: 1.3; }
+    .company-suggest-update-modal-option-description { color: #8b8379; font-size: 0.82rem; line-height: 1.35; }
+    .company-suggest-update-modal-option-chevron { color: #b7afa4; flex: 0 0 auto; font-size: 0.72rem; margin-left: 0.15rem; }
+    .company-suggest-update-modal-form { display: flex; flex: 1 1 auto; flex-direction: column; min-height: 0; padding: 0; }
+    .company-suggest-update-modal.is-form-step .company-suggest-update-modal-form { flex: 0 0 auto; min-height: auto; }
+    .company-suggest-update-modal-form-fields { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 1rem 1.15rem 0; }
+    .company-suggest-update-modal.is-form-step .company-suggest-update-modal-form-fields { flex: 0 0 auto; min-height: auto; overflow-y: visible; }
+    .company-suggest-update-modal-form-actions { background: #fff; border-top: 1px solid #e1dccf; flex-shrink: 0; padding: 0.65rem 1.15rem 0.75rem; }
+    .company-suggest-update-modal-banner { align-items: center; background: #f6e5e5; border: 0; border-radius: 0.75rem; display: flex; gap: 0.75rem; margin-bottom: 0.85rem; padding: 0.7rem 0.85rem; }
+    .company-suggest-update-modal-banner-icon { align-items: center; background: rgba(255, 255, 255, 0.55); border-radius: 0.55rem; color: #8c1515; display: flex; flex: 0 0 2.15rem; font-size: 0.82rem; height: 2.15rem; justify-content: center; width: 2.15rem; }
+    .company-suggest-update-modal-banner-title { color: #2b2926; font-size: 0.92rem; font-weight: 700; line-height: 1.3; }
+    .company-suggest-update-modal-field { margin-bottom: 0.75rem; }
+    .company-suggest-update-modal-label { color: #2b2926; display: block; font-size: 0.88rem; font-weight: 700; margin-bottom: 0.45rem; }
+    .company-suggest-update-modal-label-optional { color: #8b8379; font-weight: 600; }
+    .company-suggest-update-modal-field-hint { color: #8b8379; font-size: 0.8rem; line-height: 1.4; margin: -0.2rem 0 0.45rem; }
+    .company-suggest-update-modal-input { background: #fff; border: 1px solid #ded7ca; border-radius: 0.6rem; color: #2b2926; font-size: 0.94rem; min-height: 2.75rem; padding: 0.6rem 0.85rem; width: 100%; }
+    .company-suggest-update-modal-input::placeholder { color: #a39a8f; }
+    .company-suggest-update-modal-input:focus { border-color: #8c1515; box-shadow: 0 0 0 0.15rem rgba(140, 21, 21, 0.1); outline: none; }
+    .company-suggest-update-modal-textarea { min-height: 4.25rem; padding-top: 0.55rem; resize: vertical; }
+    .company-suggest-update-modal-note { align-items: flex-start; color: #8b8379; display: flex; font-size: 0.82rem; gap: 0.5rem; line-height: 1.45; margin-bottom: 0; padding-bottom: 0.35rem; }
+    .company-suggest-update-modal-note-icon { color: #b7afa4; flex: 0 0 auto; font-size: 0.85rem; margin-top: 0.08rem; }
+    .company-suggest-update-modal-submit { background: #8c1515; border: 1px solid #8c1515; border-radius: 0.55rem; color: #fff; cursor: pointer; font-size: 0.92rem; font-weight: 700; min-height: 2.65rem; padding: 0.45rem 1.35rem; width: 100%; }
+    .company-suggest-update-modal-submit:hover { background: #6f1111; border-color: #6f1111; }
+    @media (max-width: 640px) { .company-suggest-update-modal { padding: 1rem 0.75rem; } .company-suggest-update-modal-panel { border-radius: 0.75rem; max-height: calc(100vh - 2rem); } }
+
+#company-suggest-update-modal.company-suggest-update-modal aria-hidden="true" data-company-name=@company.name
+    .company-suggest-update-modal-backdrop data-suggest-update-close=""
+    .company-suggest-update-modal-panel role="dialog" aria-modal="true" aria-labelledby="company-suggest-update-modal-title"
+        .company-suggest-update-modal-header
+            button.company-suggest-update-modal-back type="button" aria-label="Back" data-suggest-update-back=""
+                i.fa-solid.fa-arrow-left aria-hidden="true"
+            .company-suggest-update-modal-header-main
+                h2#company-suggest-update-modal-title.company-suggest-update-modal-title What needs updating?
+                p.company-suggest-update-modal-subtitle= @company.name
+            button.company-suggest-update-modal-close type="button" aria-label="Close" data-suggest-update-close=""
+                i.fa-solid.fa-xmark aria-hidden="true"
+        .company-suggest-update-modal-body
+            .company-suggest-update-modal-step.is-active data-suggest-update-step="choose"
+                .company-suggest-update-modal-list
+                    - suggest_issue_types.each do |issue_type|
+                        button.company-suggest-update-modal-option type="button" data-suggest-update-issue=issue_type[:key] data-suggest-update-issue-title=issue_type[:title] data-suggest-update-issue-icon=issue_type[:icon] data-suggest-update-issue-placeholder=issue_type[:placeholder]
+                            span.company-suggest-update-modal-option-icon
+                                i class=issue_type[:icon] aria-hidden="true"
+                            span.company-suggest-update-modal-option-copy
+                                span.company-suggest-update-modal-option-title= issue_type[:title]
+                                span.company-suggest-update-modal-option-description= issue_type[:description]
+                            i.fa-solid.fa-chevron-right.company-suggest-update-modal-option-chevron aria-hidden="true"
+            .company-suggest-update-modal-step data-suggest-update-step="form"
+                = form_with url: suggest_update_company_path(@company), method: :post, local: true, html: { class: "company-suggest-update-modal-form", data: { suggest_update_form: true } } do |f|
+                    = hidden_field_tag :issue_type, "", data: { suggest_update_issue_type: true }
+                    .company-suggest-update-modal-form-fields
+                        .company-suggest-update-modal-banner data-suggest-update-banner=""
+                            .company-suggest-update-modal-banner-icon data-suggest-update-banner-icon=""
+                                i.fa-solid.fa-building aria-hidden="true"
+                            .company-suggest-update-modal-banner-title data-suggest-update-banner-title=""
+                        .company-suggest-update-modal-field
+                            label.company-suggest-update-modal-label for="company_suggest_update_message" What should change?
+                            = text_area_tag :message, nil, id: "company_suggest_update_message", class: "company-suggest-update-modal-input company-suggest-update-modal-textarea", placeholder: "Describe the correction or update you'd like us to make.", required: true, rows: 3, data: { suggest_update_message: true }
+                        .company-suggest-update-modal-field
+                            label.company-suggest-update-modal-label for="company_suggest_update_source_url"
+                                | Source
+                                span.company-suggest-update-modal-label-optional  · optional
+                            p.company-suggest-update-modal-field-hint A link that supports the change helps us review faster.
+                            = url_field_tag :source_url, nil, id: "company_suggest_update_source_url", class: "company-suggest-update-modal-input", placeholder: "https://"
+                        .company-suggest-update-modal-field
+                            label.company-suggest-update-modal-label for="company_suggest_update_submitter_email" Your email
+                            = email_field_tag :submitter_email, nil, id: "company_suggest_update_submitter_email", class: "company-suggest-update-modal-input", placeholder: "you@institution.edu", autocomplete: "email", required: true
+                        .company-suggest-update-modal-note
+                            i.fa-solid.fa-circle-info.company-suggest-update-modal-note-icon aria-hidden="true"
+                            span Every suggestion is reviewed before any change is published.
+                    .company-suggest-update-modal-form-actions
+                        button.company-suggest-update-modal-submit type="submit" Submit for review
+
+javascript:
+    (function() {
+        function initSuggestUpdateModal() {
+            const modal = document.getElementById("company-suggest-update-modal");
+            if (!modal || modal.dataset.initialized === "true") return;
+            modal.dataset.initialized = "true";
+
+            const backButton = modal.querySelector("[data-suggest-update-back]");
+            const closeButtons = modal.querySelectorAll("[data-suggest-update-close]");
+            const issueButtons = modal.querySelectorAll("[data-suggest-update-issue]");
+            const issueTypeField = modal.querySelector("[data-suggest-update-issue-type]");
+            const bannerTitle = modal.querySelector("[data-suggest-update-banner-title]");
+            const bannerIcon = modal.querySelector("[data-suggest-update-banner-icon]");
+            const messageField = modal.querySelector("[data-suggest-update-message]");
+            const modalTitle = modal.querySelector("#company-suggest-update-modal-title");
+            const defaultMessagePlaceholder = messageField ? messageField.getAttribute("placeholder") : "";
+
+            function showStep(stepName) {
+                modal.querySelectorAll("[data-suggest-update-step]").forEach(function(step) {
+                    step.classList.toggle("is-active", step.dataset.suggestUpdateStep === stepName);
+                });
+                modal.classList.toggle("is-form-step", stepName === "form");
+                if (modalTitle) modalTitle.textContent = stepName === "form" ? "Suggest an update" : "What needs updating?";
+            }
+
+            function resetModal() {
+                showStep("choose");
+                if (issueTypeField) issueTypeField.value = "";
+                if (messageField) {
+                    messageField.value = "";
+                    messageField.setAttribute("placeholder", defaultMessagePlaceholder);
+                }
+                const sourceField = modal.querySelector("#company_suggest_update_source_url");
+                const emailField = modal.querySelector("#company_suggest_update_submitter_email");
+                if (sourceField) sourceField.value = "";
+                if (emailField) emailField.value = "";
+            }
+
+            function openModal() {
+                modal.classList.add("is-open");
+                modal.setAttribute("aria-hidden", "false");
+                document.body.style.overflow = "hidden";
+                resetModal();
+            }
+
+            function closeModal() {
+                modal.classList.remove("is-open");
+                modal.setAttribute("aria-hidden", "true");
+                document.body.style.overflow = "";
+                resetModal();
+            }
+
+            document.querySelectorAll("[data-suggest-update-open]").forEach(function(trigger) {
+                if (trigger.dataset.suggestUpdateBound === "true") return;
+                trigger.dataset.suggestUpdateBound = "true";
+                trigger.addEventListener("click", function(event) {
+                    event.preventDefault();
+                    openModal();
+                });
+            });
+
+            closeButtons.forEach(function(button) {
+                button.addEventListener("click", function(event) {
+                    event.preventDefault();
+                    closeModal();
+                });
+            });
+
+            if (backButton) {
+                backButton.addEventListener("click", function(event) {
+                    event.preventDefault();
+                    showStep("choose");
+                });
+            }
+
+            issueButtons.forEach(function(button) {
+                button.addEventListener("click", function() {
+                    const issueKey = button.dataset.suggestUpdateIssue;
+                    const issueTitle = button.dataset.suggestUpdateIssueTitle;
+                    const issueIcon = button.dataset.suggestUpdateIssueIcon;
+                    const issuePlaceholder = button.dataset.suggestUpdateIssuePlaceholder;
+                    if (issueTypeField) issueTypeField.value = issueKey || "";
+                    if (bannerTitle) bannerTitle.textContent = issueTitle || "";
+                    if (bannerIcon) bannerIcon.innerHTML = '<i class="' + (issueIcon || "fa-solid fa-building") + '" aria-hidden="true"></i>';
+                    if (messageField && issuePlaceholder) messageField.setAttribute("placeholder", issuePlaceholder);
+                    showStep("form");
+                    if (messageField) window.setTimeout(function() { messageField.focus(); }, 0);
+                });
+            });
+
+            document.addEventListener("keydown", function(event) {
+                if (event.key === "Escape" && modal.classList.contains("is-open")) closeModal();
+            });
+        }
+
+        document.addEventListener("DOMContentLoaded", initSuggestUpdateModal);
+        document.addEventListener("turbo:load", initSuggestUpdateModal);
+    })();

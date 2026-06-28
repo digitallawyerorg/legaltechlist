@@ -1,0 +1,16 @@
+<%= @message %>
+
+Company: <%= @company.name %> (/companies/<%= @company.id %>)
+Issue type: <%= @suggestion[:issue_type].to_s.humanize %>
+
+What should change:
+<%= @suggestion[:message].to_s %>
+
+<% if @suggestion[:source_url].present? -%>
+Source: <%= @suggestion[:source_url] %>
+<% end -%>
+<% if @suggestion[:submitter_email].present? -%>
+Submitter email: <%= @suggestion[:submitter_email] %>
+<% end -%>
+
+Review in admin: /admin/app/companies/<%= @company.id %>/edit

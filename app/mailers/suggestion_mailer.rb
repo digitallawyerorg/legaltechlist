@@ -22,4 +22,14 @@ class SuggestionMailer < ApplicationMailer
     mail(:to => emails, :subject => "#{t('site_title')}: #{@message}")
   end
 
+  def company_update_suggestion_email(company, suggestion)
+    @company = company
+    @suggestion = suggestion
+    @message = "Company update suggestion"
+
+    emails = AdminUser.all.collect(&:email).join(",")
+
+    mail(to: emails, subject: "#{t('site_title')}: Update suggestion for #{company.name}")
+  end
+
 end

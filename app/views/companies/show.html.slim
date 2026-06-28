@@ -81,6 +81,40 @@ css:
         padding-top: 1.25rem;
     }
 
+    .company-show-page .company-hero-actions {
+        flex: 0 0 auto;
+        padding-top: 0.15rem;
+    }
+
+    .company-show-page .company-suggest-update-btn {
+        align-items: center;
+        background: #fff;
+        border: 1px solid #e1dccf;
+        border-radius: 999px;
+        color: #2b2926;
+        cursor: pointer;
+        display: inline-flex;
+        font-size: 0.88rem;
+        font-weight: 600;
+        gap: 0.45rem;
+        padding: 0.55rem 0.95rem;
+        text-decoration: none;
+        transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+        white-space: nowrap;
+    }
+
+    .company-show-page .company-suggest-update-btn:hover {
+        background: #faf8f4;
+        border-color: #d4cec0;
+        color: #2b2926;
+        text-decoration: none;
+    }
+
+    .company-show-page .company-suggest-update-btn-icon {
+        color: #6b6258;
+        font-size: 0.82rem;
+    }
+
     .company-show-page .company-hero-main {
         align-items: flex-start;
         display: flex;
@@ -522,6 +556,16 @@ css:
             flex-direction: column;
         }
 
+        .company-show-page .company-hero-actions {
+            padding-top: 0;
+            width: 100%;
+        }
+
+        .company-show-page .company-suggest-update-btn {
+            justify-content: center;
+            width: 100%;
+        }
+
         .company-show-page .company-key-facts-list {
             grid-template-columns: 1fr;
         }
@@ -605,6 +649,8 @@ css:
     .container.company-show-container.pb-4.pb-lg-5
         - if flash[:notice]
             .alert.alert-success.mb-4= flash[:notice]
+        - if flash[:alert]
+            .alert.alert-danger.mb-4= flash[:alert]
 
         = render partial: "companies/company_nav", locals: { neighbors: @company_neighbors, nav_context: @companies_nav_context }
 
@@ -633,6 +679,10 @@ css:
                             = link_to website_url, class: "company-hero-website", target: "_blank", rel: "noopener" do
                                 = website_display_label(@company.main_url)
                                 i.fa-solid.fa-arrow-up-right-from-square.company-hero-website-icon aria-hidden="true"
+            .company-hero-actions
+                button.company-suggest-update-btn type="button" data-suggest-update-open=""
+                    i.fa-regular.fa-pen-to-square.company-suggest-update-btn-icon aria-hidden="true"
+                    | Suggest an update
 
         section.company-section.company-about-section
             .company-section-label About
@@ -722,6 +772,7 @@ css:
 
         .company-maintainer-note
             | Entry maintained by Stanford CodeX. Last reviewed #{reviewed_label}.
-            = link_to "Suggest an update", edit_company_path(@company), class: "ms-2"
+            = link_to "Suggest an update", "#", class: "ms-2", data: { suggest_update_open: true }
 
+= render "companies/suggest_update_modal"
 = render "shared/citation_copy_script"

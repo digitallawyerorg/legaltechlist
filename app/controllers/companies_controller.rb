@@ -1,7 +1,7 @@
 class CompaniesController < ApplicationController
   FEED_COMPANY_LIMIT = 100
 
-  before_action :set_company, only: [:show, :edit, :update, :destroy]
+  before_action :set_company, only: [:show, :edit, :update, :destroy, :suggest_update]
 
   # GET /companies
   # GET /companies.json
@@ -93,6 +93,25 @@ class CompaniesController < ApplicationController
   # GET /companies/1/edit
   def edit
 
+  end
+
+  # POST /companies/1/suggest_update
+  def suggest_update
+    suggestion = suggest_update_params.to_h.symbolize_keys
+
+    if suggestion[:issue_type].blank? || suggestion[:message].blank?
+      redirect_to @company, alert: "Please choose an issue type and describe what should change."
+      return
+    end
+
+    if suggestion[:submitter_email].blank?
+      redirect_to @company, alert: "Please enter your email address."
+      return
+    end
+
+    SuggestionMailer.company_update_suggestion_email(@company, suggestion).deliver_now
+
+    redirect_to @company, notice: "Thank you. Your suggestion has been submitted for review."
   end
 
   # POST /companies
@@ -262,5 +281,9 @@ class CompaniesController < ApplicationController
                                       :all_tags, :category_id, :secondary_category_id, :target_client_id,
                                       :business_model_id, :visible, :contact_name, :contact_email,
                                       :codex_presenter, :codex_presentation_date)
+    end
+
+    def suggest_update_params
+      params.permit(:issue_type, :message, :source_url, :submitter_email)
     end
 end

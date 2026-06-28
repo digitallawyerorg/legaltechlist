@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta content='text/html; charset=UTF-8' http-equiv='Content-Type' />
+  </head>
+  <body>
+    <h1><%= @message %></h1>
+
+    <p>
+      <strong>Company:</strong>
+      <%= @company.name %>
+      (/companies/<%= @company.id %>)
+    </p>
+
+    <p>
+      <strong>Issue type:</strong>
+      <%= @suggestion[:issue_type].to_s.humanize %>
+    </p>
+
+    <p>
+      <strong>What should change:</strong><br>
+      <%= simple_format(@suggestion[:message].to_s) %>
+    </p>
+
+    <% if @suggestion[:source_url].present? %>
+      <p>
+        <strong>Source:</strong>
+        <%= link_to @suggestion[:source_url], @suggestion[:source_url] %>
+      </p>
+    <% end %>
+
+    <% if @suggestion[:submitter_email].present? %>
+      <p>
+        <strong>Submitter email:</strong>
+        <%= mail_to @suggestion[:submitter_email] %>
+      </p>
+    <% end %>
+
+    <p>Review in admin: /admin/app/companies/<%= @company.id %>/edit</p>
+  </body>
+</html>
