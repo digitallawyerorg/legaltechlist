@@ -28,7 +28,7 @@ css:
     }
 
     .methodology-page .methodology-hero {
-        margin-bottom: 2.5rem;
+        margin-bottom: 2rem;
     }
 
     .methodology-page .methodology-title {
@@ -47,11 +47,48 @@ css:
         font-size: 1.08rem;
         line-height: 1.65;
         margin: 0;
-        max-width: 44rem;
+    }
+
+    .methodology-page .methodology-toc {
+        border: 1px solid #e1dccf;
+        border-radius: 0.85rem;
+        margin-bottom: 2.5rem;
+        padding: 0.85rem 1rem;
+    }
+
+    .methodology-page .methodology-toc-label {
+        color: #8b8379;
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        margin-bottom: 0.55rem;
+        text-transform: uppercase;
+    }
+
+    .methodology-page .methodology-toc-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem 0.75rem;
+        list-style: none;
+        margin: 0;
+        padding: 0;
+    }
+
+    .methodology-page .methodology-toc-list a {
+        color: #8c1515;
+        font-size: 0.88rem;
+        font-weight: 600;
+        text-decoration: none;
+    }
+
+    .methodology-page .methodology-toc-list a:hover {
+        color: #6f1111;
+        text-decoration: underline;
     }
 
     .methodology-page .methodology-section {
         margin-bottom: 2.75rem;
+        scroll-margin-top: 1.25rem;
     }
 
     .methodology-page .methodology-section-label {
@@ -68,7 +105,6 @@ css:
         font-size: 0.94rem;
         line-height: 1.65;
         margin: 0 0 1rem;
-        max-width: 44rem;
     }
 
     .methodology-page .methodology-table-wrap {
@@ -190,6 +226,45 @@ css:
         margin: 0;
     }
 
+    .methodology-page .methodology-accordion .accordion-item {
+        background: transparent;
+        border: 1px solid #e1dccf;
+        border-radius: 0.85rem;
+        margin-bottom: 0.75rem;
+        overflow: hidden;
+    }
+
+    .methodology-page .methodology-accordion .accordion-item:last-child {
+        margin-bottom: 0;
+    }
+
+    .methodology-page .methodology-accordion .accordion-button {
+        background: #f0ebe3;
+        box-shadow: none;
+        color: #2b2926;
+        font-size: 0.92rem;
+        font-weight: 700;
+        padding: 0.85rem 1rem;
+    }
+
+    .methodology-page .methodology-accordion .accordion-button:not(.collapsed) {
+        background: #f0ebe3;
+        color: #8c1515;
+    }
+
+    .methodology-page .methodology-accordion .accordion-button:focus {
+        box-shadow: none;
+    }
+
+    .methodology-page .methodology-accordion .accordion-body {
+        padding: 0;
+    }
+
+    .methodology-page .methodology-accordion .methodology-table-wrap {
+        border: none;
+        border-radius: 0;
+    }
+
     .methodology-page .methodology-convention-list {
         color: #3f3933;
         font-family: edict, "edict Fallback", Georgia, Cambria, "Times New Roman", Times, serif;
@@ -204,24 +279,6 @@ css:
     }
 
     .methodology-page .methodology-convention-list li:last-child {
-        margin-bottom: 0;
-    }
-
-    .methodology-page .methodology-citation-box {
-        background: rgba(255, 255, 255, 0.72);
-        border: 1px solid rgba(36, 31, 26, 0.08);
-        border-radius: 0.85rem;
-        color: #3f3933;
-        font-size: 0.92rem;
-        line-height: 1.65;
-        padding: 1rem 1.15rem;
-    }
-
-    .methodology-page .methodology-citation-box p {
-        margin: 0 0 0.75rem;
-    }
-
-    .methodology-page .methodology-citation-box p:last-child {
         margin-bottom: 0;
     }
 
@@ -256,116 +313,115 @@ css:
 
         header.methodology-hero
             h1.methodology-title Data Methodology & Dictionary
-            p.methodology-lead How the TechIndex defines company profiles, classification, and statistics.
+            p.methodology-lead How the TechIndex defines legal technology company profiles, classification, and statistics.
 
-        section.methodology-section
+        nav.methodology-toc aria-label="On this page"
+            .methodology-toc-label On this page
+            ul.methodology-toc-list
+                li= link_to "Overview", "#methodology-overview"
+                li= link_to "Eligibility", "#methodology-eligibility"
+                li= link_to "Data dictionary", "#methodology-dictionary"
+                li= link_to "Classification", "#methodology-classification"
+                li= link_to "Statistics", "#methodology-statistics"
+
+        section.methodology-section#methodology-overview
             .methodology-section-label Overview
             .methodology-principle-box
-                p= "#{methodology_overview_guidance(number_with_delimiter(company_count))}"
-            .methodology-table-wrap.mt-3
-                table.methodology-table
-                    thead
-                        tr
-                            th Situation
-                            th Policy
-                    tbody
-                        - methodology_entity_relationships.each do |row|
-                            tr
-                                td.category-name= row[:term]
-                                td= row[:definition]
+                p== methodology_overview_html(number_with_delimiter(company_count))
 
-        section.methodology-section
+        section.methodology-section#methodology-eligibility
+            .methodology-section-label What is a legal technology company?
+            p.methodology-section-intro= methodology_eligibility_guidance
+
+        section.methodology-section#methodology-dictionary
             .methodology-section-label Company data dictionary
             p.methodology-section-intro Profile fields stored on each company record.
+            .accordion.methodology-accordion id="methodologyDictionary"
+                .accordion-item
+                    h2.accordion-header id="dictionaryHeading"
+                        button.accordion-button.collapsed type="button" data-bs-toggle="collapse" data-bs-target="#dictionaryCollapse" aria-expanded="false" aria-controls="dictionaryCollapse" Show field definitions
+                    #dictionaryCollapse.accordion-collapse.collapse aria-labelledby="dictionaryHeading" data-bs-parent="#methodologyDictionary"
+                        .accordion-body
+                            .methodology-table-wrap
+                                table.methodology-table
+                                    thead
+                                        tr
+                                            th Field
+                                            th Type
+                                            th Description
+                                    tbody
+                                        - methodology_company_field_groups.each do |group|
+                                            tr
+                                                td.methodology-group-label colspan="3"= group[:label]
+                                            - group[:fields].each do |field|
+                                                tr
+                                                    td
+                                                        span.field-name= field[:name]
+                                                    td.field-type= field[:type]
+                                                    td= field[:description]
 
-            .methodology-table-wrap
-                table.methodology-table
-                    thead
-                        tr
-                            th Field
-                            th Type
-                            th Description
-                    tbody
-                        - methodology_company_field_groups.each do |group|
-                            tr
-                                td.methodology-group-label colspan="3"= group[:label]
-                            - group[:fields].each do |field|
-                                tr
-                                    td
-                                        span.field-name= field[:name]
-                                    td.field-type= field[:type]
-                                    td= field[:description]
-
-        section.methodology-section
-            .methodology-section-label Categorization
+        section.methodology-section#methodology-classification
+            .methodology-section-label Classification
             p.methodology-section-intro= methodology_category_guidance
+            .accordion.methodology-accordion.mt-3 id="methodologyClassification"
+                .accordion-item
+                    h2.accordion-header id="primaryCategoriesHeading"
+                        button.accordion-button.collapsed type="button" data-bs-toggle="collapse" data-bs-target="#primaryCategoriesCollapse" aria-expanded="false" aria-controls="primaryCategoriesCollapse" Primary categories (12)
+                    #primaryCategoriesCollapse.accordion-collapse.collapse aria-labelledby="primaryCategoriesHeading" data-bs-parent="#methodologyClassification"
+                        .accordion-body
+                            .methodology-table-wrap
+                                table.methodology-table
+                                    thead
+                                        tr
+                                            th Category
+                                            th Definition
+                                            th.text-end Count
+                                    tbody
+                                        - category_rows.each do |row|
+                                            tr
+                                                td.category-name= row[:name]
+                                                td= row[:definition]
+                                                td.category-count.text-end= number_with_delimiter(row[:count])
+                .accordion-item
+                    h2.accordion-header id="revenueModelsHeading"
+                        button.accordion-button.collapsed type="button" data-bs-toggle="collapse" data-bs-target="#revenueModelsCollapse" aria-expanded="false" aria-controls="revenueModelsCollapse" Revenue models
+                    #revenueModelsCollapse.accordion-collapse.collapse aria-labelledby="revenueModelsHeading" data-bs-parent="#methodologyClassification"
+                        .accordion-body
+                            p.methodology-section-intro.px-3.pt-3= methodology_revenue_model_guidance
+                            .methodology-table-wrap
+                                table.methodology-table
+                                    thead
+                                        tr
+                                            th Model
+                                            th Definition
+                                    tbody
+                                        - methodology_revenue_models.each do |row|
+                                            tr
+                                                td.category-name= row[:name]
+                                                td= row[:definition]
+                .accordion-item
+                    h2.accordion-header id="targetClientsHeading"
+                        button.accordion-button.collapsed type="button" data-bs-toggle="collapse" data-bs-target="#targetClientsCollapse" aria-expanded="false" aria-controls="targetClientsCollapse" Target clients
+                    #targetClientsCollapse.accordion-collapse.collapse aria-labelledby="targetClientsHeading" data-bs-parent="#methodologyClassification"
+                        .accordion-body
+                            p.methodology-section-intro.px-3.pt-3 A company may serve one or more of these audiences.
+                            .methodology-table-wrap
+                                table.methodology-table
+                                    thead
+                                        tr
+                                            th Value
+                                            th Definition
+                                    tbody
+                                        - methodology_target_clients.each do |row|
+                                            tr
+                                                td.category-name= row[:name]
+                                                td= row[:definition]
 
-            .methodology-section-label.mt-4 Primary categories (12)
-            .methodology-table-wrap
-                table.methodology-table
-                    thead
-                        tr
-                            th Category
-                            th Definition
-                            th.text-end Count
-                    tbody
-                        - category_rows.each do |row|
-                            tr
-                                td.category-name= row[:name]
-                                td= row[:definition]
-                                td.category-count.text-end= number_with_delimiter(row[:count])
-
-            .methodology-section-label.mt-4 Secondary category
-            p.methodology-section-intro= methodology_secondary_category_guidance
-
-            .methodology-section-label.mt-4 Revenue models
-            p.methodology-section-intro= methodology_revenue_model_guidance
-
-            .methodology-table-wrap
-                table.methodology-table
-                    thead
-                        tr
-                            th Model
-                            th Definition
-                    tbody
-                        - methodology_revenue_models.each do |row|
-                            tr
-                                td.category-name= row[:name]
-                                td= row[:definition]
-
-            .methodology-section-label.mt-4 Target clients
-            p.methodology-section-intro A company may serve one or more of these audiences.
-
-            .methodology-table-wrap
-                table.methodology-table
-                    thead
-                        tr
-                            th Value
-                            th Definition
-                    tbody
-                        - methodology_target_clients.each do |row|
-                            tr
-                                td.category-name= row[:name]
-                                td= row[:definition]
-
-            p.methodology-section-intro.mt-4 Tags cross-cut categories for technology-theme and AI charts (e.g. artificial intelligence, ediscovery, saas).
-
-        section.methodology-section
+        section.methodology-section#methodology-statistics
             .methodology-section-label Statistics conventions
             ul.methodology-convention-list
                 - methodology_statistics_conventions.each do |convention|
                     li= convention
-
-        section.methodology-section
-            .methodology-section-label Sources & citation
-            .methodology-citation-box
-                p
-                    | Data is curated by
-                    = link_to " CodeX, the Stanford Center for Legal Informatics", "https://law.stanford.edu/codex-the-stanford-center-for-legal-informatics/", target: "_blank", rel: "noopener", class: "methodology-link"
-                    | , with contributions from Legal.io and community submissions. Cite the page URL, access date, and note classification caveats above.
-                p
-                    | AI-friendly overview:
-                    = link_to " llms.txt", "/llms.txt", class: "methodology-link"
 
         .methodology-meta-note
             | Field definitions and classification may evolve; updates are documented here.

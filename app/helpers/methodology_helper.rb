@@ -62,14 +62,19 @@ module MethodologyHelper
       ]
     },
     {
-      label: "External links",
+      label: "Company references",
       fields: [
-        { name: "crunchbase_url", type: "URL", description: "Crunchbase profile." },
-        { name: "linkedin_url", type: "URL", description: "LinkedIn company page." },
-        { name: "twitter_url", type: "URL", description: "Twitter / X profile." },
         { name: "facebook_url", type: "URL", description: "Facebook page." },
+        { name: "linkedin_url", type: "URL", description: "LinkedIn company page." },
+        { name: "twitter_url", type: "URL", description: "Twitter / X profile." }
+      ]
+    },
+    {
+      label: "External references",
+      fields: [
         { name: "angellist_url", type: "URL", description: "AngelList / Wellfound profile." },
-        { name: "legalio_url", type: "URL", description: "Legal.io listing when applicable." }
+        { name: "crunchbase_url", type: "URL", description: "Crunchbase profile." },
+        { name: "legalio_url", type: "URL", description: "Legal.io profile." }
       ]
     },
     {
@@ -114,20 +119,13 @@ module MethodologyHelper
     { name: "Legal Service Providers", definition: "Solutions for alternative legal service providers and legal-tech-enabled service firms." }
   ].freeze
 
-  OVERVIEW_GUIDANCE = "The TechIndex tracks legal-technology companies — market-facing vendors, not individual products. Each profile is one company. The index lists %<count>s companies classified into twelve primary functional categories. Acquired companies remain in the index with status, exit date, and a link to the successor company when applicable.".freeze
+  OVERVIEW_GUIDANCE = "The CodeX TechIndex currently tracks %<count>s legal-technology companies across %<category_count>s primary functional categories.".freeze
 
-  CATEGORY_GUIDANCE = "Each company has one primary category that reflects its core function. Audience and technology themes are captured separately through target client and tags.".freeze
+  ELIGIBILITY_GUIDANCE = "A legal technology company is a market-facing vendor whose principal business is software, data, or technology-enabled services for legal work. Each index entry is one company or brand, not an individual product. We exclude law firms and consultancies engaged primarily in legal service delivery, standalone products for companies already indexed, and vendors not substantially focused on legal use cases.".freeze
 
-  ENTITY_RELATIONSHIPS = [
-    { term: "Duplicate", definition: "Same identity entered twice — merge or hide the extra record." },
-    { term: "Acquisition", definition: "Distinct companies — keep both records; mark acquiree as acquired with exit date and link to successor." },
-    { term: "Rebrand", definition: "Same company, new name — keep old record; link to successor." },
-    { term: "Related", definition: "Distinct brands under one corporate family — keep both; link when useful for discovery." }
-  ].freeze
+  CATEGORY_GUIDANCE = "Each company has one primary category that reflects its core function. Other attributes are tracked in separate profile fields.".freeze
 
   REVENUE_MODEL_GUIDANCE = "How the company earns or sustains operations — not its product category. Select all that apply; venture funding is tracked separately.".freeze
-
-  SECONDARY_CATEGORY_GUIDANCE = "Optional second functional segment from the same category list (e.g. Legal.io: Marketplace primary, Knowledge & Research secondary). Excluded from primary trend counts.".freeze
 
   STATISTICS_CONVENTIONS = [
     "Counts are index entries (companies), not deduplicated corporate parents. Acquired companies remain in historical cohort charts.",
@@ -158,19 +156,20 @@ module MethodologyHelper
   end
 
   def methodology_overview_guidance(count)
-    format(OVERVIEW_GUIDANCE, count: count)
+    format(OVERVIEW_GUIDANCE, count: count, category_count: PRIMARY_CATEGORIES.size)
   end
 
-  def methodology_entity_relationships
-    ENTITY_RELATIONSHIPS
+  def methodology_overview_html(count)
+    safe_join([
+      methodology_overview_guidance(count),
+      " To request addition of a missing entry, ",
+      link_to("click here", new_company_path, class: "methodology-link"),
+      "."
+    ])
   end
 
   def methodology_revenue_model_guidance
     REVENUE_MODEL_GUIDANCE
-  end
-
-  def methodology_secondary_category_guidance
-    SECONDARY_CATEGORY_GUIDANCE
   end
 
   def methodology_statistics_conventions
@@ -179,6 +178,10 @@ module MethodologyHelper
 
   def methodology_category_guidance
     CATEGORY_GUIDANCE
+  end
+
+  def methodology_eligibility_guidance
+    ELIGIBILITY_GUIDANCE
   end
 
   def methodology_category_rows

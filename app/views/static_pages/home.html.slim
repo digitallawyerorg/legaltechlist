@@ -15,10 +15,10 @@
                 = link_to statistics_path, class: "btn home-secondary-action" do
                     i.fa.fa-chart-line.me-2
                     | View statistics
-            = form_tag companies_path, class: "home-search mx-auto", method: :get do
+            .home-search.mx-auto
                 .position-relative
                     i.fa.fa-search.home-search-icon
-                    = text_field_tag :query, params[:query], class: "form-control", placeholder: "Search tools, categories, or companies", id: "search-input"
+                    = search_field_tag :query, nil, class: "form-control", placeholder: "Search tools, categories, or companies", id: "search-input", readonly: true, aria: { label: "Search companies" }, data: { nav_search_trigger: true }
 
 - categories = @home_categories || []
 - featured_categories = categories.first(12)
@@ -143,6 +143,15 @@ css:
         font-size: 0.9rem;
         min-height: 3rem;
         padding-left: 2.6rem;
+    }
+
+    .home-search .form-control:focus {
+        border-color: #cbbfae;
+        box-shadow: 0 0 0 0.15rem rgba(140, 21, 21, 0.08);
+    }
+
+    .home-search .form-control[readonly] {
+        cursor: pointer;
     }
 
     .home-section-title {

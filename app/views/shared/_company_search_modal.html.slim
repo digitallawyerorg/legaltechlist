@@ -81,8 +81,7 @@ javascript:
         function initCompanySearchModal() {
             const modal = document.getElementById("company-search-modal");
             const modalInput = document.getElementById("company-search-modal-input");
-            if (!modal || !modalInput || modal.dataset.initialized === "true") return;
-            modal.dataset.initialized = "true";
+            if (!modal || !modalInput) return;
 
             const categoriesSection = modal.querySelector("[data-company-search-categories]");
             const resultsSection = modal.querySelector("[data-company-search-results]");
@@ -91,7 +90,6 @@ javascript:
             const viewAllLink = modal.querySelector("[data-company-search-view-all]");
             const searchUrl = modal.dataset.searchUrl;
             const companiesUrl = modal.dataset.companiesUrl;
-            const triggers = document.querySelectorAll("[data-nav-search-trigger]");
 
             function openModal(initialQuery) {
                 modal.classList.add("is-open");
@@ -104,6 +102,30 @@ javascript:
                 }
                 window.setTimeout(function() { modalInput.focus(); }, 0);
             }
+
+            function bindSearchTriggers() {
+                document.querySelectorAll("[data-nav-search-trigger]").forEach(function(trigger) {
+                    if (trigger.dataset.searchTriggerBound === "true") return;
+                    trigger.dataset.searchTriggerBound = "true";
+
+                    trigger.addEventListener("click", function(event) {
+                        event.preventDefault();
+                        openModal(trigger.value || "");
+                    });
+                    trigger.addEventListener("keydown", function(event) {
+                        if (event.key === "Enter" || event.key === " ") {
+                            event.preventDefault();
+                            openModal(trigger.value || "");
+                        }
+                    });
+                });
+            }
+
+            if (modal.dataset.initialized === "true") {
+                bindSearchTriggers();
+                return;
+            }
+            modal.dataset.initialized = "true";
 
             function closeModal() {
                 modal.classList.remove("is-open");
@@ -201,18 +223,7 @@ javascript:
                     });
             }
 
-            triggers.forEach(function(trigger) {
-                trigger.addEventListener("click", function(event) {
-                    event.preventDefault();
-                    openModal(trigger.value || "");
-                });
-                trigger.addEventListener("keydown", function(event) {
-                    if (event.key === "Enter" || event.key === " ") {
-                        event.preventDefault();
-                        openModal(trigger.value || "");
-                    }
-                });
-            });
+            bindSearchTriggers();
 
             modal.querySelectorAll("[data-company-search-close]").forEach(function(element) {
                 element.addEventListener("click", closeModal);

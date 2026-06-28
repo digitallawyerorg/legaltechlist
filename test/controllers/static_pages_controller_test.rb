@@ -98,10 +98,13 @@ class StaticPagesControllerTest < ActionController::TestCase
     get :methodology
     assert_response :success
     assert_includes @response.body, "Data Methodology"
+    assert_includes @response.body, "On this page"
+    assert_includes @response.body, 'href="#methodology-overview"'
     assert_includes @response.body, "Company data dictionary"
     assert_includes @response.body, "Primary categories (12)"
-    assert_includes @response.body, "twelve primary functional categories"
+    assert_includes @response.body, "12 primary functional categories"
     assert_not_includes @response.body, "Visibility rules"
+    assert_not_includes @response.body, "Situation"
   end
 
   test "statistics pages include methodology partial" do
