@@ -26,10 +26,16 @@ jobs:
 
     env:
       RAILS_ENV: test
+      CI: true
       PGHOST: localhost
       PGUSER: postgres
       PGPASSWORD: postgres
       PUPPETEER_SKIP_DOWNLOAD: true
+      OPENAI_API_KEY: ""
+      DESCRIPTION_DRAFTS_USE_LLM: false
+      PROPOSAL_TAXONOMY_USE_LLM: false
+      TAG_SUGGESTION_USE_LLM: false
+      PROPOSAL_ENRICHMENT_USE_LLM: false
 
     steps:
       - name: Check out code
