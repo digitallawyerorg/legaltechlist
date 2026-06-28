@@ -57,6 +57,13 @@ class PublicEntrypointsTest < ActionDispatch::IntegrationTest
     assert_select ".overview-toggle", text: "Overview"
   end
 
+  test "public navbar includes contribute link to new company page" do
+    get root_path
+
+    assert_response :success
+    assert_select "a.public-nav-contribute[href='#{new_company_path}']", text: "Contribute"
+  end
+
   test "public navbar overview dropdown reflects active page" do
     get about_path
     assert_response :success

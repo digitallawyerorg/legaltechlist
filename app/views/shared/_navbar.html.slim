@@ -35,8 +35,10 @@ nav.navbar.navbar-expand-lg.navbar-dark.bg-dark.fixed-top
                             = link_to "Methodology", statistics_methodology_path, class: nav_overview_dropdown_item_class("Methodology")
                         li
                             = link_to "About", "/about", class: nav_overview_dropdown_item_class("About")
-            .public-nav-search
-                .public-nav-search-field
-                    i.fa.fa-search.public-nav-search-icon aria-hidden="true"
-                    = search_field_tag :query, params[:query], class: "form-control", placeholder: "Search #{number_with_delimiter(visible_company_count)} companies", aria: { label: "Search companies" }, readonly: true, data: { nav_search_trigger: true }
-                    kbd.public-nav-search-shortcut aria-hidden="true" data-nav-search-shortcut=""
+            .public-nav-actions
+                .public-nav-search
+                    .public-nav-search-field
+                        i.fa.fa-search.public-nav-search-icon aria-hidden="true"
+                        = search_field_tag :query, params[:query], class: "form-control", placeholder: "Search #{number_with_delimiter(visible_company_count)} companies", aria: { label: "Search companies" }, readonly: true, data: { nav_search_trigger: true }
+                        kbd.public-nav-search-shortcut aria-hidden="true" data-nav-search-shortcut=""
+                = link_to "Contribute", new_company_path, class: "public-nav-contribute"
