@@ -101,6 +101,28 @@ css:
         text-decoration: underline;
     }
 
+    .company-show-page .company-status-note {
+        background: #f0ebe3;
+        border: 1px solid #e1dccf;
+        border-radius: 0.85rem;
+        color: #3f3933;
+        font-size: 0.94rem;
+        line-height: 1.65;
+        margin-bottom: 1.75rem;
+        padding: 1rem 1.15rem;
+    }
+
+    .company-show-page .company-status-note a {
+        color: #8c1515;
+        font-weight: 600;
+        text-decoration: none;
+    }
+
+    .company-show-page .company-status-note a:hover {
+        color: #6f1111;
+        text-decoration: underline;
+    }
+
     .company-show-page .company-about-tags {
         align-items: center;
         display: flex;
@@ -463,6 +485,12 @@ css:
 - content_for :json_ld, company_organization_json_ld(@company)
 - twitter_url = (@company.twitter_url.present? && @company.twitter_url != "n/a") ? (@company.twitter_url.include?("@") ? "https://twitter.com/#{@company.twitter_url[1..-1]}" : @company.twitter_url) : nil
 - status_label = @company.status.present? ? @company.status.titleize : "Unknown"
+- exit_display = @company.exit_date.present? ? @company.exit_date.strftime("%B %Y") : nil
+- show_entity_notice = @company.status.to_s.downcase.in?(%w[acquired inactive]) || @company.successor_company.present? || exit_display.present?
+- entity_messages = []
+- entity_messages << "This company has been acquired." if @company.status.to_s.downcase == "acquired"
+- entity_messages << "This company is no longer active as an independent vendor." if @company.status.to_s.downcase == "inactive"
+- entity_messages << "Exit recorded #{exit_display}." if exit_display.present?
 - short_host_for = ->(url) { normalized = url.to_s.strip; normalized = "http://#{normalized}" unless normalized.match?(%r{\Ahttps?://}i); URI.parse(normalized).host.to_s.sub(/\Awww\./i, '') rescue url.to_s.gsub(%r{\Ahttps?://(www\.)?}i, '').split('/').first.to_s }
 - funding_amount = @company.total_funding_amount_usd.to_f
 - funding_display = (if funding_amount >= 1_000_000_000 then "$#{(funding_amount / 1_000_000_000).round(1).to_s.sub(/\.0$/, '')}B" elsif funding_amount >= 1_000_000 then "$#{(funding_amount / 1_000_000).round}M" elsif funding_amount.positive? then number_to_currency(funding_amount, precision: 0) else nil end)
@@ -473,6 +501,7 @@ css:
 - revenue_model_names = @company.revenue_model_names.reject { |name| name.blank? || name == "Unknown" }
 - revenue_model_display = revenue_model_names.any? ? revenue_model_names.to_sentence : "-"
 - key_facts = [{ label: "Status", icon: "fa-solid fa-circle-check", value: status_label }, { label: "Founded", icon: "fa-regular fa-calendar", value: founded_display }, { label: "Headquarters", icon: "fa-solid fa-location-dot", value: headquarters_display }, { label: "Target market", icon: "fa-solid fa-bullseye", value: target_market_display }, { label: "Revenue model", icon: "fa-solid fa-coins", value: revenue_model_display }, { label: "Total funding", icon: "fa-solid fa-dollar-sign", value: funding_display.presence || "-" }]
+- key_facts << { label: "Exit", icon: "fa-solid fa-flag-checkered", value: exit_display } if exit_display.present?
 - company_reference_links = []
 - company_reference_links << { label: "Facebook", icon: "fa-brands fa-facebook", icon_color: "#1877f2", url: @company.facebook_url, host: short_host_for.call(@company.facebook_url) } if @company.facebook_url.present? && @company.facebook_url != "n/a"
 - company_reference_links << { label: "LinkedIn", icon: "fa-brands fa-linkedin", icon_color: "#0a66c2", url: @company.linkedin_url, host: short_host_for.call(@company.linkedin_url) } if @company.linkedin_url.present? && @company.linkedin_url != "n/a"
@@ -503,7 +532,15 @@ css:
             .alert.alert-success.mb-4= flash[:notice]
 
         = link_to companies_path, class: "company-back-link" do
-            | ← All solutions
+            | ← All companies
+
+        - if show_entity_notice
+            .company-status-note
+                p.mb-0= entity_messages.join(" ")
+                - if @company.successor_company.present?
+                    p.mb-0.mt-2
+                        | Current record:
+                        = link_to @company.successor_company.name, company_path(@company.successor_company)
 
         .company-hero
             .company-hero-main
@@ -529,12 +566,15 @@ css:
                 p.company-show-body= @company.description
             - else
                 p.company-show-body.text-secondary No description has been added for this company yet.
-            - if (@company.category&.name.present? && @company.category.name != "Unknown") || @company.tags.any?
+            - secondary_category_name = @company.secondary_category&.name
+            - if (@company.category&.name.present? && @company.category.name != "Unknown") || (secondary_category_name.present? && secondary_category_name != "Unknown") || @company.tags.any?
                 .company-about-tags
                     - if @company.category&.name.present? && @company.category.name != "Unknown"
                         span.company-about-category
                             span.company-about-category-dot aria-hidden="true"
                             = @company.category.name
+                    - if secondary_category_name.present? && secondary_category_name != "Unknown"
+                        span.company-about-keyword= secondary_category_name
                     - @company.tags.each do |tag|
                         = link_to tag.name, tag_path(tag.name), class: "company-about-keyword"
 
@@ -586,7 +626,7 @@ css:
         - related_company_list @company do |related_companies|
             - if related_companies.any?
                 section.company-section
-                    .company-section-label Related solutions
+                    .company-section-label Related companies
                     .company-related-grid
                         - related_companies.first(3).each_with_index do |related, index|
                             - related_label = (related.sub_category&.name.present? && related.sub_category.name != "Unknown") ? related.sub_category.name : (related.category&.name.presence || "Legal tech")
