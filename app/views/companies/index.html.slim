@@ -140,8 +140,24 @@ javascript:
             });
         }
 
+        function prepareCompanyFilterFormSubmit(form) {
+            let checkboxes = form.querySelectorAll('input[type="checkbox"][name$="[]"]');
+            let allChecked = checkboxes.length > 0 && Array.from(checkboxes).every(function(checkbox) { return checkbox.checked; });
+
+            checkboxes.forEach(function(checkbox) {
+                checkbox.disabled = false;
+            });
+
+            if (allChecked) {
+                checkboxes.forEach(function(checkbox) {
+                    checkbox.disabled = true;
+                });
+            }
+        }
+
         function submitCompanyFilterForm(form) {
             if (!form) return;
+            prepareCompanyFilterFormSubmit(form);
             form.requestSubmit ? form.requestSubmit() : form.submit();
         }
 
@@ -170,7 +186,7 @@ javascript:
                     if (!form) return;
 
                     form.querySelectorAll('input[type="checkbox"][name$="[]"]').forEach(function(checkbox) {
-                        checkbox.checked = false;
+                        checkbox.checked = true;
                     });
                     submitCompanyFilterForm(form);
                 });

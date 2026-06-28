@@ -21,6 +21,14 @@ module CompaniesHelper
     "#{selected_statuses.size} statuses"
   end
 
+  def company_filter_category_checked?(category_id, selected_ids)
+    selected_ids.empty? || selected_ids.include?(category_id.to_i)
+  end
+
+  def company_filter_status_checked?(status, selected_statuses)
+    selected_statuses.empty? || selected_statuses.include?(status)
+  end
+
   def tag_links(tags)
     return '' if tags.blank?
     

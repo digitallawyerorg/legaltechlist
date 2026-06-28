@@ -52,4 +52,15 @@ class CompaniesHelperTest < ActionView::TestCase
     assert_equal "Legal Research", company_filter_category_label(category_counts, [1])
     assert_equal "2 categories", company_filter_category_label(category_counts, [1, 2])
   end
+
+  test "company_filter_checkbox_checked when no selection means show all" do
+    assert company_filter_category_checked?(1, [])
+    assert company_filter_category_checked?(99, [])
+    refute company_filter_category_checked?(2, [1])
+    assert company_filter_category_checked?(2, [1, 2])
+
+    assert company_filter_status_checked?("active", [])
+    refute company_filter_status_checked?("active", ["acquired"])
+    assert company_filter_status_checked?("active", %w[active acquired])
+  end
 end

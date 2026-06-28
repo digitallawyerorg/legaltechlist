@@ -19,6 +19,7 @@ class CompaniesControllerTest < ActionController::TestCase
     assert_select ".company-filter-btn", minimum: 2
     assert_select ".company-filter-checkbox-form", minimum: 1
     assert_select "input[name='category[]'][type='checkbox']", minimum: 1
+    assert_select "input[name='category[]'][type='checkbox'][checked='checked']", minimum: 1
     assert_select ".company-sidebar", count: 0
     assert_select "table.company-table"
     assert_select "th", "Company"
@@ -44,6 +45,16 @@ class CompaniesControllerTest < ActionController::TestCase
     assert_response :success
     assert_includes assigns(:companies), @company
     assert_not_includes assigns(:companies), hidden
+  end
+
+  test "index shows all checkboxes checked when no filter is active" do
+    get :index
+
+    assert_response :success
+    assert_equal assigns(:base_company_count), assigns(:total_count)
+    assert_select "input[name='category[]'][type='checkbox']:not([checked])", count: 0
+    assert_select "input[name='status[]'][type='checkbox']:not([checked])", count: 0
+    assert_select ".company-filter-btn-active", count: 0
   end
 
   test "index filters by public status" do

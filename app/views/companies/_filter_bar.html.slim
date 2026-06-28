@@ -37,9 +37,8 @@
                         button.btn.btn-sm.btn-link.company-filter-action type="button" data-company-filter-clear="category" Clear
                     .company-filter-list
                         - @category_counts.each do |category|
-                            - category_checked = selected_category_ids.include?(category[:id].to_i)
                             label.company-filter-checkbox-option data-filter-name=category[:name].downcase
-                                = check_box_tag "category[]", category[:id], category_checked
+                                = check_box_tag "category[]", category[:id], company_filter_category_checked?(category[:id], selected_category_ids)
                                 span.company-filter-checkbox-label= category[:name]
                                 span.company-filter-count= number_with_delimiter(category[:count])
         - if @status_counts.any?
@@ -58,9 +57,8 @@
                             button.btn.btn-sm.btn-link.company-filter-action type="button" data-company-filter-clear="status" Clear
                         .company-filter-list
                             - @status_counts.each do |status, count|
-                                - status_checked = selected_statuses.include?(status)
                                 label.company-filter-checkbox-option data-filter-name=status.to_s.humanize.downcase
-                                    = check_box_tag "status[]", status, status_checked
+                                    = check_box_tag "status[]", status, company_filter_status_checked?(status, selected_statuses)
                                     span.company-filter-checkbox-label= status.to_s.humanize
                                     span.company-filter-count= number_with_delimiter(count)
         .dropdown.company-filter-dropdown
