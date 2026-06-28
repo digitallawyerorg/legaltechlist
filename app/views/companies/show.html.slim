@@ -572,13 +572,13 @@ css:
                             .company-reference-text
                                 span.company-reference-index= "[#{index + 1}]"
                                 = reference_entry[:citation]
-                            button.company-reference-copy type="button" aria-label="Copy citation #{index + 1}" title="Copy citation" data-citation=reference_entry[:citation]
+                            button.company-reference-copy type="button" aria-label="Copy citation #{index + 1}" title="Copy citation" data-citation-copy="true" data-citation=reference_entry[:citation]
                                 i.fa-regular.fa-copy aria-hidden="true"
 
         section.company-section
             .company-citation-header
                 .company-section-label.mb-0 Cite this entry
-                button.company-reference-copy type="button" aria-label="Copy TechIndex citation" title="Copy citation" data-citation=citation_text
+                button.company-reference-copy type="button" aria-label="Copy TechIndex citation" title="Copy citation" data-citation-copy="true" data-citation=citation_text
                     i.fa-regular.fa-copy aria-hidden="true"
             .company-citation-box
                 em= citation_text
@@ -601,46 +601,4 @@ css:
             | Entry maintained by Stanford CodeX. Last reviewed #{reviewed_label}.
             = link_to "Suggest an update", edit_company_path(@company), class: "ms-2"
 
-javascript:
-    (function() {
-        function copyCitationText(button, text) {
-            if (!text) return;
-            var resetButton = function() {
-                button.classList.remove("is-copied");
-                button.innerHTML = "<i class=\"fa-regular fa-copy\" aria-hidden=\"true\"></i>";
-            };
-            var markCopied = function() {
-                button.classList.add("is-copied");
-                button.innerHTML = "<i class=\"fa-solid fa-check\" aria-hidden=\"true\"></i>";
-                window.setTimeout(resetButton, 2000);
-            };
-            if (navigator.clipboard && navigator.clipboard.writeText) {
-                navigator.clipboard.writeText(text).then(markCopied);
-                return;
-            }
-            var textarea = document.createElement("textarea");
-            textarea.value = text;
-            textarea.setAttribute("readonly", "");
-            textarea.style.position = "absolute";
-            textarea.style.left = "-9999px";
-            document.body.appendChild(textarea);
-            textarea.select();
-            try {
-                if (document.execCommand("copy")) markCopied();
-            } finally {
-                document.body.removeChild(textarea);
-            }
-        }
-        function initCompanyCitationCopy() {
-            document.querySelectorAll(".company-show-page .company-reference-copy").forEach(function(button) {
-                if (button.dataset.bound === "true") return;
-                button.dataset.bound = "true";
-                button.addEventListener("click", function() {
-                    copyCitationText(button, button.getAttribute("data-citation"));
-                });
-            });
-        }
-        document.addEventListener("DOMContentLoaded", initCompanyCitationCopy);
-        document.addEventListener("turbo:load", initCompanyCitationCopy);
-        document.addEventListener("turbolinks:load", initCompanyCitationCopy);
-    })();
+= render "shared/citation_copy_script"

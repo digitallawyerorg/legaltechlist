@@ -98,9 +98,12 @@ class StaticPagesControllerTest < ActionController::TestCase
     get :methodology
     assert_response :success
     assert_includes @response.body, "Data Methodology"
-    assert_includes @response.body, "On this page"
-    assert_includes @response.body, 'href="#methodology-overview"'
-    assert_includes @response.body, "Company data dictionary"
+    assert_includes @response.body, "Company profiles"
+    assert_includes @response.body, "Company profile fields"
+    assert_includes @response.body, "Citations"
+    assert_includes @response.body, "data-citation-copy"
+    assert_includes @response.body, "[1]"
+    assert_includes @response.body, "CodeX TechIndex"
     assert_includes @response.body, "Primary categories (12)"
     assert_includes @response.body, "12 primary functional categories"
     assert_not_includes @response.body, "Visibility rules"

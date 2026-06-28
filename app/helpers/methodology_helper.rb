@@ -1,13 +1,13 @@
 module MethodologyHelper
   REVENUE_MODELS = [
     { name: "Subscription", definition: "Monthly or annual recurring revenue, seat-based pricing, or tiered plans." },
-    { name: "Usage-Based", definition: "Consumption-based billing — API calls, storage, compute, or per-unit usage." },
+    { name: "Usage-Based", definition: "Consumption-based billing for API calls, storage, compute, or per-unit usage." },
     { name: "Transaction Fee", definition: "Commissions, take rates, or fees on payments and marketplace transactions." },
     { name: "Services", definition: "Hourly, project, retainer, or managed-service delivery by people." },
     { name: "Licensing", definition: "Software or IP licensing fees and royalties." },
     { name: "Advertising", definition: "Advertising, sponsorships, and ad-supported revenue." },
     { name: "Commerce", definition: "One-time product sales, physical or digital." },
-    { name: "Success Fee", definition: "Performance-based fees — recruiting, M&A, contingency, or outcome pricing." },
+    { name: "Success Fee", definition: "Performance-based fees, including recruiting, M&A, contingency, or outcome pricing." },
     { name: "Grants & Subsidies", definition: "Grants, donations, or public subsidies (legal aid, A2J, nonprofits)." },
     { name: "Other", definition: "Does not fit the categories above." }
   ].freeze
@@ -101,7 +101,7 @@ module MethodologyHelper
     { name: "Litigation & Dispute Resolution", definition: "Litigation management, case workflow, and alternative dispute resolution (excluding dedicated eDiscovery platforms)." },
     { name: "Knowledge & Research", definition: "Legal databases, institutional knowledge management, and practical guidance resources." },
     { name: "Contract Management", definition: "Drafting, reviewing, negotiating, and managing contracts throughout their lifecycle." },
-    { name: "IP Management", definition: "Intellectual property portfolios — patents, trademarks, and copyrights." },
+    { name: "IP Management", definition: "Intellectual property portfolios covering patents, trademarks, and copyrights." },
     { name: "Analytics & Insights", definition: "Predictive models, data visualization, and benchmarking for legal decision-making." },
     { name: "eDiscovery & Investigations", definition: "Review, processing, and analysis of electronically stored information for litigation and investigations." },
     { name: "Legal Operations / ELM", definition: "Matter management, e-billing, spend management, and legal operations for corporate legal departments." },
@@ -119,25 +119,19 @@ module MethodologyHelper
     { name: "Legal Service Providers", definition: "Solutions for alternative legal service providers and legal-tech-enabled service firms." }
   ].freeze
 
-  OVERVIEW_GUIDANCE = "The CodeX TechIndex currently tracks %<count>s legal-technology companies across %<category_count>s primary functional categories.".freeze
+  OVERVIEW_GUIDANCE = "The CodeX TechIndex currently tracks %<count>s legal-technology companies across %<category_count>s primary functional categories. Companies are added on an ongoing basis and requests for corrections are welcomed.".freeze
 
   ELIGIBILITY_GUIDANCE = "A legal technology company is a market-facing vendor whose principal business is software, data, or technology-enabled services for legal work. Each index entry is one company or brand, not an individual product. We exclude law firms and consultancies engaged primarily in legal service delivery, standalone products for companies already indexed, and vendors not substantially focused on legal use cases.".freeze
 
-  CATEGORY_GUIDANCE = "Each company has one primary category that reflects its core function. Other attributes are tracked in separate profile fields.".freeze
+  CATEGORY_GUIDANCE = "Each company profile has one primary category that reflects its core function. Revenue model, target client, and secondary category draw from the fixed lists below. Tags are separate technology and theme keywords. All other attributes are named fields on the record.".freeze
 
-  REVENUE_MODEL_GUIDANCE = "How the company earns or sustains operations — not its product category. Select all that apply; venture funding is tracked separately.".freeze
+  REVENUE_MODEL_GUIDANCE = "How the company earns or sustains operations, not its product category. Select all that apply; venture funding is tracked separately.".freeze
 
-  STATISTICS_CONVENTIONS = [
-    "Counts are index entries (companies), not deduplicated corporate parents. Acquired companies remain in historical cohort charts.",
-    "Most charts include companies founded 2000 or later with an assigned primary category.",
-    "Category evolution shows cumulative companies founded through each period end, using the twelve primary categories.",
-    "Secondary category and multi-value revenue models do not change primary category counts; revenue charts count once per selected model.",
-    "Target client statistics reflect one or more audience assignments per company.",
-    "Funding charts include only companies with disclosed funding greater than zero.",
-    "Geographic charts require a parseable headquarters location.",
-    "All primary categories and statistics segments are shown regardless of company count.",
-    "Rare tags may be omitted from top-tag summaries only."
-  ].freeze
+  TAG_GUIDANCE = "Technology and theme keywords that cross-cut primary categories, such as artificial intelligence, eDiscovery, and SaaS. A company may have several. Tags power the technology themes and AI trends charts; similar terms are normalized to a shared vocabulary rather than a fixed pick list.".freeze
+
+  STATISTICS_GUIDANCE = "Statistics charts use the company profiles described above. They cover publicly listed companies when we have the information needed for that chart. Each company in the index is counted separately. Related entities under the same corporate parent are not combined. Acquired companies remain in historical growth charts. Funding charts include only companies with reported funding. Map and geography charts include only companies with a known headquarters location.".freeze
+
+  CITATIONS_GUIDANCE = "When referencing TechIndex data, include the page URL and access date. Copy an example below and adapt the title or URL as needed.".freeze
 
   def methodology_company_field_groups
     COMPANY_FIELD_GROUPS
@@ -162,7 +156,7 @@ module MethodologyHelper
   def methodology_overview_html(count)
     safe_join([
       methodology_overview_guidance(count),
-      " To request addition of a missing entry, ",
+      " To request addition of a company, ",
       link_to("click here", new_company_path, class: "methodology-link"),
       "."
     ])
@@ -172,8 +166,12 @@ module MethodologyHelper
     REVENUE_MODEL_GUIDANCE
   end
 
-  def methodology_statistics_conventions
-    STATISTICS_CONVENTIONS
+  def methodology_tags_guidance
+    TAG_GUIDANCE
+  end
+
+  def methodology_statistics_guidance
+    STATISTICS_GUIDANCE
   end
 
   def methodology_category_guidance
@@ -182,6 +180,49 @@ module MethodologyHelper
 
   def methodology_eligibility_guidance
     ELIGIBILITY_GUIDANCE
+  end
+
+  def methodology_citations_guidance
+    CITATIONS_GUIDANCE
+  end
+
+  def methodology_citation_accessed_on
+    Date.current.strftime("%B %-d, %Y")
+  end
+
+  def methodology_citation_url_options
+    uri = URI.parse(site_url)
+    { host: uri.host, protocol: uri.scheme }
+  end
+
+  def methodology_citation_entries
+    accessed_on = methodology_citation_accessed_on
+    url_options = methodology_citation_url_options
+    example_company = Company.publicly_visible.order(:name).first
+
+    record_citation = if example_company
+                        "Stanford Center for Legal Informatics (CodeX), CodeX TechIndex, #{example_company.name}, #{company_url(example_company, **url_options)} (last visited #{accessed_on})."
+                      else
+                        "Stanford Center for Legal Informatics (CodeX), CodeX TechIndex, [Company Name], #{site_url}/companies/[id] (last visited #{accessed_on})."
+                      end
+
+    [
+      {
+        icon: "fa-solid fa-globe",
+        icon_color: "#2563eb",
+        citation: "Stanford Center for Legal Informatics (CodeX). CodeX TechIndex. #{root_url(**url_options)} (last visited #{accessed_on})."
+      },
+      {
+        icon: "fa-solid fa-building",
+        icon_color: "#8c1515",
+        citation: record_citation
+      },
+      {
+        icon: "fa-solid fa-chart-line",
+        icon_color: "#047857",
+        citation: "Stanford Center for Legal Informatics (CodeX), CodeX TechIndex, Category Evolution, #{statistics_category_evolution_5_years_url(**url_options)} (last visited #{accessed_on})."
+      }
+    ]
   end
 
   def methodology_category_rows

@@ -1,0 +1,44 @@
+javascript:
+    (function() {
+        function copyCitationText(button, text) {
+            if (!text) return;
+            var resetButton = function() {
+                button.classList.remove("is-copied");
+                button.innerHTML = "<i class=\"fa-regular fa-copy\" aria-hidden=\"true\"></i>";
+            };
+            var markCopied = function() {
+                button.classList.add("is-copied");
+                button.innerHTML = "<i class=\"fa-solid fa-check\" aria-hidden=\"true\"></i>";
+                window.setTimeout(resetButton, 2000);
+            };
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(markCopied);
+                return;
+            }
+            var textarea = document.createElement("textarea");
+            textarea.value = text;
+            textarea.setAttribute("readonly", "");
+            textarea.style.position = "absolute";
+            textarea.style.left = "-9999px";
+            document.body.appendChild(textarea);
+            textarea.select();
+            try {
+                if (document.execCommand("copy")) markCopied();
+            } finally {
+                document.body.removeChild(textarea);
+            }
+        }
+
+        function bindCitationCopyButtons() {
+            document.querySelectorAll("[data-citation-copy]").forEach(function(button) {
+                if (button.dataset.citationCopyBound === "true") return;
+                button.dataset.citationCopyBound = "true";
+                button.addEventListener("click", function() {
+                    copyCitationText(button, button.getAttribute("data-citation"));
+                });
+            });
+        }
+
+        document.addEventListener("DOMContentLoaded", bindCitationCopyButtons);
+        document.addEventListener("turbo:load", bindCitationCopyButtons);
+    })();

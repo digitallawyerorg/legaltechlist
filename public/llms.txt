@@ -4,7 +4,7 @@
 
 ## About this dataset
 
-The CodeX TechIndex currently tracks legal-technology companies across 12 primary functional categories. Each profile is one company or brand with fields for description, website, primary and secondary category, revenue models, target clients, tags, headquarters, founding year, lifecycle status, successor links, disclosed funding, company references (website and social profiles), external references (Crunchbase, Legal.io, AngelList), and provenance. Public statistics dashboards summarize ecosystem growth, geography, funding, and market segments.
+The CodeX TechIndex currently tracks legal-technology companies across 12 primary functional categories. Companies are added on an ongoing basis and requests for corrections are welcomed. Each profile is one company or brand with fields for description, website, primary and secondary category, revenue models, target clients, tags, headquarters, founding year, lifecycle status, successor links, disclosed funding, company references (website and social profiles), external references (Crunchbase, Legal.io, AngelList), and provenance. Public statistics dashboards summarize ecosystem growth, geography, funding, and market segments.
 
 A legal technology company is a market-facing vendor whose principal business is software, data, or technology-enabled services for legal work. Each index entry is one company or brand, not an individual product. The index excludes law firms and consultancies engaged primarily in legal service delivery, standalone products for companies already indexed, and vendors not substantially focused on legal use cases.
 
@@ -15,22 +15,13 @@ Submit a missing company: https://techindex.law.stanford.edu/companies/new
 Full data dictionary and taxonomy: https://techindex.law.stanford.edu/statistics/methodology
 
 Classification:
-- Each company has one primary category that reflects its core function.
-- Other attributes are tracked in separate profile fields (secondary category, revenue models, target clients, tags, and more).
+- Each company profile has one primary category that reflects its core function. Revenue model, target client, and secondary category draw from the fixed lists below. Tags are separate technology and theme keywords.
 - Twelve primary categories: Document Management and Automation; Compliance & Risk; Practice Management; Marketplace and ALSPs; Litigation & Dispute Resolution; Knowledge & Research; Contract Management; IP Management; Analytics & Insights; eDiscovery & Investigations; Legal Operations / ELM; Access to Justice & Public Sector.
 - Revenue models (multi-select): Subscription; Usage-Based; Transaction Fee; Services; Licensing; Advertising; Commerce; Success Fee; Grants & Subsidies; Other.
 - Target clients (multi-select): Law Firms; Corporate Legal; Government; Consumers; Legal Education; Legal Service Providers.
+- Tags: Technology and theme keywords (e.g. artificial intelligence, eDiscovery, SaaS) that cross-cut categories; normalized vocabulary, not a fixed pick list. Used in technology themes and AI trends charts.
 
-Statistics conventions:
-- Counts are index entries (companies), not deduplicated corporate parents. Acquired companies remain in historical cohort charts.
-- Most charts include companies founded 2000 or later with an assigned primary category.
-- Category evolution shows cumulative companies founded through each period end, using the twelve primary categories.
-- Secondary category and multi-value revenue models do not change primary category counts; revenue charts count once per selected model.
-- Target client statistics reflect one or more audience assignments per company.
-- Funding charts include only companies with disclosed funding greater than zero.
-- Geographic charts require a parseable headquarters location.
-- All primary categories and statistics segments are shown regardless of company count.
-- Rare tags may be omitted from top-tag summaries only.
+Statistics: Statistics charts use the company profiles described above. They cover publicly listed companies when we have the information needed for that chart. Each company in the index is counted separately. Related entities under the same corporate parent are not combined. Acquired companies remain in historical growth charts. Funding charts include only companies with reported funding. Map and geography charts include only companies with a known headquarters location.
 
 ## Key pages
 
@@ -57,11 +48,9 @@ Statistics conventions:
 
 ## Citation policy
 
-When referencing CodeX TechIndex data, please cite:
+When referencing CodeX TechIndex data, include the page URL and access date. Copy-ready examples for the site, a company record, and a statistics chart are at https://techindex.law.stanford.edu/statistics/methodology#methodology-citations
 
-CodeX TechIndex, Stanford Center for Legal Informatics, https://techindex.law.stanford.edu/
-
-Include the page URL and access date. For statistics, note that figures reflect publicly visible company profiles and disclosed funding only.
+For statistics, note that figures reflect publicly visible company profiles and disclosed funding only.
 
 ## AI crawler policy
 
@@ -69,4 +58,4 @@ Search-oriented AI agents (GPTBot, ChatGPT-User, anthropic-ai) may index public 
 
 ## Contact
 
-CodeX, Stanford Center for Legal Informatics — https://law.stanford.edu/codex-the-stanford-center-for-legal-informatics/
+CodeX, Stanford Center for Legal Informatics: https://law.stanford.edu/codex-the-stanford-center-for-legal-informatics/
