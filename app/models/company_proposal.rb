@@ -25,7 +25,6 @@ class CompanyProposal < ActiveRecord::Base
     description
     category_id
     secondary_category_id
-    sub_category_id
     business_model_id
     business_model_ids
     target_client_id

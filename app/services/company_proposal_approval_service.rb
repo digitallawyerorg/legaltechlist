@@ -72,11 +72,17 @@ class CompanyProposalApprovalService
     changes = proposal.final_changes.slice(*CompanyProposal::EDITABLE_COMPANY_FIELDS)
     changes.except("source_description").merge(
       "category_id" => blank_to_nil(changes["category_id"]),
-      "secondary_category_id" => blank_to_nil(changes["secondary_category_id"]),
-      "sub_category_id" => blank_to_nil(changes["sub_category_id"]),
+      "secondary_category_id" => blank_to_nil(changes["secondary_category_id"] || legacy_secondary_category_id(changes)),
       "business_model_id" => blank_to_nil(changes["business_model_id"]),
       "target_client_id" => blank_to_nil(changes["target_client_id"])
-    )
+    ).except("sub_category_id")
+  end
+
+  def legacy_secondary_category_id(changes)
+    return if changes["sub_category_id"].blank?
+
+    sub = SubCategory.find_by(id: changes["sub_category_id"])
+    Category.find_by(name: sub&.name)&.id
   end
 
   def blank_to_nil(value)

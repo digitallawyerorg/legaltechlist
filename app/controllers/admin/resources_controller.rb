@@ -2,7 +2,6 @@ module Admin
   class ResourcesController < BaseController
     RESOURCE_CONFIG = {
       "categories" => { model: Category, title: "Categories", fields: %i[name description] },
-      "sub_categories" => { model: SubCategory, title: "Subcategories", fields: %i[name description category_id] },
       "business_models" => { model: BusinessModel, title: "Revenue Models", fields: %i[name description] },
       "target_clients" => { model: TargetClient, title: "Target Clients", fields: %i[name description] },
       "tags" => { model: Tag, title: "Tags", fields: %i[name] },

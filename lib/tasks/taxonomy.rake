@@ -138,6 +138,9 @@ namespace :taxonomy do
     puts "companies_total: #{Company.count}"
     puts "companies_visible: #{Company.publicly_visible.count}"
     puts "unknown_category: #{Company.unknown_category.count}"
+    puts "unknown_category_visible: #{Company.unknown_category.publicly_visible.count}"
+    puts "unknown_category_hidden: #{Company.unknown_category.where(visible: false).count}"
+    puts "revenue_other: #{Company.joins(:business_models).where(business_models: { name: 'Other' }).distinct.count}"
     puts "unknown_target_client: #{Company.unknown_target_client.count}"
     puts "unknown_revenue_model: #{Company.joins(company_business_models: :business_model).where(business_models: { name: 'Unknown' }).distinct.count}"
     puts "legacy_unknown_revenue_fk: #{Company.joins(:business_model).where(business_models: { name: 'Unknown' }).count}"
@@ -389,6 +392,31 @@ namespace :taxonomy do
     end
 
     puts "review_unknown_scope complete mode=#{dry_run ? 'dry-run' : 'write'} counts=#{counts.inspect}"
+  end
+
+  desc "Clear legacy sub_category_id values (deprecated; use secondary_category_id). DRY_RUN=false to write."
+  task deprecate_sub_categories: :environment do
+    dry_run = ENV.fetch("DRY_RUN", "true") != "false"
+    cleared = 0
+    migrated = 0
+
+    Company.where.not(sub_category_id: nil).find_each do |company|
+      if company.secondary_category_id.blank?
+        sub = SubCategory.find_by(id: company.sub_category_id)
+        category = Category.find_by(name: sub&.name)
+        if category && !dry_run
+          company.update_columns(secondary_category_id: category.id, updated_at: Time.current)
+          migrated += 1
+        elsif category
+          migrated += 1
+        end
+      end
+
+      cleared += 1
+      company.update_columns(sub_category_id: nil, updated_at: Time.current) unless dry_run
+    end
+
+    puts "deprecate_sub_categories complete mode=#{dry_run ? 'dry-run' : 'write'} migrated=#{migrated} cleared=#{cleared}"
   end
 
   desc "Seed planned v2 primary categories. DRY_RUN=false to write."

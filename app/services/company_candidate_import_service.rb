@@ -7,7 +7,7 @@ class CompanyCandidateImportService
     founded_date
     description
     category_id
-    sub_category_id
+    secondary_category_id
     business_model_id
     target_client_id
     crunchbase_url
@@ -81,7 +81,7 @@ class CompanyCandidateImportService
     changes = proposal.final_changes.slice(*CompanyProposal::EDITABLE_COMPANY_FIELDS)
     company = Company.new(changes.merge(
       "category_id" => changes["category_id"].presence,
-      "sub_category_id" => changes["sub_category_id"].presence,
+      "secondary_category_id" => changes["secondary_category_id"].presence,
       "business_model_id" => changes["business_model_id"].presence,
       "target_client_id" => changes["target_client_id"].presence
     ))

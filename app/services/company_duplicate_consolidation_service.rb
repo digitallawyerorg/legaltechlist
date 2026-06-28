@@ -7,7 +7,7 @@ class CompanyDuplicateConsolidationService
     founded_date
     description
     category_id
-    sub_category_id
+    secondary_category_id
     business_model_id
     target_client_id
     crunchbase_url
@@ -60,23 +60,13 @@ class CompanyDuplicateConsolidationService
     end
 
     groups = groups.slice(*domains) if domains.any?
-    groups.transform_values { |records| Company.includes(:category, :business_model, :target_client, :taggings, :tags).where(id: records.map(&:id)).to_a }
+    groups.transform_values { |records| Company.includes(:category, :secondary_category, :business_model, :target_client, :successor_company, :taggings, :tags).where(id: records.map(&:id)).to_a }
       .select { |_domain, records| records.size > 1 && records.any?(&:visible?) }
   end
 
   def consolidate_group(domain, companies)
-    if companies.any? { |company| company.status.to_s == "acquired" }
-      return {
-        "domain" => domain,
-        "keeper_id" => nil,
-        "keeper_name" => nil,
-        "company_ids" => companies.map(&:id),
-        "deleted_company_ids" => [],
-        "merged_fields" => {},
-        "transferred_associations" => {},
-        "dry_run" => dry_run,
-        "skipped" => "acquired_company_present"
-      }
+    if (skip_reason = consolidation_skip_reason(companies))
+      return skip_result(domain, companies, skip_reason)
     end
 
     keeper = companies.max_by { |company| [keeper_score(company), -company.id] }
@@ -119,9 +109,31 @@ class CompanyDuplicateConsolidationService
   def merge_field_blank?(keeper, field)
     value = keeper.public_send(field)
     return true if value.blank?
-    return unknown_taxonomy?(field, value) if field.in?(%w[category_id sub_category_id business_model_id target_client_id])
+    return unknown_taxonomy?(field, value) if field.in?(%w[category_id secondary_category_id business_model_id target_client_id])
 
     false
+  end
+
+  def consolidation_skip_reason(companies)
+    return "acquired_company_present" if companies.any? { |company| company.status.to_s == "acquired" }
+    return "successor_link_present" if companies.any? { |company| company.successor_company_id.present? }
+    return "referenced_as_successor" if Company.where(successor_company_id: companies.map(&:id)).exists?
+
+    nil
+  end
+
+  def skip_result(domain, companies, reason)
+    {
+      "domain" => domain,
+      "keeper_id" => nil,
+      "keeper_name" => nil,
+      "company_ids" => companies.map(&:id),
+      "deleted_company_ids" => [],
+      "merged_fields" => {},
+      "transferred_associations" => {},
+      "dry_run" => dry_run,
+      "skipped" => reason
+    }
   end
 
   def unknown_taxonomy?(field, value)

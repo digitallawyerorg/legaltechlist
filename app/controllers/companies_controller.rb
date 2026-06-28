@@ -189,17 +189,17 @@ class CompaniesController < ApplicationController
 
     # Use callbacks to share common setup or constraints between actions.
     def set_company
-      scope = action_name == "show" ? Company.includes(:category, :secondary_category, :sub_category, :successor_company, :business_model, :business_models, :company_logo, :target_client, :target_clients, :tags) : Company
+      scope = action_name == "show" ? Company.includes(:category, :secondary_category, :successor_company, :business_model, :business_models, :company_logo, :target_client, :target_clients, :tags) : Company
       @company = scope.find(params[:id])
     end
 
     # Never trust parameters from the scary internet, only allow the white list through.
     def company_params
-      params.require(:company).permit(:name, :location, :founded_date, :category, :sub_category,
+      params.require(:company).permit(:name, :location, :founded_date, :category, :secondary_category,
                                       :business_model, :target_client, :description, :main_url,
                                       :twitter_url, :angellist_url, :crunchbase_url, :linkedin_url,
                                       :facebook_url, :legalio_url, :status, :employee_count,
-                                      :all_tags, :category_id, :sub_category_id, :target_client_id,
+                                      :all_tags, :category_id, :secondary_category_id, :target_client_id,
                                       :business_model_id, :visible, :contact_name, :contact_email,
                                       :codex_presenter, :codex_presentation_date)
     end

@@ -629,7 +629,7 @@ css:
                     .company-section-label Related companies
                     .company-related-grid
                         - related_companies.first(3).each_with_index do |related, index|
-                            - related_label = (related.sub_category&.name.present? && related.sub_category.name != "Unknown") ? related.sub_category.name : (related.category&.name.presence || "Legal tech")
+                            - related_label = (related.secondary_category&.name.present? && related.secondary_category.name != "Unknown") ? related.secondary_category.name : (related.category&.name.presence || "Legal tech")
                             = link_to company_path(related), class: "company-related-card" do
                                 .company-related-avatar style="background: #{related_avatar_colors[index % related_avatar_colors.length]};"
                                     = related.name.to_s.first

@@ -151,7 +151,7 @@ module Admin
     end
 
     def company_params
-      params.require(:company).permit(:name, :location, :founded_date, :description, :main_url, :twitter_url, :angellist_url, :crunchbase_url, :linkedin_url, :facebook_url, :legalio_url, :status, :employee_count, :category_id, :secondary_category_id, :successor_company_id, :target_client_id, :business_model_id, :sub_category_id, :visible, :contact_email, :contact_name, :codex_presenter, :codex_presentation_date, :logo_url, :total_funding_amount_usd, :funding_status, :number_of_funding_rounds, :exit_date, :founders, :headquarters_region, :quality_status, :verification_verdict, :quality_score, :verified_at, :enriched_at, :quality_reviewed_at, :human_reviewed_at, :source, :source_url, :all_tags, business_model_ids: [], target_client_ids: [])
+      params.require(:company).permit(:name, :location, :founded_date, :description, :main_url, :twitter_url, :angellist_url, :crunchbase_url, :linkedin_url, :facebook_url, :legalio_url, :status, :employee_count, :category_id, :secondary_category_id, :successor_company_id, :target_client_id, :business_model_id, :visible, :contact_email, :contact_name, :codex_presenter, :codex_presentation_date, :logo_url, :total_funding_amount_usd, :funding_status, :number_of_funding_rounds, :exit_date, :founders, :headquarters_region, :quality_status, :verification_verdict, :quality_score, :verified_at, :enriched_at, :quality_reviewed_at, :human_reviewed_at, :source, :source_url, :all_tags, business_model_ids: [], target_client_ids: [])
     end
 
     def set_identity_fields(company)

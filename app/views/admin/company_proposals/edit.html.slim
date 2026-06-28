@@ -47,8 +47,8 @@
                     = label_tag "company_proposal_final_changes_category_id", "Category", class: "form-label"
                     = select_tag "company_proposal[final_changes][category_id]", options_from_collection_for_select(Category.order(:name), :id, :name, @final_changes["category_id"]), include_blank: true, class: "form-select"
                 .col-md-3
-                    = label_tag "company_proposal_final_changes_sub_category_id", "Subcategory", class: "form-label"
-                    = select_tag "company_proposal[final_changes][sub_category_id]", options_from_collection_for_select(SubCategory.order(:name), :id, :name, @final_changes["sub_category_id"]), include_blank: true, class: "form-select"
+                    = label_tag "company_proposal_final_changes_secondary_category_id", "Secondary category", class: "form-label"
+                    = select_tag "company_proposal[final_changes][secondary_category_id]", options_from_collection_for_select(Category.order(:name), :id, :name, @final_changes["secondary_category_id"]), include_blank: true, class: "form-select"
                 .col-md-6
                     = label_tag "company_proposal_final_changes_business_model_ids", "Revenue models", class: "form-label"
                     - selected_revenue_model_ids = Array(@final_changes["business_model_ids"]).map(&:to_i).presence || Array(@final_changes["business_model_id"]).map(&:to_i)

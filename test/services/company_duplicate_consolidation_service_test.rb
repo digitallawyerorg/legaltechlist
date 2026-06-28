@@ -72,6 +72,34 @@ class CompanyDuplicateConsolidationServiceTest < ActiveSupport::TestCase
     assert_equal [duplicate.id], run.details["results"].first["deleted_company_ids"]
   end
 
+  test "skips consolidation when an acquired company is in the domain group" do
+    keeper = companies(:one)
+    duplicate = companies(:two)
+    keeper.update_columns(main_url: "https://www.onit.com", canonical_domain: "onit.com", status: "active")
+    duplicate.update_columns(main_url: "https://onit.com", canonical_domain: "onit.com", status: "acquired")
+
+    run = CompanyDuplicateConsolidationService.call(domains: ["onit.com"], reviewer: "test@example.com")
+
+    assert_equal "succeeded", run.status
+    assert keeper.reload.visible?
+    assert duplicate.reload.visible?
+    assert_equal "acquired_company_present", run.details["results"].first["skipped"]
+  end
+
+  test "skips consolidation when a successor link is present" do
+    keeper = companies(:one)
+    duplicate = companies(:two)
+    keeper.update_columns(main_url: "https://www.simplelegal.com", canonical_domain: "simplelegal.com")
+    duplicate.update_columns(main_url: "https://simplelegal.com", canonical_domain: "simplelegal.com", successor_company_id: keeper.id)
+
+    run = CompanyDuplicateConsolidationService.call(domains: ["simplelegal.com"], reviewer: "test@example.com")
+
+    assert_equal "succeeded", run.status
+    assert keeper.reload.visible?
+    assert duplicate.reload.visible?
+    assert_equal "successor_link_present", run.details["results"].first["skipped"]
+  end
+
   test "prefers keeper whose name matches the domain" do
     keeper = companies(:one)
     duplicate = companies(:two)
