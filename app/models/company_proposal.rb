@@ -2,7 +2,7 @@ class CompanyProposal < ActiveRecord::Base
   include TaxonomyCompleteness
 
   STATUSES = %w[pending ready_for_review needs_revision approved_to_draft published rejected].freeze
-  PROPOSAL_TYPES = %w[atlas_candidate].freeze
+  PROPOSAL_TYPES = %w[atlas_candidate discovery_candidate].freeze
 
   belongs_to :admin_user, optional: true
   belongs_to :company, optional: true

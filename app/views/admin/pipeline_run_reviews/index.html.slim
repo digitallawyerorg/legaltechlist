@@ -5,7 +5,7 @@
         .d-flex.flex-wrap.justify-content-between.align-items-center.gap-2
             h1.h4.mb-0 Activity
             .admin-table-summary
-                - [["All runs", @activity_counts["all"], custom_admin_pipeline_runs_path], ["Agent reviews", @activity_counts["agent_reviews"], custom_admin_agent_reviews_path], ["Import reviews", @activity_counts["import_reviews"], custom_admin_pipeline_runs_path(activity: "import_reviews")], ["Failures", @activity_counts["failed"], custom_admin_pipeline_runs_path(activity: "failed")], ["Records", @pipeline_runs.total_count, custom_admin_pipeline_runs_path(activity: @activity, status: @status)]].each do |label, count, path|
+                - [["All runs", @activity_counts["all"], custom_admin_pipeline_runs_path], ["Agent reviews", @activity_counts["agent_reviews"], custom_admin_agent_reviews_path], ["Import reviews", @activity_counts["import_reviews"], custom_admin_pipeline_runs_path(activity: "import_reviews")], ["Discovery", @activity_counts["discovery_runs"], custom_admin_pipeline_runs_path(activity: "discovery_runs")], ["Failures", @activity_counts["failed"], custom_admin_pipeline_runs_path(activity: "failed")], ["Records", @pipeline_runs.total_count, custom_admin_pipeline_runs_path(activity: @activity, status: @status)]].each do |label, count, path|
                     span.admin-table-summary-item
                         = "#{label} "
                         = link_to number_with_delimiter(count), path, aria: { label: "Show #{label.downcase}" }
@@ -14,6 +14,7 @@
             = link_to "All Runs", custom_admin_pipeline_runs_path, class: "nav-link #{@activity == 'all' ? 'active' : ''}"
             = link_to "Agent Reviews", custom_admin_agent_reviews_path, class: "nav-link"
             = link_to "Import Reviews", custom_admin_pipeline_runs_path(activity: "import_reviews"), class: "nav-link #{@activity == 'import_reviews' ? 'active' : ''}"
+            = link_to "Discovery", custom_admin_pipeline_runs_path(activity: "discovery_runs"), class: "nav-link #{@activity == 'discovery_runs' ? 'active' : ''}"
             = link_to "Failures", custom_admin_pipeline_runs_path(activity: "failed"), class: "nav-link #{@activity == 'failed' ? 'active' : ''}"
     .card-body.border-bottom
         .admin-filter-toolbar

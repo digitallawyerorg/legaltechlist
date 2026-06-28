@@ -6,11 +6,15 @@ class CompanyCandidateRowProcessorService
     new(**kwargs).call
   end
 
-  def initialize(candidate:, index:, admin_user:, pipeline_run_id: nil)
+  def initialize(candidate:, index:, admin_user:, pipeline_run_id: nil, source: SOURCE, proposal_type: "atlas_candidate", source_label: "LegalTechAtlas CSV", skip_auto_draft: false)
     @candidate = candidate
     @index = index
     @admin_user = admin_user
     @pipeline_run_id = pipeline_run_id
+    @source = source
+    @proposal_type = proposal_type
+    @source_label = source_label
+    @skip_auto_draft = ActiveModel::Type::Boolean.new.cast(skip_auto_draft)
   end
 
   def call
@@ -19,8 +23,10 @@ class CompanyCandidateRowProcessorService
     return result_payload(proposal, "already_published", "Company is already published.") if proposal.status == "published" || proposal.company&.visible?
     return resolve_duplicate_candidate(proposal) if proposal.duplicate_blocking?
 
-    CompanyProposalEnrichmentService.call(proposal: proposal, admin_user: admin_user) if enrichment_needed?(proposal)
+    CompanyProposalEnrichmentService.call(proposal: proposal, admin_user: admin_user) if enrichment_needed?(proposal) && !skip_auto_draft?
     proposal.reload
+
+    return result_payload(proposal, "queued_for_review", "Discovery candidate queued for human review.") if skip_auto_draft?
 
     quality = CompanyProposalQualityService.call(proposal)
     return result_payload(proposal, "needs_review", Array(quality["blockers"]).first) unless auto_draft_ready?(proposal, quality)
@@ -36,7 +42,11 @@ class CompanyCandidateRowProcessorService
 
   private
 
-  attr_reader :candidate, :index, :admin_user, :pipeline_run_id
+  attr_reader :candidate, :index, :admin_user, :pipeline_run_id, :source, :proposal_type, :source_label, :skip_auto_draft
+
+  def skip_auto_draft?
+    skip_auto_draft
+  end
 
   def consolidate_visible_domain_duplicates!
     domain = candidate["canonical_domain"]
@@ -58,10 +68,10 @@ class CompanyCandidateRowProcessorService
   end
 
   def upsert_proposal
-    proposal = CompanyProposal.find_or_initialize_by(source: SOURCE, source_identifier: source_identifier)
+    proposal = CompanyProposal.find_or_initialize_by(source: source, source_identifier: source_identifier)
     proposal.assign_attributes(
       status: proposal.company_id.present? ? proposal.status : "pending",
-      proposal_type: "atlas_candidate",
+      proposal_type: proposal_type,
       admin_user: admin_user,
       source_payload: source_payload,
       proposed_changes: proposed_changes,
@@ -210,7 +220,7 @@ class CompanyCandidateRowProcessorService
       "number_of_funding_rounds" => candidate["number_of_funding_rounds"],
       "employee_count" => candidate["employee_count"],
       "founders" => candidate["founders"],
-      "source" => "LegalTechAtlas CSV",
+      "source" => source_label,
       "source_url" => candidate["crunchbase_url"].presence || candidate["website"]
     }.compact
   end
@@ -224,7 +234,13 @@ class CompanyCandidateRowProcessorService
   end
 
   def reviewer_notes
-    if candidate["status"] == "existing_or_possible_duplicate"
+    if proposal_type == "discovery_candidate"
+      if candidate["status"] == "existing_or_possible_duplicate"
+        "LLM discovery candidate requires duplicate review before any company draft is created."
+      else
+        "LLM discovery candidate queued for human review. No auto-publish or auto-draft in discovery pilot."
+      end
+    elsif candidate["status"] == "existing_or_possible_duplicate"
       "Imported candidate requires duplicate review before any company draft is created."
     else
       "Imported candidate was processed automatically. Clean rows may become invisible drafts; exceptions remain here for review."

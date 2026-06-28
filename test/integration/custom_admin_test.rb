@@ -459,4 +459,103 @@ class CustomAdminTest < ActionDispatch::IntegrationTest
     assert_redirected_to custom_admin_company_proposals_path(status: "pending_review")
     assert_equal "needs_revision", proposal.reload.status
   end
+
+  StubDiscoverySearchService = Class.new do
+    def self.call(**kwargs)
+      {
+        "mode" => "stub",
+        "discovery_type" => kwargs[:discovery_type],
+        "query" => "stub query",
+        "companies" => [
+          {
+            "name" => "Admin Discovery Co",
+            "website" => "https://admin-discovery.example",
+            "location" => "Austin, TX",
+            "founded_date" => "2024",
+            "description" => "Provides legal workflow automation.",
+            "why_discovered" => "Matches category search.",
+            "discovery_type" => kwargs[:discovery_type],
+            "discovery_query" => "stub query",
+            "website_verified" => true
+          }
+        ],
+        "raw_search_call_count" => 1,
+        "generated_at" => Time.current.utc.iso8601
+      }
+    end
+  end
+
+  test "discovery new requires authentication" do
+    get new_custom_admin_discovery_path
+
+    assert_redirected_to new_admin_user_session_path
+  end
+
+  test "discovery new page is available to signed-in admin users" do
+    sign_in admin_users(:one)
+
+    get new_custom_admin_discovery_path
+
+    assert_response :success
+    assert_select "h1", "LLM Company Discovery"
+    assert_select "input[type=submit][value='Preview (dry run)']"
+    assert_select "input[type=submit][value='Discover & queue all absent']"
+    assert_select "nav a", "Discover"
+  end
+
+  test "discovery preview creates pipeline run without proposals" do
+    sign_in admin_users(:one)
+    original_call = CompanyDiscoveryService.method(:call)
+    CompanyDiscoveryService.define_singleton_method(:call) do |**kwargs|
+      original_call.call(**kwargs.merge(search_service: StubDiscoverySearchService))
+    end
+
+    assert_difference "PipelineRun.count", 1 do
+      assert_no_difference "CompanyProposal.count" do
+        post custom_admin_discoveries_path, params: {
+          discovery: {
+            discovery_type: "category",
+            category_id: categories(:one).id,
+            limit: 10,
+            notes: "Admin preview test"
+          },
+          commit: "Preview (dry run)"
+        }
+      end
+    end
+
+    run = PipelineRun.order(:created_at).last
+    assert_redirected_to custom_admin_pipeline_run_path(run)
+    assert_equal "company_discovery", run.run_type
+    assert_equal true, run.details["dry_run"]
+    assert_equal 1, run.details["summary"]["absent_candidates"]
+    follow_redirect!
+    assert_select "h2", "LLM Discovery Review"
+    assert_select "input[type=submit][value='Queue Selected Absent Candidates']"
+  ensure
+    CompanyDiscoveryService.define_singleton_method(:call, original_call)
+  end
+
+  test "discovery queue from pipeline run creates proposal for absent candidate" do
+    sign_in admin_users(:one)
+    run = CompanyDiscoveryService.call(
+      discovery_type: "category",
+      category: categories(:one).name,
+      dry_run: true,
+      search_service: StubDiscoverySearchService,
+      admin_user: admin_users(:one),
+      reviewer: admin_users(:one).email
+    )
+
+    assert_difference "CompanyProposal.count", 1 do
+      post custom_admin_pipeline_run_company_proposals_path(run), params: { candidate_indexes: ["0"] }
+    end
+
+    proposal = CompanyProposal.order(:created_at).last
+    assert_redirected_to custom_admin_company_proposals_path
+    assert_equal "llm_discovery", proposal.source
+    assert_equal "discovery_candidate", proposal.proposal_type
+    assert_equal "Admin Discovery Co", proposal.display_name
+    assert_nil proposal.company
+  end
 end

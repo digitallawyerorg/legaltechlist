@@ -7,6 +7,92 @@
 
 .row.g-3
     .col-lg-8
+        - if @pipeline_run.run_type == CompanyDiscoveryService::RUN_TYPE
+            - discovery_summary = @details["summary"] || {}
+            - discovery_candidates = Array(@details["candidates"])
+            - proposal_results = Array(@details["proposal_results"])
+            - exclusion_context = @details["exclusion_context"] || {}
+            - search_payload = @details["search"] || {}
+            .card.border-0.shadow-sm.mb-3
+                .card-header.bg-white.d-flex.justify-content-between.align-items-center
+                    h2.h5.mb-0 LLM Discovery Review
+                    = link_to "New discovery", new_custom_admin_discovery_path, class: "btn btn-sm btn-outline-primary"
+                .card-body
+                    .row.g-3.mb-3
+                        .col-sm-3
+                            .text-muted.small Discovered
+                            .fw-semibold= number_with_delimiter(discovery_summary["discovered_count"].to_i)
+                        .col-sm-3
+                            .text-muted.small Absent
+                            .fw-semibold= number_with_delimiter(discovery_summary["absent_candidates"].to_i)
+                        .col-sm-3
+                            .text-muted.small Already indexed
+                            .fw-semibold= number_with_delimiter(discovery_summary["existing_or_possible_duplicates"].to_i)
+                        .col-sm-3
+                            .text-muted.small Verified websites
+                            .fw-semibold= number_with_delimiter(discovery_summary["verified_websites"].to_i)
+                    - if exclusion_context["visible_company_count"].present?
+                        p.text-muted.small.mb-3= "Compared against #{number_with_delimiter(exclusion_context['visible_company_count'])} visible companies (#{number_with_delimiter(exclusion_context['excluded_name_count'])} names / #{number_with_delimiter(exclusion_context['excluded_domain_count'])} domains excluded)."
+                    - if discovery_summary["dry_run_message"].present?
+                        .alert.alert-info= discovery_summary["dry_run_message"]
+                    - if discovery_summary["search_error"].present?
+                        .alert.alert-danger= "LLM search error: #{discovery_summary['search_error']}"
+                    - if search_payload["mode"] == "disabled_no_responses_web_search"
+                        .alert.alert-danger OpenAI web search is disabled or OPENAI_API_KEY is missing.
+                    - if discovery_candidates.any?
+                        = form_with url: custom_admin_pipeline_run_company_proposals_path(@pipeline_run), method: :post, local: true do
+                            .table-responsive
+                                table.table.table-sm.align-middle.mb-3
+                                    thead
+                                        tr
+                                            th Queue
+                                            th Candidate
+                                            th Website
+                                            th Status
+                                            th Why discovered
+                                            th Result
+                                    tbody
+                                        - discovery_candidates.each_with_index do |candidate, index|
+                                            - result = proposal_results.find { |item| item["row_index"].to_i == index } || proposal_results.find { |item| item["name"].to_s == candidate["name"].to_s }
+                                            tr
+                                                td
+                                                    - if candidate["status"] == "absent_candidate" && result.blank?
+                                                        = check_box_tag "candidate_indexes[]", index, false, id: "candidate_index_#{index}", class: "form-check-input"
+                                                    - else
+                                                        span.text-muted -
+                                                td
+                                                    .fw-semibold= candidate["name"]
+                                                    .text-muted.small= candidate["location"]
+                                                    - if candidate["why_discovered"].present?
+                                                        .text-muted.small= candidate["why_discovered"]
+                                                td
+                                                    - if candidate["website"].present?
+                                                        = link_to candidate["canonical_domain"].presence || candidate["website"], candidate["website"], target: "_blank", rel: "noopener"
+                                                        - if candidate["website_verified"]
+                                                            span.badge.text-bg-success.ms-1 Verified
+                                                        - else
+                                                            span.badge.text-bg-secondary.ms-1 Unverified
+                                                    - else
+                                                        span.text-muted Missing
+                                                td
+                                                    - if candidate["status"] == "absent_candidate"
+                                                        span.badge.text-bg-success Absent candidate
+                                                    - else
+                                                        span.badge.text-bg-warning Already indexed
+                                                    .small.text-muted= "#{Array(candidate['name_matches']).size} name / #{Array(candidate['domain_matches']).size} domain matches"
+                                                td.small= candidate["why_discovered"]
+                                                td.small
+                                                    - if result.present?
+                                                        .fw-semibold= result["action"].to_s.humanize
+                                                        - if result["proposal_id"].present?
+                                                            = link_to "Proposal ##{result['proposal_id']}", custom_admin_company_proposal_path(result["proposal_id"])
+                                                    - else
+                                                        span.text-muted Not queued
+                            - if discovery_summary["dry_run_message"].present?
+                                = submit_tag "Queue Selected Absent Candidates", class: "btn btn-primary", data: { turbo_confirm: "Create editable proposals for selected absent candidates? No companies will be published." }
+                    - else
+                        p.text-muted.mb-0 No discovery candidates returned.
+
         - if @pipeline_run.run_type == "atlas_candidate_import_review"
             .card.border-0.shadow-sm.mb-3
                 .card-header.bg-white
