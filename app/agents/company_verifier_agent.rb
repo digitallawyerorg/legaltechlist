@@ -63,6 +63,8 @@ class CompanyVerifierAgent
     flagged << "Duplicate-domain candidate." if duplicate_domain_candidate?
     flagged << "Duplicate-name candidate." if duplicate_name_candidate?
     flagged << "Unknown taxonomy." if unknown_taxonomy?
+    flagged << "No tags assigned." if company.tags.empty?
+    flagged << "Missing M2M target client assignments." if company.target_clients.empty? && company.target_client_id.blank?
     flagged << "Potential spam keyword match." if spam_risk?
     flagged << "No supporting external evidence URLs beyond the current record." if Array(evidence_payload["evidence"]).empty?
     flagged
@@ -80,11 +82,16 @@ class CompanyVerifierAgent
   def taxonomy_signals
     {
       "category" => company.category&.name,
+      "secondary_category" => company.secondary_category&.name,
       "revenue_models" => company.revenue_model_names,
       "target_client" => company.target_client&.name,
-      "unknown_category" => company.category_id.blank?,
+      "target_clients" => company.audience_names,
+      "tags" => company.tags.limit(10).pluck(:name),
+      "ai_capability" => AiCapabilityDerivationService.call(company: company),
+      "unknown_category" => company.category&.name == "Unknown",
       "unknown_revenue_model" => company.revenue_models.empty?,
-      "unknown_target_client" => company.target_client_id.blank?
+      "unknown_target_client" => company.audience_names.blank? || company.audience_names.include?("Unknown"),
+      "missing_tags" => company.tags.empty?
     }
   end
 
@@ -134,7 +141,10 @@ class CompanyVerifierAgent
   end
 
   def unknown_taxonomy?
-    company.category_id.blank? || company.revenue_models.empty? || company.target_client_id.blank?
+    company.category&.name == "Unknown" ||
+      company.revenue_models.empty? ||
+      (company.target_client_id.blank? && company.target_clients.empty?) ||
+      company.audience_names.include?("Unknown")
   end
 
   def spam_risk?

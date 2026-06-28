@@ -153,6 +153,8 @@ class ReviewCoordinatorAgent < RubyLLM::Agent
     findings << guardrail("needs_description_revision", "Description critic requires revision.") if %w[revise reject].include?(critic_payload["verdict"])
     findings << guardrail("needs_more_evidence", "Evidence agent found missing or thin evidence.") if Array(evidence_payload["evidence_gaps"]).any?
     findings << guardrail("needs_more_evidence", "Verifier flagged missing primary company URL.") if Array(verification_payload["risks"]).include?("Missing primary company URL.")
+    findings << guardrail("needs_description_revision", "Verifier flagged unknown or incomplete taxonomy.") if Array(verification_payload["risks"]).include?("Unknown taxonomy.")
+    findings << guardrail("needs_description_revision", "Verifier flagged missing tags.") if Array(verification_payload["risks"]).include?("No tags assigned.")
     findings
   end
 
@@ -188,8 +190,12 @@ class ReviewCoordinatorAgent < RubyLLM::Agent
         description: company.description,
         website: company.main_url,
         category: company.category&.name,
+        secondary_category: company.secondary_category&.name,
         revenue_models: company.revenue_model_names,
-        target_client: company.target_client&.name
+        target_client: company.target_client&.name,
+        target_clients: company.audience_names,
+        tags: company.tags.limit(10).pluck(:name),
+        ai_capability: AiCapabilityDerivationService.call(company: company)
       },
       evidence: evidence_payload.slice("evidence", "evidence_gaps"),
       evidence_tools: evidence_payload["tool_results"] || {},

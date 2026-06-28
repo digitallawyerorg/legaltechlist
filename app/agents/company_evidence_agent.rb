@@ -30,8 +30,12 @@ class CompanyEvidenceAgent
       "main_url" => company.main_url,
       "canonical_domain" => company.canonical_domain.presence || company.canonical_main_domain,
       "category" => company.category&.name,
+      "secondary_category" => company.secondary_category&.name,
       "revenue_models" => company.revenue_model_names,
       "target_client" => company.target_client&.name,
+      "target_clients" => company.audience_names,
+      "tags" => company.tags.limit(10).pluck(:name),
+      "ai_capability" => AiCapabilityDerivationService.call(company: company),
       "status" => company.status,
       "visible" => company.visible
     }
