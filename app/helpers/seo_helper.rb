@@ -107,8 +107,7 @@ module SeoHelper
   def statistics_index_json_ld
     items = [
       { name: "Total Companies", url: statistics_total_companies_url },
-      { name: "Companies by Country", url: statistics_country_distribution_url },
-      { name: "Companies by Region", url: statistics_companies_by_region_url },
+      { name: "Geographic Distribution", url: statistics_country_distribution_url },
       { name: "Category Evolution", url: statistics_category_evolution_5_years_url },
       { name: "Technology Themes", url: statistics_tag_distribution_url },
       { name: "Market Focus", url: statistics_target_client_url },

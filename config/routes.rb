@@ -81,7 +81,7 @@ Rails.application.routes.draw do
   get 'statistics/companies_founded', to: 'static_pages#companies_founded', as: :statistics_companies_founded
 
   # New analytics pages
-  get 'statistics/innovation_hubs', to: redirect('/statistics/companies_by_region', status: 301)
+  get 'statistics/innovation_hubs', to: redirect('/statistics/country_distribution?view=region', status: 301)
   get 'statistics/exit_patterns', to: redirect('/statistics', status: 301)
   get 'statistics/exit_patterns/download', to: redirect('/statistics', status: 301)
   get 'statistics/founders_journey', to: redirect('/statistics', status: 301)

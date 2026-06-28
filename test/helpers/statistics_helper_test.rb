@@ -18,7 +18,7 @@ class StatisticsHelperTest < ActiveSupport::TestCase
 
     assert_equal "Revenue Model Insights", neighbors[:prev][:title]
     assert_equal statistics_business_model_path, neighbors[:prev][:path]
-    assert_equal "Companies by Country", neighbors[:next][:title]
+    assert_equal "Geographic Distribution", neighbors[:next][:title]
     assert_equal statistics_country_distribution_path, neighbors[:next][:path]
   end
 

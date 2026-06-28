@@ -5,8 +5,7 @@ module StatisticsHelper
 
   STATS_CHART_PAGES = [
     { actions: %w[total_companies], title: "Total Companies", path: :statistics_total_companies_path },
-    { actions: %w[country_distribution], title: "Companies by Country", path: :statistics_country_distribution_path },
-    { actions: %w[companies_by_region], title: "Companies by Region", path: :statistics_companies_by_region_path },
+    { actions: %w[country_distribution], title: "Geographic Distribution", path: :statistics_country_distribution_path },
     { actions: %w[category_evolution_5_years], title: "Category Evolution", path: :statistics_category_evolution_5_years_path },
     { actions: %w[tag_distribution], title: "Technology Themes", path: :statistics_tag_distribution_path },
     { actions: %w[target_client], title: "Market Focus", path: :statistics_target_client_path },

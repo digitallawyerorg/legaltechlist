@@ -7,7 +7,6 @@ class SitemapController < ApplicationController
       { path: statistics_total_companies_path, updated_at: Time.current },
       { path: statistics_category_evolution_5_years_path, updated_at: Time.current },
       { path: statistics_country_distribution_path, updated_at: Time.current },
-      { path: statistics_companies_by_region_path, updated_at: Time.current },
       { path: statistics_tag_distribution_path, updated_at: Time.current },
       { path: statistics_target_client_path, updated_at: Time.current },
       { path: statistics_business_model_path, updated_at: Time.current },

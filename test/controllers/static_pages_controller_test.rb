@@ -22,7 +22,7 @@ class StaticPagesControllerTest < ActionController::TestCase
   test "should get statistics" do
     get :statistics
     assert_response :success
-    assert_select ".stats-index-card", count: 10
+    assert_select ".stats-index-card", count: 9
   end
 
   test "should get business_model" do
@@ -30,35 +30,43 @@ class StaticPagesControllerTest < ActionController::TestCase
     assert_response :success
   end
 
-  test "country distribution renders map chart only" do
+  test "country distribution renders map chart by default" do
     get :country_distribution
     assert_response :success
     assert_includes @response.body, "country-distribution-chart"
     assert_includes @response.body, "drawCountryGeoChart"
     assert_includes @response.body, "country-distribution-chart-data"
     assert_includes @response.body, "gstatic.com/charts/loader.js"
-    assert_select "h1.stats-chart-title", text: "Companies by Country"
+    assert_select "h1.stats-chart-title", text: "Geographic Distribution"
+    assert_select ".stats-segment-control .stats-segment.is-active", text: "By Country"
     assert_not_includes @response.body, "drawRegionCountrySunburstChart"
   end
 
-  test "country distribution redirects legacy regions view" do
-    get :country_distribution, params: { view: "regions" }
-    assert_redirected_to statistics_companies_by_region_path
-  end
-
-  test "companies by region renders sankey chart" do
-    get :companies_by_region
+  test "country distribution region view renders sankey chart" do
+    get :country_distribution, params: { view: "region" }
     assert_response :success
     assert_includes @response.body, "companies-by-region-chart"
     assert_includes @response.body, "companies-by-region-data"
     assert_includes @response.body, "drawRegionCountrySankeyChart"
     assert_includes @response.body, "type: \"sankey\""
     assert_includes @response.body, "echarts@5.5.1/dist/echarts.min.js"
-    assert_select "h1.stats-chart-title", text: "Companies by Region"
+    assert_select "h1.stats-chart-title", text: "Geographic Distribution"
+    assert_select ".stats-segment-control .stats-segment.is-active", text: "By Region"
     assert assigns(:region_sankey_data).present?
     assert_equal "All companies", assigns(:region_sankey_data)[:nodes].first[:name]
     assert assigns(:region_sankey_data)[:links].present?
     assert assigns(:region_sankey_data)[:links].any? { |link| link[:source] == "All companies" }
+  end
+
+  test "country distribution redirects legacy regions view param" do
+    get :country_distribution, params: { view: "regions" }
+    assert_response :success
+    assert_select ".stats-segment-control .stats-segment.is-active", text: "By Region"
+  end
+
+  test "companies by region redirects to unified geographic page" do
+    get :companies_by_region
+    assert_redirected_to statistics_country_distribution_path(view: "region")
   end
 
   test "funding by region renders funding sunburst chart" do
@@ -76,7 +84,7 @@ class StaticPagesControllerTest < ActionController::TestCase
     assert_select "h1.stats-chart-title", text: "Total Companies"
     assert_select ".stats-segment-control .stats-segment.is-active", text: "Cumulative"
     assert_select ".stats-chart-nav .stats-chart-nav-prev .stats-chart-nav-title", text: "Revenue Model Insights"
-    assert_select ".stats-chart-nav .stats-chart-nav-next .stats-chart-nav-title", text: "Companies by Country"
+    assert_select ".stats-chart-nav .stats-chart-nav-next .stats-chart-nav-title", text: "Geographic Distribution"
     assert_select ".stats-page-back", count: 0
   end
 

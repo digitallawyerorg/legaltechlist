@@ -402,66 +402,36 @@ class StaticPagesController < ApplicationController
   end
 
   def country_distribution
-    if params[:view] == "regions"
-      redirect_to statistics_companies_by_region_path, status: :moved_permanently
-      return
+    @geo_view = geo_view_param
+
+    if @geo_view == "region"
+      load_companies_by_region_data
+    else
+      load_country_distribution_data
     end
-
-    companies = located_companies_scope
-    country_metrics = Hash.new { |hash, country| hash[country] = { companies: 0, total_funding: 0, funded_companies: 0 } }
-
-    companies.each do |company|
-        country = extract_country(company.location)
-        next unless country
-
-        country_metrics[country][:companies] += 1
-
-        if company.total_funding_amount_usd && company.total_funding_amount_usd > 0
-            country_metrics[country][:total_funding] += company.total_funding_amount_usd
-            country_metrics[country][:funded_companies] += 1
-        end
-    end
-
-    @chart_data = [['Country', 'Companies']]
-    country_metrics.each do |country, metrics|
-        @chart_data << [country, metrics[:companies]]
-    end
-
-    @table_data = country_metrics.map do |country, metrics|
-        avg_funding = metrics[:funded_companies].positive? ? metrics[:total_funding] / metrics[:funded_companies] : 0
-
-        {
-            country: country,
-            companies: metrics[:companies],
-            total_funding: metrics[:total_funding],
-            avg_funding: avg_funding
-        }
-    end.sort_by { |data| -data[:companies] }
-
-    @top_countries = @table_data.take(3).map { |data| data[:country] }
-    @top_funded_countries = @table_data.sort_by { |data| -data[:total_funding] }.take(3).map { |data| data[:country] }
-
-    max_companies = country_metrics.values.map { |metrics| metrics[:companies] }.max || 0
-    @geo_map_max = [((max_companies / 50.0).ceil * 50), 50].max
 
     respond_to do |format|
-        format.html
-        format.csv { send_data generate_country_distribution_csv, filename: "country_distribution.csv", type: "text/csv; charset=utf-8", disposition: "attachment" }
-        format.xlsx { send_data generate_country_distribution_xlsx, filename: "country_distribution.xlsx" }
-        format.png { head :ok }
+      format.html
+      format.csv do
+        if @geo_view == "region"
+          send_data generate_region_country_csv, filename: "companies_by_region.csv", type: "text/csv; charset=utf-8", disposition: "attachment"
+        else
+          send_data generate_country_distribution_csv, filename: "country_distribution.csv", type: "text/csv; charset=utf-8", disposition: "attachment"
+        end
+      end
+      format.xlsx do
+        if @geo_view == "region"
+          send_data generate_region_country_xlsx, filename: "companies_by_region.xlsx"
+        else
+          send_data generate_country_distribution_xlsx, filename: "country_distribution.xlsx"
+        end
+      end
+      format.png { head :ok if @geo_view == "country" }
     end
   end
 
   def companies_by_region
-    region_country_metrics = build_region_country_metrics(located_companies_scope)
-    @region_table_data = helpers.build_region_table_data(region_country_metrics)
-    @region_sankey_data = helpers.region_country_sankey_data(region_country_metrics)
-
-    respond_to do |format|
-        format.html
-        format.csv { send_data generate_region_country_csv, filename: "companies_by_region.csv", type: "text/csv; charset=utf-8", disposition: "attachment" }
-        format.xlsx { send_data generate_region_country_xlsx, filename: "companies_by_region.xlsx" }
-    end
+    redirect_to statistics_country_distribution_path(params.permit(:view).merge(view: "region")), status: :moved_permanently
   end
 
   def funding_by_region
@@ -952,6 +922,7 @@ class StaticPagesController < ApplicationController
   private
 
   GROWTH_VIEWS = %w[cumulative annual].freeze
+  GEO_VIEWS = %w[country region].freeze
   CATEGORY_EVOLUTION_CHART_COLORS = [
     "#8c1515", "#175e54", "#2986cc", "#8e5fa2", "#d55e00", "#37a4a6",
     "#5a865a", "#ae6a59", "#5b9bd5", "#6b6b8d", "#c67171", "#820000"
@@ -959,6 +930,58 @@ class StaticPagesController < ApplicationController
 
   def growth_view_param
     params[:view].presence_in(GROWTH_VIEWS) || "cumulative"
+  end
+
+  def geo_view_param
+    view = params[:view].to_s
+    return "region" if view.in?(%w[region regions])
+
+    "country"
+  end
+
+  def load_country_distribution_data
+    companies = located_companies_scope
+    country_metrics = Hash.new { |hash, country| hash[country] = { companies: 0, total_funding: 0, funded_companies: 0 } }
+
+    companies.each do |company|
+      country = extract_country(company.location)
+      next unless country
+
+      country_metrics[country][:companies] += 1
+
+      if company.total_funding_amount_usd && company.total_funding_amount_usd > 0
+        country_metrics[country][:total_funding] += company.total_funding_amount_usd
+        country_metrics[country][:funded_companies] += 1
+      end
+    end
+
+    @chart_data = [["Country", "Companies"]]
+    country_metrics.each do |country, metrics|
+      @chart_data << [country, metrics[:companies]]
+    end
+
+    @table_data = country_metrics.map do |country, metrics|
+      avg_funding = metrics[:funded_companies].positive? ? metrics[:total_funding] / metrics[:funded_companies] : 0
+
+      {
+        country: country,
+        companies: metrics[:companies],
+        total_funding: metrics[:total_funding],
+        avg_funding: avg_funding
+      }
+    end.sort_by { |data| -data[:companies] }
+
+    @top_countries = @table_data.take(3).map { |data| data[:country] }
+    @top_funded_countries = @table_data.sort_by { |data| -data[:total_funding] }.take(3).map { |data| data[:country] }
+
+    max_companies = country_metrics.values.map { |metrics| metrics[:companies] }.max || 0
+    @geo_map_max = [((max_companies / 50.0).ceil * 50), 50].max
+  end
+
+  def load_companies_by_region_data
+    region_country_metrics = build_region_country_metrics(located_companies_scope)
+    @region_table_data = helpers.build_region_table_data(region_country_metrics)
+    @region_sankey_data = helpers.region_country_sankey_data(region_country_metrics)
   end
 
   def maturity_base_scope

@@ -1,0 +1,8 @@
+/ locals: current_view, country_url, region_url
+.stats-segment-control role="group" aria-label="Geographic distribution view"
+    - if current_view == "region"
+        = link_to "By Country", country_url, class: "stats-segment"
+        span.stats-segment.is-active aria-current="page" By Region
+    - else
+        span.stats-segment.is-active aria-current="page" By Country
+        = link_to "By Region", region_url, class: "stats-segment"

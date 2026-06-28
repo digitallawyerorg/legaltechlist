@@ -1,6 +1,51 @@
-- content_for :title, "Companies by Country"
-- content_for :description, "Geographic concentration of legal tech companies by country, based on visible CodeX TechIndex profiles founded since 2000."
-- chart_id = "country-distribution-chart"
-- geo_library = { backgroundColor: "#ffffff", datalessRegionColor: "#f8f9fa", defaultColor: "#f8f9fa", colorAxis: { minValue: 0, maxValue: @geo_map_max, colors: ["#f3e1e1", "#8c1515"] }, tooltip: { isHtml: false }, region: "world", displayMode: "regions", resolution: "countries" }
-- chart_html = render partial: "shared/stats_country_geo_map", locals: { chart_id: chart_id, chart_data: @chart_data, library: geo_library }
-= render partial: "shared/stats_chart_page", locals: { title: "Companies by Country", chart: chart_html, table: render(partial: "shared/data_table", locals: { headers: ["Country", "Companies", "Total Funding", "Avg Funding"], rows: @table_data.map { |data| [data[:country], data[:companies], number_to_currency(data[:total_funding], precision: 0), number_to_currency(data[:avg_funding], precision: 0)] } }), chart_id: chart_id, download_filename: "country_distribution", csv_path: statistics_country_distribution_path(format: :csv), xlsx_path: statistics_country_distribution_path(format: :xlsx), table_title: "Country breakdown" }
+- is_region = @geo_view == "region"
+- chart_title = "Geographic Distribution"
+- page_title = is_region ? "Geographic Distribution (By Region)" : "Geographic Distribution (By Country)"
+- content_for :title, page_title
+- content_for :description, is_region ? "Legal tech companies grouped by innovation hub region and headquarters country in the CodeX TechIndex." : "Geographic concentration of legal tech companies by country, based on visible CodeX TechIndex profiles founded since 2000."
+- country_path = statistics_country_distribution_path
+- region_path = statistics_country_distribution_path(view: "region")
+- view_toggle_html = capture do
+    = render partial: "shared/stats_geo_view_toggle", locals: { current_view: @geo_view, country_url: country_path, region_url: region_path }
+- if is_region
+    - chart_id = "companies-by-region-chart"
+    - chart_html = render partial: "shared/stats_region_country_sankey", locals: { chart_id: chart_id, sankey: @region_sankey_data, data_script_id: "companies-by-region-data", tooltip_mode: "count" }
+    - table_html = capture do
+        .table-responsive
+            table.table.table-hover.align-middle
+                thead
+                    tr
+                        th Region
+                        th Country
+                        th.text-end Companies
+                        th.text-end Total Funding
+                        th.text-end Avg Funding
+                tbody
+                    - @region_table_data.each do |region_data|
+                        tr.stats-region-row
+                            td.fw-semibold= region_data[:region]
+                            td.text-muted —
+                            td.text-end.fw-semibold= number_with_delimiter(region_data[:companies])
+                            td.text-end.fw-semibold= number_to_currency(region_data[:total_funding], precision: 0)
+                            td.text-end.fw-semibold= number_to_currency(region_data[:avg_funding], precision: 0)
+                        - region_data[:countries].each do |country_data|
+                            tr
+                                td
+                                td= country_data[:country]
+                                td.text-end= number_with_delimiter(country_data[:companies])
+                                td.text-end= number_to_currency(country_data[:total_funding], precision: 0)
+                                td.text-end= number_to_currency(country_data[:avg_funding], precision: 0)
+    - csv_path = statistics_country_distribution_path(view: "region", format: :csv)
+    - xlsx_path = statistics_country_distribution_path(view: "region", format: :xlsx)
+    - download_filename = "companies_by_region"
+    - table_title = "Region and country breakdown"
+- else
+    - chart_id = "country-distribution-chart"
+    - geo_library = { backgroundColor: "#ffffff", datalessRegionColor: "#f8f9fa", defaultColor: "#f8f9fa", colorAxis: { minValue: 0, maxValue: @geo_map_max, colors: ["#f3e1e1", "#8c1515"] }, tooltip: { isHtml: false }, region: "world", displayMode: "regions", resolution: "countries" }
+    - chart_html = render partial: "shared/stats_country_geo_map", locals: { chart_id: chart_id, chart_data: @chart_data, library: geo_library }
+    - table_html = render(partial: "shared/data_table", locals: { headers: ["Country", "Companies", "Total Funding", "Avg Funding"], rows: @table_data.map { |data| [data[:country], data[:companies], number_to_currency(data[:total_funding], precision: 0), number_to_currency(data[:avg_funding], precision: 0)] } })
+    - csv_path = statistics_country_distribution_path(format: :csv)
+    - xlsx_path = statistics_country_distribution_path(format: :xlsx)
+    - download_filename = "country_distribution"
+    - table_title = "Country breakdown"
+= render partial: "shared/stats_chart_page", locals: { title: chart_title, chart: chart_html, table: table_html, chart_id: chart_id, download_filename: download_filename, csv_path: csv_path, xlsx_path: xlsx_path, toggles: view_toggle_html, table_title: table_title }
