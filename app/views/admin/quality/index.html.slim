@@ -33,20 +33,24 @@
                 span.text-muted.small Canonical records, taxonomy, visibility, and data quality
             .table-responsive
                 table.table.table-hover.align-middle.mb-0.admin-metrics-table
+                    colgroup
+                        col.admin-metrics-col-metric
+                        col.admin-metrics-col-value
+                        col.admin-metrics-col-action
                     thead
                         tr
                             th Metric
-                            th.text-end Value
-                            th.admin-nowrap Action
+                            th.admin-metrics-col-value Value
+                            th.admin-metrics-col-action.admin-nowrap Action
                     tbody
                         - @company_metrics.each do |metric|
                             tr
                                 td.admin-quality-label= metric[:label]
-                                td.text-end
+                                td.admin-metrics-value
                                     - value_class = metric_value_class.call(metric[:tone])
                                     span class=value_class
                                         = number_with_delimiter(metric[:value])
-                                td.admin-nowrap
+                                td.admin-metrics-action.admin-nowrap
                                     - path = company_metric_path.call(metric[:label])
                                     - if path.present?
                                         = link_to "View", path, class: "small text-decoration-none", aria: { label: "Review #{metric[:label].downcase}" }
@@ -58,20 +62,24 @@
                 span.text-muted.small Human and automated review coverage
             .table-responsive
                 table.table.table-hover.align-middle.mb-0.admin-metrics-table
+                    colgroup
+                        col.admin-metrics-col-metric
+                        col.admin-metrics-col-value
+                        col.admin-metrics-col-action
                     thead
                         tr
                             th Metric
-                            th.text-end Value
-                            th.admin-nowrap Action
+                            th.admin-metrics-col-value Value
+                            th.admin-metrics-col-action.admin-nowrap Action
                     tbody
                         - @review_metrics.each do |metric|
                             tr
                                 td.admin-quality-label= metric[:label]
-                                td.text-end
+                                td.admin-metrics-value
                                     - value_class = metric_value_class.call(metric[:tone])
                                     span class=value_class
                                         = number_with_delimiter(metric[:value])
-                                td.admin-nowrap
+                                td.admin-metrics-action.admin-nowrap
                                     - path = review_metric_path.call(metric[:label])
                                     - if path.present?
                                         = link_to "View", path, class: "small text-decoration-none", aria: { label: "Review #{metric[:label].downcase}" }
@@ -83,18 +91,22 @@
                 span.text-muted.small Import, enrichment, and agent activity
             .table-responsive
                 table.table.table-hover.align-middle.mb-0.admin-metrics-table
+                    colgroup
+                        col.admin-metrics-col-metric
+                        col.admin-metrics-col-value
+                        col.admin-metrics-col-action
                     thead
                         tr
                             th Metric
-                            th.text-end Value
-                            th.admin-nowrap Action
+                            th.admin-metrics-col-value Value
+                            th.admin-metrics-col-action.admin-nowrap Action
                     tbody
                         - @pipeline_metrics.each do |metric|
                             tr
                                 td.admin-quality-label= metric[:label]
-                                td.text-end
+                                td.admin-metrics-value
                                     - value_class = metric_value_class.call(metric[:tone])
                                     span class=value_class
                                         = number_with_delimiter(metric[:value])
-                                td.admin-nowrap
+                                td.admin-metrics-action.admin-nowrap
                                     = link_to "View", pipeline_metric_path.call(metric[:label]), class: "small text-decoration-none", aria: { label: "Review #{metric[:label].downcase}" }
