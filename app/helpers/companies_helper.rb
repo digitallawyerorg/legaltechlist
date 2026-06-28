@@ -44,6 +44,7 @@ module CompaniesHelper
     'viet nam' => 'VN', 'zimbabwe' => 'ZW', 'holland' => 'NL', 'the netherlands' => 'NL', 'republic of ireland' => 'IE',
     'brasil' => 'BR', 'deutschland' => 'DE', 'españa' => 'ES', 'espana' => 'ES', 'suisse' => 'CH', 'schweiz' => 'CH',
     'ivory coast' => 'CI', "cote d'ivoire" => 'CI', 'channel islands' => 'GB',
+    'cayman islands' => 'KY', 'trinidad and tobago' => 'TT',
     'honduras' => 'HN', 'seychelles' => 'SC', 'zambia' => 'ZM', 'liechtenstein' => 'LI'
   }.freeze
 

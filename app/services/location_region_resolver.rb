@@ -19,9 +19,9 @@ class LocationRegionResolver
     ASIA_PACIFIC => %w[
       AF AU BD BN KH CN HK IN ID JP KZ KG LA MY MN MM NP NZ PK PH SG KR LK TW TH TJ TM UZ VN
     ].freeze,
-    LATIN_AMERICA => %w[AR BO BR CL CO CR CU DO EC SV GT HN JM MX NI PA PY PE PR TT UY VE].freeze,
+    LATIN_AMERICA => %w[AR BO BR CL CO CR CU DO EC SV GT HN JM KY MX NI PA PY PE PR TT UY VE].freeze,
     MIDDLE_EAST_AFRICA => %w[
-      DZ AO BH BW BI CM CV CF TD KM CD DJ EG GQ ER SZ ET GA GM GH GN GW IQ IR IL JO KE KW LB LS LR LY MG MW ML MR MU MA MZ NA NE NG OM PS QA RW ST SA SN SC SL SO ZA SS SD SY TZ TG TN UG AE EH YE ZM ZW
+      DZ AO BH BW BI CM CV CF TD KM CD CI DJ EG GQ ER SZ ET GA GM GH GN GW IQ IR IL JO KE KW LB LS LR LY MG MW ML MR MU MA MZ NA NE NG OM PS QA RW ST SA SN SC SL SO ZA SS SD SY TZ TG TN UG AE EH YE ZM ZW
     ].freeze
   }.freeze
 
@@ -33,7 +33,7 @@ class LocationRegionResolver
     normalized = LocationCountryResolver.normalize_country_name(country_name)
     return OTHER if normalized.blank?
 
-    iso = LocationCountryResolver.iso_code_for("_, #{normalized}")
+    iso = LocationCountryResolver.country_iso_code(normalized)
     return OTHER if iso.blank?
 
     ISO_TO_REGION[iso] || OTHER

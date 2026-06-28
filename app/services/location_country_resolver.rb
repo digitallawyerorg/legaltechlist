@@ -35,7 +35,10 @@ class LocationCountryResolver
     "NA - Venezuela" => "Venezuela",
     "NA - Vietnam" => "Vietnam",
     "Ivory Coast" => "Côte d'Ivoire",
-    "Channel Islands" => "United Kingdom"
+    "Côte d'Ivoire" => "Ivory Coast",
+    "Channel Islands" => "United Kingdom",
+    "Cayman Islands" => "Cayman Islands",
+    "Trinidad and Tobago" => "Trinidad and Tobago"
   }.freeze
 
   ADMINISTRATIVE_REGION_COUNTRIES = {
@@ -95,7 +98,20 @@ class LocationCountryResolver
     "Hlavni mesto Praha" => "Czech Republic", "L'vivs'ka Oblast'" => "Ukraine",
     "Ljubljana Urban Commune" => "Slovenia", "Vilniaus Apskritis" => "Lithuania",
     "Vojvodina" => "Serbia", "Cesu" => "Latvia", "Grand Casablanca" => "Morocco",
-    "San Jose" => "Costa Rica", "Tacloban" => "Philippines", "Manila" => "Philippines", "Lima" => "Peru"
+    "San Jose" => "Costa Rica", "Tacloban" => "Philippines", "Manila" => "Philippines", "Lima" => "Peru",
+    "Hong Kong Island" => "Hong Kong",
+    "Distrito Federal" => "Argentina", "Distrito Especial" => "Colombia", "Distrito Nacional" => "Dominican Republic",
+    "Wien" => "Austria", "Cordoba" => "Argentina", "Zug" => "Switzerland", "Hovedstaden" => "Denmark",
+    "Nicosia" => "Cyprus", "Languedoc-Roussillon" => "France", "Nairobi Area" => "Kenya",
+    "Santa Catarina" => "Brazil", "Rio Grande do Norte" => "Brazil", "Pomorskie" => "Poland",
+    "HaMerkaz" => "Israel", "Zilina" => "Slovakia", "Kanagawa" => "Japan", "Guanajuato" => "Mexico",
+    "Yogyakarta" => "Indonesia", "Brussels Hoofdstedelijk Gewest" => "Belgium", "Leiria" => "Portugal",
+    "Campania" => "Italy", "Islas Baleares" => "Spain", "Saarland" => "Germany", "Pais Vasco" => "Spain",
+    "Provence-Alpes-Cote d'Azur" => "France", "Aland" => "Finland", "Minas Gerais" => "Brazil",
+    "Seoul-t'ukpyolsi" => "South Korea", "Sachsen" => "Germany", "Sardegna" => "Italy", "Masqat" => "Oman",
+    "Parana" => "Brazil", "Jharkhand" => "India", "Setif" => "Algeria", "Geneve" => "Switzerland",
+    "Dushet'is Raioni" => "Georgia", "Syddanmark" => "Denmark", "Alger" => "Algeria",
+    "Moscow City" => "Russia", "Budapest" => "Hungary", "Cayman Islands" => "Cayman Islands"
   }.freeze
 
   # Well-known cities that resolve unambiguously when given without a country.
@@ -246,7 +262,10 @@ class LocationCountryResolver
     "Herentals" => "Belgium",
     "Helsingborg" => "Sweden",
     "Depok City" => "Indonesia",
-    "Jakarta" => "Indonesia"
+    "Jakarta" => "Indonesia",
+    "Tbilisi" => "Georgia",
+    "Budapest" => "Hungary",
+    "Christchurch" => "New Zealand"
   }.freeze
 
   # Exact malformed location strings that should map to a normalized "City, Country" value.
@@ -281,7 +300,7 @@ class LocationCountryResolver
     "Oxfordshire", "Reading", "Redbridge", "Richmond upon Thames", "Rochdale", "Solihull", "Somerset",
     "South Lanarkshire", "South Tyneside", "Southampton", "Staffordshire", "Stirling", "Stockport",
     "Stockton-on-Tees", "Suffolk", "Telford and Wrekin", "Warrington", "Warwickshire", "West Lothian",
-    "West Sussex", "Wigan", "Wiltshire", "Wolverhampton", "Worcestershire"
+    "West Sussex", "Wigan", "Wiltshire", "Wolverhampton", "Worcestershire", "Bournemouth", "Bolton"
   ].freeze
 
   class << self
@@ -388,6 +407,13 @@ class LocationCountryResolver
       "#{parts.first}, #{parts.last}"
     end
 
+    def country_iso_code(country_name)
+      normalized = normalize_country_name(country_name)
+      iso_code_for_country_name(normalized) ||
+        iso_code_for_country_name(country_name) ||
+        iso_code_for_country_name(COUNTRY_ALIASES[normalized] || COUNTRY_ALIASES[country_name.to_s.squish])
+    end
+
     def normalize_country_name(country)
       normalized_country = country.to_s.squish
       without_crunchbase_prefix = normalized_country.sub(/\ANA\s*-\s*/i, "")
@@ -395,7 +421,6 @@ class LocationCountryResolver
 
       COUNTRY_ALIASES[without_crunchbase_prefix] ||
         COUNTRY_ALIASES[without_trailing_digits] ||
-        ADMINISTRATIVE_REGION_COUNTRIES[without_crunchbase_prefix] ||
         (UK_ADMINISTRATIVE_AREAS.include?(without_crunchbase_prefix) ? "United Kingdom" : nil) ||
         without_crunchbase_prefix
     end
@@ -431,6 +456,9 @@ class LocationCountryResolver
       context_parts = all_parts || parts
 
       parts.reverse_each do |part|
+        us_state_country = united_states_state_country(part, all_parts: context_parts)
+        return "US" if us_state_country
+
         token = normalize_token(part)
         return COUNTRY_ISO_CODES[token] if COUNTRY_ISO_CODES.key?(token)
 
@@ -454,6 +482,9 @@ class LocationCountryResolver
       context_parts = all_parts || parts
 
       parts.reverse_each do |part|
+        us_state_country = united_states_state_country(part, all_parts: context_parts)
+        return us_state_country if us_state_country
+
         cleaned = cleaned_part(part)
         alias_name = COUNTRY_ALIASES[cleaned]
         return alias_name if alias_name.present? && canonical_country?(alias_name)
@@ -475,6 +506,25 @@ class LocationCountryResolver
       return false if administrative_region_country(part).present?
 
       true
+    end
+
+    def united_states_state_country(part, all_parts: nil)
+      return nil unless ambiguous_us_state_country_name?(part)
+
+      country = administrative_region_country(part)
+      return nil unless country == "United States"
+
+      city = all_parts&.first
+      return country if city.blank?
+
+      city_country = city_country_for(city)
+      return nil if city_country.present? && city_country != "United States"
+
+      country
+    end
+
+    def ambiguous_us_state_country_name?(part)
+      normalize_token(part) == "georgia"
     end
 
     def administrative_region_country(part)

@@ -36,8 +36,23 @@ class LocationCountryResolverTest < ActiveSupport::TestCase
   test "country_name_for returns canonical country names" do
     assert_equal "United Kingdom", LocationCountryResolver.country_name_for("Knutsford, Cheshire")
     assert_equal "United States", LocationCountryResolver.country_name_for("Austin, Texas")
+    assert_equal "United States", LocationCountryResolver.country_name_for("Atlanta, Georgia")
+    assert_equal "Georgia", LocationCountryResolver.country_name_for("Tbilisi, Georgia")
     assert_equal "Spain", LocationCountryResolver.country_name_for("Barcelona, Catalonia")
     assert_equal "North Macedonia", LocationCountryResolver.country_name_for("Gostivar, Macedonia")
+  end
+
+  test "country_name_for resolves administrative regions to countries" do
+    assert_equal "Hong Kong", LocationCountryResolver.country_name_for("Hong Kong, Hong Kong Island")
+    assert_equal "Austria", LocationCountryResolver.country_name_for("Vienna, Wien")
+    assert_equal "Denmark", LocationCountryResolver.country_name_for("Copenhagen, Hovedstaden")
+    assert_equal "Switzerland", LocationCountryResolver.country_name_for("Rotkreuz, Zug")
+    assert_equal "United Kingdom", LocationCountryResolver.country_name_for("Southbourne, Bournemouth")
+  end
+
+  test "normalize_country_name preserves country names over admin regions" do
+    assert_equal "Georgia", LocationCountryResolver.normalize_country_name("Georgia")
+    assert_equal "Ivory Coast", LocationCountryResolver.normalize_country_name("Côte d'Ivoire")
   end
 
   test "format_for_display keeps city and country for flag-friendly storage" do
