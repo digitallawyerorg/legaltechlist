@@ -27,7 +27,7 @@
             table.table.table-hover.align-middle.mb-0.admin-table.is-compact
                 thead
                     tr
-                        th
+                        th= check_box_tag :select_all_proposals, "1", false, class: "form-check-input", data: { proposal_select_all: true }, aria: { label: "Select all proposals on this page" }
                         th Candidate
                         th Readiness
                         th Description
@@ -99,30 +99,55 @@
             = paginate @company_proposals
 
 javascript:
-    document.addEventListener("DOMContentLoaded", function() {
-        let form = document.querySelector("[data-proposal-batch-form]");
-        if (!form) return;
+    (function() {
+        function updateSelectAllState(selectAll, checkboxes) {
+            if (!selectAll) return;
+            let checkedCount = Array.from(checkboxes).filter(function(checkbox) { return checkbox.checked; }).length;
+            selectAll.checked = checkboxes.length > 0 && checkedCount === checkboxes.length;
+            selectAll.indeterminate = checkedCount > 0 && checkedCount < checkboxes.length;
+        }
 
-        let batchActions = form.querySelector("[data-proposal-batch-actions]");
-        let checkboxes = form.querySelectorAll('input[name="proposal_ids[]"]');
-        let selectAll = form.querySelector("[data-proposal-select-all]");
-
-        function updateBatchActionsVisibility() {
+        function updateBatchActionsVisibility(batchActions, checkboxes) {
             if (!batchActions) return;
             let anyChecked = Array.from(checkboxes).some(function(checkbox) { return checkbox.checked; });
             batchActions.classList.toggle("d-none", !anyChecked);
         }
 
-        checkboxes.forEach(function(checkbox) {
-            checkbox.addEventListener("change", updateBatchActionsVisibility);
-        });
+        function bindProposalBatchForm(form) {
+            if (form.dataset.proposalBatchBound) return;
+            form.dataset.proposalBatchBound = "true";
 
-        if (selectAll) {
-            selectAll.addEventListener("change", function() {
-                checkboxes.forEach(function(checkbox) {
-                    checkbox.checked = selectAll.checked;
-                });
-                updateBatchActionsVisibility();
+            let batchActions = form.querySelector("[data-proposal-batch-actions]");
+            let checkboxes = form.querySelectorAll('input[name="proposal_ids[]"]');
+            let selectAll = form.querySelector("[data-proposal-select-all]");
+
+            function refreshState() {
+                updateBatchActionsVisibility(batchActions, checkboxes);
+                updateSelectAllState(selectAll, checkboxes);
+            }
+
+            checkboxes.forEach(function(checkbox) {
+                checkbox.addEventListener("change", refreshState);
             });
+
+            if (selectAll) {
+                selectAll.addEventListener("change", function() {
+                    checkboxes.forEach(function(checkbox) {
+                        checkbox.checked = selectAll.checked;
+                    });
+                    selectAll.indeterminate = false;
+                    refreshState();
+                });
+            }
+
+            refreshState();
         }
-    });
+
+        function bindProposalBatchForms() {
+            document.querySelectorAll("[data-proposal-batch-form]").forEach(bindProposalBatchForm);
+        }
+
+        document.addEventListener("turbo:load", bindProposalBatchForms);
+        document.addEventListener("turbo:render", bindProposalBatchForms);
+        bindProposalBatchForms();
+    })();

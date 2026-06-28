@@ -407,6 +407,7 @@ class CustomAdminTest < ActionDispatch::IntegrationTest
     assert_select "h1", "Review"
     assert_select ".admin-section-tabs", false
     assert_select ".admin-proposal-batch-actions.d-none"
+    assert_select "input[data-proposal-select-all]"
     assert_select "button", "Re-enrich selected"
     assert_select "button", "Mark needs revision"
     assert_select "button", "Publish selected"
