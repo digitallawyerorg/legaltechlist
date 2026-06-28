@@ -2,8 +2,8 @@
 
 one:
   id: 1
-  name: Legal Research
-  description: Tools and services for legal research
+  name: Knowledge & Research
+  description: Legal databases, institutional knowledge management, and practical guidance resources
 
 two:
   id: 2

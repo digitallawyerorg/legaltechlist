@@ -47,9 +47,9 @@ class CompaniesHelperTest < ActionView::TestCase
   end
 
   test "company_filter_category_label summarizes selection count" do
-    category_counts = [{ id: 1, name: "Legal Research", count: 5 }]
+    category_counts = [{ id: 1, name: "Knowledge & Research", count: 5 }]
     assert_equal "All categories", company_filter_category_label(category_counts, [])
-    assert_equal "Legal Research", company_filter_category_label(category_counts, [1])
+    assert_equal "Knowledge & Research", company_filter_category_label(category_counts, [1])
     assert_equal "2 categories", company_filter_category_label(category_counts, [1, 2])
   end
 

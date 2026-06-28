@@ -39,8 +39,8 @@ class ReadOnlyEvidenceToolsTest < ActiveSupport::TestCase
     result = TaxonomyLookupTool.new.call({ company_id: company.id })
 
     assert_equal true, result["read_only"]
-    assert_equal "Legal Research", result["current"]["category"]
-    assert_includes result["available"]["categories"], "Legal Research"
+    assert_equal "Knowledge & Research", result["current"]["category"]
+    assert_includes result["available"]["categories"], "Knowledge & Research"
     assert_includes result["available"]["revenue_models"], "Subscription"
     assert_includes result["available"]["target_clients"], "Law Firms"
   end

@@ -4,12 +4,12 @@ class TagSuggestionServiceTest < ActiveSupport::TestCase
   test "uses keyword backfill before llm" do
     company = companies(:one)
     company.tags.destroy_all
-    company.update_columns(human_reviewed_at: nil, description: "Cloud SaaS platform for contract management and compliance.")
+    company.update_columns(human_reviewed_at: nil, description: "Cloud platform using artificial intelligence for contract management and compliance.")
 
     result = TagSuggestionService.call(company: company, dry_run: true)
 
     assert_equal "would_tag", result["action"]
-    assert_includes result["suggested_tags"], "saas"
+    assert_includes result["suggested_tags"], "artificial intelligence"
   end
 
   test "skips already tagged companies" do
@@ -24,7 +24,7 @@ class TagSuggestionServiceTest < ActiveSupport::TestCase
   test "allows human reviewed companies when explicitly enabled" do
     company = companies(:one)
     company.tags.destroy_all
-    company.update_columns(human_reviewed_at: Time.current, description: "Cloud SaaS platform for contract management.")
+    company.update_columns(human_reviewed_at: Time.current, description: "Cloud platform using artificial intelligence for contract management.")
 
     previous = ENV["ALLOW_HUMAN_REVIEWED_TAGS"]
     ENV["ALLOW_HUMAN_REVIEWED_TAGS"] = "true"
