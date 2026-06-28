@@ -258,43 +258,67 @@ namespace :taxonomy do
     puts "consolidate_compound_target_clients complete mode=#{dry_run ? 'dry-run' : 'write'} remapped=#{remapped} removed=#{removed}"
   end
 
-  desc "Resolve Unknown target clients via rules/LLM. DRY_RUN=false to write."
+  desc "Resolve Unknown target clients via rules/LLM with category fallbacks. DRY_RUN=false to write."
   task resolve_unknown_target_clients: :environment do
     dry_run = ENV.fetch("DRY_RUN", "true") != "false"
-    min_confidence = ENV.fetch("MIN_CONFIDENCE", "0.65").to_f
+    min_confidence = ENV.fetch("MIN_CONFIDENCE", ENV.fetch("AUTO_HYGIENE", "false") == "true" ? "0.55" : "0.65").to_f
     counts = Hash.new(0)
 
-    Company.unknown_target_client.includes(:target_client).find_each do |company|
-      suggestion = CompanyProposalTaxonomySuggestionService.call(
-        source_payload: {
-          "name" => company.name,
-          "website" => company.main_url,
-          "source_description" => company.description,
-          "industries" => [company.category&.name].compact
-        },
-        final_changes: {}
-      )
+    Company.unknown_target_client.includes(:target_client, :category).find_each do |company|
+      result = CompanyUnknownTargetClientResolverService.call(company: company, dry_run: dry_run, min_confidence: min_confidence)
+      counts[result["action"]] += 1
+      next unless result["action"].in?(%w[would_resolve resolved])
 
-      client_name = suggestion.dig("target_client", "name")
-      confidence = suggestion.dig("target_client", "confidence").to_f
-      target_client = TaxonomyNormalizationService.find_target_client(client_name)
-
-      if target_client.blank? || confidence < min_confidence
-        counts["skipped"] += 1
-        next
-      end
-
-      counts["resolved"] += 1
-      unless dry_run
-        company.target_client_id = target_client.id
-        company.target_client_ids = [target_client.id]
-        company.save!(validate: false)
-      end
-
-      puts "resolved company_id=#{company.id} #{company.name} -> #{target_client.name} confidence=#{confidence}"
+      puts "resolved company_id=#{company.id} #{company.name} -> #{result['to_target_client']} confidence=#{result['confidence']}"
     end
 
     puts "resolve_unknown_target_clients complete mode=#{dry_run ? 'dry-run' : 'write'} counts=#{counts.inspect}"
+  end
+
+  desc "Backfill tags from description keywords for untagged companies. DRY_RUN=false to write."
+  task backfill_tags: :environment do
+    dry_run = ENV.fetch("DRY_RUN", "true") != "false"
+    limit = ENV["LIMIT"]&.to_i
+    scope = Company.publicly_visible.left_joins(:taggings).where(taggings: { id: nil }).order(:id)
+    scope = scope.limit(limit) if limit.present?
+
+    counts = Hash.new(0)
+    scope.find_each do |company|
+      result = CompanyTagBackfillService.call(company: company, dry_run: dry_run)
+      counts[result["action"]] += 1
+      next unless result["action"].in?(%w[would_tag tagged])
+
+      puts "tagged company_id=#{company.id} #{result['suggested_tags'].inspect}"
+    end
+
+    puts "backfill_tags complete mode=#{dry_run ? 'dry-run' : 'write'} counts=#{counts.inspect}"
+  end
+
+  desc "Automated hygiene pass (no manual review). DRY_RUN=false to write."
+  task auto_hygiene: :environment do
+    dry_run = ENV.fetch("DRY_RUN", "true") != "false"
+    puts "taxonomy:auto_hygiene starting mode=#{dry_run ? 'dry-run' : 'write'}"
+
+    steps = [
+      ["taxonomy:resolve_unknown_categories", { "AUTO_HYGIENE" => "true", "MIN_CONFIDENCE" => "0.55", "PROPOSAL_TAXONOMY_USE_LLM" => "false" }],
+      ["taxonomy:resolve_unknown_categories", { "AUTO_HYGIENE" => "true", "MIN_CONFIDENCE" => "0.55", "PROPOSAL_TAXONOMY_USE_LLM" => "true" }],
+      ["taxonomy:resolve_unknown_target_clients", { "AUTO_HYGIENE" => "true", "MIN_CONFIDENCE" => "0.55" }],
+      ["taxonomy:backfill_revenue_models", { "OVERWRITE_OTHER_ONLY" => "true", "OVERWRITE_UNKNOWN_ONLY" => "false", "MIN_CONFIDENCE" => "0.65", "PROPOSAL_TAXONOMY_USE_LLM" => "false" }],
+      ["taxonomy:backfill_tags", {}],
+      ["taxonomy:sync_legacy_revenue_fk", {}],
+      ["taxonomy:audit", {}]
+    ]
+
+    steps.each do |task_name, env_overrides|
+      puts
+      puts "=== #{task_name} ==="
+      env_overrides.each { |key, value| ENV[key] = value }
+      Rake::Task[task_name].reenable
+      Rake::Task[task_name].invoke
+    end
+
+    puts
+    puts "taxonomy:auto_hygiene complete"
   end
 
   desc "Resolve Unknown primary categories via rules/LLM. DRY_RUN=false to write. LIMIT=N optional."

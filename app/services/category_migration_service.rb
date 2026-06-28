@@ -55,12 +55,18 @@ class CategoryMigrationService
 
   def matched_target_category
     Array(config["rules"]).each do |rule|
-      next unless rule["source_categories"].include?(company.category.name)
+      next unless unknown_or_source_match?(rule)
 
       return rule["target"] if tag_match?(rule) || description_match?(rule)
     end
 
     nil
+  end
+
+  def unknown_or_source_match?(rule)
+    return true if company.category.name == "Unknown"
+
+    rule["source_categories"].include?(company.category.name)
   end
 
   def tag_match?(rule)

@@ -1,0 +1,37 @@
+# Tag/description signals for resolving Unknown primary category (no source-category gate)
+- target: "eDiscovery & Investigations"
+  tag_patterns: ["ediscovery", "e-discovery", "electronic discovery", "digital forensics", "litigation support"]
+  description_patterns: ["\\yediscovery\\y", "electronically stored information", "digital forensics"]
+- target: "Legal Operations / ELM"
+  tag_patterns: ["matter management", "enterprise legal management", "legal operations", "e-billing", "legal spend"]
+  description_patterns: ["\\ylegal operations\\y", "matter management", "e-?billing", "\\belm\\b"]
+- target: "Access to Justice & Public Sector"
+  tag_patterns: ["access to justice", "legal aid", "pro bono", "court technology"]
+  description_patterns: ["\\blegal aid\\b", "access to justice", "self-represented", "\\bpro se\\b"]
+- target: "Document Management and Automation"
+  tag_patterns: ["document management", "document automation", "document assembly"]
+  description_patterns: ["document automation", "document management", "document assembly"]
+- target: "Contract Management"
+  tag_patterns: ["contract management", "clm", "contract lifecycle"]
+  description_patterns: ["contract management", "contract lifecycle", "\\bclm\\b"]
+- target: "Compliance & Risk"
+  tag_patterns: ["compliance", "risk management", "regulatory", "gdpr", "privacy"]
+  description_patterns: ["regulatory compliance", "risk management", "data privacy"]
+- target: "Analytics & Insights"
+  tag_patterns: ["analytics", "business intelligence", "benchmarking", "data visualization"]
+  description_patterns: ["predictive analytics", "legal analytics", "benchmarking"]
+- target: "Knowledge & Research"
+  tag_patterns: ["legal research", "knowledge management", "case law"]
+  description_patterns: ["legal research", "knowledge management", "legal database"]
+- target: "IP Management"
+  tag_patterns: ["intellectual property", "patent", "trademark", "ip management"]
+  description_patterns: ["intellectual property", "patent management", "trademark"]
+- target: "Practice Management"
+  tag_patterns: ["practice management", "legal billing", "time tracking"]
+  description_patterns: ["law firm practice", "legal billing", "time tracking"]
+- target: "Marketplace and ALSPs"
+  tag_patterns: ["marketplace", "alsp", "freelance lawyer", "legal talent"]
+  description_patterns: ["legal marketplace", "alternative legal", "freelance legal"]
+- target: "Litigation & Dispute Resolution"
+  tag_patterns: ["litigation", "dispute resolution", "case management", "arbitration"]
+  description_patterns: ["litigation management", "dispute resolution", "case management"]
