@@ -294,4 +294,26 @@ namespace :data_quality do
     mode = dry_run ? "dry-run" : "write"
     puts "Fix brand names complete mode=#{mode} hidden=#{hidden} renamed=#{renamed} total=#{hidden + renamed}"
   end
+
+  desc "Sync LegalTech Atlas profile links onto companies. SOURCE=csv|sitemap FILE=path for csv. Defaults to dry-run; set DRY_RUN=false to write."
+  task sync_legaltech_atlas_links: :environment do
+    source = ENV.fetch("SOURCE", "csv").to_sym
+    file = ENV["FILE"]
+    dry_run = ENV.fetch("DRY_RUN", "true") != "false"
+    clear_missing = ENV.fetch("CLEAR_MISSING", "false") == "true"
+    visible_only = ENV.fetch("VISIBLE_ONLY", "false") == "true"
+    scope = visible_only ? Company.where(visible: true) : Company.all
+
+    result = LegaltechAtlasLinkSyncService.call(
+      source: source,
+      file: file,
+      dry_run: dry_run,
+      clear_missing: clear_missing,
+      scope: scope
+    )
+
+    mode = dry_run ? "dry-run" : "write"
+    puts "Sync LegalTech Atlas links complete mode=#{mode} source=#{source} visible_only=#{visible_only} matched=#{result.matched} updated=#{result.updated} cleared=#{result.cleared} skipped=#{result.skipped} unmatched_csv_rows=#{result.unmatched_csv_rows}"
+    result.examples.each { |line| puts line }
+  end
 end

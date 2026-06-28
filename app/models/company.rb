@@ -331,7 +331,8 @@ class Company < ActiveRecord::Base
        contact_name contact_email codex_presenter codex_presentation_date
        latitude longitude created_at updated_at
        quality_status verification_verdict quality_score verified_at enriched_at
-       quality_reviewed_at human_reviewed_at fingerprint canonical_domain source source_url]
+       quality_reviewed_at human_reviewed_at fingerprint canonical_domain source source_url
+       legaltech_atlas_url]
   end
 
   def self.ransackable_associations(auth_object = nil)

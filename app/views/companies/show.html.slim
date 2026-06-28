@@ -630,6 +630,8 @@ css:
 - external_reference_links << { label: "AngelList", icon: "fa-solid fa-seedling", icon_color: "#047857", url: @company.angellist_url, host: short_host_for.call(@company.angellist_url) } if @company.angellist_url.present? && @company.angellist_url != "n/a"
 - external_reference_links << { label: "Crunchbase", icon: "fa-solid fa-chart-line", icon_color: "#047857", url: @company.crunchbase_url, host: short_host_for.call(@company.crunchbase_url) } if @company.crunchbase_url.present? && @company.crunchbase_url != "n/a"
 - external_reference_links << { label: "Legal.io", icon: "fa-solid fa-briefcase", icon_color: "#8c1515", url: @company.legalio_url, host: short_host_for.call(@company.legalio_url) } if @company.legalio_url.present? && @company.legalio_url != "n/a"
+- atlas_reference = company_legaltech_atlas_reference(@company)
+- external_reference_links << atlas_reference if atlas_reference.present?
 - reference_sections = []
 - reference_sections << { title: "Company references", links: company_reference_links } if company_reference_links.any?
 - reference_sections << { title: "External references", links: external_reference_links } if external_reference_links.any?

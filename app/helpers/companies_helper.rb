@@ -178,6 +178,14 @@ module CompaniesHelper
 
   INACTIVE_COMPANY_TOOLTIP = "This company is no longer active".freeze
 
+  def company_legaltech_atlas_reference(company)
+    url = company.legaltech_atlas_url.to_s.strip
+    return nil if url.blank?
+    return nil unless url.match?(%r{\Ahttps://legaltechatlas\.com/companies/[a-z0-9-]+\z})
+
+    { label: "LegalTech Atlas", icon: "fa-solid fa-map", icon_color: "#8c1515", url: url, host: "legaltechatlas.com" }
+  end
+
   def related_company_list(company)
     tag_ids = company.tags.map(&:id)
     return yield([]) if tag_ids.empty?

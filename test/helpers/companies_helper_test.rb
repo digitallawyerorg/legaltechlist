@@ -85,4 +85,19 @@ class CompaniesHelperTest < ActionView::TestCase
     company.status = "Closed"
     assert company_inactive?(company)
   end
+
+  test "company_legaltech_atlas_reference returns link hash only for valid atlas urls" do
+    company = companies(:one)
+    company.legaltech_atlas_url = nil
+    assert_nil company_legaltech_atlas_reference(company)
+
+    company.legaltech_atlas_url = "https://example.com/companies/clio"
+    assert_nil company_legaltech_atlas_reference(company)
+
+    company.legaltech_atlas_url = "https://legaltechatlas.com/companies/clio"
+    reference = company_legaltech_atlas_reference(company)
+    assert_equal "LegalTech Atlas", reference[:label]
+    assert_equal "https://legaltechatlas.com/companies/clio", reference[:url]
+    assert_equal "legaltechatlas.com", reference[:host]
+  end
 end
