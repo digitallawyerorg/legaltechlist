@@ -1,5 +1,6 @@
-/ locals: country_rows, label_width (optional)
+/ locals: country_rows, label_width (optional), bar_color (optional)
 - label_width = local_assigns.fetch(:label_width, "6.75rem")
+- bar_color = local_assigns.fetch(:bar_color, "#175e54")
 - max_share = country_rows.map { |row| row[:share] }.max.to_f
 - max_share = 1.0 if max_share <= 0
 .stats-index-card-country-bars
@@ -8,5 +9,5 @@
         .stats-index-card-country-row style="grid-template-columns: #{label_width} minmax(0, 1fr) 2rem;"
             span.stats-index-card-country-label= row[:label]
             .stats-index-card-country-track
-                .stats-index-card-country-fill style="width: #{bar_width}%;"
+                .stats-index-card-country-fill style="width: #{bar_width}%; background-color: #{bar_color};"
             span.stats-index-card-country-share= "#{row[:share]}%"

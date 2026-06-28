@@ -107,4 +107,19 @@ module ApplicationHelper
     prefix = rate > 0 ? '+' : ''
     "#{prefix}#{rate.round(1)}%"
   end
+
+  def nav_overview_dropdown_label
+    path = request.path
+
+    return "About" if path == about_path
+    return "Methodology" if path == statistics_methodology_path
+    return "Statistics" if path.start_with?("/statistics")
+    return "Companies" if controller_name == "companies"
+
+    "Overview"
+  end
+
+  def nav_overview_dropdown_item_class(label)
+    ["dropdown-item", ("active" if nav_overview_dropdown_label == label)].compact.join(" ")
+  end
 end

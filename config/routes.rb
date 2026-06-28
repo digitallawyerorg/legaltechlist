@@ -101,8 +101,10 @@ Rails.application.routes.draw do
   get 'statistics/target_client/download', to: 'static_pages#download_target_client', as: :download_target_client
   get 'statistics/business_model', to: 'static_pages#business_model', as: :statistics_business_model
   get 'statistics/business_model/download', to: 'static_pages#download_business_model', as: :download_business_model
-  get 'statistics/funding_stages', to: redirect('/statistics', status: 301)
-  get 'statistics/funding_stages/download', to: redirect('/statistics', status: 301)
+  get 'statistics/venture_stage', to: 'static_pages#venture_stage', as: :statistics_venture_stage
+  get 'statistics/venture_stage/download', to: 'static_pages#download_venture_stage', as: :download_venture_stage
+  get 'statistics/funding_stages', to: redirect('/statistics/venture_stage', status: 301)
+  get 'statistics/funding_stages/download', to: redirect('/statistics/venture_stage/download', status: 301)
   get 'statistics/funding_efficiency', to: redirect('/statistics', status: 301)
   get 'statistics/funding_efficiency/download', to: redirect('/statistics', status: 301)
   get 'statistics/funding_concentration', to: redirect('/statistics', status: 301)

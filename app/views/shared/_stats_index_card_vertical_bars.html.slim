@@ -1,0 +1,6 @@
+/ locals: segments, color (optional)
+- bar_color = local_assigns.fetch(:color, "#8c1515")
+.stats-index-card-vertical-bars
+    - segments.each do |height|
+        .stats-index-card-vertical-bar
+            .stats-index-card-vertical-bar-fill style="height: #{height}%; background-color: #{bar_color};"

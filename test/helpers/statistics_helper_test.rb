@@ -13,6 +13,15 @@ class StatisticsHelperTest < ActiveSupport::TestCase
     context.new.stats_chart_neighbors
   end
 
+  test "stats_chart_neighbors returns wrapped prev and next for venture stage" do
+    neighbors = neighbors_for("venture_stage")
+
+    assert_equal "Funding", neighbors[:prev][:title]
+    assert_equal statistics_funding_by_category_path, neighbors[:prev][:path]
+    assert_equal "Market Focus", neighbors[:next][:title]
+    assert_equal statistics_target_client_path, neighbors[:next][:path]
+  end
+
   test "stats_chart_neighbors returns wrapped prev and next for ecosystem growth" do
     neighbors = neighbors_for("total_companies")
 
@@ -20,6 +29,15 @@ class StatisticsHelperTest < ActiveSupport::TestCase
     assert_equal statistics_tag_distribution_path, neighbors[:prev][:path]
     assert_equal "Geographic Distribution", neighbors[:next][:title]
     assert_equal statistics_country_distribution_path, neighbors[:next][:path]
+  end
+
+  test "canonical_venture_stage_name maps aliases and unknown values" do
+    helper = Class.new { include StatisticsHelper }.new
+
+    assert_equal "Operating", helper.canonical_venture_stage_name("For Profit")
+    assert_equal "Seed", helper.canonical_venture_stage_name("Seed")
+    assert_equal "Unclassified", helper.canonical_venture_stage_name("")
+    assert_equal "Unclassified", helper.canonical_venture_stage_name("Series A")
   end
 
   test "stats_chart_neighbors returns nil for non chart pages" do

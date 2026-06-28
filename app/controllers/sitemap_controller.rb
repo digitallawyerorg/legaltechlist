@@ -12,6 +12,7 @@ class SitemapController < ApplicationController
       { path: statistics_business_model_path, updated_at: Time.current },
       { path: statistics_ai_trends_path, updated_at: Time.current },
       { path: statistics_funding_by_category_path, updated_at: Time.current },
+      { path: statistics_venture_stage_path, updated_at: Time.current },
       { path: statistics_methodology_path, updated_at: Time.current }
     ]
     @static_pages = [

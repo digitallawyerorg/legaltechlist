@@ -22,7 +22,7 @@ class StaticPagesControllerTest < ActionController::TestCase
   test "should get statistics" do
     get :statistics
     assert_response :success
-    assert_select ".stats-index-card", count: 8
+    assert_select ".stats-index-card", count: 9
   end
 
   test "should get business_model" do
@@ -104,8 +104,16 @@ class StaticPagesControllerTest < ActionController::TestCase
     assert_select ".stats-segment-control .stats-segment.is-active", text: "Region"
     assert assigns(:region_sankey_data).present?
     assert_equal "Disclosed funding", assigns(:region_sankey_data)[:nodes].first[:name]
+    assert_select ".stats-chart-nav .stats-chart-nav-next .stats-chart-nav-title", text: "Venture Stage"
   end
 
+  test "should get venture_stage" do
+    get :venture_stage
+    assert_response :success
+    assert_select "h1.stats-chart-title", text: "Venture Stage"
+    assert assigns(:stage_metrics).all? { |row| StatisticsHelper::VENTURE_STAGE_ORDER.include?(row[:stage]) }
+    refute_includes assigns(:stage_metrics).map { |row| row[:stage] }, "For Profit"
+  end
   test "should get total_companies cumulative view" do
     get :total_companies
     assert_response :success

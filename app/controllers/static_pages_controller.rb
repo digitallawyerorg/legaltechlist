@@ -374,108 +374,31 @@ class StaticPagesController < ApplicationController
     redirect_to statistics_business_model_path(format: :csv)
   end
 
-  def funding_stages
-    @companies = Company.where(visible: true)
-                       .where('founded_date >= ? AND founded_date <= ? AND founded_date ~ ?',
-                             '2000',
-                             Time.current.year.to_s,
-                             '^\d{4}$')
-
-    # Define funding stages and their thresholds
-    funding_stages = {
-      'Pre-seed' => 500_000,
-      'Seed' => 2_000_000,
-      'Series A' => 10_000_000,
-      'Series B' => 30_000_000,
-      'Series C+' => Float::INFINITY
-    }
-
-    # Initialize data structures
-    @stage_data = {}
-    @progression_data = {}
-    total_companies = @companies.count.to_f
-
-    # Calculate companies in each stage
-    @companies.each do |company|
-      funding = company.total_funding_amount_usd.to_f
-      stage = funding_stages.find { |_, threshold| funding <= threshold }&.first || 'Series C+'
-      @stage_data[stage] ||= { count: 0, total_funding: 0 }
-      @stage_data[stage][:count] += 1
-      @stage_data[stage][:total_funding] += funding
-    end
-
-    # Calculate percentages and average funding
-    @stage_data.each do |stage, data|
-      data[:percentage] = (data[:count] / total_companies * 100).round(1)
-      data[:avg_funding] = data[:count] > 0 ? (data[:total_funding] / data[:count]).round(2) : 0
-    end
-
-    # Sort stages by funding amount
-    @stage_data = @stage_data.sort_by { |stage, _| funding_stages.keys.index(stage) }.to_h
-
-    # Calculate progression metrics
-    progression_counts = {
-      'Pre-seed to Seed' => 0,
-      'Seed to Series A' => 0,
-      'Series A to B' => 0,
-      'Series B to C+' => 0
-    }
-
-    # Count companies that have progressed through stages
-    @companies.each do |company|
-      rounds = company.number_of_funding_rounds.to_i
-      funding = company.total_funding_amount_usd.to_f
-
-      if rounds >= 2 && funding > funding_stages['Pre-seed']
-        progression_counts['Pre-seed to Seed'] += 1
-      end
-      if rounds >= 3 && funding > funding_stages['Seed']
-        progression_counts['Seed to Series A'] += 1
-      end
-      if rounds >= 4 && funding > funding_stages['Series A']
-        progression_counts['Series A to B'] += 1
-      end
-      if rounds >= 5 && funding > funding_stages['Series B']
-        progression_counts['Series B to C+'] += 1
-      end
-    end
-
-    # Calculate success rates
-    @progression_rates = progression_counts.transform_values do |count|
-      (count / total_companies * 100).round(1)
-    end
-
-    # Get top performing categories in late stages
-    @top_categories = Category.joins(:companies)
-                            .where(companies: { id: @companies.where('total_funding_amount_usd > ?', funding_stages['Series A']) })
-                            .group('categories.id', 'categories.name')
-                            .order('COUNT(companies.id) DESC')
-                            .limit(3)
-                            .pluck('categories.name')
+  def venture_stage
+    metrics = helpers.build_venture_stage_metrics
+    @stage_metrics = metrics[:stage_metrics]
+    @stage_data = metrics[:stage_data]
 
     respond_to do |format|
       format.html
       format.csv do
         csv_data = CSV.generate do |csv|
-          csv << ["Stage", "Companies", "Percentage", "Total Funding", "Average Funding"]
-          @stage_data.each do |stage, data|
-            csv << [
-              stage,
-              data[:count],
-              data[:percentage],
-              data[:total_funding],
-              data[:avg_funding]
-            ]
-          end
-          csv << []
-          csv << ["Progression", "Success Rate"]
-          @progression_rates.each do |progression, rate|
-            csv << [progression, rate]
+          csv << ["Venture Stage", "Companies", "Percentage"]
+          @stage_metrics.each do |row|
+            csv << [row[:stage], row[:count], row[:percentage]]
           end
         end
-        send_data csv_data, filename: "funding_stages_analysis.csv"
+        send_data csv_data, filename: "venture_stage_analysis_#{Time.current.strftime('%Y%m%d')}.csv"
       end
     end
+  end
+
+  def download_venture_stage
+    redirect_to statistics_venture_stage_path(format: :csv)
+  end
+
+  def funding_stages
+    redirect_to statistics_venture_stage_path, status: :moved_permanently
   end
 
   def funding_efficiency
@@ -637,16 +560,7 @@ class StaticPagesController < ApplicationController
   end
 
   def download_funding_stages
-    send_data generate_csv(@stage_data.map { |stage, data|
-      {
-        stage: stage,
-        companies: data[:count],
-        percentage: data[:percentage],
-        total_funding: data[:total_funding],
-        avg_funding: data[:avg_funding]
-      }
-    }, ['Stage', 'Companies', 'Percentage', 'Total Funding', 'Average Funding']),
-    filename: "funding_stages_analysis_#{Time.current.strftime('%Y%m%d')}.csv"
+    redirect_to statistics_venture_stage_path(format: :csv), status: :moved_permanently
   end
 
   def download_funding_efficiency

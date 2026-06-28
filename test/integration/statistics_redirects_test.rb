@@ -9,7 +9,7 @@ class StatisticsRedirectsIntegrationTest < ActionDispatch::IntegrationTest
     assert_redirected_to "/statistics"
 
     get "/statistics/funding_stages"
-    assert_redirected_to "/statistics"
+    assert_redirected_to "/statistics/venture_stage"
   end
 
   test "category evolution redirects to five year view" do
