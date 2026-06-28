@@ -55,5 +55,4 @@
                 tbody
                     tr
                         td.text-muted.text-center colspan="7" No agent review output has been logged yet.
-    .card-footer.bg-white.py-2
-        = paginate @agent_reviews
+    = render "shared/pagination", collection: @agent_reviews, count_label: "reviews", wrapper_class: "card-footer bg-white app-pagination-footer"

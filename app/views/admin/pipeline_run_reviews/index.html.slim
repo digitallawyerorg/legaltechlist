@@ -60,5 +60,4 @@
                 tbody
                     tr
                         td.text-muted.text-center colspan="8" No pipeline runs found.
-    .card-footer.bg-white.py-2
-        = paginate @pipeline_runs
+    = render "shared/pagination", collection: @pipeline_runs, count_label: "runs", wrapper_class: "card-footer bg-white app-pagination-footer"

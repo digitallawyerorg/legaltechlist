@@ -88,8 +88,7 @@
                     - if @company_proposals.empty?
                         tr
                             td.text-muted colspan="6" No proposals in this queue.
-        .card-footer.bg-white.py-2
-            = paginate @company_proposals
+        = render "shared/pagination", collection: @company_proposals, count_label: "proposals", wrapper_class: "card-footer bg-white app-pagination-footer"
 
 javascript:
     (function() {

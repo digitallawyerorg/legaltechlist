@@ -1,0 +1,10 @@
+- return unless show_pagination_footer?(collection)
+- range = pagination_range(collection)
+- show_pages = paginated_collection?(collection)
+- count_label = local_assigns.fetch(:count_label, "records")
+- wrapper_tag = local_assigns.fetch(:wrapper_tag, :div)
+- wrapper_classes = ["app-pagination", ("is-count-only" unless show_pages), local_assigns[:wrapper_class]].compact.join(" ")
+= content_tag wrapper_tag, class: wrapper_classes do
+    .app-pagination-count= "Showing #{range[:start]}-#{range[:end]} of #{number_with_delimiter(range[:total])} #{count_label}"
+    - if show_pages
+        = paginate collection

@@ -30,7 +30,7 @@ class CompaniesControllerTest < ActionController::TestCase
     assert_select ".company-filter-master .company-filter-checkbox-label", text: "All categories"
     assert_select "[data-company-filter-select-all]", count: 0
     assert_select "[data-company-filter-clear]", count: 0
-    assert_select ".company-pagination-count", text: /Showing \d+-\d+ of \d+ companies/
+    assert_select ".app-pagination-count", text: /Showing \d+-\d+ of \d+ companies/
     assert_select "select[name='sort']"
     assert_select "select[name='sort'] option[selected='selected']", "Newest companies"
     assert_select "option", text: "Recently updated", count: 0

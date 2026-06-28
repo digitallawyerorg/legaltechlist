@@ -59,5 +59,4 @@
                 tbody
                     tr
                         td.text-muted.text-center colspan="5" No records found.
-    .card-footer.bg-white.py-2
-        = paginate @records
+    = render "shared/pagination", collection: @records, count_label: "records", wrapper_class: "card-footer bg-white app-pagination-footer"

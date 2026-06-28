@@ -117,5 +117,4 @@
                 - if @companies.empty?
                     tr
                         td.text-muted.text-center colspan="8" No companies match these filters.
-    .card-footer.bg-white.py-2
-        = paginate @companies
+    = render "shared/pagination", collection: @companies, count_label: "companies", wrapper_class: "card-footer bg-white app-pagination-footer"

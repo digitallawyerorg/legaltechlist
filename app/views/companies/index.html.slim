@@ -1,6 +1,6 @@
 css:
-    .public-company-index { flex: 1; min-height: 100%; }
-    .company-shell { min-height: 100%; }
+    .public-company-index { width: 100%; }
+    .company-shell { }
     .company-main { padding: 0.7rem 1rem 1rem; }
     .company-index-title { color: #2a2723; font-family: edict, "edict Fallback", Georgia, Cambria, "Times New Roman", Times, serif; font-size: clamp(1.35rem, 2.2vw, 1.65rem); font-weight: 500; letter-spacing: -0.01em; line-height: 1.2; margin: 0 0 0.75rem; }
     .company-toolbar { margin-bottom: 0.6rem; }
@@ -51,15 +51,10 @@ css:
     .company-pill { background: #f6f1e7; border: 1px solid #e6ddce; border-radius: 999px; color: #6b6258; display: inline-flex; font-size: 0.68rem; font-weight: 700; padding: 0.12rem 0.45rem; white-space: nowrap; }
     .company-status { background: #e8f5ef; color: #047857; }
     .company-muted { color: #9ca3af; }
-    .company-pagination { align-items: center; display: flex; gap: 0.75rem; justify-content: space-between; padding: 0.7rem 0.75rem; }
-    .company-pagination-count { color: #8b8379; font-size: 0.85rem; font-weight: 600; }
-    .company-pagination .pagination { margin-bottom: 0; }
-    .company-pagination .page-link { background: transparent; border-color: transparent; border-radius: 0.45rem; color: #5f574f; font-size: 0.85rem; font-weight: 700; min-width: 1.9rem; padding: 0.35rem 0.55rem; text-align: center; }
-    .company-pagination .page-link:hover { background: #f6e5e5; color: #8c1515; }
-    .company-pagination .page-item.active .page-link { background: #8c1515; border-color: #8c1515; color: #fff; }
-    .company-pagination .page-item.disabled .page-link { background: transparent; color: #b7afa4; }
     @media (max-width: 900px) { .company-sort-form { margin-left: 0; width: 100%; } .company-sort { width: 100%; } }
-    @media (max-width: 640px) { .public-company-index { min-height: auto; } .company-shell { min-height: auto; } .company-main { padding: 0.45rem 0.65rem 0.9rem; } .company-toolbar { margin-bottom: 0.55rem; } .company-filter-bar { gap: 0.45rem; } .company-search { flex-basis: 100%; max-width: none; } .company-filter-controls { flex-basis: 100%; } .company-filter-btn { flex: 1 1 calc(50% - 0.25rem); justify-content: space-between; min-width: 0; } .company-filter-reset { flex-basis: 100%; } .company-search .form-control, .company-sort, .company-filter-btn { font-size: 0.86rem; min-height: 2.45rem; } .company-search .form-control { padding-left: 2.15rem; } .company-search-icon { left: 0.85rem; } .company-table-card { background: transparent; border: 0; border-radius: 0; overflow: visible; } .company-table { border-collapse: collapse; border-spacing: 0; min-width: 0; } .company-table thead { display: none; } .company-table tbody, .company-table tr, .company-table td { display: block; width: 100%; } .company-table tbody tr { background: #fff; border: 1px solid #e5dfd5; border-radius: 0.75rem; box-shadow: 0 1px 4px rgba(17, 24, 39, 0.04); margin-bottom: 0.85rem; overflow: hidden; } .company-table tbody td { align-items: center; border-top: 1px solid #f3eee6; display: flex; gap: 0.75rem; justify-content: space-between; padding: 0.58rem 0.75rem; } .company-table tbody td:first-child { border-top: 0; display: block; padding: 0.72rem 0.75rem; } .company-table tbody td:not(:first-child)::before { color: #8b8379; content: attr(data-label); flex: 0 0 auto; font-size: 0.62rem; font-weight: 900; letter-spacing: 0.08em; text-transform: uppercase; } .company-name-cell { align-items: flex-start; } .company-logo { height: 2rem; width: 2rem; } .company-description { max-width: none; } .company-pagination { align-items: flex-start; flex-direction: column; gap: 0.55rem; padding: 0.3rem 0.1rem 0; } .company-pagination .pagination { flex-wrap: wrap; } }
+    @media (max-width: 640px) { .company-main { padding: 0.45rem 0.65rem 0.9rem; } .company-toolbar { margin-bottom: 0.55rem; } .company-filter-bar { gap: 0.45rem; } .company-search { flex-basis: 100%; max-width: none; } .company-filter-controls { flex-basis: 100%; } .company-filter-btn { flex: 1 1 calc(50% - 0.25rem); justify-content: space-between; min-width: 0; } .company-filter-reset { flex-basis: 100%; } .company-search .form-control, .company-sort, .company-filter-btn { font-size: 0.86rem; min-height: 2.45rem; } .company-search .form-control { padding-left: 2.15rem; } .company-search-icon { left: 0.85rem; } .company-table-card { background: transparent; border: 0; border-radius: 0; overflow: visible; } .company-table { border-collapse: collapse; border-spacing: 0; min-width: 0; } .company-table thead { display: none; } .company-table tbody, .company-table tr, .company-table td { display: block; width: 100%; } .company-table tbody tr { background: #fff; border: 1px solid #e5dfd5; border-radius: 0.75rem; box-shadow: 0 1px 4px rgba(17, 24, 39, 0.04); margin-bottom: 0.85rem; overflow: hidden; } .company-table tbody td { align-items: center; border-top: 1px solid #f3eee6; display: flex; gap: 0.75rem; justify-content: space-between; padding: 0.58rem 0.75rem; } .company-table tbody td:first-child { border-top: 0; display: block; padding: 0.72rem 0.75rem; } .company-table tbody td:not(:first-child)::before { color: #8b8379; content: attr(data-label); flex: 0 0 auto; font-size: 0.62rem; font-weight: 900; letter-spacing: 0.08em; text-transform: uppercase; } .company-name-cell { align-items: flex-start; } .company-logo { height: 2rem; width: 2rem; } .company-description { max-width: none; } }
+
+= render "shared/pagination_styles"
 
 - content_for :title, "Legal Tech Companies"
 - content_for :description, "Browse and search #{number_with_delimiter(@total_count)} legal technology companies in the CodeX TechIndex — filter by category, location, status, and funding."
@@ -67,9 +62,6 @@ css:
 - clear_params = active_params.except(:category, :status, :country, :city, :query, :page)
 - selected_category_ids = company_filter_category_ids
 - selected_statuses = company_filter_statuses
-- result_start = @companies.empty? ? 0 : @companies.offset_value + 1
-- result_end = @companies.offset_value + @companies.length
-
 .public-company-index
     .company-shell
         main.company-main
@@ -114,9 +106,7 @@ css:
                             - if @companies.empty?
                                 tr
                                     td.text-center.company-muted py="4" colspan="5" No companies match these filters.
-                .company-pagination
-                    .company-pagination-count= "Showing #{result_start}-#{result_end} of #{number_with_delimiter(@total_count)} companies"
-                    = paginate @companies
+                = render "shared/pagination", collection: @companies, count_label: "companies"
 
 javascript:
     (function() {
