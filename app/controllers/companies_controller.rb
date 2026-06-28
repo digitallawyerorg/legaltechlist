@@ -10,36 +10,10 @@ class CompaniesController < ApplicationController
   # with ands and ors if necessary
   def index
     @base_companies = Company.publicly_visible.includes(:category)
-    @companies = @base_companies
     @base_company_count = @base_companies.count
 
     begin
-      # Search
-      @companies = @companies.text_search(params[:query]) if params[:query].present?
-
-      # Filters
-      @companies = @companies.where(category_id: selected_category_ids) if selected_category_ids.any?
-      @companies = @companies.where(country: params[:country]) if params[:country].present?
-      @companies = @companies.where("city ILIKE ?", "%#{params[:city]}%") if params[:city].present?
-      @companies = @companies.where("location ILIKE ?", "%#{params[:location]}%") if params[:location].present?
-      @companies = @companies.where("LOWER(TRIM(status)) IN (?)", selected_statuses) if selected_statuses.any?
-
-      # Sorting
-      case params[:sort] || 'founded_desc'
-      when 'name_asc'
-        @companies = @companies.order(name: :asc)
-      when 'name_desc'
-        @companies = @companies.order(name: :desc)
-      when 'founded_desc'
-        @companies = @companies.order(founded_date: :desc)
-      when 'founded_asc'
-        @companies = @companies.order(founded_date: :asc)
-      when 'funding_desc'
-        @companies = @companies.order(total_funding_amount_usd: :desc)
-      when 'updated_desc'
-        @companies = @companies.order(updated_at: :desc)
-      end
-
+      @companies = filtered_companies_scope
       @total_count = @companies.count
       @category_counts = category_counts
       @status_counts = status_counts
@@ -108,7 +82,7 @@ class CompaniesController < ApplicationController
   # GET /companies/1
   # GET /companies/1.json
   def show
-
+    assign_company_neighbors
   end
 
   # GET /companies/new
@@ -176,6 +150,81 @@ class CompaniesController < ApplicationController
   end
 
   private
+    NAVIGATION_CONTEXT_KEYS = %i[query country city location sort category status].freeze
+    DEFAULT_NAVIGATION_CONTEXT = { sort: "name_asc" }.freeze
+
+    def filtered_companies_scope(source_params = params)
+      companies = Company.publicly_visible.includes(:category)
+
+      companies = companies.text_search(source_params[:query]) if source_params[:query].present?
+      category_ids = selected_category_ids(source_params)
+      companies = companies.where(category_id: category_ids) if category_ids.any?
+      companies = companies.where(country: source_params[:country]) if source_params[:country].present?
+      companies = companies.where("city ILIKE ?", "%#{source_params[:city]}%") if source_params[:city].present?
+      companies = companies.where("location ILIKE ?", "%#{source_params[:location]}%") if source_params[:location].present?
+      statuses = selected_statuses(source_params)
+      companies = companies.where("LOWER(TRIM(status)) IN (?)", statuses) if statuses.any?
+
+      apply_company_sort(companies, source_params[:sort])
+    end
+
+    def apply_company_sort(companies, sort_param)
+      case sort_param.presence || "founded_desc"
+      when "name_asc"
+        companies.order(name: :asc, id: :asc)
+      when "name_desc"
+        companies.order(name: :desc, id: :desc)
+      when "founded_desc"
+        companies.order(founded_date: :desc, id: :desc)
+      when "founded_asc"
+        companies.order(founded_date: :asc, id: :asc)
+      when "funding_desc"
+        companies.order(total_funding_amount_usd: :desc, id: :desc)
+      when "updated_desc"
+        companies.order(updated_at: :desc, id: :desc)
+      else
+        companies.order(founded_date: :desc, id: :desc)
+      end
+    end
+
+    def companies_navigation_context
+      context = params.permit(:query, :country, :city, :location, :sort, category: [], status: [])
+                     .to_h
+                     .symbolize_keys
+                     .slice(*NAVIGATION_CONTEXT_KEYS)
+                     .compact_blank
+      context.presence || DEFAULT_NAVIGATION_CONTEXT
+    end
+
+    def assign_company_neighbors
+      @companies_nav_context = companies_navigation_context
+      @company_neighbors = company_neighbors_for(@company, @companies_nav_context)
+
+      return if @company_neighbors.values.compact.any?
+      return if filtered_companies_scope(@companies_nav_context).exists?(id: @company.id)
+
+      @companies_nav_context = DEFAULT_NAVIGATION_CONTEXT
+      @company_neighbors = company_neighbors_for(@company, @companies_nav_context)
+    end
+
+    def company_neighbors_for(company, context)
+      scope = filtered_companies_scope(context)
+      company_rows = scope.pluck(:id, :name)
+      index = company_rows.index { |company_id, _name| company_id == company.id }
+      return { prev: nil, next: nil } unless index
+
+      neighbors = { prev: nil, next: nil }
+      if index.positive?
+        prev_id, prev_name = company_rows[index - 1]
+        neighbors[:prev] = { id: prev_id, name: prev_name }
+      end
+      if index < company_rows.length - 1
+        next_id, next_name = company_rows[index + 1]
+        neighbors[:next] = { id: next_id, name: next_name }
+      end
+      neighbors
+    end
+
     def category_counts
       @base_companies.joins(:category).group("categories.id", "categories.name").order("categories.name ASC").count.map do |(category_id, name), count|
         { id: category_id, name: name, count: count }
@@ -190,12 +239,12 @@ class CompaniesController < ApplicationController
       @base_companies.with_resolved_country.group(:country).order(:country).count
     end
 
-    def selected_category_ids
-      Array(params[:category]).map(&:presence).compact.map(&:to_i)
+    def selected_category_ids(source_params = params)
+      Array(source_params[:category]).map(&:presence).compact.map(&:to_i)
     end
 
-    def selected_statuses
-      Array(params[:status]).map { |status| status.to_s.strip.downcase }.reject(&:blank?)
+    def selected_statuses(source_params = params)
+      Array(source_params[:status]).map { |status| status.to_s.strip.downcase }.reject(&:blank?)
     end
 
     # Use callbacks to share common setup or constraints between actions.

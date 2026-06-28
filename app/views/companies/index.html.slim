@@ -94,7 +94,7 @@ css:
                                         .company-name-cell
                                             = image_tag company.logo, class: "company-logo", alt: "#{company.name} logo", loading: "lazy"
                                             div
-                                                = link_to company.name, company_path(company), class: "company-name-link"
+                                                = link_to company.name, company_path(company, companies_nav_context_params), class: "company-name-link"
                                                 .company-description= truncate(company.description.to_s, length: 105)
                                     td data-label="Category"
                                         span.company-pill= company.category&.name || "Uncategorized"

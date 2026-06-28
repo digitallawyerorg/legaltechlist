@@ -198,6 +198,53 @@ class CompaniesControllerTest < ActionController::TestCase
     assert_response :success
   end
 
+  test "show renders prev and next navigation in default name order" do
+    get :show, params: { id: companies(:two) }
+
+    assert_response :success
+    assert_select "nav.company-show-nav"
+    assert_select "nav.company-show-nav a.company-show-nav-prev", text: /#{Regexp.escape(companies(:one).name)}/
+    assert_select "nav.company-show-nav a.company-show-nav-next", count: 0
+  end
+
+  test "show next link uses default name order for direct visits" do
+    get :show, params: { id: @company }
+
+    assert_response :success
+    assert_select "nav.company-show-nav a.company-show-nav-next[href=?]", company_path(companies(:two), sort: "name_asc")
+    assert_select "nav.company-show-nav a.company-show-nav-prev", count: 0
+  end
+
+  test "show prev and next stay within active category filter" do
+    get :show, params: { id: companies(:two), category: [companies(:two).category_id], sort: "name_asc" }
+
+    assert_response :success
+    assert_select "nav.company-show-nav a.company-show-nav-prev", count: 0
+    assert_select "nav.company-show-nav a.company-show-nav-next", count: 0
+  end
+
+  test "show falls back to default name order when company is outside filter context" do
+    get :show, params: { id: companies(:two), category: [@company.category_id], sort: "name_asc" }
+
+    assert_response :success
+    assert_select "nav.company-show-nav a.company-show-nav-prev[href=?]", company_path(companies(:one), sort: "name_asc")
+  end
+
+  test "show preserves filter context in neighbor links" do
+    get :show, params: { id: @company, sort: "founded_desc" }
+
+    assert_response :success
+    assert_select "nav.company-show-nav a.company-show-nav-prev[href=?]", company_path(companies(:two), sort: "founded_desc")
+    assert_select "nav.company-show-nav a.company-show-nav-next", count: 0
+  end
+
+  test "index company links include list context for show navigation" do
+    get :index, params: { sort: "name_asc", category: @company.category_id }
+
+    assert_response :success
+    assert_select "a.company-name-link[href=?]", company_path(@company, sort: "name_asc", category: [@company.category_id])
+  end
+
   test "should get edit" do
     get :edit, params: { id: @company }
     assert_response :success

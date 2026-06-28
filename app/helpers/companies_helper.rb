@@ -49,6 +49,24 @@ module CompaniesHelper
     selected_values.any? && selected_values.size < total_count
   end
 
+  def companies_nav_context_params
+    context = {}
+    context[:query] = params[:query] if params[:query].present?
+    context[:sort] = params[:sort].presence || "founded_desc"
+    selected_categories = company_filter_category_ids
+    context[:category] = selected_categories if selected_categories.any?
+    selected_statuses = company_filter_statuses
+    context[:status] = selected_statuses if selected_statuses.any?
+    context[:country] = params[:country] if params[:country].present?
+    context[:city] = params[:city] if params[:city].present?
+    context[:location] = params[:location] if params[:location].present?
+    context
+  end
+
+  def company_neighbor_path(neighbor, nav_context)
+    company_path(neighbor[:id], nav_context)
+  end
+
   def tag_links(tags)
     return '' if tags.blank?
     
