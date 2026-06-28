@@ -5,44 +5,17 @@ module CompanyBrandNameFixer
 
   SUFFIX_PATTERN = /\b(LIMITED|LTD\.?|LLP|LLC|OÜ|OU|GMBH|INC\.?|CORP\.?|CORPORATION|PRIVATE LIMITED|PVT\.? LTD\.?|CO\.? LTD\.?|S\.?A\.?S\.?|B\.?V\.?|AG|PLC|PTY\.? LTD\.?|PROFESSIONAL CORP\.?)\b/i
 
-  CONSULTANCY_PATTERNS = [
-    /\bis a (?:[\w\s&'.-]+ )?consultancy\b/i,
-    /\bconsulting firm\b/i,
-    /\b(?:managed IT|legal technology|legal-data risk|management) consultancy\b/i,
-    /\b(?:digital marketing|marketing) agency\b/i,
-    /\bis a [\w\s&'.-]+ law firm\b/i,
-    /\b(?:immigration|business|financial-regulatory|Lagos-based|London-based) law firm\b/i,
-    /\bnotarial practice\b/i,
-    /\bnotary public limited\b/i,
-    /\bexpert-witness\b/i,
-    /\bfractional (?:privacy|compliance)\b/i,
-    /\boutsourced legal (?:cashiering|bookkeeping)\b/i,
-    /\bmanaged IT consultancy\b/i,
-    /\blegal technology consulting\b/i,
-    /\bforensic expert-witness\b/i,
-    /\bwas a [\w\s]+ legal practice\b/i,
-    /\boffers (?:forensic|fractional)\b/i,
-    /\bdelivers AI education\b/i,
-    /\bfractional compliance leadership\b/i,
-    /\bentity formation, regulatory licensing\b/i,
-    /\bcompany formation, regulatory\b/i
-  ].freeze
-
-  PRODUCT_SIGNAL = /\b(?:develops|operates|builds|provides)\b.{0,80}\b(?:software|platform|SaaS|application|tool|app|AI[- ]enabled|cloud-based|web-based)\b/i
-
   RENAME_OVERRIDES = {
-    15_093 => "LegallyLite",
+    15_048 => "Exodia Technologies",
+    15_050 => "FullHouseAI",
     15_052 => "eSignature",
     15_056 => "BY Sirius Group",
-    15_078 => "Justifi",
-    15_050 => "FullHouseAI",
-    15_048 => "Exodia Technologies",
     15_064 => "MoveSorted",
     15_071 => "PlanOps",
-    15_074 => "Leaseholdr"
+    15_074 => "Leaseholdr",
+    15_078 => "Justifi",
+    15_093 => "LegallyLite"
   }.freeze
-
-  HIDE_IDS = [].freeze
 
   module_function
 
@@ -62,17 +35,39 @@ module CompanyBrandNameFixer
     name.match?(SUFFIX_PATTERN) && !legal_entity_caps?(company)
   end
 
-  def consultancy?(company)
-    return true if HIDE_IDS.include?(company.id)
+  def product_vendor_lead?(lead)
+    lead.match?(/\b(?:develops|operates|builds)\b.{0,140}\b(?:software|platform|SaaS|application|app|tool|technology platform)\b/i) ||
+      lead.match?(/\b(?:cloud-based|web-based|AI-powered)\b.{0,80}\b(?:platform|software|tool)\b/i) ||
+      lead.match?(/\bconsulting and software\b/i) ||
+      lead.match?(/\bsoftware (?:development|solutions)\b/i) ||
+      lead.match?(/\btechnology platforms\b/i)
+  end
 
-    desc = company.description.to_s.strip
-    return false if desc.blank?
+  def primary_service_provider?(company)
+    lead = company.description.to_s.strip[0, 220]
+    return false if lead.blank?
+    return false if product_vendor_lead?(lead)
 
-    lead = desc[0, 280]
-    return false unless CONSULTANCY_PATTERNS.any? { |pattern| lead.match?(pattern) }
-    return false if lead.match?(PRODUCT_SIGNAL) && lead.match?(/\bdevelops\b/i)
+    patterns = [
+      /\A[^.]{0,180}\bis a (?:[\w\s&'.-]+ )?law firm\b/i,
+      /\A[^.]{0,180}\bis a (?:[\w\s&'.-]+ )?consultancy\b/i,
+      /\A[^.]{0,180}\boffers managed IT consultancy\b/i,
+      /\A[^.]{0,180}\b(?:digital marketing|marketing) agency\b/i,
+      /\A[^.]{0,180}\bnotarial practice\b/i,
+      /\A[^.]{0,180}\bwas a [\w\s]+ legal practice\b/i,
+      /\A[^.]{0,180}\bIT outsourcing\b/i,
+      /\A[^.]{0,180}\bentity formation, regulatory licensing\b/i,
+      /\A[^.]{0,180}\boutsourced legal (?:cashiering|bookkeeping)\b/i,
+      /\A[^.]{0,180}\bforensic expert-witness\b/i,
+      /\A[^.]{0,180}\bdelivers AI education\b/i,
+      /\A[^.]{0,180}\bfractional compliance leadership\b/i,
+      /\A[^.]{0,180}\blegal-data risk consultancy\b/i
+    ]
+    patterns.any? { |pattern| lead.match?(pattern) }
+  end
 
-    true
+  def in_scope?(company)
+    legal_entity_caps?(company) || primary_service_provider?(company)
   end
 
   def proposed_name(company)
@@ -136,11 +131,11 @@ module CompanyBrandNameFixer
   end
 
   def review_company(company)
-    if consultancy?(company)
+    if primary_service_provider?(company)
       return { action: :hide, reason: "consultancy or out-of-scope service provider" }
     end
 
-  if legal_entity_caps?(company) || mixed_case_legal_suffix?(company)
+    if legal_entity_caps?(company)
       new_name = proposed_name(company)
       if new_name.present? && new_name != company.name
         return { action: :rename, new_name: new_name, reason: "legal entity name to product/brand name" }
@@ -169,7 +164,7 @@ module CompanyBrandNameFixer
       else
         attrs = { name: result[:new_name] }
         if company.respond_to?(:canonical_domain) && company.main_url.present?
-          attrs[:fingerprint] = company.calculated_fingerprint
+          attrs[:fingerprint] = Company.fingerprint_for(result[:new_name], company.main_url)
           attrs[:canonical_domain] = company.canonical_main_domain
         end
         company.update!(attrs)

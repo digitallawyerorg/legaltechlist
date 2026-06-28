@@ -269,9 +269,7 @@ namespace :data_quality do
     changes = []
 
     Company.where(visible: true).find_each do |company|
-      next unless CompanyBrandNameFixer.legal_entity_caps?(company) ||
-                  CompanyBrandNameFixer.mixed_case_legal_suffix?(company) ||
-                  CompanyBrandNameFixer.consultancy?(company)
+      next unless CompanyBrandNameFixer.in_scope?(company)
 
       result = CompanyBrandNameFixer.review_company(company)
       next if result[:action] == :skip
