@@ -20,6 +20,7 @@ class CompanyContributionForm
   attribute :facebook_url, :string
   attribute :angellist_url, :string
   attribute :legalio_url, :string
+  attribute :legaltech_atlas_url, :string
   attribute :logo_url, :string
 
   validates :contact_email, :name, :main_url, :location, :founded_date, :category_id, :description, :status, presence: true
@@ -30,7 +31,7 @@ class CompanyContributionForm
     permitted = params.require(:company_contribution).permit(
       :contact_name, :contact_email, :name, :main_url, :location, :founded_date,
       :category_id, :description, :status, :all_tags, :crunchbase_url, :linkedin_url,
-      :twitter_url, :facebook_url, :angellist_url, :legalio_url, :logo_url,
+      :twitter_url, :facebook_url, :angellist_url, :legalio_url, :legaltech_atlas_url, :logo_url,
       business_model_ids: [], target_client_ids: []
     )
     new(permitted.to_h)
@@ -56,6 +57,7 @@ class CompanyContributionForm
       "facebook_url" => facebook_url.to_s.strip.presence,
       "angellist_url" => angellist_url.to_s.strip.presence,
       "legalio_url" => legalio_url.to_s.strip.presence,
+      "legaltech_atlas_url" => legaltech_atlas_url.to_s.strip.presence,
       "logo_url" => logo_url.to_s.strip.presence,
       "source" => "User contribution",
       "source_url" => main_url.to_s.strip.presence

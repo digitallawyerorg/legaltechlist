@@ -129,4 +129,8 @@ module ApplicationHelper
   def nav_overview_dropdown_item_class(label)
     ["dropdown-item", ("active" if nav_overview_dropdown_label == label)].compact.join(" ")
   end
+
+  def required_label_text(text)
+    safe_join([text, content_tag(:abbr, "*", class: "required-asterisk", title: "required")])
+  end
 end

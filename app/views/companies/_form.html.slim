@@ -20,44 +20,46 @@
                 = f.label :contact_name, "Name", class: "form-label"
                 = f.text_field :contact_name, class: "form-control", autocomplete: "name"
             .col-md-6
-                = f.label :contact_email, "Email", class: "form-label"
+                = f.label :contact_email, required_label_text("Email"), class: "form-label"
                 = f.email_field :contact_email, class: "form-control", autocomplete: "email", required: true
 
     section.company-suggest-section
         .company-suggest-section-label Company profile
         .row.g-3
             .col-md-6
-                = f.label :name, "Company name", class: "form-label"
+                = f.label :name, required_label_text("Company name"), class: "form-label"
                 = f.text_field :name, class: "form-control", required: true
             .col-md-6
-                = f.label :main_url, "Website", class: "form-label"
+                = f.label :main_url, required_label_text("Website"), class: "form-label"
                 = f.url_field :main_url, class: "form-control", placeholder: "https://", required: true
             .col-md-6
-                = f.label :location, "Headquarters", class: "form-label"
+                = f.label :location, required_label_text("Headquarters"), class: "form-label"
                 = f.text_field :location, class: "form-control", placeholder: "City, region, country", required: true
             .col-md-6
-                = f.label :founded_date, "Year founded", class: "form-label"
+                = f.label :founded_date, required_label_text("Year founded"), class: "form-label"
                 = f.text_field :founded_date, class: "form-control", placeholder: "YYYY", required: true
             .col-md-6
-                = f.label :category_id, "Primary category", class: "form-label"
+                = f.label :category_id, required_label_text("Primary category"), class: "form-label"
                 = f.collection_select :category_id, category_options, :id, :name, { include_blank: "Select a category" }, { class: "form-select", required: true }
                 .form-text
                     = link_to "Category definitions", statistics_methodology_path
             .col-12
-                = f.label :description, "Description", class: "form-label"
+                = f.label :description, required_label_text("Description"), class: "form-label"
                 = f.text_area :description, class: "form-control", rows: 5, placeholder: "What does the company do? Who does it serve?", required: true
             .col-12
-                = f.label :business_model_ids, "Revenue model(s)", class: "form-label"
-                = f.collection_check_boxes :business_model_ids, revenue_model_options, :id, :name do |builder|
-                    .form-check
-                        = builder.check_box class: "form-check-input"
-                        = builder.label class: "form-check-label"
+                = f.label :business_model_ids, required_label_text("Revenue model(s)"), class: "form-label"
+                .company-suggest-checkbox-grid
+                    = f.collection_check_boxes :business_model_ids, revenue_model_options, :id, :name do |builder|
+                        .form-check
+                            = builder.check_box class: "form-check-input"
+                            = builder.label class: "form-check-label"
             .col-12
-                = f.label :target_client_ids, "Target client(s)", class: "form-label"
-                = f.collection_check_boxes :target_client_ids, target_client_options, :id, :name do |builder|
-                    .form-check
-                        = builder.check_box class: "form-check-input"
-                        = builder.label class: "form-check-label"
+                = f.label :target_client_ids, required_label_text("Target client(s)"), class: "form-label"
+                .company-suggest-checkbox-grid
+                    = f.collection_check_boxes :target_client_ids, target_client_options, :id, :name do |builder|
+                        .form-check
+                            = builder.check_box class: "form-check-input"
+                            = builder.label class: "form-check-label"
             .col-12
                 = f.label :all_tags, "Tags", class: "form-label"
                 = f.text_field :all_tags, class: "form-control", placeholder: "e.g. artificial intelligence, contract management, saas"
@@ -67,7 +69,7 @@
         .company-suggest-section-label Links & status
         .row.g-3
             .col-md-6
-                = f.label :status, "Status", class: "form-label"
+                = f.label :status, required_label_text("Status"), class: "form-label"
                 = f.select :status, [["Active", "active"], ["Inactive", "inactive"], ["Acquired", "acquired"]], { include_blank: "Select status" }, { class: "form-select", required: true }
             .col-md-6
                 = f.label :crunchbase_url, "Crunchbase URL", class: "form-label"
@@ -87,6 +89,9 @@
             .col-md-6
                 = f.label :legalio_url, "Legal.io URL", class: "form-label"
                 = f.url_field :legalio_url, class: "form-control", placeholder: "Optional"
+            .col-md-6
+                = f.label :legaltech_atlas_url, "LegalTech Atlas URL", class: "form-label"
+                = f.url_field :legaltech_atlas_url, class: "form-control", placeholder: "Optional"
 
     section.company-suggest-section
         .company-suggest-section-label Branding
