@@ -39,20 +39,17 @@ css:
     .company-table-card { background: #fff; border: 1px solid #e5dfd5; border-radius: 0.6rem; overflow: hidden; }
     .company-list-scroll { overflow-x: auto; }
     .company-list { font-size: 0.82rem; min-width: 860px; }
-    .company-list-header { align-items: center; background: #faf8f3; border-bottom: 1px solid #e5dfd5; display: flex; }
-    .company-list-header .company-list-col { color: #6b7280; font-size: 0.66rem; font-weight: 800; letter-spacing: 0.05em; padding: 0.58rem 0.75rem; text-transform: uppercase; white-space: nowrap; }
-    .company-list-row { align-items: center; border-top: 1px solid #f0ebe3; display: flex; }
+    .company-list-header, .company-list-row { align-items: center; display: grid; grid-template-columns: minmax(0, 1fr) 11.5rem 5.5rem 9rem 6.5rem; }
+    .company-list-header { background: #faf8f3; border-bottom: 1px solid #e5dfd5; }
+    .company-list-header .company-list-col { color: #6b7280; font-size: 0.66rem; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; white-space: nowrap; }
+    .company-list-row { border-top: 1px solid #f0ebe3; }
     .company-list-row:hover { background: #fffdf8; }
-    .company-list-col { flex: 0 0 auto; padding: 0.58rem 0.75rem; white-space: nowrap; }
-    .company-list-company { flex: 1 1 auto; min-width: 0; overflow: hidden; white-space: normal; }
-    .company-list-category { flex: 0 0 11.5rem; }
-    .company-list-founded { flex: 0 0 5.5rem; }
-    .company-list-hq { flex: 0 0 9rem; }
-    .company-list-status { flex: 0 0 6.5rem; }
+    .company-list-col { min-width: 0; padding: 0.58rem 0.75rem; white-space: nowrap; }
+    .company-list-company { overflow: hidden; white-space: normal; }
     .company-list-empty { color: #9ca3af; padding: 1.5rem 0.75rem; text-align: center; }
     .company-hq-cell { align-items: center; display: inline-flex; gap: 0.35rem; }
     .company-hq-flag { flex: 0 0 auto; font-size: 1rem; line-height: 1; }
-    .company-name-cell { align-items: center; display: flex; gap: 0.6rem; min-width: 0; }
+    .company-name-cell { align-items: center; display: flex; gap: 0.6rem; min-width: 0; width: 100%; }
     .company-name-cell > div { flex: 1 1 auto; min-width: 0; overflow: hidden; }
     .company-logo { background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 0.25rem; flex: 0 0 auto; height: 1.75rem; object-fit: contain; padding: 0.12rem; width: 1.75rem; }
     .company-name-link { color: #111827; display: block; font-weight: 700; text-decoration: none; }
