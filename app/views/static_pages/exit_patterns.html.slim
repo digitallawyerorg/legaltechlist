@@ -1,16 +1,13 @@
 = render partial: "shared/stats_styles"
 .stats-page
     .stats-page-inner
-        = link_to statistics_path, class: "stats-page-back" do
-            i.fas.fa-arrow-left
-            | All statistics
         .stats-chart-card
             .stats-chart-header
-                div
-                    h1.stats-chart-title Exit Patterns
-                    p.stats-chart-subtitle Analysis of successful exits and market timing
-                .stats-chart-controls
-                    = render partial: "shared/stats_export_dropdown", locals: { csv_path: statistics_exit_patterns_path(format: :csv) }
+                .stats-chart-header-row
+                    .stats-chart-heading
+                        h1.stats-chart-title Exit Patterns
+                    .stats-chart-controls
+                        = render partial: "shared/stats_export_dropdown", locals: { csv_path: statistics_exit_patterns_path(format: :csv) }
             .stats-chart-body
                 h2.stats-table-title.mb-3 Exit Timing Distribution
                 = line_chart @exit_timing, height: 480, colors: ["#8c1515"], library: { scales: { y: { beginAtZero: true } } }

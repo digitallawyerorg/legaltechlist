@@ -11,10 +11,26 @@ javascript:
             var height = statsViewportChartHeight();
             if (!height) return;
 
-            document.querySelectorAll(".stats-chart-body > div[id], .stats-period-card-body > div[id]").forEach(function(node) {
+            document.querySelectorAll(".stats-chart-body > div[id], .stats-chart-body .stats-region-sunburst[id], .stats-chart-body .stats-region-sankey[id], .stats-chart-body .stats-country-geo-map[id], .stats-period-card-body > div[id]").forEach(function(node) {
                 if (!node.id) return;
 
+                if (node.dataset.statsGeoMap === "true") {
+                    if (typeof window.drawCountryGeoChart === "function") {
+                        window.drawCountryGeoChart();
+                    }
+                    return;
+                }
+
                 node.style.height = height + "px";
+
+                if (node.dataset.geoChartType === "sunburst" || node.dataset.geoChartType === "sankey") {
+                    var echartsChart = window.statsGeoCharts && window.statsGeoCharts[node.id];
+                    if (echartsChart && typeof echartsChart.resize === "function") {
+                        echartsChart.resize({ width: node.clientWidth, height: height });
+                    }
+                    return;
+                }
+
                 var chartkickChart = window.Chartkick && Chartkick.charts && Chartkick.charts[node.id];
                 if (!chartkickChart) return;
 
@@ -45,29 +61,30 @@ javascript:
         function refreshStatsCharts() {
             if (document.documentElement.hasAttribute("data-turbo-preview")) return;
 
-            var geoChart = document.getElementById("country-distribution-chart");
-            if (geoChart && window.google && window.google.charts) {
-                window.google.charts.load("current", { packages: ["geochart"], callback: function() {
-                    bootChartkick();
-                    window.setTimeout(syncStatsChartHeights, 150);
-                }});
+            var sankeyChart = document.querySelector(".stats-region-sankey[data-geo-chart-type='sankey']");
+            if (sankeyChart) {
+                if (typeof window.drawRegionCountrySankey === "function") {
+                    window.drawRegionCountrySankey();
+                }
+                window.setTimeout(syncStatsChartHeights, 150);
                 return;
             }
 
-            if (geoChart) {
-                var attempts = 0;
-                var timer = window.setInterval(function() {
-                    attempts += 1;
-                    if (window.google && window.google.charts) {
-                        window.clearInterval(timer);
-                        window.google.charts.load("current", { packages: ["geochart"], callback: function() {
-                            bootChartkick();
-                            window.setTimeout(syncStatsChartHeights, 150);
-                        }});
-                    } else if (attempts > 100) {
-                        window.clearInterval(timer);
-                    }
-                }, 50);
+            var sunburstChart = document.querySelector(".stats-region-sunburst[data-geo-chart-type='sunburst']");
+            if (sunburstChart) {
+                if (typeof window.drawRegionCountrySunburst === "function") {
+                    window.drawRegionCountrySunburst();
+                }
+                window.setTimeout(syncStatsChartHeights, 150);
+                return;
+            }
+
+            var geoMapChart = document.querySelector(".stats-country-geo-map[data-stats-geo-map='true']");
+            if (geoMapChart) {
+                if (typeof window.drawCountryGeoChart === "function") {
+                    window.drawCountryGeoChart();
+                }
+                window.setTimeout(syncStatsChartHeights, 150);
                 return;
             }
 

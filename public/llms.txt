@@ -38,12 +38,13 @@ Statistics: Statistics charts use the company profiles described above. They cov
 
 - Ecosystem growth: https://techindex.law.stanford.edu/statistics/total_companies
 - Category evolution: https://techindex.law.stanford.edu/statistics/category_evolution_5_years
-- Geography: https://techindex.law.stanford.edu/statistics/country_distribution
-- Innovation hubs: https://techindex.law.stanford.edu/statistics/innovation_hubs
+- Geography by country: https://techindex.law.stanford.edu/statistics/country_distribution
+- Geography by region: https://techindex.law.stanford.edu/statistics/companies_by_region
 - Technology themes: https://techindex.law.stanford.edu/statistics/tag_distribution
 - Market focus: https://techindex.law.stanford.edu/statistics/target_client
 - AI trends: https://techindex.law.stanford.edu/statistics/ai_trends
-- Funding landscape: https://techindex.law.stanford.edu/statistics/funding_by_category
+- Funding by category: https://techindex.law.stanford.edu/statistics/funding_by_category
+- Funding by region: https://techindex.law.stanford.edu/statistics/funding_by_region
 - Revenue models: https://techindex.law.stanford.edu/statistics/business_model
 
 ## Citation policy

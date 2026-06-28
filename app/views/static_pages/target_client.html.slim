@@ -1,4 +1,4 @@
-- content_for :title, "Target Client Analysis"
+- content_for :title, "Companies by Target Client"
 - content_for :description, "Market focus and target client segment distribution among visible legal tech companies founded since 2000."
 - chart_id = "target-client-chart"
 - chart_options = { height: 620, id: chart_id, library: { indexAxis: "y", plugins: { legend: { display: false } }, scales: { x: { grid: { display: true, drawBorder: false }, ticks: { precision: 0 } }, y: { grid: { display: false }, ticks: { font: { size: 12 } } } } } }
@@ -18,4 +18,4 @@
                         td.text-end= data[:count]
                         td.text-end= number_to_percentage(data[:percentage], precision: 1)
                         td.text-end= number_to_currency(data[:avg_funding], precision: 0)
-= render partial: "shared/stats_chart_page", locals: { title: "Target Client Analysis", subtitle: "Market focus and client segment distribution", chart: bar_chart(@client_data, colors: ["#8c1515"], **chart_options), table: table_html, chart_id: chart_id, download_filename: "target_client", csv_path: download_target_client_path(format: :csv), table_title: "Client segment breakdown", show_funding_caveat: true }
+= render partial: "shared/stats_chart_page", locals: { title: "Companies by Target Client", chart: bar_chart(@client_data, colors: ["#8c1515"], **chart_options), table: table_html, chart_id: chart_id, download_filename: "target_client", csv_path: download_target_client_path(format: :csv), table_title: "Client segment breakdown", show_funding_caveat: true }

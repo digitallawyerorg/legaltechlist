@@ -1,0 +1,150 @@
+/ locals: chart_id, sankey, data_script_id (optional), tooltip_mode (optional: count or currency)
+- data_script_id ||= "region-sankey-data"
+- tooltip_mode ||= "count"
+.stats-sankey-wrap
+    div.stats-region-sankey id=chart_id data-geo-chart-type="sankey" data-sankey-tooltip=tooltip_mode style="height:620px; width:100%;"
+script type="application/json" id=data_script_id
+  == sankey.to_json
+script type="text/javascript" data-turbo-eval="true"
+  |
+    (function() {
+        var chartId = "#{chart_id}";
+        var dataScriptId = "#{data_script_id}";
+        var tooltipMode = "#{tooltip_mode}";
+
+        function ensureEcharts(callback) {
+            if (window.echarts) {
+                callback();
+                return;
+            }
+
+            window.statsEchartsCallbacks = window.statsEchartsCallbacks || [];
+            window.statsEchartsCallbacks.push(callback);
+
+            if (window.statsEchartsLoading) return;
+
+            window.statsEchartsLoading = true;
+            var script = document.createElement("script");
+            script.src = "https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js";
+            script.onload = function() {
+                window.statsEchartsLoading = false;
+                var callbacks = window.statsEchartsCallbacks || [];
+                window.statsEchartsCallbacks = [];
+                callbacks.forEach(function(cb) { cb(); });
+            };
+            script.onerror = function() {
+                window.statsEchartsLoading = false;
+                window.statsEchartsCallbacks = [];
+            };
+            document.head.appendChild(script);
+        }
+
+        function sankeySize(chartNode) {
+            var width = chartNode.clientWidth || (chartNode.parentElement && chartNode.parentElement.clientWidth) || 920;
+            var height = chartNode.clientHeight || parseInt(chartNode.style.height, 10) || 620;
+            return { width: Math.max(width, 320), height: Math.max(height, 480) };
+        }
+
+        function formatSankeyValue(value) {
+            if (tooltipMode === "currency") {
+                return "$" + value.toLocaleString(undefined, { maximumFractionDigits: 0 });
+            }
+
+            return value.toLocaleString() + " companies";
+        }
+
+        function formatSankeyLabel(name, value, total) {
+            var pct = total > 0 ? (value / total * 100).toFixed(2) : "0.00";
+            return name + "\n" + formatSankeyValue(value) + " (" + pct + "%)";
+        }
+
+        function sankeyOption(payload) {
+            var total = payload.total || 0;
+            var nodeValues = {};
+
+            payload.links.forEach(function(link) {
+                nodeValues[link.target] = (nodeValues[link.target] || 0) + link.value;
+                if (!nodeValues[link.source] && link.source === payload.nodes[0].name) {
+                    nodeValues[link.source] = total;
+                }
+            });
+            nodeValues[payload.nodes[0].name] = total;
+
+            return {
+                color: ["#8c1515", "#b83a4b", "#820000", "#175e54", "#544948", "#006b81", "#c94141", "#e65757", "#f3e1e1", "#d4a5a5", "#a8c4c0", "#7a9e99"],
+                tooltip: {
+                    trigger: "item",
+                    formatter: function(params) {
+                        if (params.dataType === "edge") {
+                            var edgeTotal = total;
+                            var pct = edgeTotal > 0 ? (params.value / edgeTotal * 100).toFixed(2) : "0.00";
+                            return params.data.source + " → " + params.data.target + "<br>" + formatSankeyValue(params.value) + " (" + pct + "%)";
+                        }
+
+                        var nodeValue = nodeValues[params.name] || params.value || 0;
+                        return params.name + "<br>" + formatSankeyValue(nodeValue);
+                    }
+                },
+                series: [{
+                    type: "sankey",
+                    layout: "none",
+                    emphasis: { focus: "adjacency" },
+                    nodeAlign: "justify",
+                    nodeGap: 14,
+                    draggable: false,
+                    lineStyle: { color: "gradient", curveness: 0.45, opacity: 0.35 },
+                    itemStyle: { borderWidth: 0 },
+                    label: {
+                        show: true,
+                        color: "#2a2723",
+                        fontSize: 11,
+                        lineHeight: 15,
+                        formatter: function(params) {
+                            var nodeValue = nodeValues[params.name] || params.value || 0;
+                            var pct = total > 0 ? nodeValue / total : 0;
+                            if (pct < 0.02) return "";
+                            return formatSankeyLabel(params.name, nodeValue, total);
+                        }
+                    },
+                    data: payload.nodes,
+                    links: payload.links
+                }]
+            };
+        }
+
+        function drawRegionCountrySankeyChart() {
+            var chartNode = document.getElementById(chartId);
+            var dataNode = document.getElementById(dataScriptId);
+            if (!chartNode || !dataNode || chartNode.dataset.geoChartType !== "sankey") return;
+
+            ensureEcharts(function() {
+                if (!window.echarts) return;
+
+                var payload;
+                try {
+                    payload = JSON.parse(dataNode.textContent);
+                } catch (error) {
+                    return;
+                }
+
+                if (window.statsGeoCharts && window.statsGeoCharts[chartId] && typeof window.statsGeoCharts[chartId].dispose === "function") {
+                    window.statsGeoCharts[chartId].dispose();
+                }
+
+                var size = sankeySize(chartNode);
+                var chart = window.echarts.init(chartNode, null, { renderer: "canvas", width: size.width, height: size.height });
+                chart.setOption(sankeyOption(payload));
+
+                window.statsGeoCharts = window.statsGeoCharts || {};
+                window.statsGeoCharts[chartId] = chart;
+            });
+        }
+
+        window.drawRegionCountrySankey = drawRegionCountrySankeyChart;
+
+        if (document.readyState === "loading") {
+            document.addEventListener("DOMContentLoaded", drawRegionCountrySankeyChart);
+        } else {
+            window.requestAnimationFrame(drawRegionCountrySankeyChart);
+        }
+    })();

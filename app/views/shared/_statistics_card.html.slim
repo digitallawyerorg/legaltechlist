@@ -1,2 +1,2 @@
-/ locals: title, subtitle, chart, table (optional), chart_id, download_filename
-= render partial: "shared/stats_chart_page", locals: { title: title, subtitle: subtitle, chart: chart, table: local_assigns[:table], chart_id: chart_id, download_filename: download_filename, csv_path: url_for(format: :csv), xlsx_path: url_for(format: :xlsx), table_title: "Data" }
+/ locals: title, chart, table (optional), chart_id, download_filename
+= render partial: "shared/stats_chart_page", locals: { title: title, chart: chart, table: local_assigns[:table], chart_id: chart_id, download_filename: download_filename, csv_path: url_for(format: :csv), xlsx_path: url_for(format: :xlsx), table_title: "Data" }

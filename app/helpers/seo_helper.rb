@@ -107,12 +107,14 @@ module SeoHelper
   def statistics_index_json_ld
     items = [
       { name: "Ecosystem Growth", url: statistics_total_companies_url },
+      { name: "Companies by Country", url: statistics_country_distribution_url },
+      { name: "Companies by Region", url: statistics_companies_by_region_url },
       { name: "Category Evolution", url: statistics_category_evolution_5_years_url },
-      { name: "Geography & Hubs", url: statistics_country_distribution_url },
       { name: "Technology Themes", url: statistics_tag_distribution_url },
       { name: "Market Focus", url: statistics_target_client_url },
       { name: "AI in Legal Tech", url: statistics_ai_trends_url },
-      { name: "Funding Landscape", url: statistics_funding_by_category_url },
+      { name: "Funding by Category", url: statistics_funding_by_category_url },
+      { name: "Funding by Region", url: statistics_funding_by_region_url },
       { name: "Revenue Model Insights", url: statistics_business_model_url }
     ]
     item_list_json_ld(

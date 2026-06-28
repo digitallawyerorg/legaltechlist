@@ -1,0 +1,85 @@
+/ locals: chart_id, chart_data, library
+div.stats-country-geo-map id=chart_id data-stats-geo-map="true"
+script type="application/json" id="#{chart_id}-data"
+  == { data: chart_data, library: library }.to_json
+script type="text/javascript" data-turbo-eval="true"
+  |
+    (function() {
+        var chartId = "#{chart_id}";
+        var dataScriptId = "#{chart_id}-data";
+
+        function statsCountryGeoMapDimensions(chartNode) {
+            var width = chartNode.clientWidth;
+            if (!width) return null;
+
+            var reserved = window.innerWidth >= 1400 ? 150 : 190;
+            var maxHeight = Math.max(480, window.innerHeight - reserved);
+            var height = Math.min(Math.round(width * 0.5), maxHeight);
+
+            return { width: width, height: height };
+        }
+
+        function ensureGoogleGeoChart(callback) {
+            if (window.google && window.google.charts) {
+                window.google.charts.load("current", { packages: ["geochart"], callback: callback });
+                return;
+            }
+
+            var attempts = 0;
+            var timer = window.setInterval(function() {
+                attempts += 1;
+                if (window.google && window.google.charts) {
+                    window.clearInterval(timer);
+                    window.google.charts.load("current", { packages: ["geochart"], callback: callback });
+                } else if (attempts > 100) {
+                    window.clearInterval(timer);
+                }
+            }, 50);
+        }
+
+        function drawCountryGeoChart() {
+            var chartNode = document.getElementById(chartId);
+            var dataNode = document.getElementById(dataScriptId);
+            if (!chartNode || !dataNode || chartNode.dataset.statsGeoMap !== "true") return;
+
+            ensureGoogleGeoChart(function() {
+                if (!window.Chartkick || !window.google) return;
+
+                window.Chartkick.addAdapter(window.google);
+
+                var payload;
+                try {
+                    payload = JSON.parse(dataNode.textContent);
+                } catch (error) {
+                    return;
+                }
+
+                var dimensions = statsCountryGeoMapDimensions(chartNode);
+                if (!dimensions) return;
+
+                chartNode.style.height = dimensions.height + "px";
+
+                var existing = window.Chartkick.charts && window.Chartkick.charts[chartId];
+                if (existing && typeof existing.destroy === "function") {
+                    existing.destroy();
+                    delete window.Chartkick.charts[chartId];
+                }
+
+                chartNode.textContent = "";
+                new window.Chartkick.GeoChart(chartId, payload.data, {
+                    width: dimensions.width,
+                    height: dimensions.height,
+                    library: payload.library
+                });
+            });
+        }
+
+        window.statsCountryGeoMapDimensions = statsCountryGeoMapDimensions;
+        window.drawCountryGeoChart = drawCountryGeoChart;
+
+        if (document.readyState === "loading") {
+            document.addEventListener("DOMContentLoaded", drawCountryGeoChart);
+        } else {
+            window.requestAnimationFrame(drawCountryGeoChart);
+        }
+    })();

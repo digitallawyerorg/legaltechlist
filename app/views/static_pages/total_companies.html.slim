@@ -1,15 +1,10 @@
 - is_annual = @growth_view == "annual"
-- content_for :title, is_annual ? "Companies Founded Per Year" : "Ecosystem Growth"
+- chart_title = is_annual ? "Total Companies (By Year)" : "Total Companies (Cumulative)"
+- content_for :title, chart_title
 - content_for :description, is_annual ? "Annual company formation in legal tech since 2000, based on visible CodeX TechIndex profiles." : "Cumulative growth of the legal technology ecosystem since 2000, based on visible CodeX TechIndex profiles."
 - chart_id = is_annual ? "ecosystem-growth-annual-chart" : "total-companies-chart"
-- year_range = "2000 – #{Date.current.year}"
 - cumulative_path = statistics_total_companies_path
 - annual_path = statistics_total_companies_path(view: "annual")
-- cumulative_all_time_path = statistics_total_companies_all_time_path
-- annual_all_time_path = statistics_total_companies_all_time_path(view: "annual")
-- toggles_html = capture do
-    = link_to year_range, is_annual ? annual_path : cumulative_path, class: "stats-pill is-active"
-    = link_to "1975 – #{Date.current.year}", is_annual ? annual_all_time_path : cumulative_all_time_path, class: "stats-pill"
 - view_dropdown_html = capture do
     = render partial: "shared/stats_growth_view_dropdown", locals: { current_view: @growth_view, cumulative_url: cumulative_path, annual_url: annual_path }
 - table_html = capture do
@@ -38,9 +33,9 @@
                                     = number_to_percentage(data[:growth_rate], precision: 1)
                             - else
                                 .badge.bg-secondary-subtle.text-secondary 0%
-- chart_html = is_annual ? column_chart(@table_data.map { |d| [d[:year], d[:new_companies]] }, height: 620, colors: ["#8c1515"], library: { plugins: { legend: { display: false } }, scales: { x: { grid: { display: true, drawBorder: false }, ticks: { font: { size: 12 } } }, y: { grid: { display: true, drawBorder: false }, ticks: { font: { size: 12 } } } } }, id: chart_id) : area_chart([@chart_data], height: 620, discrete: true, points: false, legend: "bottom", colors: ["#8c1515"], thousands: ",", library: { plugins: { legend: { display: true, position: "bottom" } }, scales: { x: { grid: { display: true, drawBorder: false }, ticks: { font: { size: 12 } } }, y: { min: 0, grid: { display: true, drawBorder: false }, ticks: { font: { size: 12 }, stepSize: 250 } } }, elements: { line: { tension: 0.4, borderWidth: 2, fill: true, backgroundColor: "rgba(140, 21, 21, 0.1)" }, point: { radius: 0, hitRadius: 10, hoverRadius: 4 } }, interaction: { intersect: false, mode: "index" } }, id: chart_id)
-- subtitle = is_annual ? "Annual company formation in legal tech (#{year_range})" : "Cumulative growth of the legal technology ecosystem (#{year_range})"
+- bar_chart_library = { plugins: { legend: { display: false } }, scales: { x: { grid: { display: true, drawBorder: false }, ticks: { font: { size: 12 } } }, y: { min: 0, grid: { display: true, drawBorder: false }, ticks: { font: { size: 12 } } } } }
+- chart_html = is_annual ? column_chart(@table_data.map { |d| [d[:year], d[:new_companies]] }, height: 620, colors: ["#8c1515"], library: bar_chart_library, id: chart_id) : column_chart(@table_data.map { |d| [d[:year], d[:total_companies]] }, height: 620, colors: ["#8c1515"], thousands: ",", library: bar_chart_library, id: chart_id)
 - csv_path = is_annual ? statistics_companies_founded_path(format: :csv) : statistics_total_companies_path(format: :csv)
 - xlsx_path = is_annual ? statistics_companies_founded_path(format: :xlsx) : statistics_total_companies_path(format: :xlsx)
 - download_filename = is_annual ? "companies_founded" : "total_companies"
-= render partial: "shared/stats_chart_page", locals: { title: "Ecosystem Growth", subtitle: subtitle, chart: chart_html, table: table_html, chart_id: chart_id, download_filename: download_filename, csv_path: csv_path, xlsx_path: xlsx_path, toggles: toggles_html, view_dropdown: view_dropdown_html, table_title: "Yearly breakdown" }
+= render partial: "shared/stats_chart_page", locals: { title: chart_title, chart: chart_html, table: table_html, chart_id: chart_id, download_filename: download_filename, csv_path: csv_path, xlsx_path: xlsx_path, view_dropdown: view_dropdown_html, table_title: "Yearly breakdown" }

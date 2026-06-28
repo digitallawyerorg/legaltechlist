@@ -11,14 +11,18 @@ class StaticPagesControllerTest < ActionController::TestCase
   test "should get about" do
     get :about
     assert_response :success
-    assert_select "title", text: "About"
+    assert_select "title", text: /About/
     assert_select "meta[name=?][content*='Stanford CodeX']", "description"
+    assert_includes @response.body, "About the CodeX TechIndex"
+    assert_includes @response.body, "Contributors"
+    assert_includes @response.body, "Contributor, Code = Law Participant"
+    assert_not_includes @response.body, 'src=""'
   end
 
   test "should get statistics" do
     get :statistics
     assert_response :success
-    assert_select ".stats-index-card", count: 8
+    assert_select ".stats-index-card", count: 10
   end
 
   test "should get business_model" do
@@ -26,18 +30,60 @@ class StaticPagesControllerTest < ActionController::TestCase
     assert_response :success
   end
 
-  test "should get country_distribution with geo chart" do
+  test "country distribution renders map chart only" do
     get :country_distribution
     assert_response :success
     assert_includes @response.body, "country-distribution-chart"
-    assert_includes @response.body, "Chartkick"
-    assert_includes @response.body, "GeoChart"
+    assert_includes @response.body, "drawCountryGeoChart"
+    assert_includes @response.body, "country-distribution-chart-data"
     assert_includes @response.body, "gstatic.com/charts/loader.js"
+    assert_select "h1.stats-chart-title", text: "Companies by Country"
+    assert_not_includes @response.body, "drawRegionCountrySunburstChart"
+  end
+
+  test "country distribution redirects legacy regions view" do
+    get :country_distribution, params: { view: "regions" }
+    assert_redirected_to statistics_companies_by_region_path
+  end
+
+  test "companies by region renders sankey chart" do
+    get :companies_by_region
+    assert_response :success
+    assert_includes @response.body, "companies-by-region-chart"
+    assert_includes @response.body, "companies-by-region-data"
+    assert_includes @response.body, "drawRegionCountrySankeyChart"
+    assert_includes @response.body, "type: \"sankey\""
+    assert_includes @response.body, "echarts@5.5.1/dist/echarts.min.js"
+    assert_select "h1.stats-chart-title", text: "Companies by Region"
+    assert assigns(:region_sankey_data).present?
+    assert_equal "All companies", assigns(:region_sankey_data)[:nodes].first[:name]
+    assert assigns(:region_sankey_data)[:links].present?
+    assert assigns(:region_sankey_data)[:links].any? { |link| link[:source] == "All companies" }
+  end
+
+  test "funding by region renders funding sunburst chart" do
+    get :funding_by_region
+    assert_response :success
+    assert_includes @response.body, "funding-by-region-chart"
+    assert_includes @response.body, "funding-by-region-data"
+    assert_select "h1.stats-chart-title", text: "Disclosed Funding by Region"
+    assert_equal "Disclosed funding", assigns(:region_sunburst_tree)[:name]
   end
 
   test "should get total_companies cumulative view" do
     get :total_companies
     assert_response :success
+    assert_select ".stats-chart-nav .stats-chart-nav-prev .stats-chart-nav-title", text: "Revenue Model Insights"
+    assert_select ".stats-chart-nav .stats-chart-nav-next .stats-chart-nav-title", text: "Companies by Country"
+    assert_select ".stats-page-back", count: 0
+  end
+
+  test "total_companies all time redirects to default range" do
+    get :total_companies_all_time
+    assert_redirected_to statistics_total_companies_path
+
+    get :total_companies_all_time, params: { view: "annual" }
+    assert_redirected_to statistics_total_companies_path(view: "annual")
   end
 
   test "should get total_companies annual view" do
@@ -116,31 +162,14 @@ class StaticPagesControllerTest < ActionController::TestCase
     assert_includes @response.body, "stats-methodology"
   end
 
-  test "funding page includes disclosed funding caveat" do
-    get :funding_by_category
-    assert_response :success
-    assert_includes @response.body, "disclosed venture capital"
-  end
-
-  test "country distribution includes geo navigation" do
-    get :country_distribution
-    assert_response :success
-    assert_includes @response.body, "Innovation hubs"
-    assert_includes @response.body, "stats-geo-nav"
-  end
-
   test "should get category_evolution_5_years with cumulative line chart" do
     get :category_evolution_5_years
     assert_response :success
     assert_includes @response.body, "category-evolution-chart"
     assert_includes @response.body, "LineChart"
-    assert_includes @response.body, "Top 8 categories"
-  end
-
-  test "should get category_evolution_5_years with all categories" do
-    get :category_evolution_5_years, params: { categories: "all" }
-    assert_response :success
-    assert_includes @response.body, "All categories"
+    assert_select "h1.stats-chart-title", text: "Companies by Category (Cumulative)"
+    assert_select ".stats-category-filter-checkbox", minimum: 1
+    assert_equal assigns(:table_data).size, assigns(:chart_series).size
   end
 
   test "should get tag_distribution with column chart" do

@@ -1,0 +1,9 @@
+/ locals: neighbors
+- if neighbors.present?
+    .stats-chart-nav
+        = link_to neighbors[:prev][:path], class: "stats-chart-nav-link stats-chart-nav-prev", aria: { label: "Previous: #{neighbors[:prev][:title]}" } do
+            i.fas.fa-arrow-left.stats-chart-nav-icon aria-hidden="true"
+            span.stats-chart-nav-title= neighbors[:prev][:title]
+        = link_to neighbors[:next][:path], class: "stats-chart-nav-link stats-chart-nav-next", aria: { label: "Next: #{neighbors[:next][:title]}" } do
+            span.stats-chart-nav-title= neighbors[:next][:title]
+            i.fas.fa-arrow-right.stats-chart-nav-icon aria-hidden="true"

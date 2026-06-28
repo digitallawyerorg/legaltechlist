@@ -1,13 +1,25 @@
-- content_for :title, "Category Evolution"
+- content_for :title, "Companies by Category (Cumulative)"
 - content_for :description, "Cumulative growth of legal tech companies by category since 2000, based on visible CodeX TechIndex profiles."
 - chart_id = "category-evolution-chart"
-- year_range = "2000 – #{Date.current.year}"
-- limit_8_path = statistics_category_evolution_5_years_path(categories: 8)
-- limit_12_path = statistics_category_evolution_5_years_path(categories: 12)
-- limit_all_path = statistics_category_evolution_5_years_path(categories: "all")
 - view_dropdown_html = capture do
-    = render partial: "shared/stats_category_limit_dropdown", locals: { current_limit: @category_limit, limit_8_url: limit_8_path, limit_12_url: limit_12_path, limit_all_url: limit_all_path }
+    = render partial: "shared/stats_category_filter_dropdown", locals: { categories: @table_data, chart_id: chart_id }
 - table_html = capture do
-    = render partial: "shared/data_table", locals: { headers: ["Category", "Total Companies", "Growth Rate", "Market Share"], rows: @summary_data.map { |data| [data[:category], data[:total_companies], content_tag(:span, class: growth_rate_class(data[:growth_rate])) { growth_rate_content(data[:growth_rate]) }, "#{data[:market_share].round(1)}%"] } }
-- chart_html = line_chart(@chart_series.map { |d| { name: d[:category], data: d[:yearly_data].sort.map { |year, count| [year, count] } } }, height: 620, colors: ["#8c1515", "#175e54", "#2986cc", "#8e5fa2", "#d55e00", "#37a4a6", "#5a865a", "#ae6a59", "#5b9bd5", "#6b6b8d", "#c67171", "#820000"], library: { plugins: { legend: { position: "bottom" } }, scales: { x: { grid: { display: true, drawBorder: false }, ticks: { font: { size: 12 }, maxRotation: 0 } }, y: { min: 0, grid: { display: true, drawBorder: false }, ticks: { font: { size: 12 } } } }, interaction: { intersect: false, mode: "index" } }, id: chart_id)
-= render partial: "shared/stats_chart_page", locals: { title: "Category Evolution", subtitle: "Cumulative companies by category (#{year_range})", chart: chart_html, table: table_html, chart_id: chart_id, download_filename: "category_evolution", csv_path: download_category_evolution_5_years_path(format: :csv), view_dropdown: view_dropdown_html, table_title: "Category breakdown" }
+    .table-responsive
+        table.table.table-hover.align-middle
+            thead
+                tr
+                    th Category
+                    th Total Companies
+                    th Growth Rate
+                    th Market Share
+            tbody
+                - @summary_data.each_with_index do |data, index|
+                    tr data-category-row=index
+                        td= data[:category]
+                        td= data[:total_companies]
+                        td
+                            span class=growth_rate_class(data[:growth_rate])
+                                = growth_rate_content(data[:growth_rate])
+                        td= "#{data[:market_share].round(1)}%"
+- chart_html = line_chart(@chart_series.map { |d| { name: d[:category], data: d[:yearly_data].sort.map { |year, count| [year, count] } } }, height: 620, colors: @chart_colors, library: { plugins: { legend: { position: "bottom" } }, scales: { x: { grid: { display: true, drawBorder: false }, ticks: { font: { size: 12 }, maxRotation: 0 } }, y: { min: 0, grid: { display: true, drawBorder: false }, ticks: { font: { size: 12 } } } }, interaction: { intersect: false, mode: "index" } }, id: chart_id)
+= render partial: "shared/stats_chart_page", locals: { title: "Companies by Category (Cumulative)", chart: chart_html, table: table_html, chart_id: chart_id, download_filename: "category_evolution", csv_path: download_category_evolution_5_years_path(format: :csv), view_dropdown: view_dropdown_html, table_title: "Category breakdown" }

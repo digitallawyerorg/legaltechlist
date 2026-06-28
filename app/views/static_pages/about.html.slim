@@ -1,85 +1,219 @@
-.bg-body-tertiary.border-bottom
-    - content_for :title, "About"
-    - content_for :description, "About the CodeX TechIndex — Stanford CodeX's curated legal technology company database, data sources, contributors, and mission since 2015."
-    .container.py-3
-        .mb-0
-            .fs-2 About
-        p.text-secondary Explore a curated list of #{Company.count} companies changing the way legal is done
+css:
+    .about-page {
+        color: #241f1a;
+        display: flex;
+        flex: 1;
+        flex-direction: column;
+        min-height: 100%;
+        padding-bottom: 3.5rem;
+    }
 
-    .container.py-4
+    .about-page .about-container {
+        flex: 1;
+        max-width: 980px;
+    }
+
+    .about-page .about-hero {
+        margin-bottom: 2.5rem;
+    }
+
+    .about-page .about-title {
+        color: #2b2926;
+        font-family: edict, "edict Fallback", Georgia, Cambria, "Times New Roman", Times, serif;
+        font-size: clamp(2rem, 4vw, 2.75rem);
+        font-weight: 500;
+        letter-spacing: -0.02em;
+        line-height: 1.05;
+        margin-bottom: 0.65rem;
+    }
+
+    .about-page .about-lead {
+        color: #3f3933;
+        font-family: edict, "edict Fallback", Georgia, Cambria, "Times New Roman", Times, serif;
+        font-size: 1.08rem;
+        line-height: 1.65;
+        margin: 0;
+    }
+
+    .about-page .about-section {
+        margin-bottom: 2.75rem;
+    }
+
+    .about-page .about-section-label {
+        color: #8b8379;
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        margin-bottom: 0.85rem;
+        text-transform: uppercase;
+    }
+
+    .about-page .about-section-intro {
+        color: #3f3933;
+        font-size: 0.94rem;
+        line-height: 1.65;
+        margin: 0 0 1rem;
+    }
+
+    .about-page .about-section-intro:last-child {
+        margin-bottom: 0;
+    }
+
+    .about-page .about-link {
+        color: #8c1515;
+        font-weight: 600;
+        text-decoration: none;
+    }
+
+    .about-page .about-link:hover {
+        color: #6f1111;
+        text-decoration: underline;
+    }
+
+    .about-page .about-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        margin-top: 1rem;
+    }
+
+    .about-page .about-action {
+        align-items: center;
+        background: #8c1515;
+        border: 1px solid #8c1515;
+        border-radius: 0.65rem;
+        color: #fff;
+        display: inline-flex;
+        font-size: 0.88rem;
+        font-weight: 700;
+        gap: 0.45rem;
+        padding: 0.72rem 1rem;
+        text-decoration: none;
+    }
+
+    .about-page .about-action:hover {
+        background: #6f1111;
+        border-color: #6f1111;
+        color: #fff;
+    }
+
+    .about-page .about-action-secondary {
+        background: #fff;
+        border-color: #ded7ca;
+        color: #3f3933;
+    }
+
+    .about-page .about-action-secondary:hover {
+        background: #f0ebe3;
+        border-color: #cfc7ba;
+        color: #2b2926;
+    }
+
+    .about-page .about-table-wrap {
+        border: 1px solid #e1dccf;
+        border-radius: 0.85rem;
+        overflow-x: auto;
+    }
+
+    .about-page .about-table {
+        border-collapse: collapse;
+        font-size: 0.88rem;
+        line-height: 1.5;
+        margin: 0;
+        min-width: 520px;
+        width: 100%;
+    }
+
+    .about-page .about-table th {
+        background: #f0ebe3;
+        border-bottom: 1px solid #e1dccf;
+        color: #2b2926;
+        font-size: 0.78rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        padding: 0.75rem 1rem;
+        text-align: left;
+        text-transform: uppercase;
+        vertical-align: top;
+    }
+
+    .about-page .about-table td {
+        border-bottom: 1px solid #ece7de;
+        color: #3f3933;
+        padding: 0.85rem 1rem;
+        vertical-align: top;
+    }
+
+    .about-page .about-table tbody tr:last-child td {
+        border-bottom: none;
+    }
+
+    .about-page .about-table .contributor-name {
+        color: #2b2926;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    .about-page .about-disclaimer {
+        color: #3f3933;
+        font-size: 0.94rem;
+        line-height: 1.65;
+        margin: 0;
+    }
+
+- content_for :title, "About"
+- content_for :description, "About the CodeX TechIndex: Stanford CodeX's curated legal technology company database, data sources, contributors, and mission since 2015."
+- company_count = number_with_delimiter(visible_company_count)
+
+.about-page
+    .container.about-container.py-4.py-lg-5
         - if flash[:notice]
             .alert.alert-success.mb-4= flash[:notice]
 
-        .row.g-4
-            .col-md-12
-                .card.border
-                    .card-body
-                        h3.mb-4 About tech.law.stanford.edu
-                        p.mb-4
-                            | tech.law.stanford.edu is a comprehensive database of legal technology companies, managed by 
-                            = link_to "CodeX, the Stanford Center for Legal Informatics", "https://law.stanford.edu/codex-the-stanford-center-for-legal-informatics/", target: "_blank", class: "text-decoration-none"
-                            | . It serves the legal tech community with data from CodeX, 
-                            = link_to "Legal.io", "https://www.legal.io", target: "_blank", class: "text-decoration-none"
-                            | , 
-                            = link_to "Crunchbase", "https://www.crunchbase.com", target: "_blank", class: "text-decoration-none"
-                            | , 
-                            = link_to "AngelList", "https://www.angel.co", target: "_blank", class: "text-decoration-none"
-                            | , 
-                            = link_to "LinkedIn", "https://www.linkedin.com", target: "_blank", class: "text-decoration-none"
-                            | , 
-                            = link_to "Wikipedia", "https://www.wikipedia.com", target: "_blank", class: "text-decoration-none"
-                            | , and user contributions.
+        header.about-hero
+            h1.about-title About the CodeX TechIndex
+            p.about-lead A curated research database of legal technology companies by CodeX, the Stanford Center for Legal Informatics.
 
-                        p.mb-4
-                            | Established in 2015, tech.law.stanford.edu was initiated by CodeX Fellow Pieter Gunst. It evolved from Code = Law, a Stanford Law student group focused on law and technology.
+        section.about-section
+            .about-section-label The project
+            p.about-section-intro
+                | The CodeX TechIndex tracks #{company_count} legal-technology companies with profiles, taxonomy, and public statistics on ecosystem growth, geography, funding, and market segments.
+            p.about-section-intro
+                | The index began in 2015 as a CodeX research project led by CodeX Fellow Pieter Gunst. It grew out of Code = Law, a Stanford Law student group where members learned to build software and explore real-world legal technology applications.
+            p.about-section-intro
+                | For field definitions, classification rules, and citation examples, see the
+                = link_to " data methodology", statistics_methodology_path, class: "about-link"
+                | .
 
-                        .d-flex.gap-3.mb-4
-                            = link_to feed_path(format: :rss), class: "text-decoration-none" do
-                                i.fa.fa-rss.me-2
-                                | RSS Feed
-                            = link_to "https://github.com/digitallawyer/legaltechlist", target: "_blank", class: "text-decoration-none" do
-                                i.fa.fa-github.me-2
-                                | GitHub Repository
+        section.about-section
+            .about-section-label Contribute
+            p.about-section-intro Help keep the directory current by suggesting missing companies or corrections.
+            .about-actions
+                = link_to new_company_path, class: "about-action" do
+                    i.fa.fa-plus aria-hidden="true"
+                    | Submit a company
+                = link_to companies_path, class: "about-action about-action-secondary" do
+                    i.fa.fa-search aria-hidden="true"
+                    | Browse companies
 
-                        hr.mb-4
+        section.about-section
+            .about-section-label Contributors
+            p.about-section-intro People who have helped build and maintain the TechIndex over the years.
+            .about-table-wrap
+                table.about-table
+                    thead
+                        tr
+                            th Name
+                            th Role
+                            th Profile
+                    tbody
+                        - about_contributors.each do |contributor|
+                            tr
+                                td.contributor-name= contributor[:name]
+                                td= about_contributor_role(contributor)
+                                td
+                                    = link_to "LinkedIn", about_linkedin_url(contributor[:linkedin]), target: "_blank", rel: "noopener", class: "about-link"
 
-                        h3.mb-4 Contribute
-                        p.mb-4 Help us maintain the most comprehensive database of legal technology companies:
-
-                        .d-grid.gap-2.d-md-block
-                            = link_to new_company_path, class: "btn btn-primary me-2" do
-                                i.fa.fa-plus.me-2
-                                | Submit a Company
-                            = link_to companies_path, class: "btn btn-outline-secondary" do
-                                i.fa.fa-search.me-2
-                                | Browse Companies
-
-            .col-md-12
-                .card.border
-                    .card-body
-                        h3.mb-4 Contributors
-                        .row.g-4
-                            - contributors = [  { name: "Pieter Gunst", role: "CodeX Fellow / Co-Founder of Legal.io", linkedin: "pietergunst", image: "" },
-                                { name: "Kevin Xu", role: "Code = Law Participant", linkedin: "kevinsxu", image: "" },
-                                { name: "Sam Schroeder", role: "Code = Law Participant", linkedin: "sambchroeder", image: "" },
-                                { name: "Elizabeth Lowell", role: "Code = Law Participant", linkedin: "elizabeth-lowell-43393911", image: "" },
-                                { name: "Mark Evans", role: "CodeX Fellow", linkedin: "markharrisevans", image: "evans.jpg" },
-                                { name: "David Curle", role: "Thomson Reuters", linkedin: "david-curle-6a56", image: "" },
-                                { name: "Bob Ambrogi", role: "Lawyer, media and technology professional", linkedin: "robertambrogi", image: "" },
-                                { name: "Patrick Haede", role: "Intern at CodeX", linkedin: "patrickhaede", image: "" },
-                                { name: "Taylor Famighetti", role: "Intern at CodeX", linkedin: "taylor-famighetti-06456083", image: "" },
-                                { name: "Paul Blizzard", role: "Visiting Student Researcher at CodeX", linkedin: "paulblizzard", image: "blizzard.jpg" } ]
-
-                            - contributors.each do |contributor|
-                                .col-md-4.text-center
-                                    = image_tag "", class: "rounded-circle mb-3", style: "width: 120px; height: 120px; object-fit: cover;"
-                                    h5.mb-1= contributor[:name]
-                                    p.text-secondary.mb-2= contributor[:role]
-                                    = link_to "https://www.linkedin.com/in/#{contributor[:linkedin]}", target: "_blank", class: "text-decoration-none" do
-                                        i.fab.fa-linkedin.fa-lg
-
-            .col-md-12
-                .card.border
-                    .card-body
-                        h3.mb-4 Disclaimer
-                        p.mb-0 The companies and services listed in this database are provided for informational purposes only and are not endorsed by CodeX, Stanford Law School, or Stanford University.
+        section.about-section
+            .about-section-label Disclaimer
+            p.about-disclaimer The companies and services listed in this database are provided for informational purposes only and are not endorsed by CodeX, Stanford Law School, or Stanford University. Info may be out of date.

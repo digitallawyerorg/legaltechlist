@@ -1,0 +1,140 @@
+/ locals: chart_id, tree, data_script_id (optional), tooltip_mode (optional: count or currency)
+- data_script_id ||= "region-sunburst-data"
+- tooltip_mode ||= "count"
+.stats-sunburst-wrap
+    div.stats-region-sunburst id=chart_id data-geo-chart-type="sunburst" data-sunburst-tooltip=tooltip_mode style="height:620px; width:100%;"
+script type="application/json" id=data_script_id
+  == tree.to_json
+script type="text/javascript" data-turbo-eval="true"
+  |
+    (function() {
+        var chartId = "#{chart_id}";
+        var dataScriptId = "#{data_script_id}";
+        var tooltipMode = "#{tooltip_mode}";
+
+        function ensureEcharts(callback) {
+            if (window.echarts) {
+                callback();
+                return;
+            }
+
+            window.statsEchartsCallbacks = window.statsEchartsCallbacks || [];
+            window.statsEchartsCallbacks.push(callback);
+
+            if (window.statsEchartsLoading) return;
+
+            window.statsEchartsLoading = true;
+            var script = document.createElement("script");
+            script.src = "https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js";
+            script.onload = function() {
+                window.statsEchartsLoading = false;
+                var callbacks = window.statsEchartsCallbacks || [];
+                window.statsEchartsCallbacks = [];
+                callbacks.forEach(function(cb) { cb(); });
+            };
+            script.onerror = function() {
+                window.statsEchartsLoading = false;
+                window.statsEchartsCallbacks = [];
+            };
+            document.head.appendChild(script);
+        }
+
+        function sunburstSize(chartNode) {
+            var width = chartNode.clientWidth || (chartNode.parentElement && chartNode.parentElement.clientWidth) || 920;
+            var height = chartNode.clientHeight || parseInt(chartNode.style.height, 10) || 620;
+            return { width: Math.max(width, 320), height: Math.max(height, 480) };
+        }
+
+        function formatSunburstValue(value) {
+            if (tooltipMode === "currency") {
+                return "$" + value.toLocaleString(undefined, { maximumFractionDigits: 0 });
+            }
+
+            return value.toLocaleString() + " companies";
+        }
+
+        function sunburstOption(tree) {
+            var labelStyle = {
+                show: true,
+                color: "#fff",
+                textBorderColor: "rgba(42, 39, 35, 0.85)",
+                textBorderWidth: 2,
+                fontWeight: 500
+            };
+
+            return {
+                color: ["#8c1515", "#b83a4b", "#820000", "#175e54", "#544948", "#006b81", "#c94141", "#e65757", "#f3e1e1"],
+                series: [{
+                    type: "sunburst",
+                    data: [tree],
+                    radius: ["8%", "96%"],
+                    nodeClick: "rootToNode",
+                    sort: "desc",
+                    itemStyle: { borderWidth: 1, borderColor: "#fff" },
+                    label: Object.assign({}, labelStyle, { rotate: "radial" }),
+                    emphasis: {
+                        focus: "ancestor",
+                        label: Object.assign({}, labelStyle, { fontSize: 12, fontWeight: 600 })
+                    },
+                    levels: [
+                        {},
+                        {
+                            r0: "8%",
+                            r: "38%",
+                            label: Object.assign({}, labelStyle, { rotate: 0, align: "center", fontSize: 13, minAngle: 3 })
+                        },
+                        {
+                            r0: "38%",
+                            r: "96%",
+                            label: Object.assign({}, labelStyle, { rotate: "radial", fontSize: 11, minAngle: 12 })
+                        }
+                    ]
+                }],
+                tooltip: {
+                    trigger: "item",
+                    formatter: function(params) {
+                        var value = params.value || 0;
+                        var depth = (params.treePathInfo || []).length;
+                        var hint = depth === 2 ? "<br><span style=\"opacity:0.8;font-size:11px;\">Click to zoom in</span>" : "";
+                        return params.name + ": " + formatSunburstValue(value) + hint;
+                    }
+                }
+            };
+        }
+
+        function drawRegionCountrySunburstChart() {
+            var chartNode = document.getElementById(chartId);
+            var dataNode = document.getElementById(dataScriptId);
+            if (!chartNode || !dataNode || chartNode.dataset.geoChartType !== "sunburst") return;
+
+            ensureEcharts(function() {
+                if (!window.echarts) return;
+
+                var tree;
+                try {
+                    tree = JSON.parse(dataNode.textContent);
+                } catch (error) {
+                    return;
+                }
+
+                if (window.statsGeoCharts && window.statsGeoCharts[chartId] && typeof window.statsGeoCharts[chartId].dispose === "function") {
+                    window.statsGeoCharts[chartId].dispose();
+                }
+
+                var size = sunburstSize(chartNode);
+                var chart = window.echarts.init(chartNode, null, { renderer: "canvas", width: size.width, height: size.height });
+                chart.setOption(sunburstOption(tree));
+
+                window.statsGeoCharts = window.statsGeoCharts || {};
+                window.statsGeoCharts[chartId] = chart;
+            });
+        }
+
+        window.drawRegionCountrySunburst = drawRegionCountrySunburstChart;
+
+        if (document.readyState === "loading") {
+            document.addEventListener("DOMContentLoaded", drawRegionCountrySunburstChart);
+        } else {
+            window.requestAnimationFrame(drawRegionCountrySunburstChart);
+        }
+    })();

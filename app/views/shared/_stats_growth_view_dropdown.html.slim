@@ -2,14 +2,13 @@
 .dropdown
     button.stats-export-btn.dropdown-toggle type="button" data-bs-toggle="dropdown" aria-expanded="false"
         - if current_view == "annual"
-            | Founded by year
+            | Total Companies (By Year)
         - else
-            | Cumulative growth
-        i.fas.fa-chevron-down.ms-1 style="font-size:0.65rem"
+            | Total Companies (Cumulative)
     ul.dropdown-menu.dropdown-menu-end
         li
             = link_to cumulative_url, class: "dropdown-item #{'active' if current_view != 'annual'}" do
-                | Cumulative growth
+                | Total Companies (Cumulative)
         li
             = link_to annual_url, class: "dropdown-item #{'active' if current_view == 'annual'}" do
-                | Founded by year
+                | Total Companies (By Year)

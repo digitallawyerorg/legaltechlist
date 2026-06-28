@@ -1,0 +1,96 @@
+/ locals: categories, chart_id
+.dropdown.stats-category-filter-dropdown data-chart-id=chart_id data-total-categories=categories.size
+    button.stats-export-btn.dropdown-toggle type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false"
+        span.stats-category-filter-toggle-label All categories
+    .dropdown-menu.dropdown-menu-end.stats-category-filter-menu
+        .stats-category-filter-list
+            - categories.each_with_index do |row, index|
+                .stats-category-filter-item
+                    label.stats-category-filter-label
+                        = check_box_tag "category_filter_#{index}", row[:category], true, class: "form-check-input stats-category-filter-checkbox", id: "category-filter-#{row[:category].parameterize}", data: { category_index: index, category_name: row[:category] }
+                        span= row[:category]
+        .stats-category-filter-actions
+            button.stats-category-filter-reset type="button" Show all
+javascript:
+    (function() {
+        function categoryFilterLabel(checkedCount, totalCount) {
+            if (checkedCount === totalCount) return "All categories";
+            return checkedCount + " categories";
+        }
+
+        function syncCategoryFilter(chartId) {
+            let dropdown = document.querySelector('.stats-category-filter-dropdown[data-chart-id="' + chartId + '"]');
+            if (!dropdown) return;
+
+            let checkboxes = dropdown.querySelectorAll(".stats-category-filter-checkbox");
+            let checkedCount = dropdown.querySelectorAll(".stats-category-filter-checkbox:checked").length;
+            let totalCount = parseInt(dropdown.dataset.totalCategories, 10) || checkboxes.length;
+            let label = categoryFilterLabel(checkedCount, totalCount);
+
+            let chartkickChart = window.Chartkick && Chartkick.charts && Chartkick.charts[chartId];
+            let chart = chartkickChart && chartkickChart.getChartObject && chartkickChart.getChartObject();
+            if (chart) {
+                checkboxes.forEach(function(checkbox) {
+                    let datasetIndex = parseInt(checkbox.dataset.categoryIndex, 10);
+                    if (!Number.isNaN(datasetIndex)) {
+                        chart.setDatasetVisibility(datasetIndex, checkbox.checked);
+                    }
+                });
+                chart.update();
+            }
+
+            document.querySelectorAll('[data-category-row]').forEach(function(row) {
+                let index = row.getAttribute("data-category-row");
+                let checkbox = dropdown.querySelector('.stats-category-filter-checkbox[data-category-index="' + index + '"]');
+                row.style.display = checkbox && checkbox.checked ? "" : "none";
+            });
+
+            let filterLabel = dropdown.querySelector(".stats-category-filter-toggle-label");
+            if (filterLabel) filterLabel.textContent = label;
+        }
+
+        function bindCategoryFilterMenus() {
+            document.querySelectorAll(".stats-category-filter-dropdown:not([data-bound])").forEach(function(dropdown) {
+                dropdown.dataset.bound = "true";
+                let chartId = dropdown.dataset.chartId;
+                let menu = dropdown.querySelector(".stats-category-filter-menu");
+                if (!menu) return;
+
+                menu.addEventListener("click", function(event) {
+                    event.stopPropagation();
+                });
+
+                dropdown.querySelectorAll(".stats-category-filter-checkbox").forEach(function(checkbox) {
+                    checkbox.addEventListener("change", function() {
+                        if (dropdown.querySelectorAll(".stats-category-filter-checkbox:checked").length === 0) {
+                            checkbox.checked = true;
+                            return;
+                        }
+                        syncCategoryFilter(chartId);
+                    });
+                });
+
+                let resetButton = dropdown.querySelector(".stats-category-filter-reset");
+                if (resetButton) {
+                    resetButton.addEventListener("click", function() {
+                        dropdown.querySelectorAll(".stats-category-filter-checkbox").forEach(function(box) {
+                            box.checked = true;
+                        });
+                        syncCategoryFilter(chartId);
+                    });
+                }
+            });
+        }
+
+        function refreshCategoryFilters() {
+            bindCategoryFilterMenus();
+            document.querySelectorAll(".stats-category-filter-dropdown[data-chart-id]").forEach(function(dropdown) {
+                syncCategoryFilter(dropdown.dataset.chartId);
+            });
+        }
+
+        document.addEventListener("turbo:load", refreshCategoryFilters);
+        document.addEventListener("turbo:render", refreshCategoryFilters);
+        document.addEventListener("chartkick:load", refreshCategoryFilters);
+        refreshCategoryFilters();
+    })();

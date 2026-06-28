@@ -1,0 +1,30 @@
+- content_for :title, "Companies by Region"
+- content_for :description, "Legal tech companies grouped by innovation hub region and headquarters country in the CodeX TechIndex."
+- chart_id = "companies-by-region-chart"
+- chart_html = render partial: "shared/stats_region_country_sankey", locals: { chart_id: chart_id, sankey: @region_sankey_data, data_script_id: "companies-by-region-data", tooltip_mode: "count" }
+- table_html = capture do
+    .table-responsive
+        table.table.table-hover.align-middle
+            thead
+                tr
+                    th Region
+                    th Country
+                    th.text-end Companies
+                    th.text-end Total Funding
+                    th.text-end Avg Funding
+            tbody
+                - @region_table_data.each do |region_data|
+                    tr.stats-region-row
+                        td.fw-semibold= region_data[:region]
+                        td.text-muted —
+                        td.text-end.fw-semibold= number_with_delimiter(region_data[:companies])
+                        td.text-end.fw-semibold= number_to_currency(region_data[:total_funding], precision: 0)
+                        td.text-end.fw-semibold= number_to_currency(region_data[:avg_funding], precision: 0)
+                    - region_data[:countries].each do |country_data|
+                        tr
+                            td
+                            td= country_data[:country]
+                            td.text-end= number_with_delimiter(country_data[:companies])
+                            td.text-end= number_to_currency(country_data[:total_funding], precision: 0)
+                            td.text-end= number_to_currency(country_data[:avg_funding], precision: 0)
+= render partial: "shared/stats_chart_page", locals: { title: "Companies by Region", chart: chart_html, table: table_html, chart_id: chart_id, download_filename: "companies_by_region", csv_path: statistics_companies_by_region_path(format: :csv), xlsx_path: statistics_companies_by_region_path(format: :xlsx), table_title: "Region and country breakdown", show_funding_caveat: true }

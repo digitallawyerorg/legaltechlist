@@ -11,6 +11,7 @@ footer.footer.public-footer
                     li= link_to "Companies", companies_path
                     li= link_to "Statistics", statistics_path
                     li= link_to "About", about_path
+                    li= link_to "RSS feed", feed_path(format: :rss)
         .public-footer-bottom
             .public-footer-bottom-row
                 div © #{Time.current.year} Stanford Center for Legal Informatics

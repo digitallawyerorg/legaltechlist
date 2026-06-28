@@ -1,16 +1,13 @@
 = render partial: "shared/stats_styles"
 .stats-page
     .stats-page-inner
-        = link_to statistics_path, class: "stats-page-back" do
-            i.fas.fa-arrow-left
-            | All statistics
         .stats-chart-card
             .stats-chart-header
-                div
-                    h1.stats-chart-title Funding Efficiency
-                    p.stats-chart-subtitle Capital utilization across segments
-                .stats-chart-controls
-                    = render partial: "shared/stats_export_dropdown", locals: { csv_path: download_funding_efficiency_path(format: :csv) }
+                .stats-chart-header-row
+                    .stats-chart-heading
+                        h1.stats-chart-title Funding Efficiency
+                    .stats-chart-controls
+                        = render partial: "shared/stats_export_dropdown", locals: { csv_path: download_funding_efficiency_path(format: :csv) }
             .stats-chart-body
                 h2.stats-table-title.mb-3 Efficiency Scores by Category
                 = bar_chart @efficiency_scores, height: 400, colors: ["#8c1515"], library: { scales: { y: { beginAtZero: true, max: 100, title: { display: true, text: "Efficiency Score" } } } }
