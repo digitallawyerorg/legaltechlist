@@ -307,6 +307,16 @@ class CustomAdminTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "h1", "Edit #{company.name}"
 
+    compound_target_client = TargetClient.create!(name: "Corporate Legal, Law Firms", description: "Legacy compound")
+    compound_revenue_model = BusinessModel.create!(name: "Subscription, Services", description: "Legacy compound")
+    get edit_custom_admin_company_path(company)
+    checkbox_labels = css_select("label.form-check-label").map(&:text)
+    refute_includes checkbox_labels, compound_target_client.name
+    refute_includes checkbox_labels, compound_revenue_model.name
+    refute checkbox_labels.any? { |label| label.include?(",") }, "expected no combinatorial checkbox labels"
+    assert_equal BusinessModel.canonical.order(:name).pluck(:name), checkbox_labels & BusinessModel.canonical.pluck(:name)
+    assert_equal TargetClient.canonical.order(:name).pluck(:name), checkbox_labels & TargetClient.canonical.pluck(:name)
+
     patch custom_admin_company_path(company), params: { company: { name: "Custom Managed Company", description: company.description, main_url: company.main_url, visible: company.visible, category_id: company.category_id, business_model_id: company.business_model_id, target_client_id: company.target_client_id, secondary_category_id: company.secondary_category_id } }
     assert_redirected_to custom_admin_company_review_path(company)
     assert_equal "Custom Managed Company", company.reload.name
@@ -439,6 +449,32 @@ class CustomAdminTest < ActionDispatch::IntegrationTest
     assert_equal "published", proposal.status
     assert_equal "Review Proposal", company.name
     assert_equal reviewed_description, company.description
+  end
+
+  test "proposal edit shows canonical revenue model and target client checkboxes only" do
+    sign_in admin_users(:one)
+    proposal = CompanyProposal.create!(
+      status: "pending",
+      proposal_type: "atlas_candidate",
+      source: "legaltechatlas_csv",
+      source_identifier: "edit-form.example",
+      source_payload: { "name" => "Edit Form Proposal", "website" => "https://edit-form.example" },
+      proposed_changes: { "name" => "Edit Form Proposal", "main_url" => "https://edit-form.example" },
+      final_changes: { "name" => "Edit Form Proposal", "main_url" => "https://edit-form.example" }
+    )
+    compound_target_client = TargetClient.create!(name: "Companies, Corporate Legal, Legal Service Providers", description: "Legacy compound")
+    compound_revenue_model = BusinessModel.create!(name: "Subscription, Services", description: "Legacy compound")
+
+    get edit_custom_admin_company_proposal_path(proposal)
+
+    assert_response :success
+    assert_select "h1", "Edit Edit Form Proposal"
+    checkbox_labels = css_select("label.form-check-label").map(&:text)
+    refute_includes checkbox_labels, compound_target_client.name
+    refute_includes checkbox_labels, compound_revenue_model.name
+    refute checkbox_labels.any? { |label| label.include?(",") }, "expected no combinatorial checkbox labels"
+    assert_equal BusinessModel.canonical.order(:name).pluck(:name), checkbox_labels & BusinessModel.canonical.pluck(:name)
+    assert_equal TargetClient.canonical.order(:name).pluck(:name), checkbox_labels & TargetClient.canonical.pluck(:name)
   end
 
   test "proposal batch action marks selected proposals as needs revision" do

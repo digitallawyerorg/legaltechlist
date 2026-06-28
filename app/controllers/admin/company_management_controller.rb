@@ -22,8 +22,8 @@ module Admin
     def index
       @filters = company_filter_params
       @categories = Category.order(:name)
-      @business_models = BusinessModel.order(:name)
-      @target_clients = TargetClient.order(:name)
+      @business_models = BusinessModel.canonical.order(:name)
+      @target_clients = TargetClient.canonical.order(:name)
       @quality_statuses = Company.where.not(quality_status: [nil, ""]).distinct.order(:quality_status).pluck(:quality_status)
       @review_signal_options = REVIEW_SIGNALS
       @updated_since_options = UPDATED_SINCE_OPTIONS

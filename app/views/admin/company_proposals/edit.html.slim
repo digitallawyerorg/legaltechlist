@@ -53,7 +53,7 @@
                     = label_tag "company_proposal_final_changes_business_model_ids", "Revenue models", class: "form-label"
                     - selected_revenue_model_ids = Array(@final_changes["business_model_ids"]).map(&:to_i).presence || Array(@final_changes["business_model_id"]).map(&:to_i)
                     .row.g-2
-                        - BusinessModel.order(:name).each do |model|
+                        - BusinessModel.canonical.order(:name).each do |model|
                             .col-md-6
                                 .form-check
                                     = check_box_tag "company_proposal[final_changes][business_model_ids][]", model.id, selected_revenue_model_ids.include?(model.id), class: "form-check-input", id: "company_proposal_final_changes_business_model_ids_#{model.id}"
@@ -63,7 +63,7 @@
                     = label_tag "company_proposal_final_changes_target_client_ids", "Target clients", class: "form-label"
                     - selected_target_client_ids = Array(@final_changes["target_client_ids"]).map(&:to_i).presence || Array(@final_changes["target_client_id"]).map(&:to_i)
                     .row.g-2
-                        - TargetClient.order(:name).each do |client|
+                        - TargetClient.canonical.order(:name).each do |client|
                             .col-md-6
                                 .form-check
                                     = check_box_tag "company_proposal[final_changes][target_client_ids][]", client.id, selected_target_client_ids.include?(client.id), class: "form-check-input", id: "company_proposal_final_changes_target_client_ids_#{client.id}"

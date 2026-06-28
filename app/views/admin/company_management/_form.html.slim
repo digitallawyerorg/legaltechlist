@@ -50,18 +50,18 @@
                 .col-12
                     = f.label :business_model_ids, "Revenue models", class: "form-label"
                     .d-flex.flex-wrap.gap-3
-                        - BusinessModel.order(:name).each do |model|
+                        - BusinessModel.canonical.order(:name).each do |model|
                             .form-check
                                 = check_box_tag "company[business_model_ids][]", model.id, @company.business_model_ids.include?(model.id), class: "form-check-input", id: "company_business_model_ids_#{model.id}"
                                 = label_tag "company_business_model_ids_#{model.id}", model.name, class: "form-check-label"
                     = hidden_field_tag "company[business_model_ids][]", ""
                 .col-md-4
                     = f.label :target_client_id, "Primary target client", class: "form-label"
-                    = f.collection_select :target_client_id, TargetClient.order(:name), :id, :name, { include_blank: true }, { class: "form-select" }
+                    = f.collection_select :target_client_id, TargetClient.canonical.order(:name), :id, :name, { include_blank: true }, { class: "form-select" }
                 .col-12
                     = f.label :target_client_ids, "Target clients (multi)", class: "form-label"
                     .d-flex.flex-wrap.gap-3
-                        - TargetClient.order(:name).each do |client|
+                        - TargetClient.canonical.order(:name).each do |client|
                             .form-check
                                 = check_box_tag "company[target_client_ids][]", client.id, @company.target_client_ids.include?(client.id), class: "form-check-input", id: "company_target_client_ids_#{client.id}"
                                 = label_tag "company_target_client_ids_#{client.id}", client.name, class: "form-check-label"
