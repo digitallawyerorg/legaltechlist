@@ -1,11 +1,13 @@
 - show_hero = local_assigns.fetch(:show_hero, true)
 - embedded = local_assigns.fetch(:embedded, false)
 - current_year = Time.current.year
-- industry_trend = stats_industry_focus_trend
+- category_trend = stats_industry_focus_trend
 - ai_trend = stats_ai_trends_trend
 - geo_card_visual = capture { render partial: "shared/stats_index_card_country_bars", locals: { country_rows: stats_region_distribution_preview, bar_color: "#2c4a6e" } }
 - growth_card_visual = capture { render partial: "shared/stats_index_card_vertical_bars", locals: { segments: stats_ecosystem_growth_bar_preview, color: "#8c1515" } }
-- industry_card_visual = capture { render partial: "shared/stats_index_card_area_line", locals: { color: "#8e5fa2", line_path: industry_trend[:line_path], area_path: industry_trend[:area_path], gradient_id: "statsSparkIndustry" } }
+- category_card_visual = capture { render partial: "shared/stats_index_card_area_line", locals: { color: "#8e5fa2", line_path: category_trend[:line_path], area_path: category_trend[:area_path], gradient_id: "statsSparkCategory" } }
+- business_model_card_visual = capture { render partial: "shared/stats_index_card_country_bars", locals: { country_rows: stats_revenue_model_preview, label_width: "5.5rem", bar_color: "#d55e00" } }
+- target_market_card_visual = capture { render partial: "shared/stats_index_card_country_bars", locals: { country_rows: stats_target_client_preview, label_width: "5.5rem", bar_color: "#2986cc" } }
 - funding_card_visual = capture { render partial: "shared/stats_index_card_country_bars", locals: { country_rows: stats_funding_category_preview, label_width: "5.5rem", bar_color: "#5a865a" } }
 - ai_card_visual = capture { render partial: "shared/stats_index_card_area_line", locals: { color: "#820000", line_path: ai_trend[:line_path], area_path: ai_trend[:area_path], gradient_id: "statsSparkAi" } }
 - tags_card_visual = capture { render partial: "shared/stats_index_card_country_bars", locals: { country_rows: stats_tag_distribution_preview, label_width: "5.5rem", bar_color: "#37a4a6" } }
@@ -13,7 +15,9 @@
     .stats-index-grid
         = render partial: "shared/stats_index_card", locals: { path: statistics_total_companies_path, title: "Ecosystem Growth", description: "The headline measure of how the legal tech sector has compounded over time.", meta: "2000 – #{current_year}", visual_html: growth_card_visual }
         = render partial: "shared/stats_index_card", locals: { path: statistics_country_distribution_path, title: "Geographic Distribution", description: "Where legal tech companies are headquartered, by country and region.", meta: "Country & region", visual_html: geo_card_visual }
-        = render partial: "shared/stats_index_card", locals: { path: statistics_category_evolution_5_years_path, title: "Industry Focus", description: "How legal tech companies break down by industry, revenue model, and market focus.", meta: "Industry · revenue · market", visual_html: industry_card_visual }
+        = render partial: "shared/stats_index_card", locals: { path: statistics_category_evolution_5_years_path, title: "Category Focus", description: "Cumulative growth of legal tech companies by category since 2000.", meta: "By category", visual_html: category_card_visual }
+        = render partial: "shared/stats_index_card", locals: { path: statistics_business_model_path, title: "Business Model", description: "How legal tech companies monetize — subscription, services, transaction fees, and other revenue patterns.", meta: "Revenue model", visual_html: business_model_card_visual }
+        = render partial: "shared/stats_index_card", locals: { path: statistics_target_client_path, title: "Target Market", description: "Which client segments legal tech companies serve — law firms, corporations, consumers, and more.", meta: "Target client", visual_html: target_market_card_visual }
         = render partial: "shared/stats_index_card", locals: { path: statistics_funding_by_category_path, title: "Funding", description: "Capital allocation across categories and regions, plus venture stage maturity across the index.", meta: "Category · region · stage", visual_html: funding_card_visual }
         = render partial: "shared/stats_index_card", locals: { path: statistics_ai_trends_path, title: "AI in Legal Tech", description: "Growth in AI-focused legal tech companies founded since 2000.", meta: "Cumulative | By year", visual_html: ai_card_visual }
         = render partial: "shared/stats_index_card", locals: { path: statistics_tag_distribution_path, title: "Technology Themes", description: "The technology tags most commonly applied across companies in the index.", meta: "Ranked by adoption", visual_html: tags_card_visual }
