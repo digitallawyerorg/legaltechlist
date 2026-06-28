@@ -1,10 +1,10 @@
 class TagTaxonomyService
   # Canonical tag roots that duplicate Category, Revenue model, or Target client fields.
-  REDUNDANT_CANONICAL_ROOTS = %w[
-    analytics automation compliance consumers contract management
-    dispute resolution document management intellectual property
-    knowledge management law firms legal research legal tech litigation
-    marketplace online platform practice management saas
+  REDUNDANT_CANONICAL_ROOTS = [
+    "analytics", "automation", "compliance", "consumers", "contract management",
+    "dispute resolution", "document management", "intellectual property",
+    "knowledge management", "law firms", "legal research", "legal tech", "litigation",
+    "marketplace", "online platform", "practice management", "saas"
   ].freeze
 
   def self.canonical_root_names

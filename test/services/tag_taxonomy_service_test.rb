@@ -26,6 +26,6 @@ class TagTaxonomyServiceTest < ActiveSupport::TestCase
   test "filter_assignable keeps only discoverable canonical tags" do
     names = TagTaxonomyService.filter_assignable(["SaaS", "generative ai", "not-a-real-tag", "e-discovery"])
 
-    assert_equal ["generative ai", "e-discovery"], names.sort
+    assert_equal ["e-discovery", "generative ai"], names.sort
   end
 end
