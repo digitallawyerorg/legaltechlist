@@ -33,9 +33,10 @@
                 = link_to companies_path(category: category.id), class: "home-category-card" do
                     .home-category-icon
                         i class="#{category_icon(category.name)}"
-                    div
+                    .home-category-copy
                         .home-category-name= category.name
                         .home-category-count= "#{number_with_delimiter(category_count)} companies"
+                    i.fa.fa-chevron-right.home-category-chevron aria-hidden="true"
 
 .home-section.border-bottom
     .container.py-5
@@ -214,6 +215,11 @@ css:
         width: 2rem;
     }
 
+    .home-category-copy {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+
     .home-category-name {
         color: #1f1b17;
         font-size: 0.86rem;
@@ -225,6 +231,13 @@ css:
         color: #8b8379;
         font-size: 0.76rem;
         margin-top: 0.15rem;
+    }
+
+    .home-category-chevron {
+        color: #cbd5e1;
+        flex: 0 0 auto;
+        font-size: 0.72rem;
+        margin-left: 0.25rem;
     }
 
     .home-about {
