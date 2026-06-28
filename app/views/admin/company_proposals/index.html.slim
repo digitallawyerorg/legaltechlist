@@ -42,38 +42,30 @@
                         - taxonomy_missing = missing & TaxonomyCompleteness::TAXONOMY_FIELD_KEYS
                         - name_dupes = Array(proposal.duplicate_signals["name_matches"]).size
                         - domain_dupes = Array(proposal.duplicate_signals["domain_matches"]).size
-                        - import_run_id = proposal.source_payload["pipeline_run_id"]
                         - issue_chips = []
                         - issue_chips << { label: "Description", tone: "warning" } if missing.include?("description")
                         - issue_chips << { label: "Description review", tone: "warning" } if critic != "pass" && critic != "missing" && !missing.include?("description")
                         - issue_chips << { label: "Taxonomy", tone: "warning" } if taxonomy_missing.any?
                         - issue_chips << { label: "Duplicates", tone: "danger" } if name_dupes.positive? || domain_dupes.positive?
-                        - issue_chips << { label: "Draft ready", tone: "muted" } if proposal.company.present?
+                        - url = proposal.final_changes["main_url"].presence || proposal.source_payload["website"].presence
+                        - type_labels = { "user_suggestion" => "User suggestion", "user_contribution" => "User contribution", "discovery_candidate" => "Discovery" }
+                        - type_label = type_labels[proposal.proposal_type]
+                        - secondary_detail = proposal.user_submission? ? (proposal.submitter_email.presence || url) : url
                         tr
                             td= check_box_tag "proposal_ids[]", proposal.id, false, class: "form-check-input"
                             td.admin-description
-                                = link_to custom_admin_company_proposal_path(proposal), class: "admin-primary-link", aria: { label: "Review #{proposal.display_name}" } do
-                                    .fw-semibold= proposal.display_name
-                                    - url = proposal.final_changes["main_url"].presence || proposal.source_payload["website"].presence
-                                    - if url.present?
-                                        .admin-cell-secondary= truncate(url, length: 48)
-                                    - else
-                                        .admin-cell-secondary Missing website
-                                    - if proposal.submitter_email.present?
-                                        .admin-cell-secondary= proposal.submitter_email
-                                    .d-flex.flex-wrap.gap-1.mt-1
-                                        span.admin-status-pill.text-bg-light= proposal.status.humanize
-                                        - if proposal.user_submission?
-                                            span.admin-status-pill.text-bg-primary= proposal.proposal_type.humanize
-                                        - elsif proposal.proposal_type.present?
-                                            span.admin-status-pill.text-bg-light= proposal.proposal_type.humanize
-                                        - if proposal.issue_type.present?
-                                            span.admin-status-pill.text-bg-light= proposal.issue_type.humanize
-                                        - if import_run_id.present?
-                                            span.admin-status-pill.text-bg-light= "Run ##{import_run_id}"
-                                        - if proposal.company
-                                            = link_to custom_admin_company_review_path(proposal.company), class: "admin-status-pill text-bg-secondary text-decoration-none" do
-                                                | Draft
+                                .d-flex.align-items-center.flex-wrap.gap-2
+                                    = link_to custom_admin_company_proposal_path(proposal), class: "admin-primary-link fw-semibold", aria: { label: "Review #{proposal.display_name}" } do
+                                        = proposal.display_name
+                                    span.admin-status-pill.text-bg-light= proposal.status.humanize
+                                    - if type_label.present?
+                                        span.admin-status-pill.text-bg-secondary= type_label
+                                    - if proposal.company
+                                        = link_to "Draft", custom_admin_company_review_path(proposal.company), class: "small text-muted"
+                                - if secondary_detail.present?
+                                    .small.text-muted= proposal.user_submission? && proposal.submitter_email.present? ? secondary_detail : truncate(secondary_detail.to_s, length: 48)
+                                - elsif !proposal.user_submission?
+                                    .small.text-muted Missing website
                             td.admin-nowrap
                                 span.admin-status-pill(class=(quality["publish_ready"] ? "text-bg-success" : "text-bg-warning"))= "#{quality['score']}%"
                             td
