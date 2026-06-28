@@ -181,6 +181,26 @@ class StatisticsHelperTest < ActiveSupport::TestCase
     assert_equal preview.map { |row| row[:share] }, preview.map { |row| row[:share] }.sort.reverse
   end
 
+  test "stats_compact_funding formats large amounts compactly" do
+    helper = Class.new { include StatisticsHelper }.new
+
+    assert_equal "$1.2B", helper.stats_compact_funding(1_200_000_000)
+    assert_equal "$450M", helper.stats_compact_funding(450_000_000)
+    assert_equal "$0", helper.stats_compact_funding(0)
+  end
+
+  test "stats index meta counts return non-negative values" do
+    helper = Class.new { include StatisticsHelper }.new
+
+    assert_operator helper.stats_index_category_count, :>=, 0
+    assert_operator helper.stats_index_business_model_count, :>=, 0
+    assert_operator helper.stats_index_target_market_count, :>=, 0
+    assert_operator helper.stats_index_total_funding_amount, :>=, 0
+    assert_operator helper.stats_index_funding_country_count, :>=, 0
+    assert_operator helper.stats_index_ai_company_count, :>=, 0
+    assert_operator helper.stats_index_tag_count, :>=, 0
+  end
+
   test "stats_target_client_preview returns top segments and rest" do
     helper = Class.new { include StatisticsHelper }.new
     preview = helper.stats_target_client_preview

@@ -37,7 +37,7 @@ module StatisticsHelper
   STATS_CHART_PAGES = [
     { actions: %w[total_companies], title: "Total Companies", path: :statistics_total_companies_path },
     { actions: %w[country_distribution], title: "Geographic Distribution", path: :statistics_country_distribution_path },
-    { actions: %w[category_evolution_5_years], title: "Category Focus", path: :statistics_category_evolution_5_years_path },
+    { actions: %w[category_evolution_5_years], title: "Category Expansion", path: :statistics_category_evolution_5_years_path },
     { actions: %w[category_evolution_5_years], title: "Business Model", path: :statistics_business_model_path },
     { actions: %w[category_evolution_5_years], title: "Target Market", path: :statistics_target_client_path },
     { actions: %w[funding_by_category], dimension: "category", title: "Funding by Category", path: :statistics_funding_by_category_path },
@@ -384,6 +384,76 @@ module StatisticsHelper
       { label: label, share: total.positive? ? ((count / total) * 100).round : 0 }
     end
     stats_share_preview_rows(rows, top_count: top_count)
+  end
+
+  def stats_compact_funding(amount)
+    amount = amount.to_f
+    return "$0" unless amount.positive?
+
+    if amount >= 1_000_000_000
+      "$#{(amount / 1_000_000_000).round(1).to_s.sub(/\.0$/, '')}B"
+    elsif amount >= 1_000_000
+      "$#{(amount / 1_000_000).round}M"
+    else
+      number_to_currency(amount, precision: 0)
+    end
+  end
+
+  def stats_index_category_count
+    stats_index_scope.joins(:category).where.not(categories: { name: "Unknown" }).distinct.count("categories.id")
+  end
+
+  def stats_index_business_model_count
+    model_names = Set.new
+    stats_index_scope.includes(:business_models, :business_model).find_each do |company|
+      TaxonomyNormalizationService.canonical_revenue_model_names(company.revenue_model_names.join(", ")).each do |model_name|
+        model_names << model_name
+      end
+    end
+    model_names.size
+  end
+
+  def stats_index_target_market_count
+    client_names = Set.new
+    stats_geographic_distribution_scope.includes(:target_client, :target_clients).find_each do |company|
+      company.audience_names.each do |target|
+        next if target.blank? || target == "Unknown"
+
+        client_names << target
+      end
+    end
+    client_names.size
+  end
+
+  def stats_index_total_funding_amount
+    stats_index_scope.where("total_funding_amount_usd > 0").sum(:total_funding_amount_usd).to_f
+  end
+
+  def stats_index_funding_country_count
+    countries = Set.new
+    stats_geographic_distribution_scope.where("total_funding_amount_usd > 0").find_each do |company|
+      country = company.resolved_country
+      countries << country if country.present?
+    end
+    countries.size
+  end
+
+  def stats_index_ai_company_count
+    ai_tags = TagNormalizationService.ai_related_tag_ids
+    Company.joins(:taggings)
+           .where(taggings: { tag_id: ai_tags })
+           .merge(stats_index_scope)
+           .distinct
+           .count
+  end
+
+  def stats_index_tag_count
+    Tag.joins(:companies)
+       .where(companies: { visible: true })
+       .group("LOWER(REGEXP_REPLACE(tags.name, E'\\s+', ' ', 'g'))")
+       .having("COUNT(DISTINCT companies.id) > 8")
+       .count
+       .size
   end
 
   def stats_target_client_preview(top_count: 3)

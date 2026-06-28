@@ -38,9 +38,13 @@ class PublicEntrypointsTest < ActionDispatch::IntegrationTest
     assert_select ".stats-index-card-vertical-bars", minimum: 1
     assert_select ".stats-index-card-country-bars", minimum: 1
     assert_select "svg path[stroke]", minimum: 1
-    ["Ecosystem Growth", "Geographic Distribution", "Category Focus", "Business Model", "Target Market", "Funding by Category", "Funding by Region", "AI in Legal Tech", "Technology Themes"].each do |title|
+    ["Ecosystem Growth", "Geographic Distribution", "Category Expansion", "Business Model", "Target Market", "Funding by Category", "Funding by Region", "AI in Legal Tech", "Technology Themes"].each do |title|
       assert_select ".stats-index-card-title", text: title
     end
+    assert_select ".stats-index-card-desc", text: "Legal tech companies created over time."
+    assert_select ".stats-index-card-meta", text: /From 2000 – \d{4}/
+    assert_select ".stats-index-card-meta", text: /in Funding/
+    assert_select ".stats-index-card-title", text: "Category Focus", count: 0
     assert_select ".stats-index-card-title", text: "Industry Focus", count: 0
     assert_select ".stats-index-card-title", text: "Venture Stage", count: 0
     assert_select ".stats-index-card-title", text: "Funding", count: 0
