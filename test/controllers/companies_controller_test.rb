@@ -204,7 +204,7 @@ class CompaniesControllerTest < ActionController::TestCase
     assert_response :success
     assert_select "nav.company-show-nav"
     assert_select "nav.company-show-nav a.company-show-nav-prev", text: /#{Regexp.escape(companies(:one).name)}/
-    assert_select "nav.company-show-nav a.company-show-nav-next", count: 0
+    assert_select "nav.company-show-nav a.company-show-nav-next[href=?]", company_path(companies(:one), sort: "name_asc")
   end
 
   test "show next link uses default name order for direct visits" do
@@ -212,15 +212,15 @@ class CompaniesControllerTest < ActionController::TestCase
 
     assert_response :success
     assert_select "nav.company-show-nav a.company-show-nav-next[href=?]", company_path(companies(:two), sort: "name_asc")
-    assert_select "nav.company-show-nav a.company-show-nav-prev", count: 0
+    assert_select "nav.company-show-nav a.company-show-nav-prev[href=?]", company_path(companies(:two), sort: "name_asc")
   end
 
-  test "show prev and next stay within active category filter" do
+  test "show prev and next wrap within active category filter" do
     get :show, params: { id: companies(:two), category: [companies(:two).category_id], sort: "name_asc" }
 
     assert_response :success
-    assert_select "nav.company-show-nav a.company-show-nav-prev", count: 0
-    assert_select "nav.company-show-nav a.company-show-nav-next", count: 0
+    assert_select "nav.company-show-nav a.company-show-nav-prev[href=?]", company_path(companies(:two), sort: "name_asc", category: [companies(:two).category_id])
+    assert_select "nav.company-show-nav a.company-show-nav-next[href=?]", company_path(companies(:two), sort: "name_asc", category: [companies(:two).category_id])
   end
 
   test "show falls back to default name order when company is outside filter context" do
@@ -235,7 +235,7 @@ class CompaniesControllerTest < ActionController::TestCase
 
     assert_response :success
     assert_select "nav.company-show-nav a.company-show-nav-prev[href=?]", company_path(companies(:two), sort: "founded_desc")
-    assert_select "nav.company-show-nav a.company-show-nav-next", count: 0
+    assert_select "nav.company-show-nav a.company-show-nav-next[href=?]", company_path(companies(:two), sort: "founded_desc")
   end
 
   test "show omits visit website button and renders external link after url" do

@@ -232,16 +232,16 @@ class CompaniesController < ApplicationController
       index = company_rows.index { |company_id, _name| company_id == company.id }
       return { prev: nil, next: nil } unless index
 
-      neighbors = { prev: nil, next: nil }
-      if index.positive?
-        prev_id, prev_name = company_rows[index - 1]
-        neighbors[:prev] = { id: prev_id, name: prev_name }
-      end
-      if index < company_rows.length - 1
-        next_id, next_name = company_rows[index + 1]
-        neighbors[:next] = { id: next_id, name: next_name }
-      end
-      neighbors
+      count = company_rows.length
+      prev_index = index.positive? ? index - 1 : count - 1
+      next_index = index < count - 1 ? index + 1 : 0
+      prev_id, prev_name = company_rows[prev_index]
+      next_id, next_name = company_rows[next_index]
+
+      {
+        prev: { id: prev_id, name: prev_name },
+        next: { id: next_id, name: next_name }
+      }
     end
 
     def category_counts

@@ -1,13 +1,9 @@
 / locals: neighbors, nav_context
-- if neighbors.present? && (neighbors[:prev].present? || neighbors[:next].present?)
+- if neighbors.present? && neighbors[:prev].present? && neighbors[:next].present?
     nav.company-show-nav aria-label="Company navigation"
-        - if neighbors[:prev].present?
-            = link_to company_neighbor_path(neighbors[:prev], nav_context), class: "company-show-nav-link company-show-nav-prev", aria: { label: "Previous company: #{neighbors[:prev][:name]}" } do
-                i.fas.fa-arrow-left.company-show-nav-icon aria-hidden="true"
-                span.company-show-nav-title= neighbors[:prev][:name]
-        - else
-            span.company-show-nav-spacer
-        - if neighbors[:next].present?
-            = link_to company_neighbor_path(neighbors[:next], nav_context), class: "company-show-nav-link company-show-nav-next", aria: { label: "Next company: #{neighbors[:next][:name]}" } do
-                span.company-show-nav-title= neighbors[:next][:name]
-                i.fas.fa-arrow-right.company-show-nav-icon aria-hidden="true"
+        = link_to company_neighbor_path(neighbors[:prev], nav_context), class: "company-show-nav-link company-show-nav-prev", aria: { label: "Previous company: #{neighbors[:prev][:name]}" } do
+            i.fas.fa-arrow-left.company-show-nav-icon aria-hidden="true"
+            span.company-show-nav-title= neighbors[:prev][:name]
+        = link_to company_neighbor_path(neighbors[:next], nav_context), class: "company-show-nav-link company-show-nav-next", aria: { label: "Next company: #{neighbors[:next][:name]}" } do
+            span.company-show-nav-title= neighbors[:next][:name]
+            i.fas.fa-arrow-right.company-show-nav-icon aria-hidden="true"
