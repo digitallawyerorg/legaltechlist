@@ -93,14 +93,6 @@
                 = f.label :legaltech_atlas_url, "LegalTech Atlas URL", class: "form-label"
                 = f.url_field :legaltech_atlas_url, class: "form-control", placeholder: "Optional"
 
-    section.company-suggest-section
-        .company-suggest-section-label Branding
-        .row.g-3
-            .col-md-8
-                = f.label :logo_url, "Logo URL", class: "form-label"
-                = f.url_field :logo_url, class: "form-control", placeholder: "Optional direct link to a square logo"
-                .form-text Recommended size: 64×64 px or larger.
-
     - if recaptcha_required?
         .company-suggest-section
             = recaptcha_tags
