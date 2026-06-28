@@ -100,7 +100,7 @@ class StaticPagesControllerTest < ActionController::TestCase
     assert_includes @response.body, "Data Methodology"
     assert_includes @response.body, "Company data dictionary"
     assert_includes @response.body, "Primary categories (12)"
-    assert_includes @response.body, "taxonomy v2"
+    assert_includes @response.body, "twelve primary functional categories"
     assert_not_includes @response.body, "Visibility rules"
   end
 

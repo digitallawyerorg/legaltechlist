@@ -30,7 +30,7 @@ module MethodologyHelper
         { name: "category", type: "Reference", description: "Primary functional segment (one per company). Drives category statistics." },
         { name: "secondary_category", type: "Reference", description: "Optional second segment from the same category list. Excluded from primary trend counts." },
         { name: "revenue_models", type: "List", description: "How the company earns or sustains operations (one or more)." },
-        { name: "target_clients", type: "List", description: "Buyers or audiences served (one or more canonical values)." },
+        { name: "target_clients", type: "List", description: "Buyers or audiences served (one or more)." },
         { name: "tags", type: "List", description: "Technology and theme keywords." }
       ]
     },
@@ -114,9 +114,9 @@ module MethodologyHelper
     { name: "Legal Service Providers", definition: "Solutions for alternative legal service providers and legal-tech-enabled service firms." }
   ].freeze
 
-  OVERVIEW_GUIDANCE = "The TechIndex tracks legal-technology companies — market-facing vendors, not individual products. Each profile is one company. The index lists %<count>s companies across twelve primary functional categories (taxonomy v2, June 2026). Acquired companies stay in the index with status, exit date, and successor link when applicable.".freeze
+  OVERVIEW_GUIDANCE = "The TechIndex tracks legal-technology companies — market-facing vendors, not individual products. Each profile is one company. The index lists %<count>s companies classified into twelve primary functional categories. Acquired companies remain in the index with status, exit date, and a link to the successor company when applicable.".freeze
 
-  CATEGORY_GUIDANCE = "Twelve mutually exclusive primary categories. eDiscovery, legal operations / ELM, and access-to-justice segments were split from litigation, practice management, and cross-cutting A2J vendors in the 2026 taxonomy migration.".freeze
+  CATEGORY_GUIDANCE = "Each company has one primary category that reflects its core function. Audience and technology themes are captured separately through target client and tags.".freeze
 
   ENTITY_RELATIONSHIPS = [
     { term: "Duplicate", definition: "Same identity entered twice — merge or hide the extra record." },
@@ -127,14 +127,14 @@ module MethodologyHelper
 
   REVENUE_MODEL_GUIDANCE = "How the company earns or sustains operations — not its product category. Select all that apply; venture funding is tracked separately.".freeze
 
-  SECONDARY_CATEGORY_GUIDANCE = "Optional second functional segment from the same twelve-category list (e.g. Legal.io: Marketplace primary, Knowledge & Research secondary). Excluded from primary trend counts.".freeze
+  SECONDARY_CATEGORY_GUIDANCE = "Optional second functional segment from the same category list (e.g. Legal.io: Marketplace primary, Knowledge & Research secondary). Excluded from primary trend counts.".freeze
 
   STATISTICS_CONVENTIONS = [
     "Counts are index entries (companies), not deduplicated corporate parents. Acquired companies remain in historical cohort charts.",
     "Most charts include companies founded 2000 or later with an assigned primary category.",
-    "Category evolution uses the v2 twelve-category spine; historical series were back-mapped via published crosswalk.",
+    "Category evolution shows cumulative companies founded through each period end, using the twelve primary categories.",
     "Secondary category and multi-value revenue models do not change primary category counts; revenue charts count once per selected model.",
-    "Target client statistics use canonical multi-value assignments where available.",
+    "Target client statistics reflect one or more audience assignments per company.",
     "Funding charts include only companies with disclosed funding greater than zero.",
     "Geographic charts require a parseable headquarters location.",
     "All primary categories and statistics segments are shown regardless of company count.",
