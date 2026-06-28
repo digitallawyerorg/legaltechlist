@@ -25,7 +25,11 @@ class CompaniesControllerTest < ActionController::TestCase
     assert_select "th", "Company"
     assert_select "th", "HQ"
     refute_includes css_select("th").map(&:text), "Funding"
-    assert_select ".company-search input[placeholder='Search by name, category, or location']"
+    assert_select ".company-search input[placeholder='Search companies']"
+    assert_select ".company-filter-master input[data-company-filter-master='category']"
+    assert_select ".company-filter-master .company-filter-checkbox-label", text: "All categories"
+    assert_select "[data-company-filter-select-all]", count: 0
+    assert_select "[data-company-filter-clear]", count: 0
     assert_select ".company-pagination-count", text: /Showing \d+-\d+ of \d+ companies/
     assert_select "select[name='sort']"
     assert_select "select[name='sort'] option[selected='selected']", "Newest companies"

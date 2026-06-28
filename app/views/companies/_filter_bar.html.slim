@@ -17,7 +17,7 @@
         = hidden_field_tag :sort, params[:sort] if params[:sort].present?
         .company-search-field
             i.fa.fa-search.company-search-icon aria-hidden="true"
-            = search_field_tag :query, params[:query], class: "form-control", placeholder: "Search by name, category, or location", aria: { label: "Search companies" }
+            = search_field_tag :query, params[:query], class: "form-control", placeholder: "Search companies", aria: { label: "Search companies" }
     .company-filter-controls
         .dropdown.company-filter-dropdown
             button type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" class=category_btn_class
@@ -32,10 +32,10 @@
                     - if show_category_search
                         .company-filter-search
                             input.form-control.form-control-sm type="text" placeholder="Search categories..." aria-label="Search categories" data-company-filter-search="category"
-                    .company-filter-actions
-                        button.btn.btn-sm.btn-link.company-filter-action type="button" data-company-filter-select-all="category" Select all
-                        button.btn.btn-sm.btn-link.company-filter-action type="button" data-company-filter-clear="category" Clear
                     .company-filter-list
+                        label.company-filter-master.company-filter-checkbox-option
+                            input type="checkbox" data-company-filter-master="category" checked=company_filter_master_checked?(selected_category_ids, @category_counts.size) data-company-filter-master-indeterminate=(company_filter_master_indeterminate?(selected_category_ids, @category_counts.size) ? "true" : nil)
+                            span.company-filter-checkbox-label All categories
                         - @category_counts.each do |category|
                             label.company-filter-checkbox-option data-filter-name=category[:name].downcase
                                 = check_box_tag "category[]", category[:id], company_filter_category_checked?(category[:id], selected_category_ids)
@@ -52,10 +52,10 @@
                         = hidden_field_tag :sort, params[:sort] if params[:sort].present?
                         - selected_category_ids.each do |category_id|
                             = hidden_field_tag "category[]", category_id
-                        .company-filter-actions
-                            button.btn.btn-sm.btn-link.company-filter-action type="button" data-company-filter-select-all="status" Select all
-                            button.btn.btn-sm.btn-link.company-filter-action type="button" data-company-filter-clear="status" Clear
                         .company-filter-list
+                            label.company-filter-master.company-filter-checkbox-option
+                                input type="checkbox" data-company-filter-master="status" checked=company_filter_master_checked?(selected_statuses, @status_counts.size) data-company-filter-master-indeterminate=(company_filter_master_indeterminate?(selected_statuses, @status_counts.size) ? "true" : nil)
+                                span.company-filter-checkbox-label All statuses
                             - @status_counts.each do |status, count|
                                 label.company-filter-checkbox-option data-filter-name=status.to_s.humanize.downcase
                                     = check_box_tag "status[]", status, company_filter_status_checked?(status, selected_statuses)

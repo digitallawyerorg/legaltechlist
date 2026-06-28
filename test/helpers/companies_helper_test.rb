@@ -63,4 +63,14 @@ class CompaniesHelperTest < ActionView::TestCase
     refute company_filter_status_checked?("active", ["acquired"])
     assert company_filter_status_checked?("active", %w[active acquired])
   end
+
+  test "company_filter_master reflects all partial or none selection" do
+    assert company_filter_master_checked?([], 5)
+    assert company_filter_master_checked?([1, 2, 3, 4, 5], 5)
+    refute company_filter_master_checked?([1, 2], 5)
+
+    assert company_filter_master_indeterminate?([1, 2], 5)
+    refute company_filter_master_indeterminate?([], 5)
+    refute company_filter_master_indeterminate?([1, 2, 3, 4, 5], 5)
+  end
 end

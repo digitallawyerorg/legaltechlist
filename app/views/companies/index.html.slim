@@ -22,9 +22,7 @@ css:
     .company-filter-btn-active { background: #f6e5e5; border-color: #8c1515; color: #8c1515; }
     .company-filter-btn-active:hover, .company-filter-btn-active:focus { background: #f0dede; border-color: #6f1111; color: #6f1111; }
     .company-filter-checkbox-form { padding: 0.15rem 0.1rem 0; }
-    .company-filter-actions { display: flex; gap: 0.15rem; margin-bottom: 0.35rem; }
-    .company-filter-action { color: #8c1515; font-size: 0.76rem; font-weight: 700; padding: 0.15rem 0.35rem; text-decoration: none; }
-    .company-filter-action:hover { color: #6f1111; text-decoration: underline; }
+    .company-filter-master { border-bottom: 1px solid #f0ebe3; font-weight: 700; margin-bottom: 0.2rem; padding-bottom: 0.48rem; }
     .company-filter-checkbox-option { align-items: center; border-radius: 0.45rem; cursor: pointer; display: flex; font-size: 0.82rem; gap: 0.55rem; margin: 0; padding: 0.42rem 0.45rem; user-select: none; }
     .company-filter-checkbox-option:hover { background: #faf8f3; }
     .company-filter-checkbox-option input[type="checkbox"] { accent-color: #8c1515; flex: 0 0 auto; height: 1rem; margin: 0; width: 1rem; }
@@ -140,16 +138,39 @@ javascript:
             });
         }
 
+        function itemCheckboxes(form) {
+            return form.querySelectorAll('input[type="checkbox"][name$="[]"]');
+        }
+
+        function updateCompanyFilterMaster(form) {
+            let master = form.querySelector("[data-company-filter-master]");
+            if (!master) return;
+
+            let checkboxes = itemCheckboxes(form);
+            let checkedCount = Array.from(checkboxes).filter(function(checkbox) { return checkbox.checked; }).length;
+            let total = checkboxes.length;
+
+            if (checkedCount === total || checkedCount === 0) {
+                master.checked = checkedCount === total;
+                master.indeterminate = false;
+            } else {
+                master.checked = false;
+                master.indeterminate = true;
+            }
+        }
+
         function prepareCompanyFilterFormSubmit(form) {
-            let checkboxes = form.querySelectorAll('input[type="checkbox"][name$="[]"]');
+            let checkboxes = itemCheckboxes(form);
             let allChecked = checkboxes.length > 0 && Array.from(checkboxes).every(function(checkbox) { return checkbox.checked; });
+            let noneChecked = checkboxes.length > 0 && Array.from(checkboxes).every(function(checkbox) { return !checkbox.checked; });
 
             checkboxes.forEach(function(checkbox) {
                 checkbox.disabled = false;
             });
 
-            if (allChecked) {
+            if (allChecked || noneChecked) {
                 checkboxes.forEach(function(checkbox) {
+                    checkbox.checked = true;
                     checkbox.disabled = true;
                 });
             }
@@ -161,33 +182,23 @@ javascript:
             form.requestSubmit ? form.requestSubmit() : form.submit();
         }
 
-        function bindCompanyFilterCheckboxActions() {
-            document.querySelectorAll("[data-company-filter-select-all]").forEach(function(button) {
-                if (button.dataset.bound) return;
-                button.dataset.bound = "true";
+        function bindCompanyFilterMasterCheckboxes() {
+            document.querySelectorAll("[data-company-filter-master]").forEach(function(master) {
+                if (master.dataset.bound) return;
+                master.dataset.bound = "true";
 
-                button.addEventListener("click", function() {
-                    let form = button.closest("form");
+                if (master.dataset.companyFilterMasterIndeterminate === "true") {
+                    master.indeterminate = true;
+                }
+
+                master.addEventListener("change", function() {
+                    let form = master.closest("form");
                     if (!form) return;
 
-                    form.querySelectorAll('input[type="checkbox"][name$="[]"]').forEach(function(checkbox) {
-                        checkbox.checked = true;
+                    itemCheckboxes(form).forEach(function(checkbox) {
+                        checkbox.checked = master.checked;
                     });
-                    submitCompanyFilterForm(form);
-                });
-            });
-
-            document.querySelectorAll("[data-company-filter-clear]").forEach(function(button) {
-                if (button.dataset.bound) return;
-                button.dataset.bound = "true";
-
-                button.addEventListener("click", function() {
-                    let form = button.closest("form");
-                    if (!form) return;
-
-                    form.querySelectorAll('input[type="checkbox"][name$="[]"]').forEach(function(checkbox) {
-                        checkbox.checked = true;
-                    });
+                    updateCompanyFilterMaster(form);
                     submitCompanyFilterForm(form);
                 });
             });
@@ -198,8 +209,22 @@ javascript:
                 if (form.dataset.bound) return;
                 form.dataset.bound = "true";
 
+                updateCompanyFilterMaster(form);
+
                 form.addEventListener("change", function(event) {
+                    if (event.target && event.target.matches("[data-company-filter-master]")) return;
+
                     if (event.target && event.target.matches('input[type="checkbox"][name$="[]"]')) {
+                        let checkboxes = itemCheckboxes(form);
+                        let anyChecked = Array.from(checkboxes).some(function(checkbox) { return checkbox.checked; });
+
+                        if (!anyChecked) {
+                            checkboxes.forEach(function(checkbox) {
+                                checkbox.checked = true;
+                            });
+                        }
+
+                        updateCompanyFilterMaster(form);
                         submitCompanyFilterForm(form);
                     }
                 });
@@ -208,7 +233,7 @@ javascript:
 
         function bindCompanyFilters() {
             bindCompanyFilterSearch();
-            bindCompanyFilterCheckboxActions();
+            bindCompanyFilterMasterCheckboxes();
             bindCompanyFilterAutoSubmit();
         }
 

@@ -29,6 +29,14 @@ module CompaniesHelper
     selected_statuses.empty? || selected_statuses.include?(status)
   end
 
+  def company_filter_master_checked?(selected_values, total_count)
+    selected_values.empty? || selected_values.size >= total_count
+  end
+
+  def company_filter_master_indeterminate?(selected_values, total_count)
+    selected_values.any? && selected_values.size < total_count
+  end
+
   def tag_links(tags)
     return '' if tags.blank?
     
