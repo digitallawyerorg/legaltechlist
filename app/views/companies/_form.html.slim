@@ -1,6 +1,6 @@
 - category_options = Category.where.not(name: "Unknown").order(:name)
-- revenue_model_options = BusinessModel.where.not(name: "Unknown").order(:name)
-- target_client_options = TargetClient.where.not(name: "Unknown").order(:name)
+- revenue_model_options = BusinessModel.canonical.order(:name)
+- target_client_options = TargetClient.canonical.order(:name)
 - contribution_form = @contribution_form || CompanyContributionForm.new
 = form_with model: contribution_form, url: companies_path, scope: :company_contribution, local: true, html: { class: "company-suggest-form" } do |f|
     div style="display:none" aria-hidden="true"

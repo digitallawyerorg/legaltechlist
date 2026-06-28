@@ -171,6 +171,25 @@ class CompaniesControllerTest < ActionController::TestCase
     assert_response :success
   end
 
+  test "new shows canonical revenue model and target client checkboxes only" do
+    compound_target_client = TargetClient.create!(name: "Corporate Legal, Law Firms", description: "Legacy compound")
+    compound_revenue_model = BusinessModel.create!(name: "Subscription, Services", description: "Legacy compound")
+
+    get :new
+
+    assert_response :success
+    checkbox_labels = css_select("label.form-check-label").map(&:text)
+    refute_includes checkbox_labels, compound_target_client.name
+    refute_includes checkbox_labels, compound_revenue_model.name
+    refute checkbox_labels.any? { |label| label.include?(",") }, "expected no combinatorial checkbox labels"
+    assert_includes checkbox_labels, business_models(:one).name
+    assert_includes checkbox_labels, business_models(:two).name
+    assert_includes checkbox_labels, target_clients(:one).name
+    assert_includes checkbox_labels, target_clients(:two).name
+    assert_equal BusinessModel.canonical.order(:name).pluck(:name), checkbox_labels & BusinessModel.canonical.pluck(:name)
+    assert_equal TargetClient.canonical.order(:name).pluck(:name), checkbox_labels & TargetClient.canonical.pluck(:name)
+  end
+
   test "should create proposal from contribution form" do
     assert_no_difference('Company.count') do
       assert_difference('CompanyProposal.count', 1) do
