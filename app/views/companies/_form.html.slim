@@ -44,6 +44,9 @@
                 = f.collection_select :category_id, category_options, :id, :name, { include_blank: "Select a category" }, { class: "form-select", required: true }
                 .form-text
                     = link_to "Category definitions", statistics_methodology_path
+            .col-md-6
+                = f.label :status, required_label_text("Status"), class: "form-label"
+                = f.select :status, [["Active", "active"], ["Inactive", "inactive"], ["Acquired", "acquired"]], { include_blank: "Select status" }, { class: "form-select", required: true }
             .col-12
                 = f.label :description, required_label_text("Description"), class: "form-label"
                 = f.text_area :description, class: "form-control", rows: 5, placeholder: "What does the company do? Who does it serve?", required: true
@@ -68,14 +71,10 @@
                         .form-check
                             = builder.check_box class: "form-check-input"
                             = builder.label class: "form-check-label"
-                .form-text Select one or more technology or theme tags from our curated list.
 
     section.company-suggest-section
-        .company-suggest-section-label Links & status
+        .company-suggest-section-label Links
         .row.g-3
-            .col-md-6
-                = f.label :status, required_label_text("Status"), class: "form-label"
-                = f.select :status, [["Active", "active"], ["Inactive", "inactive"], ["Acquired", "acquired"]], { include_blank: "Select status" }, { class: "form-select", required: true }
             .col-md-6
                 = f.label :crunchbase_url, "Crunchbase URL", class: "form-label"
                 = f.url_field :crunchbase_url, class: "form-control", placeholder: "https://www.crunchbase.com/organization/harvey"
