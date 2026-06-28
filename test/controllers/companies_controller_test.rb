@@ -331,6 +331,10 @@ class CompaniesControllerTest < ActionController::TestCase
     assert_select "#company-suggest-update-modal"
     assert_select ".company-suggest-update-modal-option", minimum: 7
     assert_select "form[action=?][method=?]", suggest_update_company_path(@company), "post"
+    assert_select "#company_suggest_update_message[required]"
+    assert_select "#company_suggest_update_submitter_email[required]"
+    assert_select "label[for=?] abbr.required-asterisk", "company_suggest_update_message"
+    assert_select "label[for=?] abbr.required-asterisk", "company_suggest_update_submitter_email"
   end
 
   test "suggest update creates proposal and redirects with notice" do

@@ -15,6 +15,14 @@ class UserSubmissionWorkflowTest < ActiveSupport::TestCase
     assert_includes form.errors[:contact_name], "can't be blank"
   end
 
+  test "contribution form requires contact email" do
+    form = valid_contribution_form
+    form.contact_email = nil
+
+    assert_not form.valid?
+    assert_includes form.errors[:contact_email], "can't be blank"
+  end
+
   test "contribution form requires at least one discoverable tag" do
     form = valid_contribution_form
     form.tag_names = []
@@ -61,6 +69,19 @@ class UserSubmissionWorkflowTest < ActiveSupport::TestCase
         assert_equal @company.id, proposal.company_id
         assert_equal "incorrect_details", proposal.issue_type
       end
+    end
+  end
+
+  test "suggestion intake requires submitter email" do
+    assert_raises(ArgumentError, match: /email/i) do
+      UserSuggestionIntakeService.call(
+        company: @company,
+        suggestion: {
+          issue_type: "incorrect_details",
+          message: "Founded year should be 2014.",
+          submitter_email: ""
+        }
+      )
     end
   end
 

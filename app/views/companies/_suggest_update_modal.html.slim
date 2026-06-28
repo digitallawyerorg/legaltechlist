@@ -38,6 +38,7 @@ css:
     .company-suggest-update-modal-banner-title { color: #2b2926; font-size: 0.92rem; font-weight: 700; line-height: 1.3; }
     .company-suggest-update-modal-field { margin-bottom: 0.75rem; }
     .company-suggest-update-modal-label { color: #2b2926; display: block; font-size: 0.88rem; font-weight: 700; margin-bottom: 0.45rem; }
+    .company-suggest-update-modal-label .required-asterisk { color: #8c1515; font-weight: 700; margin-left: 0.15rem; text-decoration: none; }
     .company-suggest-update-modal-label-optional { color: #8b8379; font-weight: 600; }
     .company-suggest-update-modal-field-hint { color: #8b8379; font-size: 0.8rem; line-height: 1.4; margin: -0.2rem 0 0.45rem; }
     .company-suggest-update-modal-input { background: #fff; border: 1px solid #ded7ca; border-radius: 0.6rem; color: #2b2926; font-size: 0.94rem; min-height: 2.75rem; padding: 0.6rem 0.85rem; width: 100%; }
@@ -84,7 +85,8 @@ css:
                                 i.fa-solid.fa-building aria-hidden="true"
                             .company-suggest-update-modal-banner-title data-suggest-update-banner-title=""
                         .company-suggest-update-modal-field
-                            label.company-suggest-update-modal-label for="company_suggest_update_message" What should change?
+                            label.company-suggest-update-modal-label for="company_suggest_update_message"
+                                = required_label_text("What should change?")
                             = text_area_tag :message, nil, id: "company_suggest_update_message", class: "company-suggest-update-modal-input company-suggest-update-modal-textarea", placeholder: "Describe the correction or update you'd like us to make.", required: true, rows: 3, data: { suggest_update_message: true }
                         .company-suggest-update-modal-field
                             label.company-suggest-update-modal-label for="company_suggest_update_source_url"
@@ -93,7 +95,8 @@ css:
                             p.company-suggest-update-modal-field-hint A link that supports the change helps us review faster.
                             = url_field_tag :source_url, nil, id: "company_suggest_update_source_url", class: "company-suggest-update-modal-input", placeholder: "https://"
                         .company-suggest-update-modal-field
-                            label.company-suggest-update-modal-label for="company_suggest_update_submitter_email" Your email
+                            label.company-suggest-update-modal-label for="company_suggest_update_submitter_email"
+                                = required_label_text("Your email")
                             = email_field_tag :submitter_email, nil, id: "company_suggest_update_submitter_email", class: "company-suggest-update-modal-input", placeholder: "you@institution.edu", autocomplete: "email", required: true
                         .company-suggest-update-modal-note
                             i.fa-solid.fa-circle-info.company-suggest-update-modal-note-icon aria-hidden="true"
