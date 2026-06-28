@@ -1,66 +1,185 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>We're sorry, but something went wrong (500)</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <style>
-  body {
-    background-color: #EFEFEF;
-    color: #2E2F30;
-    text-align: center;
-    font-family: arial, sans-serif;
-    margin: 0;
-  }
+    <meta charset="utf-8">
+    <title>Something went wrong | CodeX TechIndex</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="robots" content="noindex">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; }
 
-  div.dialog {
-    width: 95%;
-    max-width: 33em;
-    margin: 4em auto 0;
-  }
+        html {
+            height: 100%;
+        }
 
-  div.dialog > div {
-    border: 1px solid #CCC;
-    border-right-color: #999;
-    border-left-color: #999;
-    border-bottom-color: #BBB;
-    border-top: #B00100 solid 4px;
-    border-top-left-radius: 9px;
-    border-top-right-radius: 9px;
-    background-color: white;
-    padding: 7px 12% 0;
-    box-shadow: 0 3px 8px rgba(50, 50, 50, 0.17);
-  }
+        body {
+            background: #f3efe6;
+            color: #3f3933;
+            display: flex;
+            flex-direction: column;
+            font-family: "Helvetica Neue", helvetica, arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            min-height: 100%;
+        }
 
-  h1 {
-    font-size: 100%;
-    color: #730E15;
-    line-height: 1.5em;
-  }
+        a {
+            color: #8c1515;
+            font-weight: 600;
+            text-decoration: none;
+        }
 
-  div.dialog > p {
-    margin: 0 0 1em;
-    padding: 1em;
-    background-color: #F7F7F7;
-    border: 1px solid #CCC;
-    border-right-color: #999;
-    border-left-color: #999;
-    border-bottom-color: #999;
-    border-bottom-left-radius: 4px;
-    border-bottom-right-radius: 4px;
-    border-top-color: #DADADA;
-    color: #666;
-    box-shadow: 0 3px 8px rgba(50, 50, 50, 0.17);
-  }
-  </style>
+        a:hover {
+            color: #6f1111;
+            text-decoration: underline;
+        }
+
+        .error-header {
+            background: #2a2723;
+            border-bottom: 1px solid #f3efe6;
+            flex-shrink: 0;
+            padding: 0.85rem 1.25rem;
+        }
+
+        .error-header-inner {
+            margin: 0 auto;
+            max-width: 42rem;
+        }
+
+        .error-brand {
+            color: #fff;
+            font-family: Georgia, Cambria, "Times New Roman", Times, serif;
+            font-size: 1rem;
+            font-weight: 500;
+            letter-spacing: -0.01em;
+            text-decoration: none;
+        }
+
+        .error-brand:hover {
+            color: rgba(255, 255, 255, 0.88);
+            text-decoration: none;
+        }
+
+        .error-main {
+            align-items: center;
+            display: flex;
+            flex: 1 0 auto;
+            justify-content: center;
+            padding: 2.5rem 1.25rem 3rem;
+        }
+
+        .error-card {
+            background: #fff;
+            border: 1px solid #e1dccf;
+            border-radius: 0.85rem;
+            box-shadow: 0 10px 28px rgba(36, 31, 26, 0.06);
+            max-width: 34rem;
+            padding: 2.25rem 2rem 2rem;
+            text-align: center;
+            width: 100%;
+        }
+
+        .error-code {
+            color: #8c1515;
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.14em;
+            margin: 0 0 0.85rem;
+            text-transform: uppercase;
+        }
+
+        .error-title {
+            color: #2b2926;
+            font-family: Georgia, Cambria, "Times New Roman", Times, serif;
+            font-size: clamp(1.65rem, 4vw, 2.1rem);
+            font-weight: 500;
+            letter-spacing: -0.02em;
+            line-height: 1.15;
+            margin: 0 0 0.85rem;
+        }
+
+        .error-message {
+            color: #3f3933;
+            font-size: 0.98rem;
+            margin: 0 auto 1.75rem;
+            max-width: 28rem;
+        }
+
+        .error-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            justify-content: center;
+        }
+
+        .error-btn {
+            align-items: center;
+            border-radius: 0.65rem;
+            display: inline-flex;
+            font-size: 0.88rem;
+            font-weight: 700;
+            justify-content: center;
+            min-height: 2.65rem;
+            padding: 0.72rem 1.05rem;
+            text-decoration: none;
+        }
+
+        .error-btn-primary {
+            background: #8c1515;
+            border: 1px solid #8c1515;
+            color: #fff;
+        }
+
+        .error-btn-primary:hover {
+            background: #6f1111;
+            border-color: #6f1111;
+            color: #fff;
+            text-decoration: none;
+        }
+
+        .error-btn-secondary {
+            background: #fff;
+            border: 1px solid #ded7ca;
+            color: #3f3933;
+        }
+
+        .error-btn-secondary:hover {
+            background: #f0ebe3;
+            border-color: #cfc7ba;
+            color: #2b2926;
+            text-decoration: none;
+        }
+
+        .error-footer {
+            color: #8b8379;
+            flex-shrink: 0;
+            font-size: 0.78rem;
+            padding: 0 1.25rem 1.5rem;
+            text-align: center;
+        }
+    </style>
 </head>
-
 <body>
-  <!-- This file lives in public/500.html -->
-  <div class="dialog">
-    <div>
-      <h1>We're sorry, but something went wrong.</h1>
-    </div>
-    <p>If you are the application owner check the logs for more information.</p>
-  </div>
+    <header class="error-header">
+        <div class="error-header-inner">
+            <a class="error-brand" href="/">CodeX TechIndex</a>
+        </div>
+    </header>
+
+    <main class="error-main">
+        <div class="error-card">
+            <p class="error-code">500</p>
+            <h1 class="error-title">Something went wrong</h1>
+            <p class="error-message">We're sorry — an unexpected error occurred on our end. Please try again in a few minutes, or head back to browse the index.</p>
+            <div class="error-actions">
+                <a class="error-btn error-btn-primary" href="/">Back to homepage</a>
+                <a class="error-btn error-btn-secondary" href="/companies">Browse companies</a>
+            </div>
+        </div>
+    </main>
+
+    <footer class="error-footer">
+        Stanford CodeX &middot; Center for Legal Informatics
+    </footer>
 </body>
 </html>
