@@ -44,10 +44,7 @@ class TaxonomyNormalizationService
   }.freeze
 
   CANONICAL_TARGET_CLIENTS = MethodologyHelper::TARGET_CLIENTS.map { |row| row[:name] }.freeze
-  CANONICAL_CATEGORY_NAMES = (
-    MethodologyHelper::PRIMARY_CATEGORIES.map { |row| row[:name] } +
-    MethodologyHelper::PROPOSED_PRIMARY_CATEGORIES.map { |row| row[:name] }
-  ).uniq.freeze
+  CANONICAL_CATEGORY_NAMES = MethodologyHelper::PRIMARY_CATEGORY_NAMES
 
   def self.canonical_target_client_names(raw)
     return [] if raw.blank?

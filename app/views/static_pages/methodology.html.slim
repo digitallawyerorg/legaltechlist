@@ -247,7 +247,6 @@ css:
 - content_for :title, "Data Methodology & Dictionary"
 - content_for :description, "Data dictionary, classification scheme, and statistics conventions for the Stanford CodeX TechIndex legal technology index."
 - category_rows = methodology_category_rows
-- proposed_category_rows = methodology_proposed_category_rows
 - company_count = visible_company_count
 
 .methodology-page
@@ -299,11 +298,9 @@ css:
 
         section.methodology-section
             .methodology-section-label Categorization
-            p.methodology-section-intro One primary functional category per company. Audience and technology themes use target client and tags.
+            p.methodology-section-intro= methodology_category_guidance
 
-            .methodology-section-label.mt-4
-                | Primary categories — current
-                span.methodology-planned-label Live
+            .methodology-section-label.mt-4 Primary categories (12)
             .methodology-table-wrap
                 table.methodology-table
                     thead
@@ -317,29 +314,6 @@ css:
                                 td.category-name= row[:name]
                                 td= row[:definition]
                                 td.category-count.text-end= number_with_delimiter(row[:count])
-
-            .methodology-section-label.mt-4
-                | Primary categories — planned
-                span.methodology-planned-label Review
-            p.methodology-section-intro= methodology_proposed_category_guidance
-            .methodology-table-wrap
-                table.methodology-table
-                    thead
-                        tr
-                            th Category
-                            th Status
-                            th Definition
-                            th.text-end Count
-                    tbody
-                        - proposed_category_rows.each do |row|
-                            tr
-                                td.category-name= row[:name]
-                                td.category-status= row[:status]
-                                td= row[:definition]
-                                td.category-count.text-end
-                                    = number_with_delimiter(row[:count])
-                                    - if row[:count_note].present?
-                                        span.category-count-note= row[:count_note]
 
             .methodology-section-label.mt-4 Secondary category
             p.methodology-section-intro= methodology_secondary_category_guidance
@@ -359,7 +333,8 @@ css:
                                 td.category-name= row[:name]
                                 td= row[:definition]
 
-            .methodology-section-label.mt-4 Target client
+            .methodology-section-label.mt-4 Target clients
+            p.methodology-section-intro Canonical audience values; a company may have one or more.
 
             .methodology-table-wrap
                 table.methodology-table
