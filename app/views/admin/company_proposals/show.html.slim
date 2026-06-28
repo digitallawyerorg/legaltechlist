@@ -1,48 +1,35 @@
 - content_for :title, "#{@company_proposal.display_name} Proposal"
 - suggestion_diffs = @company_proposal.user_suggestion? ? proposal_suggestion_diffs(@company_proposal) : []
 
-.d-flex.flex-wrap.justify-content-between.align-items-start.gap-2.mb-2
+.d-flex.flex-wrap.justify-content-between.align-items-start.gap-3.mb-3
     div
-        h1.h3.mb-1= @company_proposal.display_name
         .d-flex.flex-wrap.align-items-center.gap-2
-            span.badge.text-bg-light= @company_proposal.status.humanize
+            h1.h3.mb-0= @company_proposal.display_name
+            span.admin-status-pill.text-bg-light= @company_proposal.status.humanize
             - if @company_proposal.user_submission?
-                span.badge.text-bg-primary User submission
-            span.text-muted.small= @company_proposal.proposal_type.humanize
-    - if @company_proposal.company
-        - banner_class = @company_proposal.company.visible? ? "" : " is-draft"
-        .admin-proposal-inline-banner(class=banner_class)
-            - if @company_proposal.company.visible?
-                i.fas.fa-check-circle
-                span Published:
-            - else
-                i.fas.fa-file-alt
-                span Draft:
-            = link_to @company_proposal.company.name, custom_admin_company_review_path(@company_proposal.company), class: "fw-semibold"
-
-- if @company_proposal.user_submission?
-    .card.border-0.shadow-sm.mb-3.admin-proposal-user-card
-        .card-body.py-3
-            .d-flex.flex-wrap.justify-content-between.align-items-start.gap-2.mb-2
-                .admin-kicker User submission
-                - if @company_proposal.submitter_email.present?
-                    span.text-muted.small= @company_proposal.submitter_email
-            - if @company_proposal.issue_type.present?
-                span.badge.text-bg-light.me-2= @company_proposal.issue_type.humanize
-            - if @company_proposal.user_message.present?
-                .admin-proposal-user-message.mt-2= @company_proposal.user_message
-
-.admin-proposal-toolbar
-    = link_to "Edit Proposal", edit_custom_admin_company_proposal_path(@company_proposal), class: "btn btn-primary"
-    = button_to "Run Proposal Enrichment", enrich_custom_admin_company_proposal_path(@company_proposal), method: :post, class: "btn btn-outline-primary", form: { data: { turbo_confirm: "Generate proposal-only enrichment without changing company records?" } }
-    - if @company_proposal.user_suggestion?
-        = form_with url: approve_custom_admin_company_proposal_path(@company_proposal), method: :post, local: true, class: "d-inline" do
-            = button_tag "Apply update", type: "submit", name: "publish", value: "0", class: "btn btn-success", data: { turbo_confirm: "Apply this suggestion to #{@company_proposal.company&.name}?" }
-    - elsif !@company_proposal.duplicate_blocking?
-        = form_with url: approve_custom_admin_company_proposal_path(@company_proposal), method: :post, local: true, class: "d-inline" do
-            = button_tag "Approve draft", type: "submit", name: "publish", value: "0", class: "btn btn-outline-success", data: { turbo_confirm: "Approve this proposal as an invisible draft?" }, disabled: @company_proposal.company_id.present?
-            = button_tag "Publish", type: "submit", name: "publish", value: "1", class: "btn btn-success", data: { turbo_confirm: "Publish this proposal to the public site?" }, disabled: @company_proposal.company_id.present? || !@quality_report["publish_ready"]
-    button.btn.btn-outline-danger type="button" data-bs-toggle="collapse" data-bs-target="#proposalRejectPanel" aria-expanded="false" aria-controls="proposalRejectPanel" Reject Proposal
+                span.admin-status-pill.text-bg-primary User submission
+            span.admin-status-pill.text-bg-secondary= @company_proposal.proposal_type.humanize
+        - if @company_proposal.company
+            - banner_class = @company_proposal.company.visible? ? "" : " is-draft"
+            .admin-proposal-inline-banner.mt-2(class=banner_class)
+                - if @company_proposal.company.visible?
+                    i.fas.fa-check-circle
+                    span Published:
+                - else
+                    i.fas.fa-file-alt
+                    span Draft:
+                = link_to @company_proposal.company.name, custom_admin_company_review_path(@company_proposal.company), class: "fw-semibold"
+    .admin-proposal-toolbar.is-header
+        = link_to "Edit Proposal", edit_custom_admin_company_proposal_path(@company_proposal), class: "btn btn-primary"
+        = button_to "Run Enrichment", enrich_custom_admin_company_proposal_path(@company_proposal), method: :post, class: "btn btn-outline-primary", form: { data: { turbo_confirm: "Generate proposal-only enrichment without changing company records?" } }
+        - if @company_proposal.user_suggestion?
+            = form_with url: approve_custom_admin_company_proposal_path(@company_proposal), method: :post, local: true, class: "d-inline" do
+                = button_tag "Apply update", type: "submit", name: "publish", value: "0", class: "btn btn-success", data: { turbo_confirm: "Apply this suggestion to #{@company_proposal.company&.name}?" }
+        - elsif !@company_proposal.duplicate_blocking?
+            = form_with url: approve_custom_admin_company_proposal_path(@company_proposal), method: :post, local: true, class: "d-inline" do
+                = button_tag "Approve draft", type: "submit", name: "publish", value: "0", class: "btn btn-outline-success", data: { turbo_confirm: "Approve this proposal as an invisible draft?" }, disabled: @company_proposal.company_id.present?
+                = button_tag "Publish", type: "submit", name: "publish", value: "1", class: "btn btn-success", data: { turbo_confirm: "Publish this proposal to the public site?" }, disabled: @company_proposal.company_id.present? || !@quality_report["publish_ready"]
+        button.btn.btn-outline-danger type="button" data-bs-toggle="collapse" data-bs-target="#proposalRejectPanel" aria-expanded="false" aria-controls="proposalRejectPanel" Reject
 
 - if !@company_proposal.user_suggestion? && @company_proposal.duplicate_blocking?
     .card.border-0.shadow-sm.mb-3
@@ -68,6 +55,19 @@
 
 .row.g-3
     .col-lg-8
+        - if @company_proposal.user_submission?
+            .card.border-0.shadow-sm.mb-3.admin-proposal-user-card
+                .card-header.bg-white.py-2
+                    h2.h6.mb-0 User submission
+                .card-body.py-3
+                    .d-flex.flex-wrap.justify-content-between.align-items-start.gap-2.mb-2
+                        - if @company_proposal.issue_type.present?
+                            span.badge.text-bg-light= @company_proposal.issue_type.humanize
+                        - if @company_proposal.submitter_email.present?
+                            span.text-muted.small= @company_proposal.submitter_email
+                    - if @company_proposal.user_message.present?
+                        .admin-proposal-user-message= @company_proposal.user_message
+
         - if suggestion_diffs.any?
             .card.border-0.shadow-sm.mb-3
                 .card-header.bg-white.py-2

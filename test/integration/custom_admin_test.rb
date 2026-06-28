@@ -418,7 +418,7 @@ class CustomAdminTest < ActionDispatch::IntegrationTest
     get custom_admin_company_proposal_path(proposal)
     assert_response :success
     assert_select "h1", "Review Proposal"
-    assert_select "button", "Run Proposal Enrichment"
+    assert_select "button", "Run Enrichment"
 
     post enrich_custom_admin_company_proposal_path(proposal)
     assert_redirected_to custom_admin_company_proposal_path(proposal)
