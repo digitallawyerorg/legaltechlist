@@ -1,12 +1,20 @@
 class CompanyUnknownTargetClientResolverService
   CATEGORY_DEFAULTS = {
-    "Practice Management" => "Law Firms",
+    "Document Management and Automation" => "Corporate Legal",
+    "Compliance & Risk" => "Corporate Legal",
+    "Contract Management" => "Corporate Legal",
+    "Analytics & Insights" => "Corporate Legal",
+    "IP Management" => "Corporate Legal",
     "Legal Operations / ELM" => "Corporate Legal",
-    "Marketplace and ALSPs" => "Legal Service Providers",
-    "Access to Justice & Public Sector" => "Consumers",
+    "Practice Management" => "Law Firms",
+    "Litigation & Dispute Resolution" => "Law Firms",
+    "eDiscovery & Investigations" => "Law Firms",
     "Knowledge & Research" => "Law Firms",
-    "eDiscovery & Investigations" => "Law Firms"
+    "Marketplace and ALSPs" => "Legal Service Providers",
+    "Access to Justice & Public Sector" => "Consumers"
   }.freeze
+
+  DEFAULT_TARGET_CLIENT = "Corporate Legal"
 
   def self.call(company:, dry_run: true, min_confidence: nil)
     new(company: company, dry_run: dry_run, min_confidence: min_confidence).call
@@ -36,8 +44,8 @@ class CompanyUnknownTargetClientResolverService
     target_client = TaxonomyNormalizationService.find_target_client(client_name)
 
     if target_client.blank? || confidence < min_confidence
-      fallback_name = CATEGORY_DEFAULTS[company.category&.name]
-      target_client = TargetClient.find_by(name: fallback_name) if fallback_name.present?
+      fallback_name = CATEGORY_DEFAULTS[company.category&.name] || DEFAULT_TARGET_CLIENT
+      target_client = TargetClient.find_by(name: fallback_name)
       if target_client
         client_name = fallback_name
         confidence = 0.55

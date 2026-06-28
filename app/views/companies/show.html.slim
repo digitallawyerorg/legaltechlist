@@ -473,14 +473,18 @@ css:
 - revenue_model_names = @company.revenue_model_names.reject { |name| name.blank? || name == "Unknown" }
 - revenue_model_display = revenue_model_names.any? ? revenue_model_names.to_sentence : "-"
 - key_facts = [{ label: "Status", icon: "fa-solid fa-circle-check", value: status_label }, { label: "Founded", icon: "fa-regular fa-calendar", value: founded_display }, { label: "Headquarters", icon: "fa-solid fa-location-dot", value: headquarters_display }, { label: "Target market", icon: "fa-solid fa-bullseye", value: target_market_display }, { label: "Revenue model", icon: "fa-solid fa-coins", value: revenue_model_display }, { label: "Total funding", icon: "fa-solid fa-dollar-sign", value: funding_display.presence || "-" }]
-- source_links = []
-- source_links << { label: "Website", icon: "fa-solid fa-globe", icon_color: "#2563eb", url: website_url, host: short_host_for.call(website_url) } if website_url.present?
-- source_links << { label: "LinkedIn", icon: "fa-brands fa-linkedin", icon_color: "#0a66c2", url: @company.linkedin_url, host: short_host_for.call(@company.linkedin_url) } if @company.linkedin_url.present? && @company.linkedin_url != "n/a"
-- source_links << { label: "Crunchbase", icon: "fa-solid fa-chart-line", icon_color: "#047857", url: @company.crunchbase_url, host: short_host_for.call(@company.crunchbase_url) } if @company.crunchbase_url.present? && @company.crunchbase_url != "n/a"
-- source_links << { label: "Legal.io", icon: "fa-solid fa-briefcase", icon_color: "#8c1515", url: @company.legalio_url, host: short_host_for.call(@company.legalio_url) } if @company.legalio_url.present? && @company.legalio_url != "n/a"
-- source_links << { label: "X/Twitter", icon: "fa-brands fa-x-twitter", icon_color: "#111827", url: twitter_url, host: short_host_for.call(twitter_url) } if twitter_url.present?
-- source_links << { label: "Facebook", icon: "fa-brands fa-facebook", icon_color: "#1877f2", url: @company.facebook_url, host: short_host_for.call(@company.facebook_url) } if @company.facebook_url.present? && @company.facebook_url != "n/a"
-- source_links << { label: "AngelList", icon: "fa-solid fa-seedling", icon_color: "#047857", url: @company.angellist_url, host: short_host_for.call(@company.angellist_url) } if @company.angellist_url.present? && @company.angellist_url != "n/a"
+- company_reference_links = []
+- company_reference_links << { label: "Website", icon: "fa-solid fa-globe", icon_color: "#2563eb", url: website_url, host: short_host_for.call(website_url) } if website_url.present?
+- company_reference_links << { label: "LinkedIn", icon: "fa-brands fa-linkedin", icon_color: "#0a66c2", url: @company.linkedin_url, host: short_host_for.call(@company.linkedin_url) } if @company.linkedin_url.present? && @company.linkedin_url != "n/a"
+- company_reference_links << { label: "X/Twitter", icon: "fa-brands fa-x-twitter", icon_color: "#111827", url: twitter_url, host: short_host_for.call(twitter_url) } if twitter_url.present?
+- company_reference_links << { label: "Facebook", icon: "fa-brands fa-facebook", icon_color: "#1877f2", url: @company.facebook_url, host: short_host_for.call(@company.facebook_url) } if @company.facebook_url.present? && @company.facebook_url != "n/a"
+- external_reference_links = []
+- external_reference_links << { label: "Crunchbase", icon: "fa-solid fa-chart-line", icon_color: "#047857", url: @company.crunchbase_url, host: short_host_for.call(@company.crunchbase_url) } if @company.crunchbase_url.present? && @company.crunchbase_url != "n/a"
+- external_reference_links << { label: "Legal.io", icon: "fa-solid fa-briefcase", icon_color: "#8c1515", url: @company.legalio_url, host: short_host_for.call(@company.legalio_url) } if @company.legalio_url.present? && @company.legalio_url != "n/a"
+- external_reference_links << { label: "AngelList", icon: "fa-solid fa-seedling", icon_color: "#047857", url: @company.angellist_url, host: short_host_for.call(@company.angellist_url) } if @company.angellist_url.present? && @company.angellist_url != "n/a"
+- reference_sections = []
+- reference_sections << { title: "Company references", links: company_reference_links } if company_reference_links.any?
+- reference_sections << { title: "External references", links: external_reference_links } if external_reference_links.any?
 - accessed_on = Date.current.strftime("%B %-d, %Y")
 - academic_ref_entries = []
 - academic_ref_entries << { icon: "fa-solid fa-globe", icon_color: "#2563eb", citation: "#{@company.name}. \"#{@company.name}.\" Official website. #{website_url} (accessed #{accessed_on})." } if website_url.present?
@@ -545,11 +549,11 @@ css:
                             .company-key-fact-label= fact[:label]
                             .company-key-fact-value= fact[:value]
 
-        - if source_links.any?
+        - reference_sections.each do |reference_section|
             section.company-section
-                .company-section-label Sources
+                .company-section-label= reference_section[:title]
                 .company-source-list
-                    - source_links.each do |source_link|
+                    - reference_section[:links].each do |source_link|
                         = link_to source_link[:url], class: "company-source-row", target: "_blank", rel: "noopener" do
                             .company-source-icon
                                 i class="#{source_link[:icon]}" style="color: #{source_link[:icon_color]};"

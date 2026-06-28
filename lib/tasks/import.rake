@@ -81,15 +81,17 @@ namespace :csv do
         catFullname[1]=""
       end
 
-      cat = Category.where(:name => catName).first_or_create!
-      sub = SubCategory.where(:name => catFullname[1],
-                              :category => cat
-                            ).first_or_create!(:name => catFullname[1],
-                                               :category => cat)
+      cat = TaxonomyNormalizationService.find_category(row["category"]) || Category.find_by(name: "Unknown")
+      sub = nil
+      if catFullname[1].present?
+        sub = SubCategory.find_by(name: catFullname[1].strip, category: cat)
+      end
 
-      #find references
-      biz = BusinessModel.where(:name => row["business_model"]).first
-      trg = TargetClient.where(:name => row["target_client"]).first
+      revenue_models = TaxonomyNormalizationService.find_revenue_models(row["business_model"])
+      revenue_models = [BusinessModel.find_by(name: "Other")].compact if revenue_models.empty?
+      biz = revenue_models.first
+      target_clients = TaxonomyNormalizationService.find_target_clients(row["target_client"])
+      trg = target_clients.first || TargetClient.find_by(name: "Unknown")
 
       # add the entry to the database
       c = Company.where(:name => row["name"]).first_or_create!(
@@ -111,6 +113,8 @@ namespace :csv do
         :target_client => trg,
         :all_tags => row["all_tags"]
       )
+      c.business_model_ids = revenue_models.map(&:id) if c.persisted?
+      c.target_client_ids = target_clients.map(&:id) if c.persisted? && target_clients.any?
 
     end
 	end

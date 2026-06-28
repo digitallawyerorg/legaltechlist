@@ -300,11 +300,14 @@ namespace :taxonomy do
     puts "taxonomy:auto_hygiene starting mode=#{dry_run ? 'dry-run' : 'write'}"
 
     steps = [
+      ["taxonomy:backfill_tags", {}],
       ["taxonomy:resolve_unknown_categories", { "AUTO_HYGIENE" => "true", "MIN_CONFIDENCE" => "0.55", "PROPOSAL_TAXONOMY_USE_LLM" => "false" }],
       ["taxonomy:resolve_unknown_categories", { "AUTO_HYGIENE" => "true", "MIN_CONFIDENCE" => "0.55", "PROPOSAL_TAXONOMY_USE_LLM" => "true" }],
-      ["taxonomy:resolve_unknown_target_clients", { "AUTO_HYGIENE" => "true", "MIN_CONFIDENCE" => "0.55" }],
+      ["taxonomy:resolve_unknown_categories", { "FORCE_APPLY_REMAINING" => "true", "PROPOSAL_TAXONOMY_USE_LLM" => "true" }],
+      ["taxonomy:resolve_unknown_target_clients", { "AUTO_HYGIENE" => "true", "MIN_CONFIDENCE" => "0.55", "PROPOSAL_TAXONOMY_USE_LLM" => "false" }],
+      ["taxonomy:resolve_unknown_target_clients", { "AUTO_HYGIENE" => "true", "MIN_CONFIDENCE" => "0.55", "PROPOSAL_TAXONOMY_USE_LLM" => "true" }],
       ["taxonomy:backfill_revenue_models", { "OVERWRITE_OTHER_ONLY" => "true", "OVERWRITE_UNKNOWN_ONLY" => "false", "MIN_CONFIDENCE" => "0.65", "PROPOSAL_TAXONOMY_USE_LLM" => "false" }],
-      ["taxonomy:backfill_tags", {}],
+      ["taxonomy:backfill_revenue_models", { "OVERWRITE_OTHER_ONLY" => "true", "OVERWRITE_UNKNOWN_ONLY" => "false", "MIN_CONFIDENCE" => "0.65", "PROPOSAL_TAXONOMY_USE_LLM" => "true" }],
       ["taxonomy:sync_legacy_revenue_fk", {}],
       ["taxonomy:audit", {}]
     ]

@@ -195,6 +195,12 @@ class Company < ActiveRecord::Base
     business_models.presence || Array(business_model).compact
   end
 
+  def audience_names
+    names = target_clients.map(&:name).presence
+    names ||= TaxonomyNormalizationService.canonical_target_client_names(target_client&.name)
+    names.uniq
+  end
+
   def target_client_ids=(ids)
     ids = Array(ids).map(&:presence).compact.map(&:to_i).uniq
     self.target_clients = TargetClient.where(id: ids)

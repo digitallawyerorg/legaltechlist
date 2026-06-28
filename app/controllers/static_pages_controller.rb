@@ -390,22 +390,16 @@ class StaticPagesController < ApplicationController
                              '2000',
                              Time.current.year.to_s,
                              '^\d{4}$')
-                       .includes(:target_client)
-                       .to_a  # Load into memory once
+                       .includes(:target_client, :target_clients)
+                       .to_a
 
-    # Initialize counters for individual target clients
     individual_counts = Hash.new(0)
     client_companies = Hash.new { |h, k| h[k] = [] }
 
-    # Count each target client individually
     @companies.each do |company|
-      if company.target_client&.name
-        # Split multiple targets and count each one
-        targets = company.target_client.name.split(/,\s*/)
-        targets.each do |target|
-          individual_counts[target] += 1
-          client_companies[target] << company
-        end
+      company.audience_names.each do |target|
+        individual_counts[target] += 1
+        client_companies[target] << company
       end
     end
 

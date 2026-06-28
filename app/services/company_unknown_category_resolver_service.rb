@@ -44,6 +44,8 @@ class CompanyUnknownCategoryResolverService
     category_name = suggestion.dig("category", "name")
     confidence = suggestion.dig("category", "confidence").to_f
     return skip("no_suggestion", category_name, confidence, suggestion["mode"]) if category_name.blank? || category_name == "Unknown"
+    return apply_category(category_name, confidence, suggestion["mode"]) if force_apply_remaining?
+
     return skip("low_confidence", category_name, confidence, suggestion["mode"]) if confidence < min_confidence
 
     apply_category(category_name, confidence, suggestion["mode"])
@@ -54,9 +56,14 @@ class CompanyUnknownCategoryResolverService
   attr_reader :company, :dry_run, :min_confidence
 
   def default_min_confidence
+    return 0.0 if force_apply_remaining?
     return AUTO_CONFIDENCE if ENV.fetch("AUTO_HYGIENE", "false") == "true"
 
     ENV.fetch("MIN_CONFIDENCE", HIGH_CONFIDENCE.to_s).to_f
+  end
+
+  def force_apply_remaining?
+    ENV.fetch("FORCE_APPLY_REMAINING", "false") == "true"
   end
 
   def apply_category(category_name, confidence, mode)
