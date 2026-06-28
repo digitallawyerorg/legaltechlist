@@ -359,7 +359,7 @@ html
         meta name="twitter:description" content=seo_description
         meta name="language" content="us"
         meta name="audience" content="all"
-        meta name="robots" content="index,follow"
+        meta name="robots" content=(content_for?(:robots) ? content_for(:robots) : "index,follow")
         meta name="keywords" content="codex,legal,tech,index,sls,stanford,bay,area,database,search"
         link rel="alternate" type="application/rss+xml" title="CodeX TechIndex RSS" href=feed_url
         script type="application/ld+json"= website_json_ld

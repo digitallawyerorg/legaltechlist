@@ -14,6 +14,7 @@ Rails.application.configure do
 
   # Full error reports are disabled and caching is turned on.
   config.consider_all_requests_local       = false
+  config.exceptions_app = routes
   config.action_controller.perform_caching = true
   config.middleware.use Rack::Deflater
   config.silence_healthcheck_path = "/up"

@@ -1,0 +1,12 @@
+- content_for :robots, "noindex"
+- content_for :title, error[:title]
+
+.error-page
+    .error-page-main
+        .error-page-card
+            p.error-page-code= error[:code]
+            h1.public-display-title.error-page-title= error[:heading]
+            p.error-page-message= error[:message]
+            .error-page-actions
+                = link_to "Back to homepage", root_path, class: "error-page-btn error-page-btn-primary"
+                = link_to "Browse companies", companies_path, class: "error-page-btn error-page-btn-secondary"
