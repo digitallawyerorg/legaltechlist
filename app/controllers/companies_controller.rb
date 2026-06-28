@@ -101,12 +101,23 @@ class CompaniesController < ApplicationController
       return
     end
 
+    unless UserSuggestionIssueTypes.valid?(suggestion[:issue_type])
+      redirect_to @company, alert: "Please choose a valid issue type."
+      return
+    end
+
+    if suggestion[:message].to_s.strip.length < UserSubmissionProtection::MIN_SUGGESTION_MESSAGE_LENGTH
+      redirect_to @company, alert: "Please provide a bit more detail about the change."
+      return
+    end
+
     if suggestion[:submitter_email].blank?
       redirect_to @company, alert: "Please enter your email address."
       return
     end
 
     UserSuggestionIntakeService.call(company: @company, suggestion: suggestion, request_ip: request.remote_ip)
+    record_submission_fingerprint!
 
     redirect_to @company, notice: "Thank you. Your suggestion has been submitted for review."
   end
@@ -119,6 +130,7 @@ class CompaniesController < ApplicationController
     respond_to do |format|
       if @contribution_form.valid?
         UserContributionIntakeService.call(form: @contribution_form, request_ip: request.remote_ip)
+        record_submission_fingerprint!
 
         format.html { redirect_to companies_path, notice: "Thank you. Your company suggestion has been submitted for review." }
         format.json { head :created }

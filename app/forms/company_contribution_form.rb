@@ -22,7 +22,10 @@ class CompanyContributionForm
   attribute :legaltech_atlas_url, :string
   attribute :logo_url, :string
 
+  MIN_DESCRIPTION_LENGTH = UserSubmissionProtection::MIN_CONTRIBUTION_DESCRIPTION_LENGTH
+
   validates :contact_name, :contact_email, :name, :main_url, :location, :founded_date, :category_id, :description, :status, presence: true
+  validates :description, length: { minimum: MIN_DESCRIPTION_LENGTH, too_short: "must be at least %{count} characters" }
   validate :revenue_models_present
   validate :target_clients_present
   validate :tags_present

@@ -191,7 +191,8 @@ class CompaniesControllerTest < ActionController::TestCase
     assert_includes checkbox_labels, "artificial intelligence"
     assert_equal BusinessModel.canonical.order(:name).pluck(:name), checkbox_labels & BusinessModel.canonical.pluck(:name)
     assert_equal TargetClient.canonical.order(:name).pluck(:name), checkbox_labels & TargetClient.canonical.pluck(:name)
-    assert_equal Tag.discoverable.pluck(:name), checkbox_labels & Tag.discoverable.pluck(:name)
+    discoverable_tag_names = Tag.discoverable_names
+    assert_equal discoverable_tag_names, checkbox_labels & discoverable_tag_names
   end
 
   test "new form omits deprecated AngelList field" do
@@ -378,6 +379,48 @@ class CompaniesControllerTest < ActionController::TestCase
 
     assert_redirected_to company_path(@company)
     assert_match(/email/i, flash[:alert].to_s)
+  end
+
+  test "suggest update honeypot silently accepts without creating proposal" do
+    assert_no_difference "CompanyProposal.count" do
+      post :suggest_update, params: {
+        id: @company,
+        website_url: "http://bot.example",
+        issue_type: "incorrect_details",
+        message: "Founded year should be 2014.",
+        submitter_email: "reviewer@example.com"
+      }
+    end
+
+    assert_redirected_to company_path(@company)
+  end
+
+  test "suggest update rejects unsupported issue type" do
+    assert_no_difference "CompanyProposal.count" do
+      post :suggest_update, params: {
+        id: @company,
+        issue_type: "spam_issue",
+        message: "Founded year should be 2014.",
+        submitter_email: "reviewer@example.com"
+      }
+    end
+
+    assert_redirected_to company_path(@company)
+    assert_match(/valid issue type/i, flash[:alert].to_s)
+  end
+
+  test "suggest update rejects short messages" do
+    assert_no_difference "CompanyProposal.count" do
+      post :suggest_update, params: {
+        id: @company,
+        issue_type: "incorrect_details",
+        message: "Too short",
+        submitter_email: "reviewer@example.com"
+      }
+    end
+
+    assert_redirected_to company_path(@company)
+    assert_match(/more detail/i, flash[:alert].to_s)
   end
 
   test "honeypot silently accepts bot submissions without creating proposals" do

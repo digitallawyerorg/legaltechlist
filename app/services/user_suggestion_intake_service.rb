@@ -1,5 +1,6 @@
 class UserSuggestionIntakeService
   SOURCE = "user_suggestion"
+  MIN_MESSAGE_LENGTH = UserSubmissionProtection::MIN_SUGGESTION_MESSAGE_LENGTH
 
   def self.call(company:, suggestion:, request_ip: nil)
     new(company: company, suggestion: suggestion, request_ip: request_ip).call
@@ -41,7 +42,9 @@ class UserSuggestionIntakeService
 
   def validate!
     raise ArgumentError, "Issue type is required" if suggestion[:issue_type].blank?
+    raise ArgumentError, "Issue type is not supported" unless UserSuggestionIssueTypes.valid?(suggestion[:issue_type])
     raise ArgumentError, "Message is required" if suggestion[:message].blank?
+    raise ArgumentError, "Message is too short" if suggestion[:message].to_s.strip.length < MIN_MESSAGE_LENGTH
     raise ArgumentError, "Submitter email is required" if suggestion[:submitter_email].blank?
   end
 

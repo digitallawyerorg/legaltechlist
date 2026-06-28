@@ -31,6 +31,40 @@ class UserSubmissionWorkflowTest < ActiveSupport::TestCase
     assert_includes form.errors[:tag_names], "can't be blank"
   end
 
+  test "suggestion intake rejects unsupported issue types" do
+    assert_raises(ArgumentError, match: /not supported/i) do
+      UserSuggestionIntakeService.call(
+        company: @company,
+        suggestion: {
+          issue_type: "spam_issue",
+          message: "Founded year should be 2014.",
+          submitter_email: "reviewer@example.com"
+        }
+      )
+    end
+  end
+
+  test "suggestion intake rejects short messages" do
+    assert_raises(ArgumentError, match: /too short/i) do
+      UserSuggestionIntakeService.call(
+        company: @company,
+        suggestion: {
+          issue_type: "incorrect_details",
+          message: "Too short",
+          submitter_email: "reviewer@example.com"
+        }
+      )
+    end
+  end
+
+  test "contribution form rejects short descriptions" do
+    form = valid_contribution_form
+    form.description = "Too short."
+
+    assert_not form.valid?
+    assert_includes form.errors[:description], "must be at least 30 characters"
+  end
+
   test "contribution form rejects non-curated tags" do
     form = valid_contribution_form
     form.tag_names = ["saas"]
@@ -120,7 +154,29 @@ class UserSubmissionWorkflowTest < ActiveSupport::TestCase
     assert_equal "2014", proposal.final_changes["founded_date"]
   end
 
-  test "processor auto-applies interpreted suggestions to published companies" do
+  test "processor auto-applies interpreted suggestions when triage accepts" do
+    with_env("USER_SUGGESTION_AUTO_APPLY" => "true") do
+      proposal = user_suggestion_proposal(
+        message: "Founded year should be 2014.",
+        founded_date: @company.founded_date
+      )
+
+      triage_accept = { "verdict" => "accept", "confidence" => 0.95, "mode" => "test", "reason" => "Clear factual correction." }
+      original_call = UserSubmissionTriageService.method(:call)
+      UserSubmissionTriageService.define_singleton_method(:call) { |proposal:| triage_accept }
+      begin
+        CompanyUserSubmissionProcessorService.call(proposal: proposal)
+      ensure
+        UserSubmissionTriageService.define_singleton_method(:call, original_call)
+      end
+
+      proposal.reload
+      assert_equal "published", proposal.status
+      assert_equal "2014", @company.reload.founded_date
+    end
+  end
+
+  test "processor does not auto-apply suggestions when triage queues for review" do
     with_env("USER_SUGGESTION_AUTO_APPLY" => "true") do
       proposal = user_suggestion_proposal(
         message: "Founded year should be 2014.",
@@ -130,8 +186,8 @@ class UserSubmissionWorkflowTest < ActiveSupport::TestCase
       CompanyUserSubmissionProcessorService.call(proposal: proposal)
 
       proposal.reload
-      assert_equal "published", proposal.status
-      assert_equal "2014", @company.reload.founded_date
+      assert_equal "ready_for_review", proposal.status
+      assert_not_equal "2014", @company.reload.founded_date
     end
   end
 

@@ -91,6 +91,7 @@ class CompanyUserSubmissionProcessorService
 
   def auto_apply_suggestion?
     return false unless auto_apply_suggestions?
+    return false unless proposal.agent_details.dig("triage", "verdict") == "accept"
     return false if proposal.company.blank?
     return false unless proposal.company.visible?
     return false if suggestion_interpretation_delta.blank?
@@ -120,9 +121,7 @@ class CompanyUserSubmissionProcessorService
   end
 
   def auto_apply_suggestions?
-    ActiveModel::Type::Boolean.new.cast(
-      ENV.fetch("USER_SUGGESTION_AUTO_APPLY", Rails.env.production? ? "true" : "false")
-    )
+    ActiveModel::Type::Boolean.new.cast(ENV.fetch("USER_SUGGESTION_AUTO_APPLY", "false"))
   end
 
   def result(status, message, company = nil)
