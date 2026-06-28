@@ -27,7 +27,7 @@
             table.table.table-hover.align-middle.mb-0.admin-table.is-compact
                 thead
                     tr
-                        th= check_box_tag :select_all_proposals, "1", false, class: "form-check-input", data: { proposal_select_all: true }, aria: { label: "Select all proposals on this page" }
+                        th.admin-table-checkbox-col= check_box_tag :select_all_proposals, "1", false, class: "form-check-input", data: { proposal_select_all: true }, aria: { label: "Select all proposals on this page" }
                         th Candidate
                         th.admin-nowrap Readiness
                         th Issues
@@ -48,22 +48,21 @@
                         - issue_chips << { label: "Taxonomy", tone: "warning" } if taxonomy_missing.any?
                         - issue_chips << { label: "Duplicates", tone: "danger" } if name_dupes.positive? || domain_dupes.positive?
                         - url = proposal.final_changes["main_url"].presence || proposal.source_payload["website"].presence
-                        - type_labels = { "user_suggestion" => "User suggestion", "user_contribution" => "User contribution", "discovery_candidate" => "Discovery" }
-                        - type_label = type_labels[proposal.proposal_type]
-                        - secondary_detail = proposal.user_submission? ? (proposal.submitter_email.presence || url) : url
                         tr
-                            td= check_box_tag "proposal_ids[]", proposal.id, false, class: "form-check-input"
+                            td.admin-table-checkbox-col= check_box_tag "proposal_ids[]", proposal.id, false, class: "form-check-input"
                             td.admin-description
                                 .d-flex.align-items-center.flex-wrap.gap-2
                                     = link_to custom_admin_company_proposal_path(proposal), class: "admin-primary-link fw-semibold", aria: { label: "Review #{proposal.display_name}" } do
                                         = proposal.display_name
                                     span.admin-status-pill.text-bg-light= proposal.status.humanize
-                                    - if type_label.present?
-                                        span.admin-status-pill.text-bg-secondary= type_label
+                                    - if proposal.proposal_type == "discovery_candidate"
+                                        span.admin-status-pill.text-bg-secondary Discovery
                                     - if proposal.company
                                         = link_to "Draft", custom_admin_company_review_path(proposal.company), class: "small text-muted"
-                                - if secondary_detail.present?
-                                    .small.text-muted= proposal.user_submission? && proposal.submitter_email.present? ? secondary_detail : truncate(secondary_detail.to_s, length: 48)
+                                - if proposal.user_submission? && proposal.submitter_email.present?
+                                    .small.text-muted= "Submitted by #{proposal.submitter_email}"
+                                - elsif url.present?
+                                    .small.text-muted= truncate(url.to_s, length: 48)
                                 - elsif !proposal.user_submission?
                                     .small.text-muted Missing website
                             td.admin-nowrap
