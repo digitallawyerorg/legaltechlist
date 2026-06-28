@@ -29,72 +29,62 @@
                     tr
                         th= check_box_tag :select_all_proposals, "1", false, class: "form-check-input", data: { proposal_select_all: true }, aria: { label: "Select all proposals on this page" }
                         th Candidate
-                        th Submitter
-                        th Readiness
-                        th Description
-                        th Taxonomy
-                        th Duplicate signals
-                        th Research
-                        th Draft company
-                        th Updated
-                        th
+                        th.admin-nowrap Readiness
+                        th Issues
+                        th.admin-nowrap Updated
+                        th.admin-actions
                 tbody
                     - @company_proposals.each do |proposal|
                         - quality = @proposal_quality_reports.fetch(proposal.id) { proposal.cached_quality_report.presence || CompanyProposalQualityService.call(proposal) }
                         - missing = Array(quality["missing_required_fields"])
                         - critic = proposal.agent_details.dig("description_critic", "verdict").presence || "missing"
-                        - research_results = Array(proposal.agent_details.dig("web_research", "results"))
                         - taxonomy_suggestion = proposal.agent_details["taxonomy_suggestion"] || {}
+                        - taxonomy_missing = missing & TaxonomyCompleteness::TAXONOMY_FIELD_KEYS
+                        - name_dupes = Array(proposal.duplicate_signals["name_matches"]).size
+                        - domain_dupes = Array(proposal.duplicate_signals["domain_matches"]).size
                         - import_run_id = proposal.source_payload["pipeline_run_id"]
+                        - issue_chips = []
+                        - issue_chips << { label: "Description", tone: "warning" } if missing.include?("description")
+                        - issue_chips << { label: "Description review", tone: "warning" } if critic != "pass" && critic != "missing" && !missing.include?("description")
+                        - issue_chips << { label: "Taxonomy", tone: "warning" } if taxonomy_missing.any?
+                        - issue_chips << { label: "Duplicates", tone: "danger" } if name_dupes.positive? || domain_dupes.positive?
+                        - issue_chips << { label: "Draft ready", tone: "muted" } if proposal.company.present?
                         tr
                             td= check_box_tag "proposal_ids[]", proposal.id, false, class: "form-check-input"
                             td.admin-description
                                 = link_to custom_admin_company_proposal_path(proposal), class: "admin-primary-link", aria: { label: "Review #{proposal.display_name}" } do
                                     .fw-semibold= proposal.display_name
-                                    .admin-cell-secondary= proposal.final_changes["main_url"].presence || proposal.source_payload["website"].presence || "Missing website"
+                                    - url = proposal.final_changes["main_url"].presence || proposal.source_payload["website"].presence
+                                    - if url.present?
+                                        .admin-cell-secondary= truncate(url, length: 48)
+                                    - else
+                                        .admin-cell-secondary Missing website
+                                    - if proposal.submitter_email.present?
+                                        .admin-cell-secondary= proposal.submitter_email
                                     .d-flex.flex-wrap.gap-1.mt-1
                                         span.admin-status-pill.text-bg-light= proposal.status.humanize
                                         - if proposal.user_submission?
+                                            span.admin-status-pill.text-bg-primary= proposal.proposal_type.humanize
+                                        - elsif proposal.proposal_type.present?
                                             span.admin-status-pill.text-bg-light= proposal.proposal_type.humanize
                                         - if proposal.issue_type.present?
                                             span.admin-status-pill.text-bg-light= proposal.issue_type.humanize
                                         - if import_run_id.present?
                                             span.admin-status-pill.text-bg-light= "Run ##{import_run_id}"
-                            td.small
-                                - if proposal.submitter_email.present?
-                                    .admin-cell-primary= proposal.submitter_email
-                                    - if proposal.submitter_name.present?
-                                        .admin-cell-secondary= proposal.submitter_name
+                                        - if proposal.company
+                                            = link_to custom_admin_company_review_path(proposal.company), class: "admin-status-pill text-bg-secondary text-decoration-none" do
+                                                | Draft
+                            td.admin-nowrap
+                                span.admin-status-pill(class=(quality["publish_ready"] ? "text-bg-success" : "text-bg-warning"))= "#{quality['score']}%"
+                            td
+                                - if issue_chips.any?
+                                    .d-flex.flex-wrap.gap-1
+                                        - issue_chips.each do |issue|
+                                            span.admin-issue-chip class="is-#{issue[:tone]}"= issue[:label]
+                                - elsif taxonomy_suggestion["accepted"]
+                                    span.admin-issue-chip.is-muted Auto taxonomy
                                 - else
                                     span.admin-cell-secondary —
-                            td
-                                span.admin-status-pill(class=(quality["publish_ready"] ? "text-bg-success" : "text-bg-warning"))= "#{quality['score']}%"
-                                - if Array(quality["blockers"]).any?
-                                    .admin-cell-secondary= Array(quality["blockers"]).first
-                                - elsif proposal.company
-                                    .admin-cell-secondary Invisible draft created
-                            td
-                                span.admin-status-pill(class=(critic == "pass" ? "text-bg-success" : "text-bg-warning"))= critic.humanize
-                                .admin-cell-secondary= missing.include?("description") ? "Missing description" : truncate(proposal.final_changes["description"].to_s, length: 90)
-                            td.small
-                                - taxonomy_missing = missing & TaxonomyCompleteness::TAXONOMY_FIELD_KEYS
-                                - if taxonomy_missing.any?
-                                    span.admin-issue-chip.is-warning= "Missing #{taxonomy_missing.map(&:humanize).to_sentence}"
-                                - elsif taxonomy_suggestion["accepted"]
-                                    span.admin-issue-chip.is-muted= "Auto-suggested #{taxonomy_suggestion['mode'].to_s.humanize}"
-                                - else
-                                    span.admin-issue-chip.is-muted Complete
-                            td.small.admin-nowrap= "#{Array(proposal.duplicate_signals['name_matches']).size} name / #{Array(proposal.duplicate_signals['domain_matches']).size} domain"
-                            td.small
-                                - if research_results.any?
-                                    span.admin-cell-primary= "#{research_results.size} snippets"
-                                - else
-                                    span.admin-cell-secondary No search evidence
-                            td.admin-nowrap
-                                - if proposal.company
-                                    = link_to proposal.company.name, custom_admin_company_review_path(proposal.company)
-                                - else
-                                    span.admin-cell-secondary None
                             td.admin-cell-secondary.admin-nowrap= time_ago_in_words(proposal.updated_at)
                             td.text-end.admin-actions
                                 .dropdown
@@ -106,7 +96,7 @@
                                             | Review
                     - if @company_proposals.empty?
                         tr
-                            td.text-muted colspan="10" No proposals in this queue.
+                            td.text-muted colspan="6" No proposals in this queue.
         .card-footer.bg-white.py-2
             = paginate @company_proposals
 
