@@ -73,4 +73,16 @@ class CompaniesHelperTest < ActionView::TestCase
     refute company_filter_master_indeterminate?([], 5)
     refute company_filter_master_indeterminate?([1, 2, 3, 4, 5], 5)
   end
+
+  test "company_inactive detects inactive and closed statuses" do
+    company = companies(:one)
+    company.status = "active"
+    refute company_inactive?(company)
+
+    company.status = "inactive"
+    assert company_inactive?(company)
+
+    company.status = "Closed"
+    assert company_inactive?(company)
+  end
 end

@@ -238,6 +238,30 @@ class CompaniesControllerTest < ActionController::TestCase
     assert_select "nav.company-show-nav a.company-show-nav-next", count: 0
   end
 
+  test "show omits visit website button and renders external link after url" do
+    get :show, params: { id: @company }
+
+    assert_response :success
+    assert_select ".company-visit-btn", count: 0
+    assert_select ".company-hero-website[href=?]", @company.main_url
+    assert_select ".company-hero-website .fa-arrow-up-right-from-square"
+    assert_select ".company-hero-website .fa-globe", count: 0
+    assert_select ".company-hero", count: 1
+  end
+
+  test "show renders inactive company url without link and disables reference links" do
+    @company.update_columns(status: "inactive")
+
+    get :show, params: { id: @company }
+
+    assert_response :success
+    assert_select ".company-hero-website-inactive[title=?]", CompaniesHelper::INACTIVE_COMPANY_TOOLTIP
+    assert_select ".company-hero-website[href]", count: 0
+    assert_select ".company-source-row-inactive", minimum: 1
+    assert_select "a.company-source-row", count: 0
+    assert_select ".company-source-inactive-dot", minimum: 1
+  end
+
   test "index company links include list context for show navigation" do
     get :index, params: { sort: "name_asc", category: @company.category_id }
 

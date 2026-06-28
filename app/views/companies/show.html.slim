@@ -73,10 +73,12 @@ css:
 
     .company-show-page .company-hero {
         align-items: flex-start;
+        border-top: 1px solid #e1dccf;
         display: flex;
         gap: 1.25rem;
         justify-content: space-between;
         margin-bottom: 2.5rem;
+        padding-top: 1.25rem;
     }
 
     .company-show-page .company-hero-main {
@@ -145,6 +147,22 @@ css:
         text-decoration: underline;
     }
 
+    .company-show-page .company-hero-website:hover .company-hero-website-icon {
+        color: #8c1515;
+    }
+
+    .company-show-page .company-hero-website-icon {
+        color: #b7afa4;
+        font-size: 0.82rem;
+        line-height: 1;
+    }
+
+    .company-show-page .company-hero-website-inactive {
+        color: #9a9288;
+        cursor: default;
+        font-weight: 600;
+    }
+
     .company-show-page .company-status-note {
         background: #f0ebe3;
         border: 1px solid #e1dccf;
@@ -211,25 +229,9 @@ css:
         color: #6f6a60;
     }
 
-    .company-show-page .company-visit-btn {
-        align-items: center;
-        background: #8c1515;
-        border: 0;
-        border-radius: 0.65rem;
-        color: #fff;
-        display: inline-flex;
-        flex-shrink: 0;
-        font-size: 0.88rem;
-        font-weight: 600;
-        gap: 0.45rem;
-        padding: 0.65rem 1rem;
-        text-decoration: none;
-        white-space: nowrap;
-    }
-
-    .company-show-page .company-visit-btn:hover {
-        background: #6f1111;
-        color: #fff;
+    .company-show-page .company-about-section {
+        border-top: 1px solid #e1dccf;
+        padding-top: 1.25rem;
     }
 
     .company-show-page .company-section {
@@ -327,6 +329,22 @@ css:
 
     .company-show-page .company-source-row:hover .company-source-label {
         color: #8c1515;
+    }
+
+    .company-show-page .company-source-row-inactive {
+        cursor: default;
+    }
+
+    .company-show-page .company-source-row-inactive:hover .company-source-label {
+        color: #241f1a;
+    }
+
+    .company-show-page .company-source-inactive-dot {
+        background: #dc2626;
+        border-radius: 999px;
+        display: block;
+        height: 0.45rem;
+        width: 0.45rem;
     }
 
     .company-show-page .company-source-icon {
@@ -535,6 +553,8 @@ css:
     }
 
 - website_url = (@company.main_url.present? && @company.main_url != "n/a") ? (@company.main_url.include?("http") ? @company.main_url : "http://#{@company.main_url}") : nil
+- company_inactive = company_inactive?(@company)
+- inactive_company_tooltip = CompaniesHelper::INACTIVE_COMPANY_TOOLTIP
 - content_for :title, @company.name
 - content_for :description, truncate(@company.description.to_s, length: 160)
 - content_for :json_ld, company_organization_json_ld(@company)
@@ -606,15 +626,15 @@ css:
                 div
                     h1.company-show-title= @company.name
                     - if website_url.present?
-                        = link_to website_url, class: "company-hero-website", target: "_blank", rel: "noopener" do
-                            i.fa-solid.fa-globe aria-hidden="true"
-                            = website_display_label(@company.main_url)
-            - if website_url.present?
-                = link_to website_url, class: "company-visit-btn", target: "_blank", rel: "noopener" do
-                    | Visit website
-                    i.fa-solid.fa-arrow-right aria-hidden="true"
+                        - if company_inactive
+                            span.company-hero-website.company-hero-website-inactive title=inactive_company_tooltip
+                                = website_display_label(@company.main_url)
+                        - else
+                            = link_to website_url, class: "company-hero-website", target: "_blank", rel: "noopener" do
+                                = website_display_label(@company.main_url)
+                                i.fa-solid.fa-arrow-up-right-from-square.company-hero-website-icon aria-hidden="true"
 
-        section.company-section
+        section.company-section.company-about-section
             .company-section-label About
             - if @company.description.present?
                 p.company-show-body= @company.description
@@ -648,12 +668,21 @@ css:
                 .company-section-label= reference_section[:title]
                 .company-source-list
                     - reference_section[:links].each do |source_link|
-                        = link_to source_link[:url], class: "company-source-row", target: "_blank", rel: "noopener" do
-                            .company-source-icon
-                                i class="#{source_link[:icon]}" style="color: #{source_link[:icon_color]};"
-                            .company-source-label= source_link[:label]
-                            .company-source-host= source_link[:host]
-                            i.fa-solid.fa-arrow-up-right-from-square.company-source-arrow aria-hidden="true"
+                        - if company_inactive
+                            .company-source-row.company-source-row-inactive
+                                .company-source-icon
+                                    i class="#{source_link[:icon]}" style="color: #{source_link[:icon_color]};"
+                                .company-source-label= source_link[:label]
+                                .company-source-host= source_link[:host]
+                                span.company-source-arrow title=inactive_company_tooltip aria-label=inactive_company_tooltip
+                                    span.company-source-inactive-dot aria-hidden="true"
+                        - else
+                            = link_to source_link[:url], class: "company-source-row", target: "_blank", rel: "noopener" do
+                                .company-source-icon
+                                    i class="#{source_link[:icon]}" style="color: #{source_link[:icon_color]};"
+                                .company-source-label= source_link[:label]
+                                .company-source-host= source_link[:host]
+                                i.fa-solid.fa-arrow-up-right-from-square.company-source-arrow aria-hidden="true"
 
         - if academic_ref_entries.any?
             section.company-section

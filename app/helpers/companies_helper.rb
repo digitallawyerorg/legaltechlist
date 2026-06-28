@@ -172,6 +172,12 @@ module CompaniesHelper
     value.sub(%r{\Ahttps?://}i, "").split("/").first.to_s
   end
 
+  def company_inactive?(company)
+    company.status.to_s.downcase.in?(%w[inactive closed])
+  end
+
+  INACTIVE_COMPANY_TOOLTIP = "This company is no longer active".freeze
+
   def related_company_list(company)
     tag_ids = company.tags.map(&:id)
     return yield([]) if tag_ids.empty?
