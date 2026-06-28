@@ -40,13 +40,14 @@ module StatisticsHelper
     { actions: %w[category_evolution_5_years], title: "Category Focus", path: :statistics_category_evolution_5_years_path },
     { actions: %w[category_evolution_5_years], title: "Business Model", path: :statistics_business_model_path },
     { actions: %w[category_evolution_5_years], title: "Target Market", path: :statistics_target_client_path },
-    { actions: %w[funding_by_category], title: "Funding", path: :statistics_funding_by_category_path },
+    { actions: %w[funding_by_category], dimension: "category", title: "Funding by Category", path: :statistics_funding_by_category_path },
+    { actions: %w[funding_by_category], dimension: "region", title: "Funding by Region", path: :statistics_funding_by_region_path },
     { actions: %w[ai_trends], title: "AI in Legal Tech", path: :statistics_ai_trends_path },
     { actions: %w[tag_distribution], title: "Technology Themes", path: :statistics_tag_distribution_path }
   ].freeze
 
   def stats_chart_neighbors
-    index = STATS_CHART_PAGES.find_index { |page| page[:actions].include?(action_name) }
+    index = STATS_CHART_PAGES.find_index { |page| stats_chart_page_match?(page) }
     return nil unless index
 
     page_count = STATS_CHART_PAGES.size
@@ -357,6 +358,19 @@ module StatisticsHelper
     stats_share_preview_rows(totals.sort_by { |_, amount| -amount }.map { |label, amount| { label: label, share: amount } }, top_count: top_count)
   end
 
+  def stats_funding_region_preview(top_count: 3)
+    totals = Hash.new(0.0)
+    stats_geographic_distribution_scope.where("total_funding_amount_usd > 0").find_each do |company|
+      country = company.resolved_country
+      next if country.blank?
+
+      region = LocationRegionResolver.region_for_country(country)
+      totals[region] += company.total_funding_amount_usd.to_f
+    end
+
+    stats_share_preview_rows(totals.sort_by { |_, amount| -amount }.map { |label, amount| { label: label, share: amount } }, top_count: top_count, rest_label: "Rest of world")
+  end
+
   def stats_revenue_model_preview(top_count: 3)
     model_counts = Hash.new(0)
     stats_index_scope.includes(:business_models, :business_model).find_each do |company|
@@ -399,6 +413,15 @@ module StatisticsHelper
   end
 
   private
+
+  def stats_chart_page_match?(page)
+    return false unless page[:actions].include?(action_name)
+
+    return true unless page.key?(:dimension)
+
+    current_dimension = params[:dimension].presence || (params[:view] == "region" ? "region" : nil) || "category"
+    page[:dimension] == current_dimension
+  end
 
   def stats_share_preview_rows(rows, top_count: 3, rest_label: "Rest")
     return [] if rows.empty?

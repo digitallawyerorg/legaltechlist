@@ -22,7 +22,7 @@ class StaticPagesControllerTest < ActionController::TestCase
   test "should get statistics" do
     get :statistics
     assert_response :success
-    assert_select ".stats-index-card", count: 8
+    assert_select ".stats-index-card", count: 9
   end
 
   test "business_model redirects to industry focus revenue model view" do
@@ -91,6 +91,7 @@ class StaticPagesControllerTest < ActionController::TestCase
     assert_select "h1.stats-chart-title", text: "Funding"
     assert_select "#funding-dimension option[selected]", text: "By Category"
     assert_not_includes @response.body, "funding-by-region-chart"
+    assert_select ".stats-chart-nav .stats-chart-nav-next .stats-chart-nav-title", text: "Funding by Region"
   end
 
   test "funding by category region view renders sankey chart" do

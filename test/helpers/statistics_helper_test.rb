@@ -2,22 +2,40 @@ require "test_helper"
 
 class StatisticsHelperTest < ActiveSupport::TestCase
   include Rails.application.routes.url_helpers
-  def neighbors_for(action_name)
+  def neighbors_for(action_name, params: {})
     context = Class.new do
       include StatisticsHelper
       include Rails.application.routes.url_helpers
 
       define_method(:action_name) { action_name }
+      define_method(:params) { params }
     end
 
     context.new.stats_chart_neighbors
   end
 
-  test "stats_chart_neighbors returns wrapped prev and next for funding" do
+  test "stats_chart_neighbors returns wrapped prev and next for funding by category" do
     neighbors = neighbors_for("funding_by_category")
 
     assert_equal "Target Market", neighbors[:prev][:title]
     assert_equal statistics_target_client_path, neighbors[:prev][:path]
+    assert_equal "Funding by Region", neighbors[:next][:title]
+    assert_equal statistics_funding_by_region_path, neighbors[:next][:path]
+  end
+
+  test "stats_chart_neighbors returns wrapped prev and next for funding by region" do
+    context = Class.new do
+      include StatisticsHelper
+      include Rails.application.routes.url_helpers
+
+      define_method(:action_name) { "funding_by_category" }
+      define_method(:params) { { dimension: "region" } }
+    end
+
+    neighbors = context.new.stats_chart_neighbors
+
+    assert_equal "Funding by Category", neighbors[:prev][:title]
+    assert_equal statistics_funding_by_category_path, neighbors[:prev][:path]
     assert_equal "AI in Legal Tech", neighbors[:next][:title]
     assert_equal statistics_ai_trends_path, neighbors[:next][:path]
   end
