@@ -154,6 +154,17 @@ class UserSubmissionWorkflowTest < ActiveSupport::TestCase
     assert_equal "2014", proposal.final_changes["founded_date"]
   end
 
+  test "interpretation extracts explicit description updates from message" do
+    proposal = user_suggestion_proposal(
+      message: "Update description to One platform to streamline legal staffing and procurement.",
+      founded_date: @company.founded_date
+    )
+
+    delta = UserSuggestionInterpretationService.call(proposal: proposal)
+
+    assert_equal "One platform to streamline legal staffing and procurement.", delta["description"]
+  end
+
   test "processor auto-applies interpreted suggestions when triage accepts" do
     with_env("USER_SUGGESTION_AUTO_APPLY" => "true") do
       proposal = user_suggestion_proposal(
@@ -176,7 +187,7 @@ class UserSubmissionWorkflowTest < ActiveSupport::TestCase
     end
   end
 
-  test "processor does not auto-apply suggestions when triage queues for review" do
+  test "processor auto-applies clear suggestions when triage queues for review" do
     with_env("USER_SUGGESTION_AUTO_APPLY" => "true") do
       proposal = user_suggestion_proposal(
         message: "Founded year should be 2014.",
@@ -186,8 +197,24 @@ class UserSubmissionWorkflowTest < ActiveSupport::TestCase
       CompanyUserSubmissionProcessorService.call(proposal: proposal)
 
       proposal.reload
-      assert_equal "ready_for_review", proposal.status
-      assert_not_equal "2014", @company.reload.founded_date
+      assert_equal "published", proposal.status
+      assert_equal "2014", @company.reload.founded_date
+    end
+  end
+
+  test "processor auto-applies clear description suggestions when triage queues for review" do
+    with_env("USER_SUGGESTION_AUTO_APPLY" => "true") do
+      new_description = "One platform to streamline legal staffing and procurement."
+      proposal = user_suggestion_proposal(
+        message: "Update description to #{new_description}",
+        founded_date: @company.founded_date
+      )
+
+      CompanyUserSubmissionProcessorService.call(proposal: proposal)
+
+      proposal.reload
+      assert_equal "published", proposal.status
+      assert_equal new_description, @company.reload.description
     end
   end
 

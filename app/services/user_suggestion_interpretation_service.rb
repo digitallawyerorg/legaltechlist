@@ -36,6 +36,13 @@ class UserSuggestionInterpretationService
     founded_match = message.match(/\b(19|20)\d{2}\b/)
     delta["founded_date"] = founded_match[0] if issue_type.in?(%w[incorrect_details]) && founded_match
 
+    if message.match?(/\bdescription\b/i)
+      description_match = message.match(/\b(?:update|change|set|correct)\s+(?:the\s+)?description\s+to\s+(.+)/im) ||
+        message.match(/\bdescription\s+should\s+be\s+(.+)/im)
+      proposed_description = description_match&.[](1).to_s.strip
+      delta["description"] = proposed_description if proposed_description.present?
+    end
+
     delta.slice(*FIELD_KEYS)
   end
 
