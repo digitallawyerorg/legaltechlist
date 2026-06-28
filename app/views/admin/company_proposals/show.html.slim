@@ -1,27 +1,39 @@
 - content_for :title, "#{@company_proposal.display_name} Proposal"
 - suggestion_diffs = @company_proposal.user_suggestion? ? proposal_suggestion_diffs(@company_proposal) : []
 
-.d-flex.flex-wrap.justify-content-between.align-items-start.gap-3.mb-3
-    div
-        .d-flex.flex-wrap.align-items-center.gap-2
-            h1.h3.mb-0= @company_proposal.display_name
-            span.admin-status-pill.text-bg-light= @company_proposal.status.humanize
-            - if @company_proposal.user_submission?
-                span.admin-status-pill.text-bg-primary User submission
-            span.admin-status-pill.text-bg-secondary= @company_proposal.proposal_type.humanize
-        - if @company_proposal.company
-            - banner_class = @company_proposal.company.visible? ? "" : " is-draft"
-            .admin-proposal-inline-banner.mt-2(class=banner_class)
-                - if @company_proposal.company.visible?
-                    i.fas.fa-check-circle
-                    span Published:
-                - else
-                    i.fas.fa-file-alt
-                    span Draft:
-                = link_to @company_proposal.company.name, custom_admin_company_review_path(@company_proposal.company), class: "fw-semibold"
-    .admin-proposal-toolbar.is-header
-        = button_to "Run Enrichment", enrich_custom_admin_company_proposal_path(@company_proposal), method: :post, class: "btn btn-outline-primary", form: { data: { turbo_confirm: "Generate proposal-only enrichment without changing company records?" } }
-        = link_to "Edit", edit_custom_admin_company_proposal_path(@company_proposal), class: "btn btn-outline-secondary"
+.mb-3
+    .d-flex.flex-wrap.align-items-center.gap-2.mb-2
+        h1.h3.mb-0= @company_proposal.display_name
+        span.admin-status-pill.text-bg-light= @company_proposal.status.humanize
+        - if @company_proposal.user_submission?
+            span.admin-status-pill.text-bg-primary User submission
+        span.admin-status-pill.text-bg-secondary= @company_proposal.proposal_type.humanize
+
+- if @company_proposal.company
+    - banner_class = @company_proposal.company.visible? ? "" : " is-draft"
+    .admin-proposal-status-banner.mb-3(class=banner_class)
+        - if @company_proposal.company.visible?
+            i.fas.fa-check-circle
+            span.fw-semibold Published:
+        - else
+            i.fas.fa-file-alt
+            span.fw-semibold Draft:
+        = link_to @company_proposal.company.name, custom_admin_company_review_path(@company_proposal.company), class: "fw-semibold"
+        - if @company_proposal.company.visible?
+            span.text-muted.small is visible on the public site.
+        - else
+            span.text-muted.small is invisible until you explicitly publish it.
+
+.admin-proposal-toolbar.mb-3
+    .admin-proposal-toolbar-secondary
+        = button_to enrich_custom_admin_company_proposal_path(@company_proposal), method: :post, class: "btn btn-outline-secondary", form: { data: { turbo_confirm: "Generate proposal-only enrichment without changing company records?" } } do
+            i.fas.fa-wand-magic-sparkles.me-1
+            | Enrich
+        = link_to edit_custom_admin_company_proposal_path(@company_proposal), class: "btn btn-outline-secondary" do
+            i.fas.fa-pen.me-1
+            | Edit
+    .admin-proposal-toolbar-primary
+        button.btn.btn-outline-danger type="button" data-bs-toggle="collapse" data-bs-target="#proposalRejectPanel" aria-expanded="false" aria-controls="proposalRejectPanel" Reject
         - if @company_proposal.user_suggestion?
             = form_with url: approve_custom_admin_company_proposal_path(@company_proposal), method: :post, local: true, class: "d-inline" do
                 = button_tag "Apply to Company", type: "submit", name: "publish", value: "0", class: "btn btn-success", data: { turbo_confirm: "Apply this suggestion to #{@company_proposal.company&.name}?" }
@@ -29,7 +41,6 @@
             = form_with url: approve_custom_admin_company_proposal_path(@company_proposal), method: :post, local: true, class: "d-inline" do
                 = button_tag "Approve Draft", type: "submit", name: "publish", value: "0", class: "btn btn-outline-success", data: { turbo_confirm: "Approve this proposal as an invisible draft?" }, disabled: @company_proposal.company_id.present?
                 = button_tag "Publish", type: "submit", name: "publish", value: "1", class: "btn btn-success", data: { turbo_confirm: "Publish this proposal to the public site?" }, disabled: @company_proposal.company_id.present? || !@quality_report["publish_ready"]
-        button.btn.btn-outline-danger.border-start.ps-3.ms-1 type="button" data-bs-toggle="collapse" data-bs-target="#proposalRejectPanel" aria-expanded="false" aria-controls="proposalRejectPanel" Reject
 
 - if !@company_proposal.user_suggestion? && @company_proposal.duplicate_blocking?
     .card.border-0.shadow-sm.mb-3
@@ -80,8 +91,11 @@
                             .admin-proposal-diff-new.mt-1= diff[:new_value].presence || "(blank)"
 
         .card.border-0.shadow-sm.mb-3
-            .card-header.bg-white.py-2
+            .card-header.bg-white.py-2.d-flex.justify-content-between.align-items-center
                 h2.h6.mb-0 Final editable fields
+                = link_to edit_custom_admin_company_proposal_path(@company_proposal), class: "btn btn-outline-secondary btn-sm" do
+                    i.fas.fa-pen.me-1
+                    | Edit
             .card-body.py-3
                 dl.row.mb-0.small
                     - proposal_changes_for_display(@final_changes).each do |label, value|

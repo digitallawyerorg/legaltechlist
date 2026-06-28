@@ -97,12 +97,15 @@ html
             | .dropdown-menu form { margin: 0; }
             | .admin-actions .dropdown-menu form { margin: 0; }
             | .admin-actions .dropdown-item { font-size: 0.82rem; text-align: left; width: 100%; }
-            | .admin-proposal-toolbar { align-items: center; display: flex; flex-wrap: wrap; gap: 0.45rem; justify-content: flex-end; }
-            | .admin-proposal-toolbar.is-header { background: transparent; border: 0; margin: 0; padding: 0; }
+            | .admin-proposal-toolbar { align-items: center; display: flex; flex-wrap: wrap; gap: 0.45rem; justify-content: space-between; width: 100%; }
             | .admin-proposal-toolbar form { margin: 0; }
             | .admin-proposal-toolbar .btn { --bs-btn-font-size: 0.78rem; --bs-btn-padding-y: 0.28rem; --bs-btn-padding-x: 0.65rem; }
-            | .admin-proposal-inline-banner { align-items: center; background: #ecfdf5; border: 1px solid #bbf7d0; border-radius: 999px; color: #166534; display: inline-flex; flex-wrap: wrap; font-size: 0.78rem; gap: 0.35rem; padding: 0.28rem 0.75rem; }
-            | .admin-proposal-inline-banner.is-draft { background: #eff6ff; border-color: #bfdbfe; color: #1d4ed8; }
+            | .admin-proposal-toolbar-secondary, .admin-proposal-toolbar-primary { align-items: center; display: flex; flex-wrap: wrap; gap: 0.45rem; }
+            | .admin-proposal-toolbar-primary { margin-left: auto; }
+            | .admin-proposal-status-banner { align-items: center; background: #ecfdf5; border: 1px solid #bbf7d0; border-radius: 0.65rem; color: #166534; display: flex; flex-wrap: wrap; font-size: 0.85rem; gap: 0.4rem; padding: 0.65rem 1rem; width: 100%; }
+            | .admin-proposal-status-banner.is-draft { background: #eff6ff; border-color: #bfdbfe; color: #1d4ed8; }
+            | .admin-proposal-status-banner .text-muted { color: #15803d !important; opacity: 0.85; }
+            | .admin-proposal-status-banner.is-draft .text-muted { color: #1e40af !important; opacity: 0.85; }
             | .admin-proposal-user-card { border-left: 0.25rem solid #4f46e5; }
             | .admin-proposal-user-message { color: #0f172a; font-size: 0.95rem; line-height: 1.5; white-space: pre-wrap; }
             | .admin-proposal-completeness { display: grid; gap: 0.35rem; }
