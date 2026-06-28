@@ -103,6 +103,17 @@ class CompanyCandidateRowProcessorService
     end
     company.business_model_ids = revenue_model_ids if revenue_model_ids.any?
 
+    target_client_ids = Array(proposal.final_changes["target_client_ids"]).map(&:presence).compact
+    if target_client_ids.empty? && changes["target_client_id"].present?
+      target_client_ids = [changes["target_client_id"]]
+    end
+    company.target_client_ids = target_client_ids if target_client_ids.any?
+
+    if proposal.final_changes["all_tags"].present?
+      company.all_tags = proposal.final_changes["all_tags"]
+      company.save!
+    end
+
     proposal.update!(
       status: "approved_to_draft",
       company: company,
@@ -175,13 +186,11 @@ class CompanyCandidateRowProcessorService
   end
 
   def enrichment_needed?(proposal)
-    changes = proposal.final_changes || {}
+    changes = proposal.editable_changes
     details = proposal.agent_details || {}
 
     changes["description"].blank? ||
-      changes["category_id"].blank? ||
-      changes["business_model_id"].blank? ||
-      changes["target_client_id"].blank? ||
+      proposal.missing_taxonomy_field_keys(changes).any? ||
       details["taxonomy_suggestion"].blank? ||
       details["description_critic"].blank?
   end

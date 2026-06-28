@@ -88,7 +88,7 @@ module Admin
         "ready" => quality_reports.count { |_id, report| report["publish_ready"] },
         "needs_revision" => CompanyProposal.where(status: "needs_revision").count,
         "duplicate_blocked" => duplicate_scope.count,
-        "missing_taxonomy" => quality_reports.count { |_id, report| (Array(report["missing_required_fields"]) & %w[category_id business_model_id target_client_id]).any? },
+        "missing_taxonomy" => quality_reports.count { |_id, report| taxonomy_fields_missing?(report) },
         "missing_description" => quality_reports.count { |_id, report| Array(report["missing_required_fields"]).include?("description") },
         "published" => CompanyProposal.published.count
       }
@@ -130,7 +130,7 @@ module Admin
     end
 
     def missing_taxonomy_scope
-      CompanyProposal.pending_review.where("COALESCE(final_changes->>'category_id', '') = '' OR COALESCE(final_changes->>'business_model_id', '') = '' OR COALESCE(final_changes->>'target_client_id', '') = ''")
+      CompanyProposal.proposal_missing_taxonomy_scope
     end
 
     def ready_proposal_ids
@@ -148,12 +148,19 @@ module Admin
     end
 
     def sanitized_final_changes
-      permitted = params.require(:company_proposal).permit(final_changes: CompanyProposal::EDITABLE_COMPANY_FIELDS + [{ business_model_ids: [] }])["final_changes"] || {}
+      permitted = params.require(:company_proposal).permit(final_changes: CompanyProposal::EDITABLE_COMPANY_FIELDS + [{ business_model_ids: [], target_client_ids: [] }])["final_changes"] || {}
       changes = permitted.to_h.slice(*CompanyProposal::EDITABLE_COMPANY_FIELDS)
       revenue_model_ids = Array(permitted["business_model_ids"]).map(&:presence).compact
+      target_client_ids = Array(permitted["target_client_ids"]).map(&:presence).compact
       changes["business_model_ids"] = revenue_model_ids if revenue_model_ids.any?
       changes["business_model_id"] = revenue_model_ids.first if revenue_model_ids.any?
+      changes["target_client_ids"] = target_client_ids if target_client_ids.any?
+      changes["target_client_id"] = target_client_ids.first if target_client_ids.any?
       changes
+    end
+
+    def taxonomy_fields_missing?(report)
+      (Array(report["missing_required_fields"]) & TaxonomyCompleteness::TAXONOMY_FIELD_KEYS).any?
     end
   end
 end

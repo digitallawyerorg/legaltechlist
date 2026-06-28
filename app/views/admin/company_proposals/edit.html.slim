@@ -60,8 +60,18 @@
                                     = label_tag "company_proposal_final_changes_business_model_ids_#{model.id}", model.name, class: "form-check-label"
                     = hidden_field_tag "company_proposal[final_changes][business_model_ids][]", ""
                 .col-md-3
-                    = label_tag "company_proposal_final_changes_target_client_id", "Target client", class: "form-label"
-                    = select_tag "company_proposal[final_changes][target_client_id]", options_from_collection_for_select(TargetClient.order(:name), :id, :name, @final_changes["target_client_id"]), include_blank: true, class: "form-select"
+                    = label_tag "company_proposal_final_changes_target_client_ids", "Target clients", class: "form-label"
+                    - selected_target_client_ids = Array(@final_changes["target_client_ids"]).map(&:to_i).presence || Array(@final_changes["target_client_id"]).map(&:to_i)
+                    .row.g-2
+                        - TargetClient.order(:name).each do |client|
+                            .col-md-6
+                                .form-check
+                                    = check_box_tag "company_proposal[final_changes][target_client_ids][]", client.id, selected_target_client_ids.include?(client.id), class: "form-check-input", id: "company_proposal_final_changes_target_client_ids_#{client.id}"
+                                    = label_tag "company_proposal_final_changes_target_client_ids_#{client.id}", client.name, class: "form-check-label"
+                    = hidden_field_tag "company_proposal[final_changes][target_client_ids][]", ""
+                .col-12
+                    = label_tag "company_proposal_final_changes_all_tags", "Tags", class: "form-label"
+                    = text_field_tag "company_proposal[final_changes][all_tags]", @final_changes["all_tags"], class: "form-control", placeholder: "comma-separated tags"
 
     .card.border-0.shadow-sm.mb-3
         .card-header.bg-white

@@ -42,10 +42,16 @@
                     dd.col-sm-9= field_value.call(@company.category&.name)
                     dt.col-sm-3 Secondary category
                     dd.col-sm-9= field_value.call(@company.secondary_category&.name)
-                    dt.col-sm-3 Revenue model
+                    dt.col-sm-3 Revenue models
                     dd.col-sm-9= field_value.call(@company.revenue_models_label)
-                    dt.col-sm-3 Target client
-                    dd.col-sm-9= field_value.call(@company.target_client&.name)
+                    dt.col-sm-3 Target clients
+                    dd.col-sm-9= field_value.call(@company.audience_names.join(", "))
+                    dt.col-sm-3 Successor company
+                    dd.col-sm-9
+                        - if @company.successor_company
+                            = link_to @company.successor_company.name, custom_admin_company_review_path(@company.successor_company)
+                        - else
+                            = blank_value
                     dt.col-sm-3 Tags
                     dd.col-sm-9= @company.tags.any? ? @company.tags.map(&:name).join(", ") : blank_value
 

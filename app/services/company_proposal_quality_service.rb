@@ -31,7 +31,16 @@ class CompanyProposalQualityService
   end
 
   def missing_required_fields
-    REQUIRED_FIELDS.select { |field| changes[field].blank? }
+    missing = REQUIRED_FIELDS.select { |field| scalar_field_blank?(field) }
+    missing << "business_model_id" unless proposal.revenue_models_present?(changes)
+    missing << "target_client_id" unless proposal.target_clients_present?(changes)
+    missing.uniq
+  end
+
+  def scalar_field_blank?(field)
+    return false if field.in?(%w[business_model_id target_client_id])
+
+    changes[field].blank?
   end
 
   def blockers
@@ -55,11 +64,19 @@ class CompanyProposalQualityService
   end
 
   def score
-    total = REQUIRED_FIELDS.size + 2
-    complete = REQUIRED_FIELDS.count { |field| changes[field].present? }
-    complete += 1 unless weak_description?
-    complete += 1 unless proposal.duplicate_blocking?
-    ((complete.to_f / total) * 100).round
+    checks = [
+      changes["name"].present?,
+      changes["main_url"].present?,
+      changes["location"].present?,
+      changes["founded_date"].present?,
+      changes["description"].present?,
+      changes["category_id"].present?,
+      proposal.revenue_models_present?(changes),
+      proposal.target_clients_present?(changes),
+      !weak_description?,
+      !proposal.duplicate_blocking?
+    ]
+    ((checks.count(true).to_f / checks.size) * 100).round
   end
 
   def weak_description?
@@ -78,7 +95,7 @@ class CompanyProposalQualityService
 
   def low_confidence_taxonomy?
     return false if taxonomy_suggestion.blank?
-    return false if missing_required_fields.intersect?(%w[category_id business_model_id target_client_id])
+    return false if proposal.missing_taxonomy_field_keys(changes).any?
 
     !taxonomy_suggestion["accepted"]
   end

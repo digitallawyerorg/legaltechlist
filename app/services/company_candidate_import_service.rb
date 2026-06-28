@@ -167,13 +167,11 @@ class CompanyCandidateImportService
   end
 
   def enrichment_needed?(proposal)
-    changes = proposal.final_changes || {}
+    changes = proposal.editable_changes
     details = proposal.agent_details || {}
 
     changes["description"].blank? ||
-      changes["category_id"].blank? ||
-      changes["business_model_id"].blank? ||
-      changes["target_client_id"].blank? ||
+      proposal.missing_taxonomy_field_keys(changes).any? ||
       details["taxonomy_suggestion"].blank? ||
       details["description_critic"].blank?
   end

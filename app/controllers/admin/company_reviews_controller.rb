@@ -18,7 +18,7 @@ module Admin
     end
 
     def show
-      @company = Company.find(params[:id])
+      @company = Company.includes(:category, :secondary_category, :successor_company, :business_models, :target_clients, :target_client, :tags).find(params[:id])
       @duplicate_domain_companies = duplicate_domain_companies
       @duplicate_name_companies = duplicate_name_companies
       @recent_pipeline_runs = PipelineRun.recent.limit(5)

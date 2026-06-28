@@ -71,7 +71,7 @@
                                 span.admin-status-pill(class=(critic == "pass" ? "text-bg-success" : "text-bg-warning"))= critic.humanize
                                 .admin-cell-secondary= missing.include?("description") ? "Missing description" : truncate(proposal.final_changes["description"].to_s, length: 90)
                             td.small
-                                - taxonomy_missing = missing & ["category_id", "business_model_id", "target_client_id"]
+                                - taxonomy_missing = missing & TaxonomyCompleteness::TAXONOMY_FIELD_KEYS
                                 - if taxonomy_missing.any?
                                     span.admin-issue-chip.is-warning= "Missing #{taxonomy_missing.map(&:humanize).to_sentence}"
                                 - elsif taxonomy_suggestion["accepted"]

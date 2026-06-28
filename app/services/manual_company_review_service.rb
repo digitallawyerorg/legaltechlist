@@ -117,7 +117,7 @@ class ManualCompanyReviewService
     flagged_risks << "Weak or short description." if company.description.to_s.squish.length < 80
     flagged_risks << "Duplicate-name candidate." if Company.duplicate_name_candidate_ids.include?(company.id)
     flagged_risks << "Duplicate-domain candidate." if Company.duplicate_domain_candidate_ids.include?(company.id)
-    flagged_risks << "Unknown taxonomy." if company.category_id.blank? || company.revenue_models.empty? || company.target_client_id.blank?
+    flagged_risks << "Unknown taxonomy." if company.category_id.blank? || company.revenue_models.empty? || (company.target_clients.empty? && company.target_client_id.blank?)
     flagged_risks.presence || ["No obvious automated risk flags; still requires human verification before marking reviewed."]
   end
 end

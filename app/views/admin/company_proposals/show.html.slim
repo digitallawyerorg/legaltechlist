@@ -54,10 +54,8 @@
                 span.badge.text-bg-light= @company_proposal.status.humanize
             .card-body
                 dl.row.mb-0
-                    - CompanyProposal::EDITABLE_COMPANY_FIELDS.each do |field|
-                        - value = @final_changes[field]
-                        - next if value.blank?
-                        dt.col-sm-4= field.humanize
+                    - proposal_changes_for_display(@final_changes).each do |label, value|
+                        dt.col-sm-4= label
                         dd.col-sm-8= value
 
         .card.border-0.shadow-sm.mb-3
