@@ -102,9 +102,11 @@ class CustomAdminTest < ActionDispatch::IntegrationTest
     assert_select "h2", "Source And Events"
     assert_select "h2", "System Metadata"
     assert_select "a", "Edit Company"
+    assert_select "button", "More"
     assert_select "button", "Run Agent Review"
     assert_select "button", "Run Duplicate Review"
     assert_select "button", "Delete"
+    assert_select "a", { text: "Back to Companies", count: 0 }
   end
 
   test "company agent review action requires authentication" do

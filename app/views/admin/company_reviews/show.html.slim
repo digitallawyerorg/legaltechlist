@@ -5,17 +5,30 @@
 - date_value = ->(value) { value.present? ? value : blank_value }
 - currency_value = ->(value) { value.present? ? number_to_currency(value, precision: 0) : blank_value }
 
-.d-flex.justify-content-between.align-items-start.mb-4
-    div
-        h1.h3.mb-1= @company.name
-    .d-flex.gap-2
-        = link_to "Back to Companies", custom_admin_companies_path, class: "btn btn-outline-secondary"
-        = link_to "Edit Company", edit_custom_admin_company_path(@company), class: "btn btn-primary"
-        = button_to "Run Agent Review", custom_admin_company_agent_review_path(@company), method: :post, class: "btn btn-warning", form: { data: { turbo_confirm: "Run a proposal-only agent review for this company?" } }
-        = button_to "Run Duplicate Review", custom_admin_company_duplicate_review_path(@company), method: :post, class: "btn btn-outline-warning", form: { data: { turbo_confirm: "Run a proposal-only duplicate-domain review for this company?" } }
-        = button_to custom_admin_company_path(@company), method: :delete, class: "btn btn-outline-danger", form: { data: { turbo_confirm: "Delete #{@company.name}? This permanently removes the company record from TechIndex." } } do
-            i.fas.fa-trash-alt.me-1
-            | Delete
+.mb-3
+    h1.h3.mb-0= @company.name
+
+.admin-proposal-toolbar.mb-4
+    .admin-proposal-toolbar-secondary
+        = link_to edit_custom_admin_company_path(@company), class: "btn btn-primary" do
+            i.fas.fa-pen.me-1
+            | Edit Company
+    .admin-proposal-toolbar-primary
+        .dropdown
+            button.btn.btn-outline-secondary type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="More company actions"
+                | More
+                i.fas.fa-chevron-down.ms-1.small
+            .dropdown-menu.dropdown-menu-end
+                = button_to custom_admin_company_agent_review_path(@company), method: :post, class: "dropdown-item", form: { data: { turbo_confirm: "Run a proposal-only agent review for this company?" } } do
+                    i.fas.fa-robot.me-2
+                    | Run Agent Review
+                = button_to custom_admin_company_duplicate_review_path(@company), method: :post, class: "dropdown-item", form: { data: { turbo_confirm: "Run a proposal-only duplicate-domain review for this company?" } } do
+                    i.fas.fa-clone.me-2
+                    | Run Duplicate Review
+                hr.dropdown-divider
+                = button_to custom_admin_company_path(@company), method: :delete, class: "dropdown-item text-danger", form: { data: { turbo_confirm: "Delete #{@company.name}? This permanently removes the company record from TechIndex." } } do
+                    i.fas.fa-trash-alt.me-2
+                    | Delete
 
 .row.g-3
     .col-lg-8
