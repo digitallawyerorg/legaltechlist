@@ -9,6 +9,14 @@ class CustomAdminTest < ActionDispatch::IntegrationTest
     assert_redirected_to new_admin_user_session_path
   end
 
+  test "signed-in admin visiting login page redirects to admin dashboard" do
+    sign_in admin_users(:one)
+
+    get new_admin_user_session_path
+
+    assert_redirected_to custom_admin_root_path
+  end
+
   test "admin login page uses centered styled form" do
     get new_admin_user_session_path
 

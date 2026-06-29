@@ -8,6 +8,17 @@ class ApplicationController < ActionController::Base
   before_action :block_deep_public_pagination
   before_action :detect_device_variant
 
+  def after_sign_in_path_for(resource_or_scope)
+    scope = resource_or_scope.is_a?(Symbol) ? resource_or_scope : Devise::Mapping.find_scope!(resource_or_scope)
+
+    case scope
+    when :admin_user
+      custom_admin_root_path
+    else
+      super
+    end
+  end
+
   private
 
   def block_deep_public_pagination
