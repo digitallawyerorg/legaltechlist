@@ -129,4 +129,14 @@ module ApplicationHelper
   def required_label_text(text)
     safe_join([text, content_tag(:abbr, "*", class: "required-asterisk", title: "required")])
   end
+
+  def admin_duplicate_match_warning(candidate)
+    matches = (Array(candidate["name_matches"]) + Array(candidate["domain_matches"])).uniq { |match| match["id"] }
+    return if matches.empty?
+
+    links = matches.map do |match|
+      link_to(match["name"], custom_admin_company_review_path(match["id"]))
+    end
+    safe_join(["Possible duplicates found: ", safe_join(links, ", ")])
+  end
 end

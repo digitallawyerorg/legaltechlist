@@ -38,6 +38,24 @@ module Admin
       @company = Company.new(visible: false)
     end
 
+    def fill_from_url
+      name = params.dig(:company, :name).to_s.strip
+      url = params.dig(:company, :main_url).to_s.strip
+
+      if name.blank? || url.blank?
+        redirect_to new_custom_admin_company_path, alert: "Company name and website URL are required to fill from URL."
+        return
+      end
+
+      result = AdminManualEntryProposalService.call(name: name, url: url, admin_user: current_admin_user)
+      warning = helpers.admin_duplicate_match_warning(result[:candidate])
+      flash[:warning] = warning if warning.present?
+
+      redirect_to edit_custom_admin_company_proposal_path(result[:proposal]), notice: "Proposal created and enriched from URL. Review the draft before approving."
+    rescue StandardError => e
+      redirect_to new_custom_admin_company_path, alert: "Could not fill from URL: #{e.message}"
+    end
+
     def create
       @company = Company.new(company_params)
       set_identity_fields(@company)

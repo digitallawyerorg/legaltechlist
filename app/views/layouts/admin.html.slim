@@ -143,6 +143,8 @@ html
         main.container-fluid.admin-main.py-3.px-3.px-xl-4
             - if notice.present?
                 .alert.alert-success= notice
+            - if flash[:warning].present?
+                .alert.alert-warning= flash[:warning]
             - if alert.present?
                 .alert.alert-danger= alert
             = yield

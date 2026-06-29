@@ -44,6 +44,7 @@ Rails.application.routes.draw do
   delete 'admin/app/resources/:resource/:id', to: 'admin/resources#destroy'
   get 'admin/app/companies', to: 'admin/company_management#index', as: :custom_admin_companies
   get 'admin/app/companies/new', to: 'admin/company_management#new', as: :new_custom_admin_company
+  post 'admin/app/companies/fill-from-url', to: 'admin/company_management#fill_from_url', as: :fill_from_url_custom_admin_company
   post 'admin/app/companies', to: 'admin/company_management#create'
   get 'admin/app/companies/upload', to: 'admin/company_management#upload', as: :upload_custom_admin_companies_csv
   post 'admin/app/companies/import', to: 'admin/company_management#import', as: :import_custom_admin_companies_csv

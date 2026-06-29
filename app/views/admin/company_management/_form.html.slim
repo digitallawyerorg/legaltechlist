@@ -1,7 +1,8 @@
 - form_url = @company.persisted? ? custom_admin_company_path(@company) : custom_admin_companies_path
 - form_method = @company.persisted? ? :patch : :post
 
-= form_with model: @company, url: form_url, method: form_method, local: true do |f|
+- form_html = @company.new_record? ? { id: "new_company_form" } : {}
+= form_with model: @company, url: form_url, method: form_method, local: true, html: form_html do |f|
     - if @company.errors.any?
         .alert.alert-danger
             h2.h6= "#{pluralize(@company.errors.count, 'error')} prevented this company from saving:"
@@ -16,10 +17,14 @@
             .row.g-3
                 .col-md-6
                     = f.label :name, class: "form-label"
-                    = f.text_field :name, class: "form-control"
+                    = f.text_field :name, class: "form-control", required: @company.new_record?
                 .col-md-6
                     = f.label :main_url, class: "form-label"
-                    = f.text_field :main_url, class: "form-control"
+                    = f.text_field :main_url, class: "form-control", required: @company.new_record?
+                - if @company.new_record?
+                    .col-12
+                        p.text-muted.small.mb-2 Enter a company name and website, then enrich from the URL before saving.
+                        = f.submit "Fill from URL", formaction: fill_from_url_custom_admin_company_path, formmethod: "post", class: "btn btn-outline-primary", data: { turbo_submits_with: "Enriching…" }
                 .col-md-4
                     = f.label :city, class: "form-label"
                     = f.text_field :city, class: "form-control", placeholder: "City"

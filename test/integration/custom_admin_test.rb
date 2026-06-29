@@ -286,6 +286,43 @@ class CustomAdminTest < ActionDispatch::IntegrationTest
     assert_equal "Updated Category", category.reload.name
   end
 
+  test "fill from url requires authentication" do
+    post fill_from_url_custom_admin_company_path, params: { company: { name: "Manual Entry Co", main_url: "https://manual-entry.example" } }
+
+    assert_redirected_to new_admin_user_session_path
+  end
+
+  test "fill from url requires name and url" do
+    sign_in admin_users(:one)
+
+    post fill_from_url_custom_admin_company_path, params: { company: { name: "", main_url: "" } }
+
+    assert_redirected_to new_custom_admin_company_path
+    assert_match(/required/i, flash[:alert])
+  end
+
+  test "fill from url creates proposal and redirects to edit" do
+    sign_in admin_users(:one)
+    original_call = CompanyProposalEnrichmentService.method(:call)
+    CompanyProposalEnrichmentService.define_singleton_method(:call) do |**kwargs|
+      proposal = kwargs[:proposal]
+      proposal.update!(status: "ready_for_review", final_changes: proposal.final_changes.merge("description" => "Enriched description."))
+      proposal
+    end
+
+    assert_difference "CompanyProposal.count", 1 do
+      post fill_from_url_custom_admin_company_path, params: { company: { name: "Manual Entry Co", main_url: "https://manual-entry.example" } }
+    end
+
+    proposal = CompanyProposal.order(:created_at).last
+    assert_redirected_to edit_custom_admin_company_proposal_path(proposal)
+    assert_equal "admin_manual_entry", proposal.source
+    assert_equal "atlas_candidate", proposal.proposal_type
+    assert_equal "Manual Entry Co", proposal.display_name
+  ensure
+    CompanyProposalEnrichmentService.define_singleton_method(:call, original_call)
+  end
+
   test "custom company management supports edit and export" do
     sign_in admin_users(:one)
     company = companies(:one)
