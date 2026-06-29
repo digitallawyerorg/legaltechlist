@@ -356,6 +356,7 @@ class CustomAdminTest < ActionDispatch::IntegrationTest
     assert_select "h1", "Edit #{company.name}"
     assert_select "input[name='company[codex_presenter]'][type='checkbox']"
     assert_select "input[name='company[codex_presentation_date]'][type='date']"
+    assert_select "input[name='company[legaltech_atlas_url]']"
 
     get new_custom_admin_company_path
     assert_response :success
