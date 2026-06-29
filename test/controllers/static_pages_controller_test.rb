@@ -284,7 +284,7 @@ class StaticPagesControllerTest < ActionController::TestCase
   test "statistics pages include turbo chart bootstrap" do
     get :tag_distribution
     assert_response :success
-    assert_includes @response.body, "turbo.min.js"
+    assert_includes @response.body, "turbo.min"
     assert_includes @response.body, "chartkick:load"
     assert_includes @response.body, 'data-turbo-track="reload"'
   end

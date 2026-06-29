@@ -98,28 +98,28 @@
                     = f.submit "Discover & queue all absent", class: "btn btn-success", data: { turbo_confirm: "Run discovery and queue proposals for all absent candidates? No companies will be published." }
 
 javascript:
-    | (function () {
-    |   var form = document.getElementById("discovery-form");
-    |   if (!form) return;
-    |   var typeSelect = form.querySelector("#discovery-discovery_type");
-    |   var fields = form.querySelectorAll("[data-discovery-field]");
-    |   var limitRange = form.querySelector("#discovery-limit-range");
-    |   var limitValue = document.getElementById("discovery-limit-value");
-    |   function syncFields() {
-    |     var selected = typeSelect.value;
-    |     fields.forEach(function (field) {
-    |       var active = field.getAttribute("data-discovery-field") === selected;
-    |       field.classList.toggle("d-none", !active);
-    |       field.querySelectorAll("input, select, textarea").forEach(function (input) {
-    |         input.disabled = !active;
-    |       });
-    |     });
-    |   }
-    |   function syncLimit() {
-    |     if (limitRange && limitValue) limitValue.textContent = limitRange.value;
-    |   }
-    |   typeSelect.addEventListener("change", syncFields);
-    |   if (limitRange) limitRange.addEventListener("input", syncLimit);
-    |   syncFields();
-    |   syncLimit();
-    | })();
+    (function () {
+        var form = document.getElementById("discovery-form");
+        if (!form) return;
+        var typeSelect = form.querySelector("#discovery-discovery_type");
+        var fields = form.querySelectorAll("[data-discovery-field]");
+        var limitRange = form.querySelector("#discovery-limit-range");
+        var limitValue = document.getElementById("discovery-limit-value");
+        function syncFields() {
+            var selected = typeSelect.value;
+            fields.forEach(function (field) {
+                var active = field.getAttribute("data-discovery-field") === selected;
+                field.classList.toggle("d-none", !active);
+                field.querySelectorAll("input, select, textarea").forEach(function (input) {
+                    input.disabled = !active;
+                });
+            });
+        }
+        function syncLimit() {
+            if (limitRange && limitValue) limitValue.textContent = limitRange.value;
+        }
+        typeSelect.addEventListener("change", syncFields);
+        if (limitRange) limitRange.addEventListener("input", syncLimit);
+        syncFields();
+        syncLimit();
+    })();

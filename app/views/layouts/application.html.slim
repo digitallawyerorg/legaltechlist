@@ -360,6 +360,7 @@ html
         meta name="language" content="us"
         meta name="audience" content="all"
         meta name="robots" content=(content_for?(:robots) ? content_for(:robots) : "index,follow")
+        meta name="turbo-prefetch" content="false"
         meta name="keywords" content="codex,legal,tech,index,sls,stanford,bay,area,database,search"
         link rel="alternate" type="application/rss+xml" title="CodeX TechIndex RSS" href=feed_url
         script type="application/ld+json"= website_json_ld
@@ -400,6 +401,6 @@ html
         = render "shared/footer"
         = render "shared/company_search_modal"
         = render "shared/stats_turbo_charts"
-        script defer="" data-turbo-track="reload" src="https://cdn.jsdelivr.net/npm/@hotwired/turbo@8.0.23/dist/turbo.min.js"
+        = javascript_include_tag "turbo.min", defer: true, data: { turbo_track: "reload" }
         script defer="" src="https://code.jquery.com/jquery-3.7.1.min.js"
         script defer="" src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"

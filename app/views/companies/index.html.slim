@@ -247,7 +247,18 @@ javascript:
                     if (form) snapshotCompanyFilterForm(form);
                 });
 
+                dropdown.addEventListener("hide.bs.dropdown", function(event) {
+                    if (event.clickEvent && event.clickEvent.target.closest("a")) {
+                        dropdown.dataset.skipFilterSubmit = "true";
+                    }
+                });
+
                 dropdown.addEventListener("hidden.bs.dropdown", function() {
+                    if (dropdown.dataset.skipFilterSubmit === "true") {
+                        delete dropdown.dataset.skipFilterSubmit;
+                        return;
+                    }
+
                     let form = dropdown.querySelector(".company-filter-checkbox-form");
                     if (!form || !isCompanyFilterFormDirty(form)) return;
                     submitCompanyFilterForm(form);
