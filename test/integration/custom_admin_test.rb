@@ -39,8 +39,11 @@ class CustomAdminTest < ActionDispatch::IntegrationTest
     assert_select "nav a", "Companies"
     assert_select "nav a", "Review"
     assert_select "nav a", "Activity"
-    assert_select "form[action='#{destroy_admin_user_session_path}'][method='post'] input[name='_method'][value='delete']"
-    assert_select "button.btn.btn-outline-light[type='submit']", "Log out"
+    assert_select "a.btn.btn-primary[href='#{new_custom_admin_company_path}']", text: /Add Company/
+    assert_select ".admin-user-dropdown .dropdown-toggle", text: admin_users(:one).email
+    assert_select ".admin-user-dropdown form[action='#{destroy_admin_user_session_path}'][method='post'] input[name='_method'][value='delete']"
+    assert_select ".admin-user-dropdown .dropdown-item[type='submit']", "Log out"
+    assert_select ".admin-user-dropdown .dropdown-item", "Public Site"
     assert_select "h2", "Today's Maintenance"
   end
 

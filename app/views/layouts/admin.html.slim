@@ -101,6 +101,12 @@ html
             | .dropdown-menu form { margin: 0; }
             | .admin-actions .dropdown-menu form { margin: 0; }
             | .admin-actions .dropdown-item { font-size: 0.82rem; text-align: left; width: 100%; }
+            | .admin-navbar .admin-user-dropdown .dropdown-toggle { color: rgba(255, 255, 255, 0.72); font-size: 0.72rem; padding: 0.35rem 0.55rem; text-decoration: none; }
+            | .admin-navbar .admin-user-dropdown .dropdown-toggle:hover, .admin-navbar .admin-user-dropdown .dropdown-toggle:focus, .admin-navbar .admin-user-dropdown.show .dropdown-toggle { color: #fff; }
+            | .admin-navbar .admin-user-dropdown .dropdown-menu { font-size: 0.78rem; min-width: 11rem; }
+            | .admin-navbar .admin-user-dropdown .dropdown-item { font-size: 0.78rem; }
+            | .admin-navbar .admin-user-dropdown .dropdown-item form { width: 100%; }
+            | .admin-navbar .admin-user-dropdown .dropdown-item button { text-align: left; width: 100%; }
             | .admin-proposal-toolbar { align-items: center; display: flex; flex-wrap: wrap; gap: 0.45rem; justify-content: space-between; width: 100%; }
             | .admin-proposal-toolbar form { margin: 0; }
             | .admin-proposal-toolbar .btn { --bs-btn-font-size: 0.78rem; --bs-btn-padding-y: 0.28rem; --bs-btn-padding-x: 0.65rem; }
@@ -131,14 +137,23 @@ html
                             - active = Array(item[:active_paths]).include?(request.path) || Array(item[:active_prefixes]).any? { |prefix| request.path.start_with?(prefix) }
                             li.nav-item
                                 = link_to item[:label], item[:path], class: "nav-link #{active ? 'active fw-semibold' : ''}", aria: { current: active ? "page" : nil }
-                    ul.navbar-nav.ms-auto.me-3.mb-2.mb-lg-0
-                        li.nav-item
-                            = link_to "Public Site", root_path, class: "nav-link"
-                    .d-flex.align-items-center.gap-3
+                    .d-flex.align-items-center.gap-2.ms-lg-auto.mb-2.mb-lg-0
                         - if current_admin_user
-                            = link_to "New Company", new_custom_admin_company_path, class: "btn btn-primary btn-sm"
-                            span.text-white-50.small= current_admin_user.email
-                            = button_to "Log out", destroy_admin_user_session_path, method: :delete, class: "btn btn-outline-light btn-sm", form: { class: "d-inline" }
+                            - on_new_company = request.path == new_custom_admin_company_path
+                            = link_to new_custom_admin_company_path, class: "btn btn-primary btn-sm #{'active' if on_new_company}", title: "Add a company and enrich from its website URL" do
+                                i.fas.fa-plus.me-1
+                                | Add Company
+                            .dropdown.admin-user-dropdown
+                                button.btn.btn-link.dropdown-toggle.text-decoration-none type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Account menu"= current_admin_user.email
+                                ul.dropdown-menu.dropdown-menu-end
+                                    li
+                                        = link_to root_path, class: "dropdown-item" do
+                                            i.fas.fa-external-link-alt.me-2
+                                            | Public Site
+                                    li
+                                        hr.dropdown-divider
+                                    li
+                                        = button_to "Log out", destroy_admin_user_session_path, method: :delete, class: "dropdown-item", form: { class: "d-block" }
 
         main.container-fluid.admin-main.py-3.px-3.px-xl-4
             - if notice.present?
