@@ -6,80 +6,95 @@
         strong Web search unavailable.
         |  Set OPENAI_API_KEY and ensure DISCOVERY_USE_WEB_SEARCH is enabled.
 
+.d-flex.flex-wrap.justify-content-between.align-items-start.gap-2.mb-3
+    div
+        h1.h3.mb-1 LLM Company Discovery
+        p.text-muted.small.mb-0 Find legal-tech companies missing from TechIndex and queue editable proposals.
+    = link_to custom_admin_pipeline_runs_path(activity: "discovery_runs"), class: "btn btn-sm btn-outline-secondary rounded-pill px-3" do
+        i.fas.fa-clock-rotate-left.me-2
+        | Discovery activity
+
+.admin-metric-strip.mb-3
+    .admin-metric
+        .admin-metric-label Indexed
+        .admin-metric-value= number_with_delimiter(@visible_company_count)
+        .text-muted.small Excludes these names and domains.
+    .admin-metric
+        .admin-metric-label Est. cost
+        .admin-metric-value= "≈ $#{format('%.2f', @estimated_cost_per_search)}"
+        .text-muted.small Per LLM web search.
+    .admin-metric
+        .admin-metric-label Run cap
+        .admin-metric-value= "$#{format('%.2f', @max_cost_usd)}"
+        .text-muted.small Hard limit per run.
+    .admin-metric
+        .admin-metric-label Safety
+        .admin-metric-value Proposal-only
+        .text-muted.small No auto-publish to the public site.
+
 .card.border-0.shadow-sm.admin-compact-card
-    .card-header.bg-white
-        .d-flex.flex-wrap.justify-content-between.align-items-center.gap-2
-            div
-                h1.h4.mb-0 LLM Company Discovery
-                p.text-muted.small.mb-0.mt-1 Find legal-tech companies missing from TechIndex and queue editable proposals.
-            .admin-table-summary
-                span.admin-table-summary-item
-                    | Indexed
-                    strong= number_with_delimiter(@visible_company_count)
-                span.admin-table-summary-item
-                    | Est. cost
-                    strong= "≈ $#{format('%.2f', @estimated_cost_per_search)}/search"
-                span.admin-table-summary-item
-                    | Cap
-                    strong= "$#{format('%.2f', @max_cost_usd)}/run"
-                span.admin-status-pill.text-bg-light Proposal-only
     .card-body
         = form_with url: custom_admin_discoveries_path, scope: :discovery, local: true, html: { id: "discovery-form" } do |f|
-            .row.g-3.mb-3
-                .col-lg-5
-                    = f.label :discovery_type, "Discovery type", class: "form-label fw-semibold small mb-1"
-                    = f.select :discovery_type, options_for_select(discovery_type_options, "category"), {}, class: "form-select", id: "discovery-discovery_type"
-                    .form-text What the LLM should search for.
-                .col-lg-7
-                    .discovery-field data-discovery-field="category"
-                        = f.label :category_id, "Category", class: "form-label fw-semibold small mb-1"
-                        = f.collection_select :category_id, @categories, :id, :name, { include_blank: "Select a category" }, class: "form-select"
-                        .form-text TechIndex taxonomy category.
-                    .discovery-field.d-none data-discovery-field="competitors"
-                        = f.label :company_id, "Indexed company", class: "form-label fw-semibold small mb-1"
-                        = f.collection_select :company_id, @companies, :id, :name, { include_blank: "Select a company" }, class: "form-select"
-                        .form-text Or enter a name below if not listed.
-                        = f.label :company_name, "Company name (optional)", class: "form-label small mb-1 mt-2"
-                        = f.text_field :company_name, class: "form-control", placeholder: "e.g. Clio"
-                    .discovery-field.d-none data-discovery-field="year"
-                        = f.label :year, "Founded year", class: "form-label fw-semibold small mb-1"
-                        = f.number_field :year, class: "form-control", min: 1900, max: Time.current.year, placeholder: "2024"
-                        .form-text Companies founded in this calendar year.
-                    .discovery-field.d-none data-discovery-field="country"
-                        = f.label :country, "Country", class: "form-label fw-semibold small mb-1"
-                        = f.text_field :country, class: "form-control", placeholder: "Germany", list: "discovery-country-options"
-                        datalist#discovery-country-options
-                            - @country_options.each do |country|
-                                option value=country
-                        .form-text Companies headquartered in this country.
-                    .discovery-field.d-none data-discovery-field="funding_year"
-                        = f.label :funding_year, "Funding year", class: "form-label fw-semibold small mb-1"
-                        = f.number_field :funding_year, class: "form-control", min: 1900, max: Time.current.year, placeholder: "2024"
-                        .form-text Companies that raised venture or growth funding in this year.
+            .admin-dashboard-section
+                .d-flex.flex-wrap.justify-content-between.align-items-center.gap-2.mb-2
+                    h2.h6.mb-0 Search parameters
+                    span.text-muted.small What the LLM should look for
+                .row.g-3
+                    .col-lg-5
+                        = f.label :discovery_type, "Discovery type", class: "form-label small mb-1"
+                        = f.select :discovery_type, options_for_select(discovery_type_options, "category"), {}, class: "form-select form-select-sm", id: "discovery-discovery_type"
+                        .form-text.text-muted What the LLM should search for.
+                    .col-lg-7
+                        .discovery-field data-discovery-field="category"
+                            = f.label :category_id, "Category", class: "form-label small mb-1"
+                            = f.collection_select :category_id, @categories, :id, :name, { include_blank: "Select a category" }, class: "form-select form-select-sm"
+                            .form-text.text-muted TechIndex taxonomy category.
+                        .discovery-field.d-none data-discovery-field="competitors"
+                            = f.label :company_id, "Indexed company", class: "form-label small mb-1"
+                            = f.collection_select :company_id, @companies, :id, :name, { include_blank: "Select a company" }, class: "form-select form-select-sm"
+                            .form-text.text-muted Or enter a name below if not listed.
+                            = f.label :company_name, "Company name (optional)", class: "form-label small mb-1 mt-2"
+                            = f.text_field :company_name, class: "form-control form-control-sm", placeholder: "e.g. Clio"
+                        .discovery-field.d-none data-discovery-field="year"
+                            = f.label :year, "Founded year", class: "form-label small mb-1"
+                            = f.number_field :year, class: "form-control form-control-sm", min: 1900, max: Time.current.year, placeholder: "2024"
+                            .form-text.text-muted Companies founded in this calendar year.
+                        .discovery-field.d-none data-discovery-field="country"
+                            = f.label :country, "Country", class: "form-label small mb-1"
+                            = f.text_field :country, class: "form-control form-control-sm", placeholder: "Germany", list: "discovery-country-options"
+                            datalist#discovery-country-options
+                                - @country_options.each do |country|
+                                    option value=country
+                            .form-text.text-muted Companies headquartered in this country.
+                        .discovery-field.d-none data-discovery-field="funding_year"
+                            = f.label :funding_year, "Funding year", class: "form-label small mb-1"
+                            = f.number_field :funding_year, class: "form-control form-control-sm", min: 1900, max: Time.current.year, placeholder: "2024"
+                            .form-text.text-muted Companies that raised venture or growth funding in this year.
 
-            .row.g-3.mb-3
-                .col-md-3
-                    = f.label :limit, "Result limit", class: "form-label fw-semibold small mb-1"
-                    .input-group.input-group-sm
-                        = f.number_field :limit, class: "form-control", min: 5, max: @max_limit, step: 5, value: @default_limit, id: "discovery-limit-input"
-                        span.input-group-text companies
-                    .form-text 5–#{@max_limit}, step 5. Excludes indexed names and domains.
-                .col-md-9
-                    = f.label :notes, "Notes (optional)", class: "form-label fw-semibold small mb-1"
-                    = f.text_area :notes, class: "form-control", rows: 3, placeholder: "Why you're running this discovery"
+            .admin-dashboard-section.mb-0
+                .d-flex.flex-wrap.justify-content-between.align-items-center.gap-2.mb-2
+                    h2.h6.mb-0 Run options
+                    span.text-muted.small Limits and notes for this run
+                .row.g-3.align-items-start
+                    .col-md-4
+                        = f.label :limit, "Result limit", class: "form-label small mb-1"
+                        .d-flex.align-items-center.gap-2.mb-1
+                            = f.range_field :limit, class: "form-range flex-grow-1", min: 5, max: @max_limit, step: 5, value: @default_limit, id: "discovery-limit-range"
+                            span.admin-status-pill.text-bg-light#discovery-limit-value= @default_limit
+                        .form-text.text-muted Up to #{@max_limit} companies, step 5.
+                    .col-md-8
+                        = f.label :notes, "Notes (optional)", class: "form-label small mb-1"
+                        = f.text_area :notes, class: "form-control form-control-sm", rows: 2, placeholder: "Why you're running this discovery"
 
-            .alert.alert-warning.py-2.small.mb-3
-                i.fas.fa-exclamation-triangle.me-1
+            p.text-muted.small.mb-3.mt-3
+                i.fas.fa-circle-info.me-1
                 | Each preview issues one LLM web search. Review absent candidates before queueing proposals — no auto-publish.
 
             .admin-proposal-toolbar
                 .admin-proposal-toolbar-secondary
                     = link_to "Cancel", custom_admin_root_path, class: "btn btn-outline-secondary"
-                    = link_to custom_admin_pipeline_runs_path(activity: "discovery_runs"), class: "btn btn-outline-secondary" do
-                        i.fas.fa-clock-rotate-left.me-1
-                        | Discovery activity
                 .admin-proposal-toolbar-primary
-                    = f.submit "Preview (dry run)", class: "btn btn-outline-primary", data: { turbo_confirm: "Run LLM web search preview without creating proposals?" }
+                    = f.submit "Preview (dry run)", class: "btn btn-outline-secondary", data: { turbo_confirm: "Run LLM web search preview without creating proposals?" }
                     = f.submit "Discover & queue all absent", class: "btn btn-success", data: { turbo_confirm: "Run discovery and queue proposals for all absent candidates? No companies will be published." }
 
 javascript:
@@ -88,6 +103,8 @@ javascript:
     |   if (!form) return;
     |   var typeSelect = form.querySelector("#discovery-discovery_type");
     |   var fields = form.querySelectorAll("[data-discovery-field]");
+    |   var limitRange = form.querySelector("#discovery-limit-range");
+    |   var limitValue = document.getElementById("discovery-limit-value");
     |   function syncFields() {
     |     var selected = typeSelect.value;
     |     fields.forEach(function (field) {
@@ -98,6 +115,11 @@ javascript:
     |       });
     |     });
     |   }
+    |   function syncLimit() {
+    |     if (limitRange && limitValue) limitValue.textContent = limitRange.value;
+    |   }
     |   typeSelect.addEventListener("change", syncFields);
+    |   if (limitRange) limitRange.addEventListener("input", syncLimit);
     |   syncFields();
+    |   syncLimit();
     | })();
