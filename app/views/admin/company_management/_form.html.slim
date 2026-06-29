@@ -88,6 +88,13 @@
                     .col-md-6
                         = f.label field, class: "form-label"
                         = f.text_field field, class: "form-control"
+                .col-md-6
+                    .form-check.mt-4
+                        = f.check_box :codex_presenter, class: "form-check-input"
+                        = f.label :codex_presenter, "CodeX presenter", class: "form-check-label"
+                .col-md-6
+                    = f.label :codex_presentation_date, "CodeX presentation date", class: "form-label"
+                    = f.date_field :codex_presentation_date, class: "form-control"
                 .col-md-4
                     = f.label :funding_status, class: "form-label"
                     = f.select :funding_status, ["Operating", "Seed", "Early Stage Venture", "Late Stage Venture", "Private Equity", "M&A"], { include_blank: true }, { class: "form-select" }

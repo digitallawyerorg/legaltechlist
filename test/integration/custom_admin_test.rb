@@ -354,6 +354,14 @@ class CustomAdminTest < ActionDispatch::IntegrationTest
     get edit_custom_admin_company_path(company)
     assert_response :success
     assert_select "h1", "Edit #{company.name}"
+    assert_select "input[name='company[codex_presenter]'][type='checkbox']"
+    assert_select "input[name='company[codex_presentation_date]'][type='date']"
+
+    get new_custom_admin_company_path
+    assert_response :success
+    assert_select "h1", "New Company"
+    assert_select "input[name='company[codex_presenter]'][type='checkbox']"
+    assert_select "input[name='company[codex_presentation_date]'][type='date']"
 
     compound_target_client = TargetClient.create!(name: "Corporate Legal, Law Firms", description: "Legacy compound")
     compound_revenue_model = BusinessModel.create!(name: "Subscription, Services", description: "Legacy compound")
