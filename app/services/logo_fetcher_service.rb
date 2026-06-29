@@ -29,27 +29,19 @@ class LogoFetcherService
     nil
   end
 
-  def self.schedule_fetch_for(company, async: fetch_async_enabled?)
+  def self.schedule_fetch_for(company, async: true)
     company_record = company.is_a?(Company) ? company : Company.find_by(id: company)
     return unless company_record&.logo_fetch_needed?
 
     if async
-      company_id = company_record.id
-      Rails.application.executor.wrap do
-        Thread.new do
-          Rails.application.executor.wrap do
-            record = Company.find_by(id: company_id)
-            fetch_for_company(record) if record&.logo_fetch_needed?
-          end
-        end
-      end
+      CompanyLogoFetchJob.perform_later(company_record.id)
     else
       fetch_for_company(company_record)
     end
   end
 
   def self.fetch_async_enabled?
-    !Rails.env.test?
+    true
   end
 
   def initialize(scope:, dry_run:, limit:, provider:, logger:, verifier:, downloader: nil)

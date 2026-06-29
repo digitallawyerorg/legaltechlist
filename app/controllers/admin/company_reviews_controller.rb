@@ -52,15 +52,20 @@ module Admin
       stored_matches = Company.where(canonical_domain: domain).where.not(id: @company.id)
       return stored_matches.order(:name) if @company.canonical_domain.present?
 
-      Company.where.not(id: @company.id).where.not(main_url: [nil, ""]).order(:name).select { |company| (company.canonical_domain.presence || company.canonical_main_domain) == domain }
+      candidate_ids = Company.duplicate_domain_candidate_ids
+      return Company.none if candidate_ids.blank?
+
+      Company.where(id: candidate_ids).where.not(id: @company.id).order(:name).select { |company| (company.canonical_domain.presence || company.canonical_main_domain) == domain }
     end
 
     def duplicate_name_companies
       normalized_name = @company.normalized_name
-      ids = Company.duplicate_name_candidate_ids
-      return Company.none if normalized_name.blank? || ids.blank?
+      return Company.none if normalized_name.blank?
 
-      Company.where(id: ids).where.not(id: @company.id).select { |company| company.normalized_name == normalized_name }
+      candidate_ids = Company.duplicate_name_candidate_ids
+      return Company.none if candidate_ids.blank?
+
+      Company.where(id: candidate_ids).where.not(id: @company.id).select { |company| company.normalized_name == normalized_name }
     end
   end
 end

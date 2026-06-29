@@ -58,6 +58,7 @@ module Admin
 
     def create
       @company = Company.new(company_params)
+      @company.skip_geocoding = true
       set_identity_fields(@company)
 
       if @company.save
@@ -74,6 +75,7 @@ module Admin
     def update
       @company = Company.find(params[:id])
       @company.assign_attributes(company_params)
+      @company.skip_geocoding = true
       set_identity_fields(@company)
 
       if @company.save

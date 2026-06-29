@@ -1,6 +1,8 @@
 require "test_helper"
 
 class CompanyLogoFetchTest < ActiveSupport::TestCase
+  include ActiveJob::TestHelper
+
   setup do
     @original_twitter_publish = Rails.application.config.respond_to?(:twitter_publish) ? Rails.application.config.twitter_publish : nil
     Rails.application.config.twitter_publish = false
@@ -16,6 +18,7 @@ class CompanyLogoFetchTest < ActiveSupport::TestCase
     with_logo_dev_key("pk_test") do
       with_stubbed_logo_network do
         company.save!
+        perform_enqueued_jobs
 
         assert company.reload.company_logo.present?
       end
@@ -29,6 +32,7 @@ class CompanyLogoFetchTest < ActiveSupport::TestCase
     with_logo_dev_key("pk_test") do
       with_stubbed_logo_network do
         company.update!(visible: true)
+        perform_enqueued_jobs
 
         assert company.reload.company_logo.present?
       end
@@ -106,6 +110,7 @@ class CompanyLogoFetchTest < ActiveSupport::TestCase
     with_logo_dev_key(nil) do
       assert_nothing_raised do
         company.save!
+        perform_enqueued_jobs
       end
 
       assert_nil company.reload.company_logo

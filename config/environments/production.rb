@@ -57,14 +57,19 @@ Rails.application.configure do
   # Prepend all log lines with the following tags.
   config.log_tags = [ :request_id ]
 
-  # Use a different cache store in production.
-  config.cache_store = :redis_cache_store, {
-    url: ENV.fetch("REDIS_URL", "redis://localhost:6379/0"),
-    reconnect_attempts: 1,
-    error_handler: ->(method:, returning:, exception:) {
-      Rails.logger.warn("Redis cache #{method} failed: #{exception.class}")
+  # Use Redis when configured; otherwise fall back to in-process memory to avoid
+  # blocking every request on localhost Redis connection failures on Heroku.
+  if ENV["REDIS_URL"].present?
+    config.cache_store = :redis_cache_store, {
+      url: ENV["REDIS_URL"],
+      reconnect_attempts: 1,
+      error_handler: ->(method:, returning:, exception:) {
+        Rails.logger.warn("Redis cache #{method} failed: #{exception.class}")
+      }
     }
-  }
+  else
+    config.cache_store = :memory_store, { size: 64.megabytes }
+  end
 
   # Run jobs in-process on the web dyno (no separate worker for Active Job).
   config.active_job.queue_adapter = :async
