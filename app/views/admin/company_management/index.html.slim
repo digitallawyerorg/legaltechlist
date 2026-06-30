@@ -19,6 +19,9 @@
                     | Duplicate domains 
                     = link_to number_with_delimiter(@company_summary_counts[:duplicate_domain]), custom_admin_companies_path(review_signal: "duplicate_domain"), aria: { label: "Show duplicate domain candidates" }
                 span.admin-table-summary-item
+                    | Not reviewed 
+                    = link_to number_with_delimiter(@company_summary_counts[:not_reviewed]), custom_admin_companies_path(review_state: "not_reviewed"), aria: { label: "Show not reviewed companies" }
+                span.admin-table-summary-item
                     | Unknown taxonomy 
                     = link_to number_with_delimiter(@company_summary_counts[:unknown_taxonomy]), custom_admin_companies_path(review_signal: "unknown_taxonomy"), aria: { label: "Show companies with unknown taxonomy" }
                 span.admin-table-summary-item
@@ -31,7 +34,7 @@
             = select_tag :category_id, options_from_collection_for_select(@categories, :id, :name, @filters[:category_id]), include_blank: "All categories", class: "form-select form-select-sm admin-filter-select", aria: { label: "Category" }
             = select_tag :business_model_id, options_from_collection_for_select(@business_models, :id, :name, @filters[:business_model_id]), include_blank: "All revenue models", class: "form-select form-select-sm admin-filter-select is-wide", aria: { label: "Revenue model" }
             = select_tag :target_client_id, options_from_collection_for_select(@target_clients, :id, :name, @filters[:target_client_id]), include_blank: "All target clients", class: "form-select form-select-sm admin-filter-select is-wide", aria: { label: "Target client" }
-            = select_tag :quality_status, options_for_select(@quality_statuses.map { |status| [status.to_s.humanize, status] }, @filters[:quality_status]), include_blank: "All quality statuses", class: "form-select form-select-sm admin-filter-select is-wide", aria: { label: "Quality status" }
+            = select_tag :review_state, options_for_select(@review_state_options.map { |key, label| [label, key] }, @filters[:review_state]), include_blank: "All review states", class: "form-select form-select-sm admin-filter-select is-wide", aria: { label: "Review state" }
             = select_tag :review_signal, options_for_select(@review_signal_options.map { |key, label| [label, key] }, @filters[:review_signal]), include_blank: "All review signals", class: "form-select form-select-sm admin-filter-select is-wide", aria: { label: "Review signal" }
             = select_tag :updated_since, options_for_select(@updated_since_options.map { |days, label| [label, days] }, @filters[:updated_since]), include_blank: "Any time", class: "form-select form-select-sm admin-filter-select", aria: { label: "Updated" }
             = submit_tag "Apply", class: "btn btn-sm btn-primary rounded-pill px-3"
@@ -102,8 +105,10 @@
                         td.admin-revenue
                             .admin-cell-primary= company.revenue_model_names.join(", ").presence || "Unknown"
                         td.admin-nowrap.admin-quality-cell
-                            .admin-quality= company.quality_status.presence&.humanize || "Unreviewed"
-                            .admin-cell-secondary= company.verification_verdict.presence&.humanize || "No verdict"
+                            span.admin-status-pill class=company.review_state_badge_class title=company.review_verdict_tooltip
+                                = company.review_state_label
+                            - if company.verification_verdict.present?
+                                .admin-cell-secondary= company.verification_verdict.humanize
                         td.admin-nowrap
                             - if company.visible?
                                 span.admin-status-pill.text-bg-success Visible

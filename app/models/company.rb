@@ -2,6 +2,8 @@ require "digest"
 require "uri"
 
 class Company < ActiveRecord::Base
+  include CompanyQualityReview
+
   attr_accessor :skip_geocoding
 
   before_update :publish_tweet, :if => :visible_changed?

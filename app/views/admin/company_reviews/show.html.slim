@@ -14,11 +14,21 @@
             i.fas.fa-pen.me-1
             | Edit Company
     .admin-proposal-toolbar-primary
+        = button_to custom_admin_company_mark_review_path(@company), method: :post, params: { decision: "verified" }, class: "btn btn-success", form: { data: { turbo_confirm: "Mark #{@company.name} as verified?" } } do
+            i.fas.fa-check.me-1
+            | Mark verified
         .dropdown
-            button.btn.btn-outline-secondary type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="More company actions"
-                | More
+            button.btn.btn-outline-secondary type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="More review actions"
+                | Review status
                 i.fas.fa-chevron-down.ms-1.small
             .dropdown-menu.dropdown-menu-end
+                = button_to custom_admin_company_mark_review_path(@company), method: :post, params: { decision: "needs_work" }, class: "dropdown-item", form: { data: { turbo_confirm: "Mark #{@company.name} as needing more review?" } } do
+                    i.fas.fa-clock.me-2
+                    | Needs more work
+                = button_to custom_admin_company_mark_review_path(@company), method: :post, params: { decision: "reject" }, class: "dropdown-item text-danger", form: { data: { turbo_confirm: "Reject and hide #{@company.name}?" } } do
+                    i.fas.fa-ban.me-2
+                    | Reject and hide
+                hr.dropdown-divider
                 = button_to custom_admin_company_agent_review_path(@company), method: :post, class: "dropdown-item", form: { data: { turbo_confirm: "Run a proposal-only agent review for this company?" } } do
                     i.fas.fa-robot.me-2
                     | Run Agent Review
@@ -150,8 +160,10 @@
                     p.text-muted.mb-0 No other companies share this normalized name.
 
         .card.border-0.shadow-sm.mb-3
-            .card-header.bg-white
+            .card-header.bg-white.d-flex.justify-content-between.align-items-center
                 h2.h5.mb-0 Quality Metadata
+                span.admin-status-pill class=@company.review_state_badge_class
+                    = @company.review_state_label
             .card-body
                 dl.mb-0
                     dt.text-muted.small Status

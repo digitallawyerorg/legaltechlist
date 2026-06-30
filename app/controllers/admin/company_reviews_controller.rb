@@ -43,7 +43,26 @@ module Admin
       redirect_to custom_admin_agent_review_path(run), notice: "Duplicate-domain review created for #{company.name}."
     end
 
+    def mark_review
+      company = Company.find(params[:id])
+      decision = params[:decision].to_s
+      CompanyReviewMarkService.call(company: company, decision: decision, admin_user: current_admin_user)
+
+      redirect_to custom_admin_company_review_path(company), notice: mark_review_notice(decision, company.name)
+    rescue ArgumentError => e
+      redirect_to custom_admin_company_review_path(company), alert: e.message
+    end
+
     private
+
+    def mark_review_notice(decision, company_name)
+      case decision
+      when "verified" then "#{company_name} marked as verified."
+      when "needs_work" then "#{company_name} marked as needing more review."
+      when "reject" then "#{company_name} rejected and hidden."
+      else "Review status updated for #{company_name}."
+      end
+    end
 
     def duplicate_domain_companies
       Company.duplicates_by_domain_for(@company)

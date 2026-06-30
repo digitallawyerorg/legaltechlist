@@ -18,6 +18,7 @@ Rails.application.routes.draw do
   get 'admin/review/companies/:id', to: 'admin/company_reviews#show', as: :custom_admin_company_review
   post 'admin/review/companies/:id/agent-review', to: 'admin/company_reviews#create_agent_review', as: :custom_admin_company_agent_review
   post 'admin/review/companies/:id/duplicate-review', to: 'admin/company_reviews#create_duplicate_review', as: :custom_admin_company_duplicate_review
+  post 'admin/review/companies/:id/mark-review', to: 'admin/company_reviews#mark_review', as: :custom_admin_company_mark_review
   get 'admin/discoveries/new', to: 'admin/discoveries#new', as: :new_custom_admin_discovery
   post 'admin/discoveries', to: 'admin/discoveries#create', as: :custom_admin_discoveries
   get 'admin/pipeline-runs', to: 'admin/pipeline_run_reviews#index', as: :custom_admin_pipeline_runs

@@ -68,6 +68,41 @@ class CompanyTest < ActiveSupport::TestCase
     assert_includes Company.human_reviewed, verified
   end
 
+  test "review state derives display labels" do
+    company = companies(:one)
+    company.update_columns(quality_status: nil, verification_verdict: nil, human_reviewed_at: nil)
+    assert_equal "not_reviewed", company.review_state
+    assert_equal "Not reviewed", company.review_state_label
+
+    company.update_columns(quality_status: "needs_review")
+    assert_equal "in_review", company.review_state
+
+    company.update_columns(quality_status: "verified")
+    assert_equal "verified", company.review_state
+
+    company.update_columns(quality_status: "source_verified")
+    assert_equal "verified", company.review_state
+
+    company.update_columns(quality_status: "rejected")
+    assert_equal "rejected", company.review_state
+  end
+
+  test "review state scopes filter companies" do
+    unreviewed = companies(:one).dup
+    unreviewed.name = "Unreviewed Scope Company"
+    unreviewed.save!
+    unreviewed.update_columns(quality_status: nil, human_reviewed_at: nil)
+
+    in_review = companies(:one).dup
+    in_review.name = "In Review Scope Company"
+    in_review.save!
+    in_review.update_columns(quality_status: "needs_review")
+
+    assert_includes Company.review_state_not_reviewed, unreviewed
+    assert_includes Company.with_review_state("in_review"), in_review
+    assert_not_includes Company.review_state_not_reviewed, in_review
+  end
+
   test "duplicate name candidates use normalized names" do
     duplicate = companies(:one).dup
     duplicate.name = " test company one "

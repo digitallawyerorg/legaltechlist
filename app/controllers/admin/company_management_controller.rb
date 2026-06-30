@@ -24,7 +24,7 @@ module Admin
       @categories = Category.order(:name)
       @business_models = BusinessModel.canonical.order(:name)
       @target_clients = TargetClient.canonical.order(:name)
-      @quality_statuses = Company.where.not(quality_status: [nil, ""]).distinct.order(:quality_status).pluck(:quality_status)
+      @review_state_options = Company::REVIEW_STATE_FILTER_OPTIONS
       @review_signal_options = REVIEW_SIGNALS
       @updated_since_options = UPDATED_SINCE_OPTIONS
       metrics = AdminDashboardMetrics.load
@@ -123,7 +123,7 @@ module Admin
     private
 
     def company_filter_params
-      params.permit(:q, :visibility, :category_id, :business_model_id, :target_client_id, :quality_status, :review_signal, :updated_since)
+      params.permit(:q, :visibility, :category_id, :business_model_id, :target_client_id, :review_state, :review_signal, :updated_since)
     end
 
     def filtered_companies
@@ -133,7 +133,7 @@ module Admin
       scope = scope.where(category_id: @filters[:category_id]) if @filters[:category_id].present?
       scope = scope.where(business_model_id: @filters[:business_model_id]) if @filters[:business_model_id].present?
       scope = scope.where(target_client_id: @filters[:target_client_id]) if @filters[:target_client_id].present?
-      scope = scope.where(quality_status: @filters[:quality_status]) if @filters[:quality_status].present?
+      scope = scope.with_review_state(@filters[:review_state]) if @filters[:review_state].present?
       scope = apply_review_signal(scope)
       scope = scope.where(updated_at: @filters[:updated_since].to_i.days.ago..) if @filters[:updated_since].in?(UPDATED_SINCE_OPTIONS.keys)
       scope

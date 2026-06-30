@@ -107,11 +107,39 @@ class CustomAdminTest < ActionDispatch::IntegrationTest
     assert_select "h2", "Source And Events"
     assert_select "h2", "System Metadata"
     assert_select "a", "Edit Company"
-    assert_select "button", "More"
+    assert_select "button", "Mark verified"
+    assert_select "button", "Review status"
     assert_select "button", "Run Agent Review"
     assert_select "button", "Run Duplicate Review"
     assert_select "button", "Delete"
     assert_select "a", { text: "Back to Companies", count: 0 }
+  end
+
+  test "company mark review updates quality state" do
+    sign_in admin_users(:one)
+    company = companies(:one)
+    company.update_columns(quality_status: nil, verification_verdict: nil, human_reviewed_at: nil, verified_at: nil)
+
+    post custom_admin_company_mark_review_path(company), params: { decision: "verified" }
+
+    assert_redirected_to custom_admin_company_review_path(company)
+    company.reload
+    assert_equal "verified", company.quality_status
+    assert_equal "human_confirmed", company.verification_verdict
+    assert company.human_reviewed_at.present?
+  end
+
+  test "companies index supports review state filter" do
+    sign_in admin_users(:one)
+    companies(:one).update_columns(quality_status: nil, human_reviewed_at: nil)
+    companies(:two).update_columns(quality_status: "verified", human_reviewed_at: Time.current)
+
+    get custom_admin_companies_path(review_state: "not_reviewed")
+
+    assert_response :success
+    assert_select "td", text: /#{Regexp.escape(companies(:one).name)}/
+    assert_no_match companies(:two).name, response.body
+    assert_select ".admin-status-pill", text: "Not reviewed"
   end
 
   test "company agent review action requires authentication" do
@@ -344,6 +372,7 @@ class CustomAdminTest < ActionDispatch::IntegrationTest
     assert_select "input[name='q']"
     assert_select "select[name='visibility']"
     assert_select "select[name='review_signal']"
+    assert_select "select[name='review_state']"
     assert_select "a[href='#{custom_admin_companies_path(review_signal: 'missing_url')}']"
     assert_select "form[action='#{custom_admin_company_path(company)}'][method='post'] input[name='_method'][value='delete']"
     assert_select "button", "Delete"

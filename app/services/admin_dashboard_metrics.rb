@@ -34,6 +34,7 @@ class AdminDashboardMetrics
         duplicate_domain: duplicate_domain_ids.size,
         duplicate_name: duplicate_name_ids.size,
         needs_review: Company.needs_review.count,
+        not_reviewed: Company.review_state_not_reviewed.count,
         unknown_taxonomy: unknown_taxonomy_count
       }
     }

@@ -14,9 +14,10 @@ module Admin
       ]
 
       @review_metrics = [
-        { label: "Needs review", value: Company.needs_review.count, tone: "warning" },
-        { label: "Verified", value: Company.verified_quality.count, tone: "success" },
-        { label: "Rejected", value: Company.rejected_quality.count, tone: "danger" },
+        { label: "Not reviewed", value: Company.review_state_not_reviewed.count, tone: "secondary" },
+        { label: "Needs review", value: Company.review_state_in_review.count, tone: "warning" },
+        { label: "Verified", value: Company.review_state_verified.count, tone: "success" },
+        { label: "Rejected", value: Company.review_state_rejected.count, tone: "danger" },
         { label: "Human reviewed", value: Company.human_reviewed.count, tone: "info" }
       ]
 
