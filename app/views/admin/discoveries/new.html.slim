@@ -92,7 +92,7 @@
 
             .admin-proposal-toolbar
                 .admin-proposal-toolbar-secondary
-                    = link_to "Cancel", custom_admin_root_path, class: "btn btn-outline-secondary"
+                    = link_to "Cancel", custom_admin_companies_path, class: "btn btn-outline-secondary"
                 .admin-proposal-toolbar-primary
                     = f.submit "Preview (dry run)", class: "btn btn-outline-secondary", data: { turbo_confirm: "Run LLM web search preview without creating proposals?" }
                     = f.submit "Discover & queue all absent", class: "btn btn-success", data: { turbo_confirm: "Run discovery and queue proposals for all absent candidates? No companies will be published." }

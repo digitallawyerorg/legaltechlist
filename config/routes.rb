@@ -9,8 +9,8 @@ Rails.application.routes.draw do
 
   # Admin and Authentication
   devise_for :admin_users, path: "admin", path_names: { sign_in: "login", sign_out: "logout" }
-  get 'admin', to: 'admin/app#show', as: :admin_root
-  get 'admin/app', to: 'admin/app#show', as: :custom_admin_root
+  get 'admin', to: redirect('/admin/app/companies'), as: :admin_root
+  get 'admin/app', to: redirect('/admin/app/companies'), as: :custom_admin_root
   get 'admin/quality', to: 'admin/quality#index', as: :custom_admin_quality
   get 'admin/review/companies', to: 'admin/company_reviews#index', as: :custom_admin_company_reviews
   post 'admin/review/companies/next-description-review', to: 'admin/company_reviews#create_next_description_review', as: :custom_admin_next_description_review

@@ -6,15 +6,17 @@ class CustomAdminTest < ActionDispatch::IntegrationTest
   test "custom admin redirects unauthenticated users to login" do
     get custom_admin_root_path
 
+    assert_redirected_to custom_admin_companies_path
+    follow_redirect!
     assert_redirected_to new_admin_user_session_path
   end
 
-  test "signed-in admin visiting login page redirects to admin dashboard" do
+  test "signed-in admin visiting login page redirects to companies index" do
     sign_in admin_users(:one)
 
     get new_admin_user_session_path
 
-    assert_redirected_to custom_admin_root_path
+    assert_redirected_to custom_admin_companies_path
   end
 
   test "admin login page uses centered styled form" do
@@ -29,13 +31,15 @@ class CustomAdminTest < ActionDispatch::IntegrationTest
     assert_select "input.btn.btn-dark[type='submit'][value='Log in']"
   end
 
-  test "custom admin dashboard is available to signed-in admin users" do
+  test "custom admin landing redirects signed-in admin users to companies index" do
     sign_in admin_users(:one)
 
     get custom_admin_root_path
 
+    assert_redirected_to custom_admin_companies_path
+    follow_redirect!
     assert_response :success
-    assert_select "h1", "TechIndex Admin"
+    assert_select "h1", "Companies"
     assert_select "nav a", "Companies"
     assert_select "nav a", "Review"
     assert_select "nav a", "Activity"
@@ -44,7 +48,6 @@ class CustomAdminTest < ActionDispatch::IntegrationTest
     assert_select ".admin-user-dropdown form[action='#{destroy_admin_user_session_path}'][method='post'] input[name='_method'][value='delete']"
     assert_select ".admin-user-dropdown .dropdown-item[type='submit']", "Log out"
     assert_select ".admin-user-dropdown .dropdown-item", "Public Site"
-    assert_select "h2", "Today's Maintenance"
   end
 
   test "admin logout signs out with delete request" do
@@ -55,6 +58,8 @@ class CustomAdminTest < ActionDispatch::IntegrationTest
     assert_redirected_to root_path
 
     get custom_admin_root_path
+    assert_redirected_to custom_admin_companies_path
+    follow_redirect!
     assert_redirected_to new_admin_user_session_path
   end
 

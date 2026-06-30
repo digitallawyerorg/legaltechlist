@@ -13,7 +13,7 @@ class ApplicationController < ActionController::Base
 
     case scope
     when :admin_user
-      custom_admin_root_path
+      custom_admin_companies_path
     else
       super
     end
