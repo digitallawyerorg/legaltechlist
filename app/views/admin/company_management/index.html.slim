@@ -48,7 +48,16 @@
             - if @active_filter_count.positive?
                 = link_to "Reset", custom_admin_companies_path, class: "btn btn-sm btn-link text-muted text-decoration-none"
     .table-responsive
-        table.table.table-hover.align-middle.mb-0.admin-table.is-compact
+        table.table.table-hover.align-middle.mb-0.admin-table.is-compact.is-company-list
+            colgroup
+                col.admin-col-company
+                col.admin-col-url
+                col.admin-col-category
+                col.admin-col-revenue
+                col.admin-col-quality
+                col.admin-col-visible
+                col.admin-col-updated
+                col.admin-col-actions
             thead
                 tr
                     th Company
@@ -83,7 +92,8 @@
                                                     span.admin-issue-chip class="is-#{issue[:tone]}"= issue[:label]
                         td.admin-url
                             - if company.main_url.present?
-                                = link_to company.canonical_domain.presence || company.canonical_main_domain || company.main_url, company.main_url, target: "_blank", rel: "noopener"
+                                - url_label = company.canonical_domain.presence || company.canonical_main_domain || company.main_url
+                                = link_to url_label, company.main_url, target: "_blank", rel: "noopener", title: url_label
                             - else
                                 span.admin-cell-secondary Missing
                         td.admin-nowrap

@@ -38,7 +38,17 @@ html
             | .admin-table .admin-description { min-width: 360px; max-width: 680px; width: 38%; }
             | .admin-table .admin-description .fw-semibold { color: #111827; font-size: 0.9rem; margin-bottom: 0.15rem; }
             | .admin-table .admin-description .text-muted { color: #64748b !important; line-height: 1.35; }
-            | .admin-table .admin-url { max-width: 420px; white-space: normal; }
+            | .admin-table.is-company-list { table-layout: fixed; width: 100%; }
+            | .admin-table.is-company-list col.admin-col-company { width: 34%; }
+            | .admin-table.is-company-list col.admin-col-url { width: 14%; }
+            | .admin-table.is-company-list col.admin-col-category { width: 12%; }
+            | .admin-table.is-company-list col.admin-col-revenue { width: 11%; }
+            | .admin-table.is-company-list col.admin-col-quality { width: 10%; }
+            | .admin-table.is-company-list col.admin-col-visible { width: 7%; }
+            | .admin-table.is-company-list col.admin-col-updated { width: 8%; }
+            | .admin-table.is-company-list col.admin-col-actions { width: 4%; }
+            | .admin-table .admin-url { max-width: 14rem; min-width: 9rem; overflow: hidden; overflow-wrap: normal; text-overflow: ellipsis; white-space: nowrap; word-break: normal; }
+            | .admin-table .admin-url a { display: block; max-width: 100%; overflow: hidden; overflow-wrap: normal; text-overflow: ellipsis; white-space: nowrap; word-break: normal; }
             | .admin-table .admin-actions .btn { min-width: 4.5rem; }
             | .admin-table .admin-actions .btn-icon { min-width: 2.35rem; }
             | .admin-table .admin-primary-link { color: inherit; display: block; text-decoration: none !important; }
