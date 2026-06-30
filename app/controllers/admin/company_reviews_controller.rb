@@ -46,26 +46,11 @@ module Admin
     private
 
     def duplicate_domain_companies
-      domain = @company.canonical_domain.presence || @company.canonical_main_domain
-      return Company.none if domain.blank?
-
-      stored_matches = Company.where(canonical_domain: domain).where.not(id: @company.id)
-      return stored_matches.order(:name) if @company.canonical_domain.present?
-
-      candidate_ids = Company.duplicate_domain_candidate_ids
-      return Company.none if candidate_ids.blank?
-
-      Company.where(id: candidate_ids).where.not(id: @company.id).order(:name).select { |company| (company.canonical_domain.presence || company.canonical_main_domain) == domain }
+      Company.duplicates_by_domain_for(@company)
     end
 
     def duplicate_name_companies
-      normalized_name = @company.normalized_name
-      return Company.none if normalized_name.blank?
-
-      candidate_ids = Company.duplicate_name_candidate_ids
-      return Company.none if candidate_ids.blank?
-
-      Company.where(id: candidate_ids).where.not(id: @company.id).select { |company| company.normalized_name == normalized_name }
+      Company.duplicates_by_normalized_name_for(@company)
     end
   end
 end

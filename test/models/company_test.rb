@@ -77,6 +77,17 @@ class CompanyTest < ActiveSupport::TestCase
     assert_includes Company.duplicate_name_candidates, duplicate
   end
 
+  test "duplicates by normalized name finds matching companies without loading all candidates" do
+    duplicate = companies(:one).dup
+    duplicate.name = " test company one "
+    duplicate.save!
+
+    matches = Company.duplicates_by_normalized_name_for(companies(:one))
+
+    assert_includes matches, duplicate
+    assert_not_includes matches, companies(:one)
+  end
+
   test "duplicate name candidates preserve accented characters" do
     first = companies(:one).dup
     first.name = "Lega"

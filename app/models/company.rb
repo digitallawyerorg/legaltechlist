@@ -54,6 +54,14 @@ class Company < ActiveRecord::Base
   scope :unknown_target_client, -> { left_joins(:target_client).where(target_clients: { name: "Unknown" }) }
   scope :duplicate_name_candidates, -> { where(id: duplicate_name_candidate_ids) }
   scope :duplicate_domain_candidates, -> { where(id: duplicate_domain_candidate_ids) }
+  scope :with_normalized_name, ->(normalized_name) {
+    return none if normalized_name.blank?
+
+    where.not(name: [nil, ""]).where(
+      "TRIM(REGEXP_REPLACE(LOWER(name), '[^[:alnum:]]+', ' ', 'g')) = ?",
+      normalized_name
+    )
+  }
   scope :with_resolved_country, -> { where.not(country: [nil, ""]) }
   scope :with_location_data, -> { where.not(location: [nil, ""]).or(with_resolved_country) }
 
@@ -172,6 +180,22 @@ class Company < ActiveRecord::Base
 
   def normalized_name
     self.class.normalized_name_value(name)
+  end
+
+  def self.duplicates_by_normalized_name_for(company)
+    with_normalized_name(company.normalized_name).where.not(id: company.id).order(:name)
+  end
+
+  def self.duplicates_by_domain_for(company)
+    domain = company.canonical_domain.presence || company.canonical_main_domain
+    return none if domain.blank?
+
+    stored_matches = where(canonical_domain: domain).where.not(id: company.id)
+    return stored_matches.order(:name) if company.canonical_domain.present?
+
+    return none unless duplicate_domain_candidate_ids.include?(company.id)
+
+    where(id: duplicate_domain_candidate_ids).where.not(id: company.id).order(:name).select { |match| (match.canonical_domain.presence || match.canonical_main_domain) == domain }
   end
 
   def canonical_main_domain
