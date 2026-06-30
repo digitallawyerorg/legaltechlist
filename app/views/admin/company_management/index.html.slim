@@ -107,8 +107,7 @@
                         td.admin-nowrap.admin-quality-cell
                             span.admin-status-pill class=company.review_state_badge_class title=company.review_verdict_tooltip
                                 = company.review_state_label
-                            - if company.verification_verdict.present?
-                                .admin-cell-secondary= company.verification_verdict.humanize
+                            .admin-cell-secondary= company.last_reviewed_label
                         td.admin-nowrap
                             - if company.visible?
                                 span.admin-status-pill.text-bg-success Visible

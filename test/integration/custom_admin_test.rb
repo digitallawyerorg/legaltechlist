@@ -106,7 +106,8 @@ class CustomAdminTest < ActionDispatch::IntegrationTest
     assert_select "h2", "People And Funding"
     assert_select "h2", "Source And Events"
     assert_select "h2", "System Metadata"
-    assert_select "a", "Edit Company"
+    assert_select "a", "Edit"
+    assert_select "button", "More"
     assert_select "button", "Mark verified"
     assert_select "button", "Needs more work"
     assert_select "button", "Reject and hide"
@@ -141,6 +142,7 @@ class CustomAdminTest < ActionDispatch::IntegrationTest
     assert_select "td", text: /#{Regexp.escape(companies(:one).name)}/
     assert_no_match companies(:two).name, response.body
     assert_select ".admin-status-pill", text: "Not reviewed"
+    assert_select ".admin-cell-secondary", text: "Never reviewed"
   end
 
   test "company agent review action requires authentication" do

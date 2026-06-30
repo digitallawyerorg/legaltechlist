@@ -87,6 +87,16 @@ class CompanyTest < ActiveSupport::TestCase
     assert_equal "rejected", company.review_state
   end
 
+  test "last reviewed label uses human or quality review timestamps" do
+    company = companies(:one)
+    company.update_columns(human_reviewed_at: nil, quality_reviewed_at: nil)
+    assert_equal "Never reviewed", company.last_reviewed_label
+
+    reviewed_at = Time.zone.local(2026, 6, 15, 12, 0, 0)
+    company.update_columns(human_reviewed_at: reviewed_at, quality_reviewed_at: nil)
+    assert_includes company.last_reviewed_label, "2026"
+  end
+
   test "review state scopes filter companies" do
     unreviewed = companies(:one).dup
     unreviewed.name = "Unreviewed Scope Company"

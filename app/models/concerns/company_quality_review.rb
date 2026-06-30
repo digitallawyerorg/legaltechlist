@@ -77,6 +77,16 @@ module CompanyQualityReview
     "Verdict: #{verification_verdict.humanize}"
   end
 
+  def last_reviewed_at
+    [human_reviewed_at, quality_reviewed_at].compact.max
+  end
+
+  def last_reviewed_label
+    return "Never reviewed" if last_reviewed_at.blank?
+
+    last_reviewed_at.to_date.to_fs(:long)
+  end
+
   class_methods do
     def quality_status_options_for(company)
       options = QUALITY_STATUS_OPTIONS.dup
