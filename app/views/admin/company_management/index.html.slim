@@ -96,12 +96,12 @@
                                 = link_to url_label, company.main_url, target: "_blank", rel: "noopener", title: url_label
                             - else
                                 span.admin-cell-secondary Missing
-                        td.admin-nowrap
+                        td.admin-category
                             .admin-cell-primary= company.category&.name || "Unknown"
                             .admin-cell-secondary= company.target_client&.name || "Unknown"
-                        td.admin-nowrap
-                            .admin-cell-primary= company.revenue_models_label.presence || "Unknown"
-                        td.admin-nowrap
+                        td.admin-revenue
+                            .admin-cell-primary= company.revenue_model_names.join(", ").presence || "Unknown"
+                        td.admin-nowrap.admin-quality-cell
                             .admin-quality= company.quality_status.presence&.humanize || "Unreviewed"
                             .admin-cell-secondary= company.verification_verdict.presence&.humanize || "No verdict"
                         td.admin-nowrap

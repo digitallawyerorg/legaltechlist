@@ -39,11 +39,14 @@ html
             | .admin-table .admin-description .fw-semibold { color: #111827; font-size: 0.9rem; margin-bottom: 0.15rem; }
             | .admin-table .admin-description .text-muted { color: #64748b !important; line-height: 1.35; }
             | .admin-table.is-company-list { table-layout: fixed; width: 100%; }
-            | .admin-table.is-company-list col.admin-col-company { width: 34%; }
+            | .admin-table.is-company-list col.admin-col-company { width: 30%; }
             | .admin-table.is-company-list col.admin-col-url { width: 14%; }
-            | .admin-table.is-company-list col.admin-col-category { width: 12%; }
-            | .admin-table.is-company-list col.admin-col-revenue { width: 11%; }
+            | .admin-table.is-company-list col.admin-col-category { width: 10%; }
+            | .admin-table.is-company-list col.admin-col-revenue { width: 17%; }
             | .admin-table.is-company-list col.admin-col-quality { width: 10%; }
+            | .admin-table.is-company-list .admin-category, .admin-table.is-company-list .admin-revenue { max-width: 0; overflow: hidden; white-space: normal; word-break: break-word; }
+            | .admin-table.is-company-list .admin-quality-cell { max-width: 0; overflow: hidden; }
+            | .admin-table.is-company-list .admin-quality { overflow: hidden; text-overflow: ellipsis; }
             | .admin-table.is-company-list col.admin-col-visible { width: 7%; }
             | .admin-table.is-company-list col.admin-col-updated { width: 8%; }
             | .admin-table.is-company-list col.admin-col-actions { width: 4%; }
