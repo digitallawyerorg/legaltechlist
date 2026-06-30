@@ -5,40 +5,33 @@
 - date_value = ->(value) { value.present? ? value : blank_value }
 - currency_value = ->(value) { value.present? ? number_to_currency(value, precision: 0) : blank_value }
 
-.mb-3
-    h1.h3.mb-0= @company.name
-
-.admin-proposal-toolbar.mb-4
-    .admin-proposal-toolbar-secondary
-        = link_to edit_custom_admin_company_path(@company), class: "btn btn-primary" do
+.d-flex.flex-wrap.justify-content-between.align-items-start.gap-3.mb-4
+    div
+        h1.h3.mb-0= @company.name
+        span.admin-status-pill.d-inline-block.mt-2 class=@company.review_state_badge_class
+            = @company.review_state_label
+    .admin-proposal-toolbar-primary
+        = link_to edit_custom_admin_company_path(@company), class: "btn btn-outline-secondary" do
             i.fas.fa-pen.me-1
             | Edit Company
-    .admin-proposal-toolbar-primary
         = button_to custom_admin_company_mark_review_path(@company), method: :post, params: { decision: "verified" }, class: "btn btn-success", form: { data: { turbo_confirm: "Mark #{@company.name} as verified?" } } do
             i.fas.fa-check.me-1
             | Mark verified
-        .dropdown
-            button.btn.btn-outline-secondary type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="More review actions"
-                | Review status
-                i.fas.fa-chevron-down.ms-1.small
-            .dropdown-menu.dropdown-menu-end
-                = button_to custom_admin_company_mark_review_path(@company), method: :post, params: { decision: "needs_work" }, class: "dropdown-item", form: { data: { turbo_confirm: "Mark #{@company.name} as needing more review?" } } do
-                    i.fas.fa-clock.me-2
-                    | Needs more work
-                = button_to custom_admin_company_mark_review_path(@company), method: :post, params: { decision: "reject" }, class: "dropdown-item text-danger", form: { data: { turbo_confirm: "Reject and hide #{@company.name}?" } } do
-                    i.fas.fa-ban.me-2
-                    | Reject and hide
-                hr.dropdown-divider
-                = button_to custom_admin_company_agent_review_path(@company), method: :post, class: "dropdown-item", form: { data: { turbo_confirm: "Run a proposal-only agent review for this company?" } } do
-                    i.fas.fa-robot.me-2
-                    | Run Agent Review
-                = button_to custom_admin_company_duplicate_review_path(@company), method: :post, class: "dropdown-item", form: { data: { turbo_confirm: "Run a proposal-only duplicate-domain review for this company?" } } do
-                    i.fas.fa-clone.me-2
-                    | Run Duplicate Review
-                hr.dropdown-divider
-                = button_to custom_admin_company_path(@company), method: :delete, class: "dropdown-item text-danger", form: { data: { turbo_confirm: "Delete #{@company.name}? This permanently removes the company record from TechIndex." } } do
-                    i.fas.fa-trash-alt.me-2
-                    | Delete
+        = button_to custom_admin_company_mark_review_path(@company), method: :post, params: { decision: "needs_work" }, class: "btn btn-outline-warning", form: { data: { turbo_confirm: "Mark #{@company.name} as needing more review?" } } do
+            i.fas.fa-clock.me-1
+            | Needs more work
+        = button_to custom_admin_company_mark_review_path(@company), method: :post, params: { decision: "reject" }, class: "btn btn-outline-danger", form: { data: { turbo_confirm: "Reject and hide #{@company.name}?" } } do
+            i.fas.fa-ban.me-1
+            | Reject and hide
+        = button_to custom_admin_company_agent_review_path(@company), method: :post, class: "btn btn-outline-secondary", form: { data: { turbo_confirm: "Run a proposal-only agent review for this company?" } } do
+            i.fas.fa-robot.me-1
+            | Agent review
+        = button_to custom_admin_company_duplicate_review_path(@company), method: :post, class: "btn btn-outline-secondary", form: { data: { turbo_confirm: "Run a proposal-only duplicate-domain review for this company?" } } do
+            i.fas.fa-clone.me-1
+            | Duplicate review
+        = button_to custom_admin_company_path(@company), method: :delete, class: "btn btn-outline-danger", form: { data: { turbo_confirm: "Delete #{@company.name}? This permanently removes the company record from TechIndex." } } do
+            i.fas.fa-trash-alt.me-1
+            | Delete
 
 .row.g-3
     .col-lg-8
@@ -160,10 +153,8 @@
                     p.text-muted.mb-0 No other companies share this normalized name.
 
         .card.border-0.shadow-sm.mb-3
-            .card-header.bg-white.d-flex.justify-content-between.align-items-center
+            .card-header.bg-white
                 h2.h5.mb-0 Quality Metadata
-                span.admin-status-pill class=@company.review_state_badge_class
-                    = @company.review_state_label
             .card-body
                 dl.mb-0
                     dt.text-muted.small Status

@@ -108,9 +108,10 @@ class CustomAdminTest < ActionDispatch::IntegrationTest
     assert_select "h2", "System Metadata"
     assert_select "a", "Edit Company"
     assert_select "button", "Mark verified"
-    assert_select "button", "Review status"
-    assert_select "button", "Run Agent Review"
-    assert_select "button", "Run Duplicate Review"
+    assert_select "button", "Needs more work"
+    assert_select "button", "Reject and hide"
+    assert_select "button", "Agent review"
+    assert_select "button", "Duplicate review"
     assert_select "button", "Delete"
     assert_select "a", { text: "Back to Companies", count: 0 }
   end
