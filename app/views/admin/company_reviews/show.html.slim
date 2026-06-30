@@ -200,13 +200,18 @@
 
         .card.border-0.shadow-sm
             .card-header.bg-white
-                h2.h5.mb-0 Recent Pipeline Runs
+                h2.h5.mb-0 Review Activity
             .card-body
-                - if @recent_pipeline_runs.any?
-                    ul.mb-0
-                        - @recent_pipeline_runs.each do |run|
-                            li
-                                span= run.name
-                                span.text-muted.small= " #{run.status}"
+                - if @company_pipeline_runs.any?
+                    ul.list-unstyled.mb-0
+                        - @company_pipeline_runs.each do |run|
+                            li.mb-2
+                                = link_to run.name, custom_admin_agent_review_path(run), class: "text-decoration-none fw-semibold"
+                                .text-muted.small
+                                    = run.status.humanize
+                                    - if run.finished_at.present?
+                                        span= " · #{run.finished_at.to_date.to_fs(:long)}"
+                                    - elsif run.created_at.present?
+                                        span= " · #{run.created_at.to_date.to_fs(:long)}"
                 - else
-                    p.text-muted.mb-0 No pipeline runs yet.
+                    p.text-muted.mb-0 No agent or duplicate reviews have been run for this company yet.

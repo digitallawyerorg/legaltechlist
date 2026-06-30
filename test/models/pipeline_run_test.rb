@@ -37,4 +37,13 @@ class PipelineRunTest < ActiveSupport::TestCase
     assert_equal "provider timeout", run.error_message
     assert_not_nil run.finished_at
   end
+
+  test "for_company scope finds runs linked in details json" do
+    company = companies(:one)
+    linked = PipelineRun.create!(name: "Agent company review: #{company.name}", run_type: "company_agent_review", status: "succeeded", details: { "company_id" => company.id })
+    PipelineRun.create!(name: "Other company review", run_type: "company_agent_review", status: "succeeded", details: { "company_id" => companies(:two).id })
+
+    assert_includes PipelineRun.for_company(company), linked
+    assert_equal 1, PipelineRun.for_company(company).count
+  end
 end

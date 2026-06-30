@@ -9,6 +9,7 @@ class PipelineRun < ActiveRecord::Base
   scope :recent, -> { order(created_at: :desc) }
   scope :running, -> { where(status: "running") }
   scope :failed, -> { where(status: "failed") }
+  scope :for_company, ->(company) { where("(details ->> 'company_id')::bigint = ?", company.id) }
 
   def mark_running!
     update!(status: "running", started_at: Time.current)
