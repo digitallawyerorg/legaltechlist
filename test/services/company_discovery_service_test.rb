@@ -38,6 +38,18 @@ class CompanyDiscoveryServiceTest < ActiveSupport::TestCase
     end
   end
 
+  test "enqueue creates pending pipeline run" do
+    run = CompanyDiscoveryService.enqueue(
+      discovery_type: "country",
+      country: "Canada",
+      dry_run: true,
+      admin_user: admin_users(:one)
+    )
+
+    assert_equal "pending", run.status
+    assert_equal "company_discovery", run.run_type
+  end
+
   test "dry run creates discovery pipeline run with absent and duplicate candidates" do
     assert_difference "PipelineRun.count", 1 do
       run = CompanyDiscoveryService.call(

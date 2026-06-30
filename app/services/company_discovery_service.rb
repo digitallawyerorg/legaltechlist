@@ -16,6 +16,26 @@ class CompanyDiscoveryService
     new(**kwargs).call
   end
 
+  def self.enqueue(**kwargs)
+    service = new(**kwargs)
+    service.validate_options!
+    run = PipelineRun.create!(
+      name: service.send(:pipeline_run_name),
+      run_type: RUN_TYPE,
+      status: "pending",
+      agent_name: AGENT_NAME
+    )
+    CompanyDiscoveryJob.perform_later(run.id, service.job_arguments)
+    run
+  end
+
+  def self.perform_run!(run_id, arguments = {})
+    args = arguments.stringify_keys
+    admin_user_id = args.delete("admin_user_id")
+    service = new(**args.symbolize_keys.merge(admin_user: AdminUser.find_by(id: admin_user_id)))
+    service.perform!(PipelineRun.find(run_id))
+  end
+
   def initialize(discovery_type:, limit: nil, dry_run: true, queue_proposals: false, reviewer: nil, notes: nil, max_limit: DEFAULT_MAX_LIMIT, max_cost_usd: DEFAULT_MAX_COST_USD, category: nil, company_id: nil, company_name: nil, year: nil, country: nil, funding_year: nil, search_service: CompanyDiscoverySearchService, admin_user: nil)
     @discovery_type = discovery_type.to_s
     @limit = (limit || default_limit_for(@discovery_type)).to_i
@@ -43,14 +63,37 @@ class CompanyDiscoveryService
       status: "pending",
       agent_name: AGENT_NAME
     )
+    perform!(run)
+  end
 
+  def perform!(run)
     run.mark_running!
     details = build_details(run)
     run.mark_succeeded!(records_processed: records_processed(details), details: details)
     run
   rescue StandardError => e
-    run&.mark_failed!(e.message, details: failure_payload(e))
+    run.mark_failed!(e.message, details: failure_payload(e))
     raise
+  end
+
+  def job_arguments
+    {
+      "discovery_type" => discovery_type,
+      "limit" => limit,
+      "dry_run" => dry_run,
+      "queue_proposals" => queue_proposals,
+      "reviewer" => reviewer,
+      "notes" => notes,
+      "max_limit" => max_limit,
+      "max_cost_usd" => max_cost_usd,
+      "category" => category,
+      "company_id" => company_id,
+      "company_name" => company_name,
+      "year" => year,
+      "country" => country,
+      "funding_year" => funding_year,
+      "admin_user_id" => admin_user&.id
+    }
   end
 
   private

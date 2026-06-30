@@ -17,7 +17,7 @@ module Admin
       dry_run = params[:commit] != "Discover & queue all absent"
       queue_proposals = params[:commit] == "Discover & queue all absent"
 
-      run = CompanyDiscoveryService.call(
+      run = CompanyDiscoveryService.enqueue(
         discovery_type: discovery_params[:discovery_type],
         category: category_value,
         company_id: discovery_params[:company_id],
@@ -34,19 +34,13 @@ module Admin
       )
 
       notice = if queue_proposals
-                 "Discovery completed and #{run.details.dig('summary', 'queued_proposals').to_i} proposal#{'s' unless run.details.dig('summary', 'queued_proposals').to_i == 1} queued for review."
+                 "Discovery started. Proposals will be queued when the run completes."
                else
-                 "Discovery preview completed. Review absent candidates before queueing proposals."
+                 "Discovery started. Refresh the run page in a moment to review absent candidates."
                end
       redirect_to custom_admin_pipeline_run_path(run), notice: notice
     rescue ArgumentError, CompanyDiscoveryService::CostLimitExceededError => e
       redirect_to new_custom_admin_discovery_path, alert: e.message
-    rescue StandardError => e
-      if defined?(run) && run&.persisted?
-        redirect_to custom_admin_pipeline_run_path(run), alert: "Discovery failed: #{e.message}"
-      else
-        redirect_to new_custom_admin_discovery_path, alert: "Discovery failed: #{e.message}"
-      end
     end
 
     private

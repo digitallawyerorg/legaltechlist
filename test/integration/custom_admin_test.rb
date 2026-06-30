@@ -636,9 +636,9 @@ class CustomAdminTest < ActionDispatch::IntegrationTest
 
   test "discovery preview creates pipeline run without proposals" do
     sign_in admin_users(:one)
-    original_call = CompanyDiscoveryService.method(:call)
-    CompanyDiscoveryService.define_singleton_method(:call) do |**kwargs|
-      original_call.call(**kwargs.merge(search_service: StubDiscoverySearchService))
+    original_enqueue = CompanyDiscoveryService.method(:enqueue)
+    CompanyDiscoveryService.define_singleton_method(:enqueue) do |**kwargs|
+      CompanyDiscoveryService.call(**kwargs.merge(search_service: StubDiscoverySearchService))
     end
 
     assert_difference "PipelineRun.count", 1 do
@@ -664,7 +664,7 @@ class CustomAdminTest < ActionDispatch::IntegrationTest
     assert_select "h2", "LLM Discovery Review"
     assert_select "input[type=submit][value='Queue Selected Absent Candidates']"
   ensure
-    CompanyDiscoveryService.define_singleton_method(:call, original_call)
+    CompanyDiscoveryService.define_singleton_method(:enqueue, original_enqueue)
   end
 
   test "discovery queue from pipeline run creates proposal for absent candidate" do

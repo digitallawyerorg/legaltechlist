@@ -3,11 +3,22 @@
 .d-flex.justify-content-between.align-items-start.mb-4
     div
         h1.h3.mb-1= @pipeline_run.name
+        - if @pipeline_run.status.in?(%w[pending running])
+            span.admin-status-pill.text-bg-warning.text-dark.mt-2 Running
     = link_to "Back to Pipeline Runs", custom_admin_pipeline_runs_path, class: "btn btn-outline-secondary"
+
+- if @pipeline_run.status.in?(%w[pending running])
+    meta http-equiv="refresh" content="5"
+    .alert.alert-info.mb-4
+        | Discovery is running in the background. This page refreshes every 5 seconds until results are ready.
 
 .row.g-3
     .col-lg-8
-        - if @pipeline_run.run_type == CompanyDiscoveryService::RUN_TYPE
+        - if @pipeline_run.run_type == CompanyDiscoveryService::RUN_TYPE && @pipeline_run.status.in?(%w[pending running])
+            .card.border-0.shadow-sm.mb-3
+                .card-body
+                    p.text-muted.mb-0 Waiting for LLM web search to finish. Large discovery runs can take a few minutes.
+        - elsif @pipeline_run.run_type == CompanyDiscoveryService::RUN_TYPE
             - discovery_summary = @details["summary"] || {}
             - discovery_candidates = Array(@details["candidates"])
             - proposal_results = Array(@details["proposal_results"])
