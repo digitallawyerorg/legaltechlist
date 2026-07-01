@@ -1,0 +1,7 @@
+/ locals: preview (hash with :rows, :columns, :max)
+- columns_size = preview[:columns].size
+.stats-index-card-heatmap style="--coverage-preview-cols: #{columns_size}"
+    - preview[:rows].each do |row|
+        - row[:cells].each do |value|
+            - cell = coverage_heatmap_cell_presentation(value, preview[:max])
+            .stats-index-card-heatmap-cell class=(cell[:gap] ? "is-gap" : nil) style=(cell[:gap] ? nil : "background: #{cell[:background]};")

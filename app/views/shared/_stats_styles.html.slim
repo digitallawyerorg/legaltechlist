@@ -933,6 +933,27 @@ css:
         text-align: center;
     }
 
+    .stats-index-card-heatmap {
+        display: grid;
+        gap: 3px;
+        grid-template-columns: repeat(var(--coverage-preview-cols), minmax(0, 1fr));
+        padding-top: 0.35rem;
+        width: 100%;
+    }
+
+    .stats-index-card-heatmap-cell {
+        aspect-ratio: 1 / 1;
+        background: #eef0f2;
+        border-radius: 4px;
+        min-height: 16px;
+    }
+
+    .stats-index-card-heatmap-cell.is-gap {
+        background-color: #f7f4ee;
+        background-image: repeating-linear-gradient(45deg, rgba(140, 21, 21, 0.14) 0, rgba(140, 21, 21, 0.14) 1px, transparent 1px, transparent 6px);
+        border: 1px dashed rgba(140, 21, 21, 0.35);
+    }
+
     @media (max-width: 767.98px) {
         .stats-coverage-heatmap-body {
             padding: 0.85rem 0.85rem 1.1rem;

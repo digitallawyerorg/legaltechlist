@@ -43,10 +43,19 @@ class StatisticsHelperTest < ActiveSupport::TestCase
   test "stats_chart_neighbors returns wrapped prev and next for ecosystem growth" do
     neighbors = neighbors_for("total_companies")
 
-    assert_equal "Technology Themes", neighbors[:prev][:title]
-    assert_equal statistics_tag_distribution_path, neighbors[:prev][:path]
+    assert_equal "Data Coverage", neighbors[:prev][:title]
+    assert_equal statistics_data_coverage_path, neighbors[:prev][:path]
     assert_equal "Geographic Distribution", neighbors[:next][:title]
     assert_equal statistics_country_distribution_path, neighbors[:next][:path]
+  end
+
+  test "stats_chart_neighbors wraps around for data coverage" do
+    neighbors = neighbors_for("data_coverage")
+
+    assert_equal "Technology Themes", neighbors[:prev][:title]
+    assert_equal statistics_tag_distribution_path, neighbors[:prev][:path]
+    assert_equal "Total Companies", neighbors[:next][:title]
+    assert_equal statistics_total_companies_path, neighbors[:next][:path]
   end
 
   test "canonical_venture_stage_name maps aliases and unknown values" do
@@ -292,6 +301,21 @@ class StatisticsHelperTest < ActiveSupport::TestCase
     assert_equal "rgb(250, 241, 236)", helper.coverage_heatmap_scale_color(0)
     assert_equal "rgb(140, 21, 21)", helper.coverage_heatmap_scale_color(1.0)
     assert_equal "rgb(140, 21, 21)", helper.coverage_heatmap_scale_color(2.5)
+  end
+
+  test "stats_coverage_heatmap_preview returns a bounded grid" do
+    helper = Class.new { include StatisticsHelper }.new
+    preview = helper.stats_coverage_heatmap_preview(row_count: 3, column_count: 4)
+
+    assert preview.key?(:columns)
+    assert preview.key?(:rows)
+    assert_operator preview[:columns].size, :<=, 4
+    assert_operator preview[:rows].size, :<=, 3
+    assert_operator preview[:max], :>=, 0
+    preview[:rows].each do |row|
+      assert_equal preview[:columns].size, row[:cells].size
+      assert row[:cells].all? { |value| value.to_i >= 0 }
+    end
   end
 
   test "build_coverage_heatmaps returns a grid for every dimension" do

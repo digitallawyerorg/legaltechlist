@@ -1,0 +1,10 @@
+- content_for :title, "Data Coverage"
+- content_for :description, "An interactive heatmap that surfaces gaps in the CodeX TechIndex by crossing categories, business models, markets, and funding stages against geographic regions."
+- chart_neighbors = stats_chart_neighbors
+= render partial: "shared/stats_styles"
+.stats-page
+    .stats-page-inner.stats-page-inner-chart
+        - if chart_neighbors.present?
+            = render partial: "shared/stats_chart_nav", locals: { neighbors: chart_neighbors }
+        = render partial: "shared/stats_coverage_heatmap", locals: { heatmaps: build_coverage_heatmaps, heading_tag: "h1" }
+        = render partial: "shared/stats_methodology"

@@ -650,6 +650,9 @@ class StaticPagesController < ApplicationController
     redirect_to statistics_funding_by_category_path(download_params), status: :moved_permanently
   end
 
+  def data_coverage
+  end
+
   private
 
   GROWTH_VIEWS = %w[cumulative annual].freeze

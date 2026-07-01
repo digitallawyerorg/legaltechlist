@@ -2,12 +2,16 @@
 - dimensions = local_assigns.fetch(:dimensions, stats_coverage_heatmap_dimensions)
 - default_dimension = local_assigns.fetch(:default_dimension, "category")
 - heatmap_id = local_assigns.fetch(:heatmap_id, "stats-coverage-heatmap")
+- heading_tag = local_assigns.fetch(:heading_tag, "h2")
 - legend_ratios = [0.14, 0.32, 0.52, 0.74, 1.0]
 .stats-chart-card.stats-coverage-heatmap data-coverage-heatmap=heatmap_id
     .stats-chart-header
         .stats-chart-header-row
             .stats-chart-heading
-                h2.stats-chart-title Data Coverage
+                - if heading_tag == "h1"
+                    h1.stats-chart-title Data Coverage
+                - else
+                    h2.stats-chart-title Data Coverage
                 p.stats-chart-subtitle Cross-referencing the index to surface where coverage is thin. Darker cells hold more companies; hatched cells are gaps where no companies are recorded yet.
             .stats-chart-controls
                 label.stats-coverage-heatmap-label for="#{heatmap_id}-select" Break down by

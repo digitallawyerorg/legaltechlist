@@ -62,7 +62,8 @@ module StatisticsHelper
     { actions: %w[funding_by_category], dimension: "category", title: "Funding by Category", path: :statistics_funding_by_category_path },
     { actions: %w[funding_by_category], dimension: "region", title: "Funding by Region", path: :statistics_funding_by_region_path },
     { actions: %w[ai_trends], title: "AI in Legal Tech", path: :statistics_ai_trends_path },
-    { actions: %w[tag_distribution], title: "Technology Themes", path: :statistics_tag_distribution_path }
+    { actions: %w[tag_distribution], title: "Technology Themes", path: :statistics_tag_distribution_path },
+    { actions: %w[data_coverage], title: "Data Coverage", path: :statistics_data_coverage_path }
   ].freeze
 
   def stats_chart_neighbors
@@ -535,6 +536,41 @@ module StatisticsHelper
       "target_market" => coverage_heatmap_grid(target_region, primary_label: "Target market", secondary_label: "Region", column_order: COVERAGE_HEATMAP_REGION_ORDER),
       "fundraising" => coverage_heatmap_grid(stage_region, primary_label: "Fundraising", secondary_label: "Region", column_order: COVERAGE_HEATMAP_REGION_ORDER, row_order: VENTURE_STAGE_ORDER)
     }
+  end
+
+  def stats_coverage_heatmap_preview(row_count: 3, column_count: 4)
+    category_region = Hash.new { |hash, key| hash[key] = Hash.new(0) }
+
+    stats_index_scope.includes(:category).find_each do |company|
+      region = coverage_heatmap_region_for(company)
+      category = coverage_heatmap_category_for(company)
+      next unless region && category
+
+      category_region[category][region] += 1
+    end
+
+    region_totals = Hash.new(0)
+    category_region.each_value { |regions| regions.each { |region, value| region_totals[region] += value } }
+    ranked_regions = COVERAGE_HEATMAP_REGION_ORDER.select { |region| region_totals[region].positive? }.sort_by { |region| -region_totals[region] }
+
+    columns =
+      if ranked_regions.size > column_count
+        ranked_regions.first(column_count - 1) + [ranked_regions.last]
+      else
+        ranked_regions.first(column_count)
+      end
+
+    ranked_categories = category_region.sort_by { |_, regions| -regions.values.sum }.map(&:first)
+    gap_categories = ranked_categories.select { |category| columns.any? { |region| category_region[category][region].to_i.zero? } }
+    chosen = (ranked_categories.first(row_count - 1) + gap_categories).uniq.first(row_count)
+    chosen = ranked_categories.first(row_count) if chosen.size < row_count
+
+    rows = chosen.map do |category|
+      { label: category, cells: columns.map { |region| category_region[category][region].to_i } }
+    end
+    max = rows.flat_map { |row| row[:cells] }.max.to_i
+
+    { columns: columns, rows: rows, max: max }
   end
 
   def coverage_heatmap_grid(counts, primary_label:, secondary_label:, column_order: nil, row_order: nil, row_limit: COVERAGE_HEATMAP_ROW_LIMIT, column_limit: COVERAGE_HEATMAP_COLUMN_LIMIT)
