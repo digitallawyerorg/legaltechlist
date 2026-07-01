@@ -178,6 +178,27 @@ module Mcp
       assert_equal original, company.reload.location
     end
 
+    test "external submissions auto-publish only above the higher external confidence bar" do
+      proposal = ready_proposal
+      proposal.update!(submitter_email: "founder@example.com")
+      with_env("MCP_CURATOR_AUTOPUBLISH" => "true", "MCP_CURATOR_MIN_CONFIDENCE" => "0.8", "MCP_CURATOR_MIN_CONFIDENCE_EXTERNAL" => "0.9") do
+        # 0.85 clears the normal bar but not the external bar
+        blocked = Mcp::Tools::ApproveProposalTool.call(server_context: @context, id: proposal.id, publish: true, confidence: 0.85)
+        assert blocked.error?
+        assert_not_equal "published", proposal.reload.status
+        # 0.95 clears the external bar
+        call(Mcp::Tools::ApproveProposalTool, id: proposal.id, publish: true, confidence: 0.95)
+      end
+      assert_equal "published", proposal.reload.status
+    end
+
+    test "get_stats returns directory and backlog counts" do
+      result = call(Mcp::Tools::GetStatsTool)
+      assert result["companies"].key?("total")
+      assert result["proposals"].key?("by_status")
+      assert result["curator"].key?("min_confidence")
+    end
+
     test "suggest_improvement records an audit run" do
       assert_difference -> { PipelineRun.where(run_type: "curator_mcp").count }, 1 do
         result = call(Mcp::Tools::SuggestImprovementTool, suggestion: "Add a bulk re-tagging tool.", area: "tooling")

@@ -12,6 +12,7 @@ module Mcp
         GetProposalTool,
         DuplicateCheckTool,
         GetTaxonomyTool,
+        GetStatsTool,
         # Discovery
         DiscoverCompaniesTool,
         # Proposal curation (tiered)

@@ -27,7 +27,8 @@ human to approve.
 
 Read / context: `search_companies`, `get_company`, `list_review_queue`,
 `get_proposal`, `duplicate_check`, `get_taxonomy` (controlled vocabulary of
-categories, business models, target clients, and canonical tags).
+categories, business models, target clients, and canonical tags), `get_stats`
+(directory size, data-quality gaps, and backlog counts for cadence planning).
 
 Discovery: `discover_companies` (dry run by default; `queue_proposals: true` creates
 `discovery_candidate` proposals).
@@ -68,6 +69,12 @@ discipline, and the approval rules below.
 - Existing companies: `approve_proposal` applies a `user_suggestion` edit autonomously
   only when `MCP_CURATOR_AUTOAPPLY_UPDATES=true` + sufficient confidence; otherwise it
   requires `human_approved: true`.
+- Externally-submitted proposals (`CompanyProposal#externally_submitted?`, i.e. those
+  with a `submitter_email` from the public forms) can publish/apply autonomously, but at a
+  higher confidence bar (`MCP_CURATOR_MIN_CONFIDENCE_EXTERNAL`, default 0.9) so spam that
+  games the quality score is filtered out by the model's confidence judgment.
+- `curate_pending` (batch, no per-item confidence) still queues external submissions for
+  the confidence-bearing `approve_proposal` path rather than publishing them off the score.
 - Publishing a proposal that fails the gate requires `human_approved: true` on
   `approve_proposal` (set this only after a human approves in the Slack thread).
 - `MCP_CURATOR_AUTOPUBLISH=false` is a global kill-switch for automatic publishing.
@@ -91,7 +98,8 @@ discipline, and the approval rules below.
 | `MCP_OAUTH_ALLOWED_REDIRECT_HOSTS` | `claude.ai,claude.com,console.anthropic.com` | Extra allowed OAuth redirect hosts (comma-separated). |
 | `MCP_CURATOR_AUTOPUBLISH` | `true` | Auto-publish kill-switch for NEW entries. |
 | `MCP_CURATOR_AUTOAPPLY_UPDATES` | `false` | Allow autonomous edits to EXISTING companies. |
-| `MCP_CURATOR_MIN_CONFIDENCE` | `0.8` | Min self-reported confidence for any autonomous publish/apply. |
+| `MCP_CURATOR_MIN_CONFIDENCE` | `0.8` | Min self-reported confidence for autonomous publish/apply. |
+| `MCP_CURATOR_MIN_CONFIDENCE_EXTERNAL` | `0.9` | Higher confidence bar for externally-submitted proposals. |
 | `MCP_CURATOR_MAX_DISCOVERY_LIMIT` | `25` | Cap on discovery `limit`. |
 | `MCP_CURATOR_MAX_CURATE_LIMIT` | `100` | Cap on `curate_pending` batch size. |
 | `MCP_CURATOR_MAX_DAILY_PUBLISH` | `50` | Daily auto-publish budget. |

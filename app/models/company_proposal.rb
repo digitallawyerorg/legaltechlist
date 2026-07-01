@@ -82,6 +82,13 @@ class CompanyProposal < ActiveRecord::Base
     proposal_type.in?(USER_SUBMISSION_TYPES)
   end
 
+  # True when this proposal originated from an external human submitter (public
+  # contribution/suggestion form) rather than from discovery or the curator.
+  # Such proposals are lower-trust and must never be published/applied autonomously.
+  def externally_submitted?
+    submitter_email.present?
+  end
+
   def user_contribution?
     proposal_type == "user_contribution"
   end

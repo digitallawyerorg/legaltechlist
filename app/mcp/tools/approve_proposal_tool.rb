@@ -42,8 +42,9 @@ module Mcp
           unless Mcp::CuratorPolicy.autopublish_enabled?
             return error_response("error" => "Auto-publish is disabled (MCP_CURATOR_AUTOPUBLISH=false). A human must approve (human_approved=true).")
           end
-          unless Mcp::CuratorPolicy.confidence_ok?(confidence)
-            return error_response("error" => "Confidence below the autonomy threshold (#{Mcp::CuratorPolicy.min_confidence}). Improve/verify the entry and raise confidence, or leave it for a human.", "confidence" => confidence, "admin_url" => admin_proposal_url(proposal))
+          unless Mcp::CuratorPolicy.confidence_ok?(confidence, proposal)
+            note = proposal.externally_submitted? ? " This is an external submission, so the bar is higher — only publish if you are sure it is a genuine legal-tech company (not spam/solicitation)." : ""
+            return error_response("error" => "Confidence below the autonomy threshold (#{Mcp::CuratorPolicy.required_confidence(proposal)}).#{note} Verify the entry and raise confidence, or leave it for a human.", "confidence" => confidence, "admin_url" => admin_proposal_url(proposal))
           end
         end
 
@@ -78,13 +79,14 @@ module Mcp
       # needs either an explicit human approval, or (when autoapply is enabled)
       # a high enough confidence to clear the autonomy threshold.
       def self.apply_existing_company_update(proposal, id:, publish:, confidence:, human_approved:)
-        autonomous_ok = Mcp::CuratorPolicy.autoapply_updates_enabled? && Mcp::CuratorPolicy.confidence_ok?(confidence)
+        autonomous_ok = Mcp::CuratorPolicy.autoapply_updates_enabled? && Mcp::CuratorPolicy.confidence_ok?(confidence, proposal)
 
         unless human_approved || autonomous_ok
           message = if !Mcp::CuratorPolicy.autoapply_updates_enabled?
             "Editing an existing company requires human_approved=true (autonomous edits are disabled: MCP_CURATOR_AUTOAPPLY_UPDATES=false)."
           else
-            "Confidence below the autonomy threshold (#{Mcp::CuratorPolicy.min_confidence}) for editing a live company. Verify the change and raise confidence, or wait for human approval."
+            note = proposal.externally_submitted? ? " This is an external submission, so the bar is higher — only apply if you are sure the change is genuine (not spam/solicitation)." : ""
+            "Confidence below the autonomy threshold (#{Mcp::CuratorPolicy.required_confidence(proposal)}) for editing a live company.#{note} Verify the change and raise confidence, or wait for human approval."
           end
           return error_response("error" => message, "confidence" => confidence, "admin_url" => admin_proposal_url(proposal))
         end

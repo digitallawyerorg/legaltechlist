@@ -24,10 +24,20 @@ module Mcp
       ENV.fetch("MCP_CURATOR_MIN_CONFIDENCE", "0.8").to_f
     end
 
-    def confidence_ok?(value)
+    # Higher bar for externally-submitted proposals (public contribution/suggestion
+    # forms), which are lower-trust and a common spam vector.
+    def min_confidence_external
+      ENV.fetch("MCP_CURATOR_MIN_CONFIDENCE_EXTERNAL", "0.9").to_f
+    end
+
+    def required_confidence(proposal = nil)
+      proposal&.externally_submitted? ? min_confidence_external : min_confidence
+    end
+
+    def confidence_ok?(value, proposal = nil)
       return false if value.nil?
 
-      value.to_f >= min_confidence
+      value.to_f >= required_confidence(proposal)
     end
 
     def max_discovery_limit

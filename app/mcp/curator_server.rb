@@ -48,7 +48,14 @@ module Mcp
         out-of-scope company, or an ambiguous edit — do NOT publish/apply. Leave it for a human
         (omit publish/human_approved or set a low confidence) and briefly say what is uncertain.
       - A human can always force an action with human_approved=true after approving in Slack.
+      - Externally-submitted proposals (from the public contribution/suggestion forms) are
+        lower-trust, so they require a higher confidence bar to publish/apply autonomously.
+        Scrutinize them for spam, solicitations, and malformed fields; reject anything that is
+        not a genuine legal-technology company, and only publish/apply the ones you are sure of.
       - Keep Slack replies short and include the /admin/proposals/:id link so a human can review.
+
+      Use get_stats for directory size and backlog depth when planning a cadence or reporting
+      progress.
 
       Every action is attributed to the curator account and audited. If you notice recurring
       friction, a missing capability, or an unclear rule that makes curation harder, record it

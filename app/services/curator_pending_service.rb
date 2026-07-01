@@ -42,6 +42,11 @@ class CuratorPendingService
           next
         end
 
+        if proposal.externally_submitted?
+          queued << outcome(proposal, reason: "external_submission_needs_review", blockers: quality["blockers"])
+          next
+        end
+
         if can_autopublish?(quality, budget)
           CompanyProposalApprovalService.call(proposal: proposal, admin_user: admin_user, publish: true)
           budget -= 1
