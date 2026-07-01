@@ -268,6 +268,32 @@ namespace :taxonomy do
     puts "consolidate_compound_target_clients complete mode=#{dry_run ? 'dry-run' : 'write'} remapped=#{remapped} removed=#{removed}"
   end
 
+  desc "Merge duplicate TargetClient rows with the same name. DRY_RUN=false to write."
+  task consolidate_duplicate_target_clients: :environment do
+    dry_run = ENV.fetch("DRY_RUN", "true") != "false"
+    removed = 0
+
+    TargetClient.group(:name).having("COUNT(*) > 1").count.each_key do |name|
+      records = TargetClient.where(name: name).order(:id).to_a
+      keeper = records.first
+
+      records.drop(1).each do |duplicate|
+        unless dry_run
+          Company.where(target_client_id: duplicate.id).update_all(target_client_id: keeper.id, updated_at: Time.current)
+          CompanyTargetClient.where(target_client_id: duplicate.id).find_each do |join|
+            CompanyTargetClient.find_or_create_by!(company_id: join.company_id, target_client_id: keeper.id)
+            join.destroy!
+          end
+          duplicate.destroy!
+        end
+        removed += 1
+        puts "merged #{name}: keeper=#{keeper.id} removed duplicate=#{duplicate.id}"
+      end
+    end
+
+    puts "consolidate_duplicate_target_clients complete mode=#{dry_run ? 'dry-run' : 'write'} removed=#{removed}"
+  end
+
   desc "Resolve Unknown target clients via rules/LLM with category fallbacks. DRY_RUN=false to write."
   task resolve_unknown_target_clients: :environment do
     dry_run = ENV.fetch("DRY_RUN", "true") != "false"

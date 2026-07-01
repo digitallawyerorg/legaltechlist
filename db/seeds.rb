@@ -1,11 +1,8 @@
-target_clients = TargetClient.create([
-  {name: "Law Firms", description: "Products and services for law firms and legal practices"},
-  {name: "Corporate Legal", description: "Solutions for in-house legal departments and corporate counsel"},
-  {name: "Government", description: "Services for government legal departments and agencies"},
-  {name: "Consumers", description: "Direct-to-consumer legal solutions and self-service tools"},
-  {name: "Legal Education", description: "Tools for law schools, continuing education, and training"},
-  {name: "Legal Service Providers", description: "Solutions for alternative legal service providers and legal tech companies"}
-])
+MethodologyHelper::TARGET_CLIENTS.each do |row|
+  TargetClient.find_or_create_by!(name: row[:name]) do |client|
+    client.description = row[:definition]
+  end
+end
 
 BusinessModel.create([
   { name: "Subscription", description: "Monthly or annual recurring revenue, seat-based pricing, or tiered plans" },

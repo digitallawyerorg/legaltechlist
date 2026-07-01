@@ -1,7 +1,10 @@
 class TargetClient < ActiveRecord::Base
   has_many :companies
 
-  scope :canonical, -> { where(name: TaxonomyNormalizationService::CANONICAL_TARGET_CLIENTS) }
+  scope :canonical, -> {
+    names = TaxonomyNormalizationService::CANONICAL_TARGET_CLIENTS
+    where(id: unscoped.where(name: names).group(:name).select("MIN(id)"))
+  }
 
   accepts_nested_attributes_for :companies
   
