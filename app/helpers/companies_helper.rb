@@ -198,6 +198,44 @@ module CompaniesHelper
     { label: "Reddit", icon: "fa-brands fa-reddit", icon_color: "#ff450f", url: "https://www.reddit.com/search/?q=#{query}", host: "reddit.com" }
   end
 
+  def company_citation_entries(company, accessed_on: Date.current)
+    [
+      { label: "Bluebook", icon: "fa-solid fa-scale-balanced", icon_color: "#8c1515", citation: company_bluebook_citation(company, accessed_on: accessed_on) },
+      { label: "APA", icon: "fa-solid fa-graduation-cap", icon_color: "#2563eb", citation: company_apa_citation(company, accessed_on: accessed_on) },
+      { label: "BibTeX", icon: "fa-solid fa-code", icon_color: "#047857", citation: company_bibtex_citation(company, accessed_on: accessed_on), monospace: true }
+    ]
+  end
+
+  def company_bluebook_citation(company, accessed_on: Date.current)
+    name = company.name.to_s.strip
+    url = company_url(company)
+    accessed = company_citation_accessed_label(accessed_on)
+    "Stanford Ctr. for Legal Informatics (CodeX), CodeX TechIndex: #{name}, #{url} (last visited #{accessed})."
+  end
+
+  def company_apa_citation(company, accessed_on: Date.current)
+    name = company.name.to_s.strip
+    url = company_url(company)
+    accessed = company_citation_accessed_label(accessed_on)
+    "Stanford Center for Legal Informatics (CodeX). (n.d.). #{name}. In CodeX TechIndex. Retrieved #{accessed}, from #{url}"
+  end
+
+  def company_bibtex_citation(company, accessed_on: Date.current)
+    key = "techindex_company_#{company.id}"
+    title = bibtex_braced_value("CodeX TechIndex: #{company.name.to_s.strip}")
+    url = company_url(company)
+    urldate = accessed_on.strftime("%Y-%m-%d")
+    <<~BIBTEX.strip
+      @misc{#{key},
+        author = {{Stanford Center for Legal Informatics (CodeX)}},
+        title = #{title},
+        howpublished = {CodeX TechIndex},
+        url = {#{url}},
+        urldate = {#{urldate}}
+      }
+    BIBTEX
+  end
+
   def related_company_list(company)
     tag_ids = company.tags.map(&:id)
     return yield([]) if tag_ids.empty?
@@ -209,9 +247,19 @@ module CompaniesHelper
                                .where.not(id: company.id)
                                .distinct
                                .order(:name)
-                               .limit(5)
+                               .limit(9)
 
     yield(related_companies.to_a)
+  end
+
+  private
+
+  def company_citation_accessed_label(accessed_on)
+    accessed_on.strftime("%B %-d, %Y")
+  end
+
+  def bibtex_braced_value(value)
+    "{{#{value.to_s.gsub('}', '')}}}"
   end
   
 end

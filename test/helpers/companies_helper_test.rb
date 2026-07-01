@@ -122,4 +122,32 @@ class CompaniesHelperTest < ActionView::TestCase
     assert_equal "https://www.reddit.com/search/?q=%22Legal.io%22", reference[:url]
     assert_equal "reddit.com", reference[:host]
   end
+
+  test "company_citation_entries returns bluebook apa and bibtex formats" do
+    company = companies(:one)
+    company.name = "Legal.io"
+    accessed_on = Date.new(2026, 7, 1)
+
+    entries = company_citation_entries(company, accessed_on: accessed_on)
+
+    assert_equal %w[Bluebook APA BibTeX], entries.map { |entry| entry[:label] }
+    assert_includes entries[0][:citation], "Stanford Ctr. for Legal Informatics (CodeX), CodeX TechIndex: Legal.io"
+    assert_includes entries[0][:citation], "(last visited July 1, 2026)."
+    assert_includes entries[1][:citation], "Stanford Center for Legal Informatics (CodeX). (n.d.). Legal.io. In CodeX TechIndex."
+    assert_includes entries[1][:citation], "Retrieved July 1, 2026, from"
+    assert_includes entries[2][:citation], "@misc{techindex_company_#{company.id},"
+    assert_includes entries[2][:citation], "title = {{CodeX TechIndex: Legal.io}}"
+    assert_includes entries[2][:citation], "urldate = {2026-07-01}"
+    assert entries[2][:monospace]
+  end
+
+  test "company_bibtex_citation braces company names with special characters" do
+    company = companies(:one)
+    company.name = "Smith & Jones"
+    accessed_on = Date.new(2026, 7, 1)
+
+    citation = company_bibtex_citation(company, accessed_on: accessed_on)
+
+    assert_includes citation, "title = {{CodeX TechIndex: Smith & Jones}}"
+  end
 end
