@@ -27,6 +27,14 @@ module Mcp
 
       Classification: always call get_taxonomy first and choose categories, business models,
       target clients, and tags only from that controlled vocabulary. Never invent new ones.
+      When a proposal is held for "low-confidence taxonomy", confirm it by setting the correct
+      taxonomy fields with update_proposal — that counts as your curator confirmation and clears
+      the blocker. You no longer need to re-run enrich_proposal just to accept the taxonomy;
+      reserve enrichment for filling missing facts (e.g. a sourced founding year).
+
+      Working the full backlog: list_review_queue returns `total`, `offset`, and `has_more`.
+      Page with offset (offset=0, 50, 100, ...) until has_more is false so you reach every
+      pending item, not just the first page.
 
       Change discipline:
       - Add new companies via discover_companies, then enrich, assess, and use update_proposal
@@ -66,7 +74,7 @@ module Mcp
       MCP::Server.new(
         name: "techindex_curator",
         title: "CodeX TechIndex Curator",
-        version: "1.1.0",
+        version: "1.2.0",
         instructions: INSTRUCTIONS,
         tools: Mcp::Tools.all,
         server_context: { actor: actor }

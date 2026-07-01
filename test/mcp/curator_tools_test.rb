@@ -192,6 +192,49 @@ module Mcp
       assert_equal "published", proposal.reload.status
     end
 
+    test "update_proposal confirming taxonomy clears the low-confidence taxonomy blocker" do
+      proposal = ready_proposal
+      proposal.update!(agent_details: { "taxonomy_suggestion" => { "accepted" => false } })
+      before = CompanyProposalQualityService.call(proposal.reload)
+      assert_not before["publish_ready"], before["blockers"].inspect
+      assert before["blockers"].any? { |blocker| blocker =~ /low-confidence taxonomy/i }, before["blockers"].inspect
+
+      result = call(Mcp::Tools::UpdateProposalTool, id: proposal.id, changes: { "category_id" => categories(:one).id })
+      assert result["taxonomy_confirmed"]
+      assert result["quality"]["publish_ready"], result["quality"]["blockers"].inspect
+    end
+
+    test "list_review_queue pages through the backlog with offset and total" do
+      3.times { pending_proposal }
+      page1 = call(Mcp::Tools::ListReviewQueueTool, status: "pending", limit: 2, offset: 0)
+      page2 = call(Mcp::Tools::ListReviewQueueTool, status: "pending", limit: 2, offset: 2)
+      assert page1["total"] >= 3
+      assert_equal 2, page1["count"]
+      assert page1["has_more"]
+      first_ids = page1["proposals"].map { |entry| entry["id"] }
+      second_ids = page2["proposals"].map { |entry| entry["id"] }
+      assert (first_ids & second_ids).empty?, "pages should not overlap"
+    end
+
+    test "externally submitted spam is flagged as not publish-ready" do
+      proposal = ready_proposal
+      proposal.update!(
+        submitter_email: "scammer@example.com",
+        user_message: "Earn a salary of $5000 weekly, email mailto:agent@scam.org to apply.",
+        final_changes: proposal.final_changes.merge("founded_date" => "ROHTO Pharmaceutical", "main_url" => "junk value")
+      )
+      quality = CompanyProposalQualityService.call(proposal)
+      assert_not quality["publish_ready"]
+      assert quality["blockers"].any? { |blocker| blocker =~ /spam|malformed/i }, quality["blockers"].inspect
+    end
+
+    test "internal discovery candidates are never flagged by the spam pre-gate" do
+      proposal = ready_proposal
+      proposal.update!(final_changes: proposal.final_changes.merge("description" => "Recruiting law firms; salary details on request. Contact via mailto:sales@co.com."))
+      quality = CompanyProposalQualityService.call(proposal)
+      assert_not quality["blockers"].any? { |blocker| blocker =~ /spam/i }, "spam gate must not touch internal candidates"
+    end
+
     test "get_stats returns directory and backlog counts" do
       result = call(Mcp::Tools::GetStatsTool)
       assert result["companies"].key?("total")

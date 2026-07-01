@@ -34,8 +34,13 @@ Discovery: `discover_companies` (dry run by default; `queue_proposals: true` cre
 `discovery_candidate` proposals).
 
 Proposal curation (tiered): `enrich_proposal`, `assess_proposal`, `update_proposal`
-(set allowlisted company fields into `final_changes` before approval),
-`curate_pending`, `approve_proposal`, `reject_proposal`.
+(set allowlisted company fields into `final_changes` before approval; setting taxonomy
+fields marks the taxonomy curator-confirmed and clears the low-confidence-taxonomy
+blocker), `curate_pending`, `approve_proposal`, `reject_proposal`.
+
+`list_review_queue` supports paging: it returns `total`, `offset`, `limit`, and
+`has_more`, and accepts an `offset` param so the full backlog is reachable beyond the
+first 50 items (page with offset=0, 50, 100, ... until `has_more` is false).
 
 Maintenance: `run_company_review`, `propose_company_update` (queue an edit to an
 existing company as a `user_suggestion` proposal; applied only via
@@ -75,6 +80,15 @@ discipline, and the approval rules below.
   games the quality score is filtered out by the model's confidence judgment.
 - `curate_pending` (batch, no per-item confidence) still queues external submissions for
   the confidence-bearing `approve_proposal` path rather than publishing them off the score.
+- Spam pre-gate: for externally-submitted proposals only, `CompanyProposalQualityService`
+  adds a publish blocker when it detects solicitation text (salary/recruitment pitches,
+  `mailto:`/unsubscribe, money-transfer language, `$` amounts) or malformed `founded_date`
+  (no plausible year) or `main_url` (not a valid HTTP URL). This keeps score-gamed spam
+  (e.g. the ROHTO advance-fee submission that scored 100) out of `publish_ready`. It is
+  scoped to public submissions to avoid false positives on internal discovery candidates.
+- Low-confidence taxonomy: `update_proposal` now marks `agent_details.taxonomy_suggestion.accepted`
+  when taxonomy fields are set, so a curator confirmation clears the blocker without
+  re-running `enrich_proposal`.
 - Publishing a proposal that fails the gate requires `human_approved: true` on
   `approve_proposal` (set this only after a human approves in the Slack thread).
 - `MCP_CURATOR_AUTOPUBLISH=false` is a global kill-switch for automatic publishing.

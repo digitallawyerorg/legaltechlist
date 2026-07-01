@@ -51,8 +51,52 @@ class CompanyProposalQualityService
       values << "Review low-confidence taxonomy before publishing." if low_confidence_taxonomy?
       values << "Revise weak or generic description before publishing." if weak_description?
       values << "Description appears to copy the source text." if copied_source_description?
+      values << "Possible spam or malformed public submission — requires human review before publishing." if spam_suspected?
       values
     end
+  end
+
+  # Public submissions are the main spam vector (recruitment/advance-fee scams,
+  # solicitations, junk stuffed into date/url fields). Discovery candidates are
+  # generated internally, so this heuristic is intentionally scoped to
+  # externally-submitted proposals to avoid false positives on the wider dataset.
+  SOLICITATION_PATTERN = /
+    mailto: |
+    \bunsubscribe\b |
+    \bsalary\b |
+    \bwire\s+transfer\b |
+    \bwestern\s+union\b |
+    money\s*(mule|agent|transfer) |
+    \brecruit(?:ing|ment)?\b |
+    \$\s?\d{3,}
+  /xi
+
+  def spam_suspected?
+    return false unless proposal.externally_submitted?
+
+    solicitation_text? || malformed_founded_date? || malformed_main_url?
+  end
+
+  def solicitation_text?
+    blob = [changes["description"], changes["founders"], proposal.user_message].compact_blank.join(" ")
+    blob.match?(SOLICITATION_PATTERN)
+  end
+
+  def malformed_founded_date?
+    value = changes["founded_date"].to_s.strip
+    return false if value.blank?
+
+    !value.match?(/\b(1[89]\d{2}|20\d{2})\b/) && (Date._parse(value)[:year].nil?)
+  end
+
+  def malformed_main_url?
+    value = changes["main_url"].to_s.strip
+    return false if value.blank?
+
+    uri = URI.parse(value)
+    !(uri.is_a?(URI::HTTP) && uri.host.present?)
+  rescue URI::InvalidURIError
+    true
   end
 
   def warnings

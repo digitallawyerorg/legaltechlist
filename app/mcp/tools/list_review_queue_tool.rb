@@ -9,13 +9,15 @@ module Mcp
         properties: {
           status: { type: "string", description: "Proposal status filter: pending, ready_for_review, needs_revision, approved_to_draft, published, rejected, or 'open' for the pending/ready/needs_revision group (default 'open')." },
           proposal_type: { type: "string", description: "Optional filter: atlas_candidate, discovery_candidate, user_contribution, user_suggestion." },
-          limit: { type: "integer", description: "Max results (1-50, default 20)." }
+          limit: { type: "integer", description: "Max results per page (1-50, default 20)." },
+          offset: { type: "integer", description: "Number of results to skip for paging through the full backlog (default 0). Use total to know how many pages remain." }
         },
         required: []
       )
 
-      def self.call(server_context:, status: "open", proposal_type: nil, limit: 20)
+      def self.call(server_context:, status: "open", proposal_type: nil, limit: 20, offset: 0)
         capped = [[limit.to_i, 1].max, 50].min
+        skipped = [offset.to_i, 0].max
         scope = CompanyProposal.recent
         scope = if status.to_s == "open" || status.blank?
           scope.pending_review
@@ -25,10 +27,16 @@ module Mcp
           return not_found("Unknown status '#{status}'. Use one of: open, #{CompanyProposal::STATUSES.join(', ')}")
         end
         scope = scope.where(proposal_type: proposal_type.to_s) if proposal_type.present?
-        proposals = scope.limit(capped)
+        total = scope.count
+        proposals = scope.offset(skipped).limit(capped)
 
         json_response(
           "status" => status,
+          "total" => total,
+          "offset" => skipped,
+          "limit" => capped,
+          "returned" => proposals.size,
+          "has_more" => (skipped + proposals.size) < total,
           "count" => proposals.size,
           "proposals" => proposals.map do |proposal|
             cached = proposal.cached_quality_report || {}
