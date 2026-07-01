@@ -3,7 +3,7 @@
 - default_dimension = local_assigns.fetch(:default_dimension, "category")
 - heatmap_id = local_assigns.fetch(:heatmap_id, "stats-coverage-heatmap")
 - heading_tag = local_assigns.fetch(:heading_tag, "h2")
-- legend_ratios = [0.14, 0.32, 0.52, 0.74, 1.0]
+- legend_ratios = [0.0, 0.25, 0.5, 0.75, 1.0]
 .stats-chart-card.stats-coverage-heatmap data-coverage-heatmap=heatmap_id
     .stats-chart-header
         .stats-chart-header-row
@@ -12,8 +12,11 @@
                     h1.stats-chart-title Data Coverage
                 - else
                     h2.stats-chart-title Data Coverage
-                p.stats-chart-subtitle Cross-referencing the index to surface where coverage is thin. Darker cells hold more companies; hatched cells are gaps where no companies are recorded yet.
+                p.stats-chart-subtitle Cross-referencing the index to surface where coverage is thin. Each cell shows a row's share across the columns (percent of that row), so green marks where a dimension concentrates and red where it thins out. Hatched cells are gaps with no companies recorded yet.
             .stats-chart-controls
+                .stats-segment-control role="group" aria-label="Data coverage value mode"
+                    button.stats-segment.is-active type="button" data-coverage-heatmap-mode=heatmap_id data-coverage-mode-value="percent" aria-current="page" Percent
+                    button.stats-segment type="button" data-coverage-heatmap-mode=heatmap_id data-coverage-mode-value="count" Count
                 label.stats-coverage-heatmap-label for="#{heatmap_id}-select" Break down by
                 select.stats-dimension-select id="#{heatmap_id}-select" data-coverage-heatmap-select=heatmap_id
                     - dimensions.each do |dimension|
@@ -33,22 +36,26 @@
                                 .stats-coverage-colhead title=column
                                     span.stats-coverage-colhead-label= column
                             .stats-coverage-colhead.stats-coverage-total-head
-                                span.stats-coverage-colhead-label Total
+                                span.stats-coverage-colhead-label Total (n)
                             - grid[:rows].each do |row|
-                                .stats-coverage-rowhead title=row[:label]
-                                    = row[:label]
-                                - row[:cells].each_with_index do |value, index|
-                                    - cell = coverage_heatmap_cell_presentation(value, grid[:max])
-                                    div.stats-coverage-cell class=(cell[:gap] ? "is-gap" : nil) style=(cell[:gap] ? nil : "background: #{cell[:background]}; color: #{cell[:text_color]};") title="#{row[:label]} \u00b7 #{grid[:columns][index]}: #{value}"
-                                        span.stats-coverage-cell-value= value
-                                .stats-coverage-cell.stats-coverage-total-cell title="#{row[:label]} total: #{row[:total]}"
-                                    span.stats-coverage-cell-value= row[:total]
+                                - display = coverage_heatmap_row_display(row, grid[:max])
+                                .stats-coverage-rowhead title=display[:label]
+                                    = display[:label]
+                                - display[:cells].each_with_index do |cell, index|
+                                    - if cell[:gap]
+                                        div.stats-coverage-cell.is-gap data-count-label="0" data-percent-label="0%" title="#{display[:label]} \u00b7 #{grid[:columns][index]}: no companies (data gap)"
+                                            span.stats-coverage-cell-value 0%
+                                    - else
+                                        div.stats-coverage-cell data-count-bg=cell[:count_background] data-count-fg=cell[:count_text_color] data-percent-bg=cell[:percent_background] data-percent-fg=cell[:percent_text_color] data-count-label=cell[:count] data-percent-label=cell[:percent_label] style="background: #{cell[:percent_background]}; color: #{cell[:percent_text_color]};" title="#{display[:label]} \u00b7 #{grid[:columns][index]}: #{cell[:count]} companies (#{cell[:percent_label]} of row)"
+                                            span.stats-coverage-cell-value= cell[:percent_label]
+                                .stats-coverage-cell.stats-coverage-total-cell title="#{display[:label]} total: #{display[:total]} companies"
+                                    span.stats-coverage-cell-value= display[:total]
                     .stats-coverage-legend
-                        span.stats-coverage-legend-label Fewer
+                        span.stats-coverage-legend-label Sparse
                         .stats-coverage-legend-scale
                             - legend_ratios.each do |ratio|
                                 span.stats-coverage-legend-swatch style="background: #{coverage_heatmap_scale_color(ratio)}"
-                        span.stats-coverage-legend-label More
+                        span.stats-coverage-legend-label Well covered
                         span.stats-coverage-legend-gap
                             span.stats-coverage-legend-gap-swatch
                             span No companies (data gap)
@@ -56,26 +63,57 @@
                     p.stats-coverage-empty No data available for this breakdown yet.
 javascript:
     (function() {
+        function applyCoverageMode(card, mode) {
+            let cells = card.querySelectorAll(".stats-coverage-cell:not(.stats-coverage-total-cell)");
+            cells.forEach(function(cell) {
+                let valueEl = cell.querySelector(".stats-coverage-cell-value");
+                let isGap = cell.classList.contains("is-gap");
+                if (mode === "count") {
+                    if (valueEl) valueEl.textContent = cell.getAttribute("data-count-label") || "";
+                    if (!isGap) {
+                        cell.style.background = cell.getAttribute("data-count-bg") || "";
+                        cell.style.color = cell.getAttribute("data-count-fg") || "";
+                    }
+                } else {
+                    if (valueEl) valueEl.textContent = cell.getAttribute("data-percent-label") || "";
+                    if (!isGap) {
+                        cell.style.background = cell.getAttribute("data-percent-bg") || "";
+                        cell.style.color = cell.getAttribute("data-percent-fg") || "";
+                    }
+                }
+            });
+        }
+
         function bindCoverageHeatmaps() {
-            document.querySelectorAll("[data-coverage-heatmap-select]").forEach(function(select) {
-                if (select.dataset.coverageBound === "true") return;
-                select.dataset.coverageBound = "true";
+            document.querySelectorAll("[data-coverage-heatmap]").forEach(function(card) {
+                if (card.dataset.coverageBound === "true") return;
+                card.dataset.coverageBound = "true";
 
-                let target = select.getAttribute("data-coverage-heatmap-select");
-                let card = document.querySelector('[data-coverage-heatmap="' + target + '"]');
-                if (!card) return;
-
-                function showPanel(key) {
-                    card.querySelectorAll("[data-coverage-panel]").forEach(function(panel) {
-                        panel.hidden = panel.getAttribute("data-coverage-panel") !== key;
+                let select = card.querySelector("[data-coverage-heatmap-select]");
+                if (select) {
+                    select.addEventListener("change", function() {
+                        card.querySelectorAll("[data-coverage-panel]").forEach(function(panel) {
+                            panel.hidden = panel.getAttribute("data-coverage-panel") !== select.value;
+                        });
                     });
                 }
 
-                select.addEventListener("change", function() {
-                    showPanel(select.value);
+                let modeButtons = card.querySelectorAll("[data-coverage-heatmap-mode]");
+                modeButtons.forEach(function(button) {
+                    button.addEventListener("click", function() {
+                        let mode = button.getAttribute("data-coverage-mode-value");
+                        modeButtons.forEach(function(other) {
+                            let active = other === button;
+                            other.classList.toggle("is-active", active);
+                            if (active) {
+                                other.setAttribute("aria-current", "page");
+                            } else {
+                                other.removeAttribute("aria-current");
+                            }
+                        });
+                        applyCoverageMode(card, mode);
+                    });
                 });
-
-                showPanel(select.value);
             });
         }
 

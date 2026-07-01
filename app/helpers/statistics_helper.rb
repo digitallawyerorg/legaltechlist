@@ -50,8 +50,13 @@ module StatisticsHelper
   COVERAGE_HEATMAP_ROW_LIMIT = 10
   COVERAGE_HEATMAP_COLUMN_LIMIT = 8
   COVERAGE_HEATMAP_MIN_RATIO = 0.14
-  COVERAGE_HEATMAP_SCALE_START = [250, 241, 236].freeze
-  COVERAGE_HEATMAP_SCALE_END = [140, 21, 21].freeze
+
+  # ColorBrewer diverging RdYlGn (red -> yellow -> green). Low/sparse coverage
+  # reads red, mid amber, and well-covered cells green.
+  COVERAGE_HEATMAP_RAMP = [
+    [215, 48, 39], [244, 109, 67], [253, 174, 97], [254, 224, 139], [255, 255, 191],
+    [217, 239, 139], [166, 217, 106], [102, 189, 99], [26, 152, 80]
+  ].freeze
 
   STATS_CHART_PAGES = [
     { actions: %w[total_companies], title: "Total Companies", path: :statistics_total_companies_path },
@@ -616,28 +621,92 @@ module StatisticsHelper
     { primary_label: primary_label, secondary_label: secondary_label, columns: column_labels, rows: rows, max: max }
   end
 
-  def coverage_heatmap_scale_color(ratio)
+  def coverage_heatmap_ramp_rgb(ratio)
     ratio = ratio.to_f.clamp(0.0, 1.0)
-    rgb = COVERAGE_HEATMAP_SCALE_START.each_index.map do |index|
-      (COVERAGE_HEATMAP_SCALE_START[index] + (COVERAGE_HEATMAP_SCALE_END[index] - COVERAGE_HEATMAP_SCALE_START[index]) * ratio).round
-    end
-    "rgb(#{rgb.join(', ')})"
+    stops = COVERAGE_HEATMAP_RAMP
+    scaled = ratio * (stops.size - 1)
+    lower = scaled.floor
+    upper = [lower + 1, stops.size - 1].min
+    weight = scaled - lower
+    [0, 1, 2].map { |channel| (stops[lower][channel] + (stops[upper][channel] - stops[lower][channel]) * weight).round }
+  end
+
+  def coverage_heatmap_scale_color(ratio)
+    "rgb(#{coverage_heatmap_ramp_rgb(ratio).join(', ')})"
+  end
+
+  def coverage_heatmap_text_color(ratio)
+    red, green, blue = coverage_heatmap_ramp_rgb(ratio)
+    luminance = (0.2126 * red + 0.7152 * green + 0.0722 * blue) / 255.0
+    luminance > 0.62 ? "#2a2723" : "#ffffff"
+  end
+
+  def coverage_heatmap_count_ratio(count, max)
+    count = count.to_i
+    return 0.0 if count <= 0
+
+    max = 1 if max.to_i < 1
+    ratio = Math.sqrt(count.to_f / max.to_f)
+    ratio < COVERAGE_HEATMAP_MIN_RATIO ? COVERAGE_HEATMAP_MIN_RATIO : ratio
+  end
+
+  def coverage_heatmap_percent_ratio(percent, percent_max)
+    percent = percent.to_f
+    return 0.0 if percent <= 0
+
+    percent_max = percent.to_f if percent_max.to_f <= 0
+    (percent / percent_max.to_f).clamp(0.0, 1.0)
+  end
+
+  def coverage_heatmap_percent_label(count, percent)
+    return "0%" if count.to_i <= 0
+    return "<1%" if percent.to_f < 0.5
+
+    "#{percent.round}%"
   end
 
   def coverage_heatmap_cell_presentation(value, max)
     value = value.to_i
     return { value: value, gap: true, background: nil, text_color: nil, ratio: 0.0 } if value <= 0
 
-    max = 1 if max.to_i < 1
-    ratio = Math.sqrt(value.to_f / max.to_f)
-    ratio = COVERAGE_HEATMAP_MIN_RATIO if ratio < COVERAGE_HEATMAP_MIN_RATIO
+    ratio = coverage_heatmap_count_ratio(value, max)
 
     {
       value: value,
       gap: false,
       background: coverage_heatmap_scale_color(ratio),
-      text_color: ratio >= 0.55 ? "#ffffff" : "#2a2723",
+      text_color: coverage_heatmap_text_color(ratio),
       ratio: ratio.round(3)
+    }
+  end
+
+  def coverage_heatmap_row_display(row, count_max)
+    total = row[:total].to_i
+    percents = row[:cells].map { |count| total.positive? ? (count.to_f / total * 100) : 0.0 }
+    percent_max = percents.max.to_f
+
+    cells = row[:cells].each_with_index.map do |count, index|
+      coverage_heatmap_cell_display(count.to_i, count_max, percents[index], percent_max)
+    end
+
+    { label: row[:label], total: total, cells: cells }
+  end
+
+  def coverage_heatmap_cell_display(count, count_max, percent, percent_max)
+    count = count.to_i
+    gap = count <= 0
+    count_ratio = coverage_heatmap_count_ratio(count, count_max)
+    percent_ratio = coverage_heatmap_percent_ratio(percent, percent_max)
+
+    {
+      count: count,
+      percent: percent.round(1),
+      percent_label: coverage_heatmap_percent_label(count, percent),
+      gap: gap,
+      count_background: gap ? nil : coverage_heatmap_scale_color(count_ratio),
+      count_text_color: gap ? nil : coverage_heatmap_text_color(count_ratio),
+      percent_background: gap ? nil : coverage_heatmap_scale_color(percent_ratio),
+      percent_text_color: gap ? nil : coverage_heatmap_text_color(percent_ratio)
     }
   end
 

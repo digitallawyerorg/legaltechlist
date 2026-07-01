@@ -865,10 +865,10 @@ css:
     }
 
     .stats-coverage-cell.is-gap {
-        background-color: #f7f4ee;
-        background-image: repeating-linear-gradient(45deg, rgba(140, 21, 21, 0.14) 0, rgba(140, 21, 21, 0.14) 1px, transparent 1px, transparent 6px);
-        border: 1px dashed rgba(140, 21, 21, 0.35);
-        color: rgba(42, 39, 35, 0.3);
+        background-color: #f1f0ee;
+        background-image: repeating-linear-gradient(45deg, rgba(42, 39, 35, 0.16) 0, rgba(42, 39, 35, 0.16) 1px, transparent 1px, transparent 6px);
+        border: 1px dashed rgba(42, 39, 35, 0.32);
+        color: rgba(42, 39, 35, 0.38);
     }
 
     .stats-coverage-cell.is-gap .stats-coverage-cell-value {
@@ -916,9 +916,9 @@ css:
     }
 
     .stats-coverage-legend-gap-swatch {
-        background-color: #f7f4ee;
-        background-image: repeating-linear-gradient(45deg, rgba(140, 21, 21, 0.14) 0, rgba(140, 21, 21, 0.14) 1px, transparent 1px, transparent 6px);
-        border: 1px dashed rgba(140, 21, 21, 0.35);
+        background-color: #f1f0ee;
+        background-image: repeating-linear-gradient(45deg, rgba(42, 39, 35, 0.16) 0, rgba(42, 39, 35, 0.16) 1px, transparent 1px, transparent 6px);
+        border: 1px dashed rgba(42, 39, 35, 0.32);
         border-radius: 3px;
         display: inline-block;
         height: 0.9rem;
@@ -936,22 +936,21 @@ css:
     .stats-index-card-heatmap {
         display: grid;
         gap: 3px;
+        grid-auto-rows: 1.35rem;
         grid-template-columns: repeat(var(--coverage-preview-cols), minmax(0, 1fr));
-        padding-top: 0.35rem;
+        max-height: 88px;
         width: 100%;
     }
 
     .stats-index-card-heatmap-cell {
-        aspect-ratio: 1 / 1;
         background: #eef0f2;
         border-radius: 4px;
-        min-height: 16px;
     }
 
     .stats-index-card-heatmap-cell.is-gap {
-        background-color: #f7f4ee;
-        background-image: repeating-linear-gradient(45deg, rgba(140, 21, 21, 0.14) 0, rgba(140, 21, 21, 0.14) 1px, transparent 1px, transparent 6px);
-        border: 1px dashed rgba(140, 21, 21, 0.35);
+        background-color: #f1f0ee;
+        background-image: repeating-linear-gradient(45deg, rgba(42, 39, 35, 0.16) 0, rgba(42, 39, 35, 0.16) 1px, transparent 1px, transparent 6px);
+        border: 1px dashed rgba(42, 39, 35, 0.32);
     }
 
     @media (max-width: 767.98px) {

@@ -289,18 +289,50 @@ class StatisticsHelperTest < ActiveSupport::TestCase
     filled = helper.coverage_heatmap_cell_presentation(20, 20)
     assert_not filled[:gap]
     assert_match(/\Argb\(/, filled[:background])
+    assert_equal helper.coverage_heatmap_scale_color(1.0), filled[:background]
     assert_equal "#ffffff", filled[:text_color]
-
-    faint = helper.coverage_heatmap_cell_presentation(1, 200)
-    assert_equal "#2a2723", faint[:text_color]
   end
 
-  test "coverage_heatmap_scale_color interpolates and clamps ratio" do
+  test "coverage_heatmap_scale_color maps RdYlGn from red to green and clamps" do
     helper = Class.new { include StatisticsHelper }.new
 
-    assert_equal "rgb(250, 241, 236)", helper.coverage_heatmap_scale_color(0)
-    assert_equal "rgb(140, 21, 21)", helper.coverage_heatmap_scale_color(1.0)
-    assert_equal "rgb(140, 21, 21)", helper.coverage_heatmap_scale_color(2.5)
+    assert_equal "rgb(215, 48, 39)", helper.coverage_heatmap_scale_color(0)
+    assert_equal "rgb(255, 255, 191)", helper.coverage_heatmap_scale_color(0.5)
+    assert_equal "rgb(26, 152, 80)", helper.coverage_heatmap_scale_color(1.0)
+    assert_equal "rgb(26, 152, 80)", helper.coverage_heatmap_scale_color(2.5)
+  end
+
+  test "coverage_heatmap_text_color picks legible contrast across the ramp" do
+    helper = Class.new { include StatisticsHelper }.new
+
+    assert_equal "#ffffff", helper.coverage_heatmap_text_color(0.0)
+    assert_equal "#2a2723", helper.coverage_heatmap_text_color(0.5)
+    assert_equal "#ffffff", helper.coverage_heatmap_text_color(1.0)
+  end
+
+  test "coverage_heatmap_row_display computes row-wise percentages and dual colors" do
+    helper = Class.new { include StatisticsHelper }.new
+    row = { label: "Compliance", total: 20, cells: [10, 6, 4, 0] }
+
+    display = helper.coverage_heatmap_row_display(row, 10)
+
+    assert_equal 20, display[:total]
+    assert_equal [50.0, 30.0, 20.0, 0.0], display[:cells].map { |cell| cell[:percent] }
+    assert_equal ["50%", "30%", "20%", "0%"], display[:cells].map { |cell| cell[:percent_label] }
+    assert display[:cells].last[:gap]
+    assert_nil display[:cells].last[:percent_background]
+    assert_not display[:cells].first[:gap]
+    assert_match(/\Argb\(/, display[:cells].first[:percent_background])
+    assert_match(/\Argb\(/, display[:cells].first[:count_background])
+    assert_equal helper.coverage_heatmap_scale_color(1.0), display[:cells].first[:percent_background]
+  end
+
+  test "coverage_heatmap_percent_label formats sub-one and zero shares" do
+    helper = Class.new { include StatisticsHelper }.new
+
+    assert_equal "0%", helper.coverage_heatmap_percent_label(0, 0.0)
+    assert_equal "<1%", helper.coverage_heatmap_percent_label(1, 0.3)
+    assert_equal "34%", helper.coverage_heatmap_percent_label(12, 34.4)
   end
 
   test "stats_coverage_heatmap_preview returns a bounded grid" do
