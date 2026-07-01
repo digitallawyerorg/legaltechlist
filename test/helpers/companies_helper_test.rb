@@ -98,7 +98,7 @@ class CompaniesHelperTest < ActionView::TestCase
     reference = company_legaltech_atlas_reference(company)
     assert_equal "LegalTech Atlas", reference[:label]
     assert_equal "https://legaltechatlas.com/companies/clio", reference[:url]
-    assert_equal reference[:url], reference[:host]
+    assert_equal "legaltechatlas.com/companies/clio", reference[:host]
   end
 
   test "company_google_search_reference builds a google search url for the company name" do
@@ -109,7 +109,7 @@ class CompaniesHelperTest < ActionView::TestCase
 
     assert_equal "Google", reference[:label]
     assert_equal "https://www.google.com/search?q=can+you+tell+me+more+about+Legal.io", reference[:url]
-    assert_equal reference[:url], reference[:host]
+    assert_equal "google.com", reference[:host]
   end
 
   test "company_reddit_search_reference builds a reddit search url for the company name" do
@@ -120,13 +120,18 @@ class CompaniesHelperTest < ActionView::TestCase
 
     assert_equal "Reddit", reference[:label]
     assert_equal "https://www.reddit.com/search/?q=%22Legal.io%22", reference[:url]
-    assert_equal reference[:url], reference[:host]
+    assert_equal "reddit.com", reference[:host]
   end
 
-  test "company_reference_url_display returns a normalized full url" do
-    assert_equal "https://legal.io/about", company_reference_url_display("https://legal.io/about")
-    assert_equal "https://legal.io", company_reference_url_display("legal.io")
-    assert_nil company_reference_url_display("")
+  test "company_reference_url_label returns a schemeless url for display" do
+    assert_equal "legal.io/about", company_reference_url_label("https://legal.io/about")
+    assert_equal "legal.io", company_reference_url_label("legal.io")
+    assert_nil company_reference_url_label("")
+  end
+
+  test "company_reference_link_url normalizes urls used in reference links" do
+    assert_equal "https://legal.io", company_reference_link_url("legal.io")
+    assert_equal "https://legal.io/about", company_reference_link_url("https://legal.io/about")
   end
 
   test "company_citation_entries returns bluebook apa and bibtex formats" do
