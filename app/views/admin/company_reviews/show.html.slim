@@ -82,19 +82,23 @@
             .card-header.bg-white
                 h2.h5.mb-0 Links
             .card-body
-                dl.row.mb-0
-                    dt.col-sm-3 Twitter
-                    dd.col-sm-9= link_value.call(@company.twitter_url)
-                    dt.col-sm-3 Crunchbase
-                    dd.col-sm-9= link_value.call(@company.crunchbase_url)
-                    dt.col-sm-3 LinkedIn
-                    dd.col-sm-9= link_value.call(@company.linkedin_url)
+                h3.h6 Company references
+                dl.row.mb-3
                     dt.col-sm-3 Facebook
                     dd.col-sm-9= link_value.call(@company.facebook_url)
+                    dt.col-sm-3 LinkedIn
+                    dd.col-sm-9= link_value.call(@company.linkedin_url)
+                    dt.col-sm-3 Twitter
+                    dd.col-sm-9= link_value.call(@company.twitter_url)
+                h3.h6 External references
+                dl.row.mb-3
+                    dt.col-sm-3 Crunchbase
+                    dd.col-sm-9= link_value.call(@company.crunchbase_url)
                     dt.col-sm-3 Legal.io
                     dd.col-sm-9= link_value.call(@company.legalio_url)
                     dt.col-sm-3 LegalTech Atlas
                     dd.col-sm-9= link_value.call(@company.legaltech_atlas_url)
+                dl.row.mb-0
                     dt.col-sm-3 Logo URL
                     dd.col-sm-9= link_value.call(@company.logo_url)
 
@@ -141,23 +145,39 @@
     .col-lg-4
         .card.border-0.shadow-sm.mb-3
             .card-header.bg-white
-                h2.h5.mb-0 Duplicate Signals
-            .card-body
-                h3.h6 Canonical domain matches
-                - if @duplicate_domain_companies.any?
-                    ul.mb-3
-                        - @duplicate_domain_companies.each do |company|
-                            li= link_to company.name, custom_admin_company_review_path(company)
-                - else
-                    p.text-muted.mb-3 No other companies share this canonical domain.
-
-                h3.h6 Normalized name matches
-                - if @duplicate_name_companies.any?
-                    ul.mb-0
-                        - @duplicate_name_companies.each do |company|
-                            li= link_to company.name, custom_admin_company_review_path(company)
-                - else
-                    p.text-muted.mb-0 No other companies share this normalized name.
+                h2.h5.mb-0 Duplicate Check
+            .card-body.py-2
+                .list-group.list-group-flush
+                    .list-group-item.px-0.border-0.d-flex.align-items-center.gap-2.py-2
+                        - if @duplicate_domain_companies.any?
+                            i.fas.fa-exclamation-triangle.text-warning aria-hidden="true"
+                            span
+                                span.fw-semibold Canonical domain
+                                span.text-muted.ms-1 —
+                                - @duplicate_domain_companies.each_with_index do |company, index|
+                                    - if index.positive?
+                                        | , 
+                                    = link_to company.name, custom_admin_company_review_path(company)
+                        - else
+                            i.fas.fa-check-circle.text-success aria-hidden="true"
+                            span
+                                span.fw-semibold Canonical domain
+                                span.text-muted.ms-1 — No duplicates
+                    .list-group-item.px-0.border-0.d-flex.align-items-center.gap-2.py-2
+                        - if @duplicate_name_companies.any?
+                            i.fas.fa-exclamation-triangle.text-warning aria-hidden="true"
+                            span
+                                span.fw-semibold Normalized name
+                                span.text-muted.ms-1 —
+                                - @duplicate_name_companies.each_with_index do |company, index|
+                                    - if index.positive?
+                                        | , 
+                                    = link_to company.name, custom_admin_company_review_path(company)
+                        - else
+                            i.fas.fa-check-circle.text-success aria-hidden="true"
+                            span
+                                span.fw-semibold Normalized name
+                                span.text-muted.ms-1 — No duplicates
 
         .card.border-0.shadow-sm.mb-3
             .card-header.bg-white

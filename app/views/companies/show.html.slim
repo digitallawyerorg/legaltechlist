@@ -622,9 +622,9 @@ css:
 - key_facts = [{ label: "Status", icon: "fa-solid fa-circle-check", value: status_label }, { label: "Founded", icon: "fa-regular fa-calendar", value: founded_display }, { label: "Headquarters", icon: "fa-solid fa-location-dot", value: headquarters_display }, { label: "Target market", icon: "fa-solid fa-bullseye", value: target_market_display }, { label: "Revenue model", icon: "fa-solid fa-coins", value: revenue_model_display }, { label: "Total funding", icon: "fa-solid fa-dollar-sign", value: funding_display.presence || "-" }]
 - key_facts << { label: "Exit", icon: "fa-solid fa-flag-checkered", value: exit_display } if exit_display.present?
 - company_reference_links = []
+- company_reference_links << { label: "Website", icon: "fa-solid fa-globe", icon_color: "#2563eb", url: website_url, host: short_host_for.call(website_url) } if website_url.present?
 - company_reference_links << { label: "Facebook", icon: "fa-brands fa-facebook", icon_color: "#1877f2", url: @company.facebook_url, host: short_host_for.call(@company.facebook_url) } if @company.facebook_url.present? && @company.facebook_url != "n/a"
 - company_reference_links << { label: "LinkedIn", icon: "fa-brands fa-linkedin", icon_color: "#0a66c2", url: @company.linkedin_url, host: short_host_for.call(@company.linkedin_url) } if @company.linkedin_url.present? && @company.linkedin_url != "n/a"
-- company_reference_links << { label: "Website", icon: "fa-solid fa-globe", icon_color: "#2563eb", url: website_url, host: short_host_for.call(website_url) } if website_url.present?
 - company_reference_links << { label: "X/Twitter", icon: "fa-brands fa-x-twitter", icon_color: "#111827", url: twitter_url, host: short_host_for.call(twitter_url) } if twitter_url.present?
 - external_reference_links = []
 - external_reference_links << { label: "Crunchbase", icon: "fa-solid fa-chart-line", icon_color: "#047857", url: @company.crunchbase_url, host: short_host_for.call(@company.crunchbase_url) } if @company.crunchbase_url.present? && @company.crunchbase_url != "n/a"
