@@ -64,6 +64,55 @@ class CompanyDiscoverySearchServiceTest < ActiveSupport::TestCase
     assert_match(/headquartered in Germany/, result["query"])
   end
 
+  test "captures controlled-vocab taxonomy and a cited founding-year source" do
+    client = lambda do |_prompt|
+      {
+        content: {
+          "companies" => [
+            {
+              "name" => "Taxo Legal Co",
+              "website" => "https://taxo-legal.example",
+              "location" => "Paris, France",
+              "founded_date" => "2019",
+              "description" => "Contract lifecycle management for law firms.",
+              "why_discovered" => "matches",
+              "category" => "Contract Management",
+              "business_models" => ["Subscription"],
+              "target_clients" => ["Law Firms"],
+              "founded_year_source" => "https://linkedin.example/company/taxo"
+            }
+          ]
+        }.to_json,
+        search_urls: ["https://taxo-legal.example/about", "https://linkedin.example/company/taxo"],
+        raw_search_call_count: 1
+      }
+    end
+
+    result = CompanyDiscoverySearchService.call(discovery_type: "category", context: { category: "Contract Management" }, exclusion_list: { "names" => [], "domains" => [] }, limit: 5, search_client: client)
+    company = result["companies"].first
+    assert_equal "Contract Management", company["category_name"]
+    assert_equal ["Subscription"], company["business_model_names"]
+    assert_equal ["Law Firms"], company["target_client_names"]
+    assert_equal "https://linkedin.example/company/taxo", company["founded_year_source"]
+  end
+
+  test "drops an uncited founding-year source" do
+    client = lambda do |_prompt|
+      {
+        content: {
+          "companies" => [
+            { "name" => "NoCite Co", "website" => "https://nocite.example", "description" => "Legal research tools.", "founded_date" => "2015", "category" => "Knowledge & Research", "founded_year_source" => "https://random.example/made-up" }
+          ]
+        }.to_json,
+        search_urls: ["https://nocite.example/about"],
+        raw_search_call_count: 1
+      }
+    end
+
+    result = CompanyDiscoverySearchService.call(discovery_type: "category", context: { category: "Knowledge & Research" }, exclusion_list: { "names" => [], "domains" => [] }, limit: 5, search_client: client)
+    assert_nil result["companies"].first["founded_year_source"]
+  end
+
   test "retries once when search returns zero companies" do
     calls = 0
     retry_client = lambda do |_prompt|

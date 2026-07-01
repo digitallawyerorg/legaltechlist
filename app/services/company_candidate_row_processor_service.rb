@@ -69,18 +69,72 @@ class CompanyCandidateRowProcessorService
 
   def upsert_proposal
     proposal = CompanyProposal.find_or_initialize_by(source: source, source_identifier: source_identifier)
-    proposal.assign_attributes(
+    base_final = proposal.final_changes.presence || proposed_changes
+    attrs = {
       status: proposal.company_id.present? ? proposal.status : "pending",
       proposal_type: proposal_type,
       admin_user: admin_user,
       source_payload: source_payload,
       proposed_changes: proposed_changes,
-      final_changes: proposal.final_changes.presence || proposed_changes,
+      final_changes: base_final,
       duplicate_signals: duplicate_signals,
       reviewer_notes: reviewer_notes
-    )
+    }
+
+    # 6a: when the discovery search already classified the candidate and cited a
+    # founding year, pre-fill the taxonomy and citation at creation time so the
+    # proposal arrives classified — no separate enrich round-trip and no
+    # "low-confidence taxonomy" hold for confident items.
+    if prefill_discovery_taxonomy?(proposal)
+      tax = discovery_taxonomy_prefill
+      attrs[:final_changes] = base_final.merge(tax["final_changes"]) if tax["final_changes"].present?
+      attrs[:agent_details] = (proposal.agent_details || {}).merge(tax["agent_details"]) if tax["agent_details"].present?
+    end
+
+    proposal.assign_attributes(attrs)
     proposal.save!
     proposal
+  end
+
+  def prefill_discovery_taxonomy?(proposal)
+    proposal_type == "discovery_candidate" &&
+      proposal.company_id.blank? &&
+      proposal.agent_details["taxonomy_suggestion"].blank? &&
+      candidate["category_name"].present?
+  end
+
+  def discovery_taxonomy_prefill
+    category = Category.find_by(name: candidate["category_name"])
+    business_models = Array(candidate["business_model_names"]).filter_map { |name| BusinessModel.find_by(name: name) }.uniq
+    target_clients = Array(candidate["target_client_names"]).filter_map { |name| TargetClient.find_by(name: name) }.uniq
+
+    final_changes = {
+      "category_id" => category&.id,
+      "business_model_id" => business_models.first&.id,
+      "business_model_ids" => business_models.map(&:id).presence,
+      "target_client_id" => target_clients.first&.id,
+      "target_client_ids" => target_clients.map(&:id).presence
+    }.compact
+
+    suggestion = {
+      "category" => { "id" => category&.id, "name" => category&.name, "accepted" => category.present? },
+      "revenue_models" => { "ids" => business_models.map(&:id), "names" => business_models.map(&:name), "accepted" => business_models.any? },
+      "target_clients" => { "ids" => target_clients.map(&:id), "names" => target_clients.map(&:name), "accepted" => target_clients.any? },
+      "mode" => "discovery_search",
+      "accepted" => category.present? && business_models.any? && target_clients.any?
+    }
+
+    agent_details = { "taxonomy_suggestion" => suggestion }
+    agent_details["founded_date_source"] = discovery_founded_source if discovery_founded_source
+
+    { "final_changes" => final_changes, "agent_details" => agent_details }
+  end
+
+  def discovery_founded_source
+    url = candidate["founded_year_source"].to_s.strip
+    return nil if url.blank? || proposed_changes["founded_date"].blank?
+
+    { "source_url" => url, "mode" => "discovery_search_cited" }
   end
 
   def source_payload

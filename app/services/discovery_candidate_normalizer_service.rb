@@ -47,7 +47,11 @@ class DiscoveryCandidateNormalizerService
       "discovery_query" => discovery_hash["discovery_query"],
       "funding_round_year" => discovery_hash["funding_round_year"],
       "funding_round_type" => discovery_hash["funding_round_type"],
-      "funding_amount_hint" => discovery_hash["funding_amount_hint"]
+      "funding_amount_hint" => discovery_hash["funding_amount_hint"],
+      "category_name" => discovery_hash["category_name"],
+      "business_model_names" => discovery_hash["business_model_names"].presence,
+      "target_client_names" => discovery_hash["target_client_names"].presence,
+      "founded_year_source" => discovery_hash["founded_year_source"]
     }.compact
   end
 end

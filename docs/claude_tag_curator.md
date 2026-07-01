@@ -104,6 +104,15 @@ discipline, and the approval rules below.
   later pass. Because the curator (Claude) has its own web browsing, prefer researching
   and writing fields via `update_proposal` (synchronous); use `enrich_proposal` for
   server-side web-grounded enrichment.
+- Discovery-time classification (6a): the `discover_companies` web-search pass now also
+  classifies each candidate using the controlled vocabulary and captures a founding year with
+  its citing URL. At proposal creation the mapped taxonomy is written to `final_changes`
+  (`category_id`, `business_model_id(s)`, `target_client_id(s)`) and recorded as an accepted
+  `agent_details.taxonomy_suggestion` (mode `discovery_search`) when fully mapped, and a cited
+  year is stored in `agent_details.founded_date_source`. This removes the separate enrich
+  round-trip and the "low-confidence taxonomy" hold for confident items. It never overwrites an
+  existing taxonomy suggestion or a proposal that already has a company, and a founding-year
+  source is kept only if its URL was actually seen in search (uncited sources are dropped).
 - Sourced founding year: server-side enrichment fills `founded_date` only when the model
   returns a plausible 4-digit year (>= 1970, <= current year) whose citing source host is
   among the gathered evidence (web-research results or the company's own/crunchbase/

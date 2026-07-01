@@ -155,6 +155,13 @@ class CompanyDiscoverySearchService
       Only include companies whose official website appears in search results.
       Do not invent URLs, funding figures, or company details.
 
+      For each company also classify it using ONLY the controlled vocabulary below,
+      and capture a founding year only if a source documents it:
+      #{allowed_taxonomy_guidance}
+      For founded_year_source, give the exact URL from search results that documents the
+      founding year (e.g. the company's LinkedIn/Crunchbase "Founded" field or an official
+      registry); use null if no source documents it. Never guess a founding year.
+
       Return JSON only with this shape:
       #{json_output_schema}
     PROMPT
@@ -178,6 +185,15 @@ class CompanyDiscoverySearchService
     end
   end
 
+  def taxonomy_schema_fields
+    <<~FIELDS.strip
+      "category": "One primary category, EXACTLY from allowed_categories, or null",
+            "business_models": ["1-2 revenue models EXACTLY from allowed_business_models"],
+            "target_clients": ["1-2 client types EXACTLY from allowed_target_clients"],
+            "founded_year_source": "URL from search results documenting the founding year, or null"
+    FIELDS
+  end
+
   def json_output_schema
     base_fields = <<~FIELDS.strip
       "name": "Company Name",
@@ -185,7 +201,8 @@ class CompanyDiscoverySearchService
             "location": "City, Country",
             "founded_date": "2018",
             "description": "One neutral sentence on what the company does for legal workflows.",
-            "why_discovered": "Short reason this company matches the discovery task."
+            "why_discovered": "Short reason this company matches the discovery task.",
+            #{taxonomy_schema_fields}
     FIELDS
 
     funding_fields = <<~FIELDS.strip
@@ -197,7 +214,8 @@ class CompanyDiscoverySearchService
             "why_discovered": "Short reason this company matches the discovery task.",
             "funding_round_year": "2024",
             "funding_round_type": "Series A",
-            "funding_amount_hint": "Optional amount or range if documented in search results."
+            "funding_amount_hint": "Optional amount or range if documented in search results.",
+            #{taxonomy_schema_fields}
     FIELDS
 
     fields = discovery_type == "funding_year" ? funding_fields : base_fields
@@ -211,6 +229,14 @@ class CompanyDiscoverySearchService
         ]
       }
     SCHEMA
+  end
+
+  def allowed_taxonomy_guidance
+    <<~GUIDANCE.strip
+      allowed_categories: #{Category.order(:name).pluck(:name).join(', ')}
+      allowed_business_models: #{MethodologyHelper::REVENUE_MODEL_NAMES.join(', ')}
+      allowed_target_clients: #{TaxonomyNormalizationService::CANONICAL_TARGET_CLIENTS.join(', ')}
+    GUIDANCE
   end
 
   def formatted_exclusion_list
@@ -242,10 +268,34 @@ class CompanyDiscoverySearchService
       "why_discovered" => company["why_discovered"].to_s.squish.presence,
       "discovery_type" => discovery_type,
       "discovery_query" => search_query,
-      "website_verified" => verified_website?(website, search_urls)
+      "website_verified" => verified_website?(website, search_urls),
+      "category_name" => company["category"].to_s.strip.presence,
+      "business_model_names" => clean_name_list(company["business_models"]),
+      "target_client_names" => clean_name_list(company["target_clients"]),
+      "founded_year_source" => cited_source_url(company["founded_year_source"], search_urls)
     }
     payload.merge!(funding_hint_payload(company)) if discovery_type == "funding_year"
     payload.compact
+  end
+
+  def clean_name_list(value)
+    Array(value).map { |name| name.to_s.strip }.reject(&:blank?).uniq
+  end
+
+  # Keep a founding-year source only if it is one of the URLs the model actually
+  # saw in search (anti-hallucination guard, mirroring website verification).
+  def cited_source_url(url, search_urls)
+    cleaned = clean_url(url)
+    return nil if cleaned.blank?
+
+    domain = Company.canonical_domain_for(cleaned)
+    return nil if domain.blank?
+
+    cited = search_urls.any? do |candidate|
+      candidate_domain = Company.canonical_domain_for(candidate)
+      candidate_domain.present? && (candidate_domain == domain || candidate_domain.end_with?(".#{domain}") || domain.end_with?(".#{candidate_domain}"))
+    end
+    cited ? cleaned : nil
   end
 
   def extract_search_urls(citations, search_calls)
