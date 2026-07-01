@@ -3,13 +3,37 @@
 - field_value = ->(value) { value.present? ? value : blank_value }
 - link_value = ->(value) { value.present? ? link_to(value, value, target: "_blank", rel: "noopener") : blank_value }
 - date_value = ->(value) { value.present? ? value : blank_value }
+- compact_date = ->(value) { value.present? ? value.to_date.to_fs(:long) : blank_value }
 - currency_value = ->(value) { value.present? ? number_to_currency(value, precision: 0) : blank_value }
+- status_label = @company.status.present? ? @company.status.titleize : blank_value
+- founded_display = (@company.founded_date.present? && @company.founded_date != "0000") ? @company.founded_date : blank_value
+- headquarters_display = (@company.display_location.present? && @company.display_location != "Nowhere") ? company_display_location(@company) : blank_value
+- target_market_names = (@company.target_clients.any? ? @company.target_clients : Array(@company.target_client).compact).map(&:name).uniq.reject { |name| name.blank? || name == "Unknown" }
+- target_market_display = target_market_names.any? ? target_market_names.to_sentence : blank_value
+- revenue_model_names = @company.revenue_model_names.reject { |name| name.blank? || name == "Unknown" }
+- revenue_model_display = revenue_model_names.any? ? revenue_model_names.to_sentence : blank_value
+- funding_amount = @company.total_funding_amount_usd.to_f
+- funding_display = (if funding_amount >= 1_000_000_000 then "$#{(funding_amount / 1_000_000_000).round(1).to_s.sub(/\.0$/, '')}B" elsif funding_amount >= 1_000_000 then "$#{(funding_amount / 1_000_000).round}M" elsif funding_amount.positive? then number_to_currency(funding_amount, precision: 0) else blank_value end)
+- exit_display = @company.exit_date.present? ? @company.exit_date.strftime("%B %Y") : nil
+- key_facts = [{ label: "Status", icon: "fa-solid fa-circle-check", value: status_label }, { label: "Founded", icon: "fa-regular fa-calendar", value: founded_display }, { label: "Headquarters", icon: "fa-solid fa-location-dot", value: headquarters_display }, { label: "Target market", icon: "fa-solid fa-bullseye", value: target_market_display }, { label: "Revenue model", icon: "fa-solid fa-coins", value: revenue_model_display }, { label: "Total funding", icon: "fa-solid fa-dollar-sign", value: funding_display }]
+- key_facts << { label: "Exit", icon: "fa-solid fa-flag-checkered", value: exit_display } if exit_display.present?
 
 .d-flex.flex-wrap.justify-content-between.align-items-start.gap-3.mb-4
-    div
-        h1.h3.mb-0= @company.name
-        span.admin-status-pill.d-inline-block.mt-2 class=@company.review_state_badge_class
-            = @company.review_state_label
+    .admin-company-review-hero-main
+        - if @company.logo_placeholder?
+            .admin-company-review-logo-frame
+                .admin-company-review-logo-placeholder= @company.name.to_s.first
+        - else
+            = image_tag @company.logo, alt: "#{@company.name} logo", class: "admin-company-review-logo"
+        .admin-company-review-heading
+            h1.h3.mb-1= @company.name
+            span.admin-status-pill class=@company.review_state_badge_class
+                = @company.review_state_label
+            - if @company.main_url.present?
+                .mt-1
+                    = link_to @company.main_url, class: "admin-company-review-website", target: "_blank", rel: "noopener" do
+                        = website_display_label(@company.main_url)
+                        i.fas.fa-arrow-up-right-from-square.ms-1.small aria-hidden="true"
     .admin-proposal-toolbar-primary
         = link_to edit_custom_admin_company_path(@company), class: "btn btn-outline-secondary" do
             i.fas.fa-pen.me-1
@@ -44,39 +68,46 @@
     .col-lg-8
         .card.border-0.shadow-sm.mb-3
             .card-header.bg-white
-                h2.h5.mb-0 Core Data
+                h2.h5.mb-0 About
             .card-body
                 dl.row.mb-0
-                    dt.col-sm-3 Name
-                    dd.col-sm-9= field_value.call(@company.name)
-                    dt.col-sm-3 Website
-                    dd.col-sm-9= link_value.call(@company.main_url)
-                    dt.col-sm-3 Location
-                    dd.col-sm-9= field_value.call(@company.location)
-                    dt.col-sm-3 Founded
-                    dd.col-sm-9= field_value.call(@company.founded_date)
-                    dt.col-sm-3 Status
-                    dd.col-sm-9= field_value.call(@company.status)
-                    dt.col-sm-3 Visible
-                    dd.col-sm-9= @company.visible? ? "Yes" : "No"
                     dt.col-sm-3 Description
                     dd.col-sm-9= field_value.call(@company.description)
                     dt.col-sm-3 Category
                     dd.col-sm-9= field_value.call(@company.category&.name)
                     dt.col-sm-3 Secondary category
                     dd.col-sm-9= field_value.call(@company.secondary_category&.name)
-                    dt.col-sm-3 Revenue models
-                    dd.col-sm-9= field_value.call(@company.revenue_models_label)
-                    dt.col-sm-3 Target clients
-                    dd.col-sm-9= field_value.call(@company.audience_names.join(", "))
+                    dt.col-sm-3 Tags
+                    dd.col-sm-9= @company.tags.any? ? @company.tags.map(&:name).join(", ") : blank_value
+
+        .card.border-0.shadow-sm.mb-3
+            .card-header.bg-white
+                h2.h5.mb-0 Key Facts
+            .card-body
+                .admin-key-facts-grid
+                    - key_facts.each do |fact|
+                        .admin-key-fact-card
+                            .admin-key-fact-icon
+                                i class="#{fact[:icon]}" aria-hidden="true"
+                            div
+                                .admin-key-fact-label= fact[:label]
+                                .admin-key-fact-value= fact[:value]
+
+        .card.border-0.shadow-sm.mb-3
+            .card-header.bg-white
+                h2.h5.mb-0 Admin Fields
+            .card-body
+                dl.row.mb-0
+                    dt.col-sm-3 Visible
+                    dd.col-sm-9= @company.visible? ? "Yes" : "No"
+                    dt.col-sm-3 Location
+                    dd.col-sm-9= field_value.call(@company.location)
                     dt.col-sm-3 Successor company
                     dd.col-sm-9
                         - if @company.successor_company
                             = link_to @company.successor_company.name, custom_admin_company_review_path(@company.successor_company)
                         - else
                             = blank_value
-                    dt.col-sm-3 Tags
-                    dd.col-sm-9= @company.tags.any? ? @company.tags.map(&:name).join(", ") : blank_value
 
         .card.border-0.shadow-sm.mb-3
             .card-header.bg-white
@@ -117,12 +148,8 @@
                     dd.col-sm-9= field_value.call(@company.headquarters_region)
                     dt.col-sm-3 Funding status
                     dd.col-sm-9= field_value.call(@company.funding_status)
-                    dt.col-sm-3 Total funding
-                    dd.col-sm-9= currency_value.call(@company.total_funding_amount_usd)
                     dt.col-sm-3 Funding rounds
                     dd.col-sm-9= field_value.call(@company.number_of_funding_rounds)
-                    dt.col-sm-3 Exit date
-                    dd.col-sm-9= date_value.call(@company.exit_date)
 
         .card.border-0.shadow-sm.mb-3
             .card-header.bg-white
@@ -182,41 +209,42 @@
         .card.border-0.shadow-sm.mb-3
             .card-header.bg-white
                 h2.h5.mb-0 Quality Metadata
-            .card-body
-                dl.mb-0
-                    dt.text-muted.small Status
-                    dd.fw-semibold= field_value.call(@company.quality_status)
-                    dt.text-muted.small Verdict
-                    dd.fw-semibold= field_value.call(@company.verification_verdict)
-                    dt.text-muted.small Score
-                    dd.fw-semibold= field_value.call(@company.quality_score)
-                    dt.text-muted.small Quality review JSON
-                    dd
-                        pre.bg-light.border.rounded.p-2.small.mb-2= JSON.pretty_generate(@company.quality_review || {})
-                    dt.text-muted.small Verified at
-                    dd.fw-semibold= date_value.call(@company.verified_at)
-                    dt.text-muted.small Enriched at
-                    dd.fw-semibold= date_value.call(@company.enriched_at)
-                    dt.text-muted.small Quality reviewed at
-                    dd.fw-semibold= date_value.call(@company.quality_reviewed_at)
-                    dt.text-muted.small Human reviewed at
-                    dd.fw-semibold= date_value.call(@company.human_reviewed_at)
+            .card-body.py-2
+                - quality_rows = [["Status", field_value.call(@company.quality_status)], ["Verdict", field_value.call(@company.verification_verdict)], ["Score", field_value.call(@company.quality_score)], ["Verified at", compact_date.call(@company.verified_at)], ["Enriched at", compact_date.call(@company.enriched_at)], ["Quality reviewed at", compact_date.call(@company.quality_reviewed_at)], ["Human reviewed at", compact_date.call(@company.human_reviewed_at)]]
+                .list-group.list-group-flush
+                    - quality_rows.each do |label, value|
+                        .list-group-item.px-0.border-0.py-2
+                            span
+                                span.fw-semibold= label
+                                span.text-muted.ms-1 —
+                                span= value
+                    - quality_review = @company.quality_review || {}
+                    .list-group-item.px-0.border-0.py-2
+                        - if quality_review.blank?
+                            span
+                                span.fw-semibold Quality review
+                                span.text-muted.ms-1 —
+                                span= blank_value
+                        - else
+                            details.admin-metadata-details
+                                summary.admin-metadata-summary
+                                    span.fw-semibold Quality review
+                                    span.text-muted.ms-1 —
+                                    span= "#{quality_review.size} #{'field'.pluralize(quality_review.size)}"
+                                pre.bg-light.border.rounded.p-2.small.mb-0.mt-2= JSON.pretty_generate(quality_review)
 
         .card.border-0.shadow-sm.mb-3
             .card-header.bg-white
                 h2.h5.mb-0 System Metadata
-            .card-body
-                dl.mb-0
-                    dt.text-muted.small ID
-                    dd.fw-semibold= @company.id
-                    dt.text-muted.small Canonical domain
-                    dd.fw-semibold= field_value.call(@company.canonical_domain.presence || @company.canonical_main_domain)
-                    dt.text-muted.small Fingerprint
-                    dd.fw-semibold.text-break= field_value.call(@company.fingerprint)
-                    dt.text-muted.small Created at
-                    dd.fw-semibold= date_value.call(@company.created_at)
-                    dt.text-muted.small Updated at
-                    dd.fw-semibold= date_value.call(@company.updated_at)
+            .card-body.py-2
+                - system_rows = [["ID", @company.id.to_s], ["Canonical domain", field_value.call(@company.canonical_domain.presence || @company.canonical_main_domain)], ["Fingerprint", field_value.call(@company.fingerprint)], ["Created at", compact_date.call(@company.created_at)], ["Updated at", compact_date.call(@company.updated_at)]]
+                .list-group.list-group-flush
+                    - system_rows.each do |label, value|
+                        .list-group-item.px-0.border-0.py-2
+                            span
+                                span.fw-semibold= label
+                                span.text-muted.ms-1 —
+                                span.text-break= value
 
         .card.border-0.shadow-sm
             .card-header.bg-white

@@ -101,7 +101,9 @@ class CustomAdminTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "h1", companies(:one).name
-    assert_select "h2", "Core Data"
+    assert_select "h2", "About"
+    assert_select "h2", "Key Facts"
+    assert_select "h2", "Admin Fields"
     assert_select "h2", "Links"
     assert_select "h2", "People And Funding"
     assert_select "h2", "Source And Events"

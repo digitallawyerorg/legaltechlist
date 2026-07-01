@@ -58,6 +58,22 @@ html
             | .admin-table .admin-primary-link:hover .fw-semibold { color: #0d6efd; text-decoration: underline; }
             | .admin-company-cell { align-items: center; display: flex; gap: 0.6rem; min-width: 0; }
             | .admin-company-logo { background: #fff; border: 1px solid #e2e8f0; border-radius: 0.45rem; flex: 0 0 auto; height: 2.25rem; object-fit: contain; padding: 0.18rem; width: 2.25rem; }
+            | .admin-company-review-hero-main { align-items: flex-start; display: flex; flex: 1; gap: 1rem; min-width: 0; }
+            | .admin-company-review-logo-frame { align-items: center; background: #fce8e8; border: 1px solid rgba(140, 21, 21, 0.12); border-radius: 0.75rem; display: flex; flex: 0 0 4rem; height: 4rem; justify-content: center; overflow: hidden; width: 4rem; }
+            | .admin-company-review-logo-placeholder { color: #8c1515; font-size: 1.5rem; font-weight: 700; }
+            | .admin-company-review-logo { background: #fff; border: 1px solid #e2e8f0; border-radius: 0.75rem; display: block; flex: 0 0 4rem; height: 4rem; object-fit: contain; padding: 0.35rem; width: 4rem; }
+            | .admin-company-review-heading { min-width: 0; }
+            | .admin-company-review-website { color: #64748b; font-size: 0.82rem; text-decoration: none; }
+            | .admin-company-review-website:hover { color: #0d6efd; }
+            | .admin-key-facts-grid { display: grid; gap: 0.75rem; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            | .admin-key-fact-card { align-items: flex-start; background: #f8fafc; border: 1px solid #edf2f7; border-radius: 0.65rem; display: flex; gap: 0.65rem; padding: 0.75rem; }
+            | .admin-key-fact-icon { align-items: center; background: #fff; border: 1px solid #e2e8f0; border-radius: 0.45rem; color: #64748b; display: flex; flex: 0 0 1.75rem; height: 1.75rem; justify-content: center; width: 1.75rem; }
+            | .admin-key-fact-label { color: #64748b; font-size: 0.68rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
+            | .admin-key-fact-value { color: #0f172a; font-size: 0.9rem; font-weight: 600; }
+            | @media (max-width: 767.98px) { .admin-key-facts-grid { grid-template-columns: 1fr; } }
+            | .admin-metadata-details { width: 100%; }
+            | .admin-metadata-summary { cursor: pointer; list-style: none; }
+            | .admin-metadata-summary::-webkit-details-marker { display: none; }
             | .admin-company-copy { min-width: 0; }
             | .admin-table .admin-cell-primary { color: #0f172a; font-weight: 500; }
             | .admin-table .admin-cell-secondary { color: #64748b; font-size: 0.72rem; }
