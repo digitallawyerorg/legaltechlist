@@ -7,7 +7,7 @@ require "timeout"
 # genuine sources. This is a year-specific search, unlike the general-purpose
 # CompanyProposalResearchService used to draft descriptions.
 class CompanyFoundedYearResearchService
-  DEFAULT_TIMEOUT_SECONDS = 60
+  DEFAULT_TIMEOUT_SECONDS = 180
 
   def self.call(**kwargs)
     new(**kwargs).call
@@ -101,6 +101,6 @@ class CompanyFoundedYearResearchService
   end
 
   def timeout_seconds
-    ENV.fetch("PROPOSAL_RESEARCH_TIMEOUT_SECONDS", DEFAULT_TIMEOUT_SECONDS.to_s).to_i
+    ENV.fetch("FOUNDED_YEAR_SEARCH_TIMEOUT_SECONDS", DEFAULT_TIMEOUT_SECONDS.to_s).to_i
   end
 end
