@@ -186,6 +186,18 @@ module CompaniesHelper
     { label: "LegalTech Atlas", icon: "fa-solid fa-map", icon_color: "#8c1515", url: url, host: "legaltechatlas.com" }
   end
 
+  def company_google_search_reference(company)
+    name = company.name.to_s.strip
+    query = CGI.escape("can you tell me more about #{name}")
+    { label: "Google", icon: "fa-brands fa-google", icon_color: "#4285f4", url: "https://www.google.com/search?q=#{query}", host: "google.com" }
+  end
+
+  def company_reddit_search_reference(company)
+    name = company.name.to_s.strip.gsub('"', "")
+    query = CGI.escape("\"#{name}\"")
+    { label: "Reddit", icon: "fa-brands fa-reddit", icon_color: "#ff450f", url: "https://www.reddit.com/search/?q=#{query}", host: "reddit.com" }
+  end
+
   def related_company_list(company)
     tag_ids = company.tags.map(&:id)
     return yield([]) if tag_ids.empty?
