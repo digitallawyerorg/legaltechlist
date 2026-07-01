@@ -87,6 +87,64 @@ module Mcp
       assert_not company.visible
     end
 
+    test "get_taxonomy returns the controlled vocabulary" do
+      result = call(Mcp::Tools::GetTaxonomyTool)
+      assert result["categories"].is_a?(Array)
+      assert result["tags"].is_a?(Array)
+      category_ids = result["categories"].map { |entry| entry["id"] }
+      assert_includes category_ids, categories(:one).id
+    end
+
+    test "update_proposal writes only allowlisted fields into final_changes" do
+      proposal = pending_proposal
+      result = call(Mcp::Tools::UpdateProposalTool, id: proposal.id, changes: { "description" => "Neutral legal-tech description.", "quality_status" => "verified" })
+      proposal.reload
+      assert_equal "Neutral legal-tech description.", proposal.final_changes["description"]
+      assert_not proposal.final_changes.key?("quality_status")
+      assert_includes result["updated_fields"], "description"
+    end
+
+    test "update_proposal rejects an empty change set" do
+      proposal = pending_proposal
+      response = Mcp::Tools::UpdateProposalTool.call(server_context: @context, id: proposal.id, changes: { "quality_status" => "verified" })
+      assert response.error?
+    end
+
+    test "propose_company_update queues a proposal without touching the live company" do
+      company = companies(:one)
+      original_name = company.name
+      assert_difference "CompanyProposal.count", 1 do
+        result = call(Mcp::Tools::ProposeCompanyUpdateTool, slug: company.slug, changes: { "location" => "New City, CA" }, rationale: "Company relocated per their site.")
+        assert_equal "ready_for_review", result["status"]
+      end
+      proposal = CompanyProposal.order(:created_at).last
+      assert_equal "user_suggestion", proposal.proposal_type
+      assert_equal company.id, proposal.company_id
+      assert_equal @curator, proposal.admin_user
+      assert_equal original_name, company.reload.name
+    end
+
+    test "approve_proposal applies an existing-company update only with human approval" do
+      company = companies(:one)
+      call(Mcp::Tools::ProposeCompanyUpdateTool, slug: company.slug, changes: { "location" => "Relocated City, CA" }, rationale: "Moved.")
+      proposal = CompanyProposal.order(:created_at).last
+
+      blocked = Mcp::Tools::ApproveProposalTool.call(server_context: @context, id: proposal.id)
+      assert blocked.error?
+      assert_not_equal "Relocated City, CA", company.reload.location
+
+      call(Mcp::Tools::ApproveProposalTool, id: proposal.id, human_approved: true)
+      assert_equal "Relocated City, CA", company.reload.location
+      assert_equal "published", proposal.reload.status
+    end
+
+    test "suggest_improvement records an audit run" do
+      assert_difference -> { PipelineRun.where(run_type: "curator_mcp").count }, 1 do
+        result = call(Mcp::Tools::SuggestImprovementTool, suggestion: "Add a bulk re-tagging tool.", area: "tooling")
+        assert result["recorded"]
+      end
+    end
+
     private
 
     def call(tool, **args)

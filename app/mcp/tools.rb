@@ -11,19 +11,24 @@ module Mcp
         ListReviewQueueTool,
         GetProposalTool,
         DuplicateCheckTool,
+        GetTaxonomyTool,
         # Discovery
         DiscoverCompaniesTool,
         # Proposal curation (tiered)
         EnrichProposalTool,
         AssessProposalTool,
+        UpdateProposalTool,
         CuratePendingTool,
         ApproveProposalTool,
         RejectProposalTool,
         # Maintenance of existing entries
         RunCompanyReviewTool,
+        ProposeCompanyUpdateTool,
         ApplySafeFieldsTool,
         MarkReviewTool,
-        SuggestTaxonomyTool
+        SuggestTaxonomyTool,
+        # Meta
+        SuggestImprovementTool
       ]
     end
   end

@@ -114,6 +114,18 @@ class SlackNotifier
     post_message(blocks: blocks, text: "Curator run: #{published.size} published, #{queued.size} awaiting review")
   end
 
+  def self.curator_improvement(text, area: nil)
+    return unless configured?
+
+    label = area.present? ? " (#{area})" : ""
+    blocks = [
+      header("Curator suggestion#{label}"),
+      section(":bulb: #{text}")
+    ]
+
+    post_message(blocks: blocks, text: "Curator suggestion: #{text.to_s.truncate(140)}")
+  end
+
   def self.header(text)
     { type: "header", text: { type: "plain_text", text: text.truncate(150), emoji: true } }
   end

@@ -23,6 +23,8 @@ module Mcp
         human_approved = ActiveModel::Type::Boolean.new.cast(human_approved)
         duplicate_override = ActiveModel::Type::Boolean.new.cast(duplicate_override)
 
+        return apply_existing_company_update(proposal, id: id, publish: publish, human_approved: human_approved) if proposal.user_suggestion?
+
         quality = CompanyProposalQualityService.call(proposal)
         gate_ok = quality["publish_ready"] && !proposal.duplicate_blocking?
 
@@ -61,6 +63,39 @@ module Mcp
           "published" => company.visible,
           "profile_url" => (profile_url(company) if company.slug.present?),
           "admin_url" => admin_proposal_url(proposal)
+        )
+      rescue ArgumentError => e
+        error_response("error" => e.message, "admin_url" => admin_proposal_url(proposal))
+      end
+
+      # Edits to an existing company always require an explicit human approval
+      # in Slack; there is no auto-publish path for changing a live entry.
+      def self.apply_existing_company_update(proposal, id:, publish:, human_approved:)
+        unless human_approved
+          return error_response(
+            "error" => "Editing an existing company requires human_approved=true after a human approves in Slack.",
+            "admin_url" => admin_proposal_url(proposal)
+          )
+        end
+
+        company = CompanyProposalApplyUpdateService.call(proposal: proposal, admin_user: curator, publish: publish)
+
+        audit!(
+          action: "approve_proposal",
+          summary: "Applied update proposal #{id} to company #{company.id}",
+          records_processed: 1,
+          details: { "proposal_id" => id, "company_id" => company.id, "applied_update" => true, "human_approved" => human_approved }
+        )
+
+        json_response(
+          "proposal_id" => proposal.id,
+          "status" => proposal.reload.status,
+          "company_id" => company.id,
+          "company_slug" => company.slug,
+          "published" => company.visible,
+          "profile_url" => (profile_url(company) if company.slug.present?),
+          "admin_url" => admin_proposal_url(proposal),
+          "applied_update" => true
         )
       rescue ArgumentError => e
         error_response("error" => e.message, "admin_url" => admin_proposal_url(proposal))

@@ -3,9 +3,41 @@ module Mcp
     # Shared helpers for all curator tools: actor resolution, JSON responses,
     # company lookup/serialization, and audit logging to PipelineRun.
     class BaseTool < MCP::Tool
+      # Input schema for the allowlisted company fields a curator may set on a
+      # proposal (update_proposal) or an existing-company edit (propose_company_update).
+      # Keys mirror CompanyProposal::EDITABLE_COMPANY_FIELDS.
+      CHANGE_FIELD_SCHEMA = {
+        name: { type: "string" },
+        main_url: { type: "string" },
+        location: { type: "string" },
+        founded_date: { type: "string", description: "ISO date (YYYY-MM-DD) or year." },
+        status: { type: "string", description: "Lifecycle status, e.g. active, acquired, defunct." },
+        description: { type: "string", description: "Neutral, encyclopedic description fit for public display (no marketing language or internal notes)." },
+        category_id: { type: "integer", description: "Primary category id from get_taxonomy." },
+        secondary_category_id: { type: "integer", description: "Secondary category id from get_taxonomy." },
+        business_model_id: { type: "integer" },
+        business_model_ids: { type: "array", items: { type: "integer" }, description: "Business/revenue model ids from get_taxonomy." },
+        target_client_id: { type: "integer" },
+        target_client_ids: { type: "array", items: { type: "integer" }, description: "Target client ids from get_taxonomy." },
+        all_tags: { type: "string", description: "Comma-separated canonical tag names from get_taxonomy." },
+        crunchbase_url: { type: "string" },
+        linkedin_url: { type: "string" },
+        total_funding_amount_usd: { type: "number" },
+        funding_status: { type: "string" },
+        number_of_funding_rounds: { type: "integer" },
+        founders: { type: "string" },
+        source: { type: "string" },
+        source_url: { type: "string" }
+      }.freeze
+
       class << self
         def curator
           Mcp::CuratorActor.admin_user!
+        end
+
+        # Keep only allowlisted, editable company fields from a caller-supplied hash.
+        def slice_editable_changes(changes)
+          (changes || {}).transform_keys(&:to_s).slice(*CompanyProposal::EDITABLE_COMPANY_FIELDS)
         end
 
         def json_response(payload)

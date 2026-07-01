@@ -26,16 +26,32 @@ human to approve.
 ## Tools
 
 Read / context: `search_companies`, `get_company`, `list_review_queue`,
-`get_proposal`, `duplicate_check`.
+`get_proposal`, `duplicate_check`, `get_taxonomy` (controlled vocabulary of
+categories, business models, target clients, and canonical tags).
 
 Discovery: `discover_companies` (dry run by default; `queue_proposals: true` creates
 `discovery_candidate` proposals).
 
-Proposal curation (tiered): `enrich_proposal`, `assess_proposal`, `curate_pending`,
-`approve_proposal`, `reject_proposal`.
+Proposal curation (tiered): `enrich_proposal`, `assess_proposal`, `update_proposal`
+(set allowlisted company fields into `final_changes` before approval),
+`curate_pending`, `approve_proposal`, `reject_proposal`.
 
-Maintenance: `run_company_review`, `apply_safe_fields`, `mark_review`,
+Maintenance: `run_company_review`, `propose_company_update` (queue an edit to an
+existing company as a `user_suggestion` proposal; applied only via
+`approve_proposal(human_approved: true)`), `apply_safe_fields`, `mark_review`,
 `suggest_taxonomy`.
+
+Meta: `suggest_improvement` (Claude records tooling/workflow/data suggestions; logged
+to `PipelineRun` and posted to Slack).
+
+## Operating instructions
+
+`Mcp::CuratorServer::INSTRUCTIONS` is sent to Claude on connect (MCP `instructions`).
+It defines the curator goal, the academic/lifecycle policy (keep inactive companies;
+record acquisitions/mergers and `acquired`/`defunct` status instead of deleting), the
+encyclopedic non-promotional editorial voice for descriptions (no marketing language,
+no internal notes or "missing info" remarks), the `get_taxonomy` classification
+discipline, and the approval rules below.
 
 ## Tiering / guardrails
 
@@ -47,6 +63,11 @@ Maintenance: `run_company_review`, `apply_safe_fields`, `mark_review`,
 - `MCP_CURATOR_AUTOPUBLISH=false` is a global kill-switch for automatic publishing.
 - `apply_safe_fields` can only write `quality_status`, `verification_verdict`,
   `quality_score`, `canonical_domain`, `fingerprint`.
+- Edits to existing companies (`propose_company_update`) never apply automatically:
+  `approve_proposal` routes `user_suggestion` proposals through
+  `CompanyProposalApplyUpdateService` and requires `human_approved: true`.
+- `update_proposal` / `propose_company_update` only accept fields in
+  `CompanyProposal::EDITABLE_COMPANY_FIELDS`; anything else is dropped server-side.
 - The legacy direct-write CSV import path is intentionally not exposed.
 
 ## Environment variables
