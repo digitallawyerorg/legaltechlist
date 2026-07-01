@@ -235,6 +235,42 @@ module Mcp
       assert_not quality["blockers"].any? { |blocker| blocker =~ /spam/i }, "spam gate must not touch internal candidates"
     end
 
+    test "founding year is optional and does not block publishing" do
+      proposal = ready_proposal
+      proposal.update!(final_changes: proposal.final_changes.except("founded_date"))
+      quality = CompanyProposalQualityService.call(proposal)
+      assert quality["publish_ready"], quality["blockers"].inspect
+      assert quality["warnings"].any? { |warning| warning =~ /founding year/i }
+
+      with_env("MCP_CURATOR_AUTOPUBLISH" => "true", "MCP_CURATOR_MIN_CONFIDENCE" => "0.8") do
+        result = call(Mcp::Tools::ApproveProposalTool, id: proposal.id, publish: true, confidence: 0.95)
+        assert_equal true, result["published"]
+        assert_equal "published", result["result"]
+      end
+      company = proposal.reload.company
+      assert company.persisted?
+      assert company.founded_date.blank?
+      assert company.visible?
+    end
+
+    test "a genuinely missing required field still blocks while founded_date does not" do
+      proposal = ready_proposal
+      proposal.update!(final_changes: proposal.final_changes.except("founded_date", "description"))
+      quality = CompanyProposalQualityService.call(proposal)
+      assert_not quality["publish_ready"]
+      assert_includes quality["missing_publish_blocking_fields"], "description"
+      assert_not_includes quality["missing_publish_blocking_fields"], "founded_date"
+    end
+
+    test "update_proposal echoes persisted state and publish readiness" do
+      proposal = pending_proposal
+      result = call(Mcp::Tools::UpdateProposalTool, id: proposal.id, changes: { "description" => "Neutral legal-tech directory description for testing purposes." })
+      assert_equal "updated", result["result"]
+      assert_equal "Neutral legal-tech directory description for testing purposes.", result["persisted_changes"]["description"]
+      assert result.key?("publish_ready")
+      assert result.key?("blockers")
+    end
+
     test "get_stats returns directory and backlog counts" do
       result = call(Mcp::Tools::GetStatsTool)
       assert result["companies"].key?("total")

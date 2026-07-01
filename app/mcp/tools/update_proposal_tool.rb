@@ -29,22 +29,27 @@ module Mcp
         proposal.final_changes = proposal.final_changes.merge(applied)
         taxonomy_confirmed = confirm_taxonomy!(proposal) if (applied.keys & TAXONOMY_FIELDS).any?
         proposal.save!
+        proposal.reload
         quality = CompanyProposalQualityService.call(proposal)
 
         audit!(action: "update_proposal", summary: "Updated proposal #{id} fields: #{applied.keys.join(', ')}", records_processed: 1, details: { "proposal_id" => id, "fields" => applied.keys, "taxonomy_confirmed" => taxonomy_confirmed })
 
         json_response(
+          "result" => "updated",
           "proposal_id" => proposal.id,
           "status" => proposal.status,
           "updated_fields" => applied.keys,
+          "persisted_changes" => proposal.final_changes.slice(*applied.keys),
           "taxonomy_confirmed" => taxonomy_confirmed || false,
+          "publish_ready" => quality["publish_ready"],
+          "blockers" => quality["blockers"],
           "final_changes" => proposal.final_changes,
           "quality" => quality,
           "duplicate_blocking" => proposal.duplicate_blocking?,
           "admin_url" => admin_proposal_url(proposal)
         )
       rescue ActiveRecord::RecordInvalid => e
-        error_response("error" => e.message)
+        error_response("result" => "error", "error" => e.message)
       end
 
       def self.confirm_taxonomy!(proposal)

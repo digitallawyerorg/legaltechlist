@@ -31,7 +31,10 @@ module Mcp
 
         if publish && !gate_ok && !human_approved
           return error_response(
+            "result" => "blocked",
+            "published" => false,
             "error" => "Publish blocked by quality gate. Fix blockers, resolve duplicates, or pass human_approved=true after a human approves.",
+            "publish_ready" => quality["publish_ready"],
             "blockers" => quality["blockers"],
             "duplicate_blocking" => proposal.duplicate_blocking?,
             "admin_url" => admin_proposal_url(proposal)
@@ -40,11 +43,11 @@ module Mcp
 
         if publish && !human_approved
           unless Mcp::CuratorPolicy.autopublish_enabled?
-            return error_response("error" => "Auto-publish is disabled (MCP_CURATOR_AUTOPUBLISH=false). A human must approve (human_approved=true).")
+            return error_response("result" => "blocked", "published" => false, "error" => "Auto-publish is disabled (MCP_CURATOR_AUTOPUBLISH=false). A human must approve (human_approved=true).")
           end
           unless Mcp::CuratorPolicy.confidence_ok?(confidence, proposal)
             note = proposal.externally_submitted? ? " This is an external submission, so the bar is higher — only publish if you are sure it is a genuine legal-tech company (not spam/solicitation)." : ""
-            return error_response("error" => "Confidence below the autonomy threshold (#{Mcp::CuratorPolicy.required_confidence(proposal)}).#{note} Verify the entry and raise confidence, or leave it for a human.", "confidence" => confidence, "admin_url" => admin_proposal_url(proposal))
+            return error_response("result" => "blocked", "published" => false, "error" => "Confidence below the autonomy threshold (#{Mcp::CuratorPolicy.required_confidence(proposal)}).#{note} Verify the entry and raise confidence, or leave it for a human.", "confidence" => confidence, "admin_url" => admin_proposal_url(proposal))
           end
         end
 
@@ -63,16 +66,17 @@ module Mcp
         )
 
         json_response(
+          "result" => (company.visible ? "published" : "drafted"),
+          "published" => company.visible,
           "proposal_id" => proposal.id,
           "status" => proposal.reload.status,
           "company_id" => company.id,
           "company_slug" => company.slug,
-          "published" => company.visible,
           "profile_url" => (profile_url(company) if company.slug.present?),
           "admin_url" => admin_proposal_url(proposal)
         )
       rescue ArgumentError => e
-        error_response("error" => e.message, "admin_url" => admin_proposal_url(proposal))
+        error_response("result" => "blocked", "published" => false, "error" => e.message, "admin_url" => admin_proposal_url(proposal))
       end
 
       # Apply an edit to an EXISTING company. This changes a live entry, so it
@@ -88,7 +92,7 @@ module Mcp
             note = proposal.externally_submitted? ? " This is an external submission, so the bar is higher — only apply if you are sure the change is genuine (not spam/solicitation)." : ""
             "Confidence below the autonomy threshold (#{Mcp::CuratorPolicy.required_confidence(proposal)}) for editing a live company.#{note} Verify the change and raise confidence, or wait for human approval."
           end
-          return error_response("error" => message, "confidence" => confidence, "admin_url" => admin_proposal_url(proposal))
+          return error_response("result" => "blocked", "published" => false, "applied_update" => false, "error" => message, "confidence" => confidence, "admin_url" => admin_proposal_url(proposal))
         end
 
         company = CompanyProposalApplyUpdateService.call(proposal: proposal, admin_user: curator, publish: publish)
@@ -101,17 +105,18 @@ module Mcp
         )
 
         json_response(
+          "result" => "update_applied",
+          "applied_update" => true,
+          "published" => company.visible,
           "proposal_id" => proposal.id,
           "status" => proposal.reload.status,
           "company_id" => company.id,
           "company_slug" => company.slug,
-          "published" => company.visible,
           "profile_url" => (profile_url(company) if company.slug.present?),
-          "admin_url" => admin_proposal_url(proposal),
-          "applied_update" => true
+          "admin_url" => admin_proposal_url(proposal)
         )
       rescue ArgumentError => e
-        error_response("error" => e.message, "admin_url" => admin_proposal_url(proposal))
+        error_response("result" => "blocked", "published" => false, "applied_update" => false, "error" => e.message, "admin_url" => admin_proposal_url(proposal))
       end
     end
   end

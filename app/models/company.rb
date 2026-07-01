@@ -38,7 +38,10 @@ class Company < ActiveRecord::Base
   # Validation for manual entry of data.
   validates :name, presence: true, length: {minimum: 2}
   validates :location, presence: true, length: {minimum: 1}
-  validates :founded_date, presence: true, format: {with: /\d\d\d\d/, message: "must be a 4-digit year."}
+  # Founding year is optional: it is genuinely unfindable for many small/international
+  # legal-tech companies, so it should not block a directory listing. When present it
+  # must contain a 4-digit year; never store an unsourced/fabricated year.
+  validates :founded_date, format: {with: /\d\d\d\d/, message: "must be a 4-digit year."}, allow_blank: true
   validates :category, presence: true
   validate :must_have_at_least_one_revenue_model
   validates :target_client, presence: true

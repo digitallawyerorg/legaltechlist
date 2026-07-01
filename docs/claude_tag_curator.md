@@ -89,6 +89,18 @@ discipline, and the approval rules below.
 - Low-confidence taxonomy: `update_proposal` now marks `agent_details.taxonomy_suggestion.accepted`
   when taxonomy fields are set, so a curator confirmation clears the blocker without
   re-running `enrich_proposal`.
+- Founding year is optional: `founded_date` is NOT a publish blocker (it is unsourceable
+  for many small/international companies). The quality gate emits a non-blocking warning
+  when it is missing (`missing_publish_blocking_fields` excludes it), and `Company`
+  allows a blank `founded_date` (but a present value must contain a 4-digit year).
+  `enrich_proposal` does not source founding years — it only drafts descriptions and
+  taxonomy — so it is not, and must not be, wired to fill `founded_date`. Never fabricate
+  a year; publish without it and backfill from a real source later.
+- Authoritative responses: `approve_proposal` returns `result`
+  (`published`/`drafted`/`update_applied`/`blocked`) plus a `published` boolean on every
+  path (success and failure), so a caller cannot mistake a blocked/drafted item for a
+  published one. `update_proposal` returns `persisted_changes`, `publish_ready`, and
+  `blockers` so a write can be confirmed without a second `get_proposal`.
 - Publishing a proposal that fails the gate requires `human_approved: true` on
   `approve_proposal` (set this only after a human approves in the Slack thread).
 - `MCP_CURATOR_AUTOPUBLISH=false` is a global kill-switch for automatic publishing.

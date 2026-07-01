@@ -1,5 +1,9 @@
 class CompanyProposalQualityService
   REQUIRED_FIELDS = %w[name main_url location founded_date description category_id business_model_id target_client_id].freeze
+  # Fields whose absence actually blocks publication. founded_date is intentionally
+  # excluded: it is often unsourceable for small/international companies, so a missing
+  # founding year is a non-blocking warning (flag for backfill) rather than a blocker.
+  PUBLISH_BLOCKING_FIELDS = %w[name main_url location description category_id business_model_id target_client_id].freeze
 
   def self.call(proposal)
     new(proposal).call
@@ -14,6 +18,7 @@ class CompanyProposalQualityService
       "score" => score,
       "publish_ready" => blockers.empty?,
       "missing_required_fields" => missing_required_fields,
+      "missing_publish_blocking_fields" => missing_publish_blocking_fields,
       "blockers" => blockers,
       "warnings" => warnings,
       "usable_web_evidence_count" => usable_web_results.size,
@@ -37,6 +42,10 @@ class CompanyProposalQualityService
     missing.uniq
   end
 
+  def missing_publish_blocking_fields
+    missing_required_fields & PUBLISH_BLOCKING_FIELDS
+  end
+
   def scalar_field_blank?(field)
     return false if field.in?(%w[business_model_id target_client_id])
 
@@ -47,7 +56,7 @@ class CompanyProposalQualityService
     @blockers ||= begin
       values = []
       values << "Resolve duplicate signals before publishing." if proposal.duplicate_blocking?
-      values << "Complete required fields before publishing: #{missing_required_fields.map(&:humanize).to_sentence}." if missing_required_fields.any?
+      values << "Complete required fields before publishing: #{missing_publish_blocking_fields.map(&:humanize).to_sentence}." if missing_publish_blocking_fields.any?
       values << "Review low-confidence taxonomy before publishing." if low_confidence_taxonomy?
       values << "Revise weak or generic description before publishing." if weak_description?
       values << "Description appears to copy the source text." if copied_source_description?
@@ -101,6 +110,7 @@ class CompanyProposalQualityService
 
   def warnings
     values = []
+    values << "Founding year is missing; publishing is allowed, but add a sourced year later when one is found (never fabricate)." if changes["founded_date"].blank?
     values << "No usable source or web evidence is attached." if usable_web_results.empty? && usable_source_evidence_count.zero?
     values << "No enrichment critic verdict is recorded." if proposal.agent_details.dig("description_critic", "verdict").blank?
     values << "Taxonomy was not auto-accepted." if taxonomy_suggestion.present? && !taxonomy_suggestion["accepted"]

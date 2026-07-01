@@ -36,6 +36,18 @@ module Mcp
       Page with offset (offset=0, 50, 100, ...) until has_more is false so you reach every
       pending item, not just the first page.
 
+      Founding year (founded_date) is OPTIONAL and does not block publication. If you can
+      find a reliable source for the year, set it via update_proposal (a 4-digit year); if
+      not, publish without it and leave it for later backfill. Never fabricate, guess, or
+      estimate a founding year. Note: enrich_proposal does not source founding years — it
+      only drafts descriptions and taxonomy — so do not rely on it to fill founded_date.
+
+      Trust the tool responses: approve_proposal returns `result` (published/drafted/blocked)
+      and `published` (true/false); a `result` of "blocked" or any error means nothing was
+      published. update_proposal returns `persisted_changes`, `publish_ready`, and `blockers`
+      so you can confirm a write landed without re-fetching. Do not report an item as
+      published unless the response says published:true.
+
       Change discipline:
       - Add new companies via discover_companies, then enrich, assess, and use update_proposal
         to correct data before approval.
@@ -74,7 +86,7 @@ module Mcp
       MCP::Server.new(
         name: "techindex_curator",
         title: "CodeX TechIndex Curator",
-        version: "1.2.0",
+        version: "1.3.0",
         instructions: INSTRUCTIONS,
         tools: Mcp::Tools.all,
         server_context: { actor: actor }
