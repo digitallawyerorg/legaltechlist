@@ -70,15 +70,21 @@
             .card-header.bg-white
                 h2.h5.mb-0 About
             .card-body
-                dl.row.mb-0
-                    dt.col-sm-3 Description
-                    dd.col-sm-9= field_value.call(@company.description)
-                    dt.col-sm-3 Category
-                    dd.col-sm-9= field_value.call(@company.category&.name)
-                    dt.col-sm-3 Secondary category
-                    dd.col-sm-9= field_value.call(@company.secondary_category&.name)
-                    dt.col-sm-3 Tags
-                    dd.col-sm-9= @company.tags.any? ? @company.tags.map(&:name).join(", ") : blank_value
+                - if @company.description.present?
+                    p.admin-about-description= @company.description
+                - else
+                    p.admin-about-description.text-muted= blank_value
+                - secondary_category_name = @company.secondary_category&.name
+                - if (@company.category&.name.present? && @company.category.name != "Unknown") || (secondary_category_name.present? && secondary_category_name != "Unknown") || @company.tags.any?
+                    .admin-about-tags
+                        - if @company.category&.name.present? && @company.category.name != "Unknown"
+                            span.admin-about-category
+                                span.admin-about-category-dot aria-hidden="true"
+                                = @company.category.name
+                        - if secondary_category_name.present? && secondary_category_name != "Unknown"
+                            span.admin-about-keyword= secondary_category_name
+                        - @company.tags.each do |tag|
+                            span.admin-about-keyword= tag.name
 
         .card.border-0.shadow-sm.mb-3
             .card-header.bg-white
