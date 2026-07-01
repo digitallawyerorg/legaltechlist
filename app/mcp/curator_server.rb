@@ -59,8 +59,13 @@ module Mcp
       Change discipline:
       - Add new companies via discover_companies, then enrich, assess, and use update_proposal
         to correct data before approval.
-      - Change an existing company only through propose_company_update — never assume a silent
-        edit. It becomes a proposal that a human approves.
+      - To backfill a safe factual field (founding year, location, founders, status) on an
+        already-published company, use update_company_field — it edits the live profile in one
+        call. Setting founded_date requires a 4-digit year AND a source_url citation (cite-only,
+        never guess). For editorial changes (e.g. descriptions) or anything outside that
+        allowlist, use propose_company_update, which becomes a proposal a human approves.
+      - enrich_proposal is skipped when a proposal is already publishable or was enriched in the
+        last few days (it rarely adds facts); pass force=true to override intentionally.
       - Always run duplicate_check before creating a company. If a likely duplicate exists,
         note it instead of adding a new entry.
 
@@ -94,7 +99,7 @@ module Mcp
       MCP::Server.new(
         name: "techindex_curator",
         title: "CodeX TechIndex Curator",
-        version: "1.4.0",
+        version: "1.5.0",
         instructions: INSTRUCTIONS,
         tools: Mcp::Tools.all,
         server_context: { actor: actor }

@@ -307,6 +307,58 @@ module Mcp
       assert_nil CompanyProposalEnrichmentService.sourced_year(year: "2015", source: "", allowed_hosts: ["techcrunch.com"])
     end
 
+    test "approve_proposal is idempotent and never mints a second company" do
+      proposal = ready_proposal
+      with_env("MCP_CURATOR_AUTOPUBLISH" => "true", "MCP_CURATOR_MIN_CONFIDENCE" => "0.8") do
+        first = call(Mcp::Tools::ApproveProposalTool, id: proposal.id, publish: true, confidence: 0.95)
+        assert_equal true, first["published"]
+        company_id = first["company_id"]
+        assert_no_difference "Company.count" do
+          again = call(Mcp::Tools::ApproveProposalTool, id: proposal.id, publish: true, confidence: 0.95)
+          assert_equal "already_published", again["result"]
+          assert_equal true, again["published"]
+          assert_equal company_id, again["company_id"]
+        end
+      end
+    end
+
+    test "update_company_field sets a factual field on a live company" do
+      company = companies(:one)
+      result = call(Mcp::Tools::UpdateCompanyFieldTool, slug: company.slug, fields: { "location" => "Austin, TX" })
+      assert_equal "updated", result["result"]
+      assert_equal "Austin, TX", company.reload.location
+    end
+
+    test "update_company_field requires a citation and a valid year for founded_date" do
+      company = companies(:one)
+      missing_cite = Mcp::Tools::UpdateCompanyFieldTool.call(server_context: @context, slug: company.slug, fields: { "founded_date" => "2018" })
+      assert missing_cite.error?
+      bad_year = Mcp::Tools::UpdateCompanyFieldTool.call(server_context: @context, slug: company.slug, fields: { "founded_date" => "not-a-year" }, source_url: "https://example.com")
+      assert bad_year.error?
+      ok = call(Mcp::Tools::UpdateCompanyFieldTool, slug: company.slug, fields: { "founded_date" => "2018" }, source_url: "https://example.com/about")
+      assert_equal "updated", ok["result"]
+      assert_equal "2018", company.reload.founded_date
+    end
+
+    test "enrich_proposal skips items that are already publishable" do
+      proposal = ready_proposal
+      assert_no_enqueued_jobs only: EnrichProposalJob do
+        result = call(Mcp::Tools::EnrichProposalTool, id: proposal.id)
+        assert_equal "skipped_already_publishable", result["result"]
+      end
+    end
+
+    test "enrich_proposal skips recently-enriched items unless forced" do
+      proposal = pending_proposal
+      proposal.update!(enriched_at: 1.hour.ago)
+      result = call(Mcp::Tools::EnrichProposalTool, id: proposal.id)
+      assert_equal "skipped_recently_enriched", result["result"]
+      assert_enqueued_with(job: EnrichProposalJob) do
+        forced = call(Mcp::Tools::EnrichProposalTool, id: proposal.id, force: true)
+        assert_equal "enrichment_queued", forced["result"]
+      end
+    end
+
     test "get_stats returns directory and backlog counts" do
       result = call(Mcp::Tools::GetStatsTool)
       assert result["companies"].key?("total")

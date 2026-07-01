@@ -24,6 +24,9 @@ module Mcp
         human_approved = ActiveModel::Type::Boolean.new.cast(human_approved)
         duplicate_override = ActiveModel::Type::Boolean.new.cast(duplicate_override)
 
+        already = already_resolved_response(proposal)
+        return already if already
+
         return apply_existing_company_update(proposal, id: id, publish: publish, confidence: confidence, human_approved: human_approved) if proposal.user_suggestion?
 
         quality = CompanyProposalQualityService.call(proposal)
@@ -76,7 +79,29 @@ module Mcp
           "admin_url" => admin_proposal_url(proposal)
         )
       rescue ArgumentError => e
-        error_response("result" => "blocked", "published" => false, "error" => e.message, "admin_url" => admin_proposal_url(proposal))
+        error_response("result" => "blocked", "published" => false, "retryable" => false, "error" => e.message, "admin_url" => admin_proposal_url(proposal))
+      rescue StandardError => e
+        # Unexpected/transient failure (e.g. an upstream or DB blip under load).
+        # Signal the client may safely retry rather than treating it as terminal.
+        Rails.logger.debug("[ApproveProposalTool] transient failure for proposal #{id}: #{e.class}: #{e.message}")
+        error_response("result" => "error", "published" => false, "retryable" => true, "error" => "Transient failure (#{e.class}); safe to retry: #{e.message}", "admin_url" => admin_proposal_url(proposal))
+      end
+
+      # Idempotent guard: never mint a second company for a proposal that already
+      # produced one. Re-approval returns the existing company instead of creating
+      # a duplicate record.
+      def self.already_resolved_response(proposal)
+        if proposal.user_suggestion?
+          return nil unless proposal.status == "published" && proposal.company
+
+          company = proposal.company
+          return json_response("result" => "already_applied", "published" => company.visible, "proposal_id" => proposal.id, "company_id" => company.id, "company_slug" => company.slug, "profile_url" => (profile_url(company) if company.slug.present?), "applied_update" => true, "admin_url" => admin_proposal_url(proposal))
+        end
+
+        return nil if proposal.company_id.blank?
+
+        company = proposal.company
+        json_response("result" => (company.visible ? "already_published" : "already_drafted"), "published" => company.visible, "proposal_id" => proposal.id, "company_id" => company.id, "company_slug" => company.slug, "profile_url" => (profile_url(company) if company.slug.present?), "admin_url" => admin_proposal_url(proposal))
       end
 
       # Apply an edit to an EXISTING company. This changes a live entry, so it
@@ -116,7 +141,10 @@ module Mcp
           "admin_url" => admin_proposal_url(proposal)
         )
       rescue ArgumentError => e
-        error_response("result" => "blocked", "published" => false, "applied_update" => false, "error" => e.message, "admin_url" => admin_proposal_url(proposal))
+        error_response("result" => "blocked", "published" => false, "applied_update" => false, "retryable" => false, "error" => e.message, "admin_url" => admin_proposal_url(proposal))
+      rescue StandardError => e
+        Rails.logger.debug("[ApproveProposalTool] transient failure applying update proposal #{id}: #{e.class}: #{e.message}")
+        error_response("result" => "error", "published" => false, "applied_update" => false, "retryable" => true, "error" => "Transient failure (#{e.class}); safe to retry: #{e.message}", "admin_url" => admin_proposal_url(proposal))
       end
     end
   end

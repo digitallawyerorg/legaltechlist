@@ -67,6 +67,13 @@ class CompanyProposalResearchService
       Return a concise neutral evidence summary for drafting a directory description.
       Focus on what the company product or service does, who it serves, and legal workflow context.
       Avoid marketing claims, rankings, customer counts, and unsupported superlatives.
+
+      Also look for the company's founding year. Check the "Founded" field on its
+      LinkedIn and Crunchbase profiles and official business registries (e.g.
+      OpenCorporates, national registries such as UK Companies House or Finland's
+      PRH/YTJ). Prefer an official registry over a self-reported profile if they
+      disagree. Report the founding year only if a source explicitly states it, and
+      include the exact source URL. Never guess or infer a year.
     PROMPT
   end
 

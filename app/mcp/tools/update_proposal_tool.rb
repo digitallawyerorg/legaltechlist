@@ -49,7 +49,10 @@ module Mcp
           "admin_url" => admin_proposal_url(proposal)
         )
       rescue ActiveRecord::RecordInvalid => e
-        error_response("result" => "error", "error" => e.message)
+        error_response("result" => "error", "retryable" => false, "error" => e.message)
+      rescue StandardError => e
+        Rails.logger.debug("[UpdateProposalTool] transient failure for proposal #{id}: #{e.class}: #{e.message}")
+        error_response("result" => "error", "retryable" => true, "error" => "Transient failure (#{e.class}); safe to retry: #{e.message}")
       end
 
       def self.confirm_taxonomy!(proposal)

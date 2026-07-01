@@ -42,10 +42,11 @@ blocker), `curate_pending`, `approve_proposal`, `reject_proposal`.
 `has_more`, and accepts an `offset` param so the full backlog is reachable beyond the
 first 50 items (page with offset=0, 50, 100, ... until `has_more` is false).
 
-Maintenance: `run_company_review`, `propose_company_update` (queue an edit to an
-existing company as a `user_suggestion` proposal; applied only via
-`approve_proposal(human_approved: true)`), `apply_safe_fields`, `mark_review`,
-`suggest_taxonomy`.
+Maintenance: `run_company_review`, `propose_company_update` (queue an editorial edit
+to an existing company as a `user_suggestion` proposal), `update_company_field`
+(edit safe factual fields — founded_date/location/founders/status — directly on a
+live company in one call; `founded_date` requires a 4-digit year and a `source_url`
+citation), `apply_safe_fields`, `mark_review`, `suggest_taxonomy`.
 
 Meta: `suggest_improvement` (Claude records tooling/workflow/data suggestions; logged
 to `PipelineRun` and posted to Slack).
@@ -106,8 +107,20 @@ discipline, and the approval rules below.
 - Sourced founding year: server-side enrichment fills `founded_date` only when the model
   returns a plausible 4-digit year (>= 1970, <= current year) whose citing source host is
   among the gathered evidence (web-research results or the company's own/crunchbase/
-  linkedin domains); the citation is recorded in `agent_details.founded_date_source`.
-  Otherwise `founded_date` is left blank — it never writes an unsourced/guessed year.
+  linkedin domains); the citation is recorded in `agent_details.founded_date_source` and
+  shown in the admin proposal view. Otherwise `founded_date` is left blank — it never
+  writes an unsourced/guessed year. Enrichment prompts explicitly consult profile
+  "Founded" fields and official registries (OpenCorporates / national registries),
+  preferring a registry over a self-reported profile.
+- Idempotent approval: `approve_proposal` on a proposal that already produced a company
+  returns the existing company (`result` = `already_published` / `already_drafted` /
+  `already_applied`) instead of minting a second record.
+- Retryable errors: unexpected/transient failures on `approve_proposal`, `update_proposal`,
+  and `update_company_field` return `retryable: true`; terminal rejections (validation /
+  gate) return `retryable: false`, so clients can distinguish a blip from a rejection.
+- Enrich cost guards: `enrich_proposal` returns `skipped_already_publishable` when the
+  proposal already passes the gate and `skipped_recently_enriched` when it was enriched
+  within the last few days; pass `force: true` to override.
 - Authoritative responses: `approve_proposal` returns `result`
   (`published`/`drafted`/`update_applied`/`blocked`) plus a `published` boolean on every
   path (success and failure), so a caller cannot mistake a blocked/drafted item for a

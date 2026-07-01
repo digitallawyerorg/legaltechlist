@@ -25,6 +25,7 @@ module Mcp
         # Maintenance of existing entries
         RunCompanyReviewTool,
         ProposeCompanyUpdateTool,
+        UpdateCompanyFieldTool,
         ApplySafeFieldsTool,
         MarkReviewTool,
         SuggestTaxonomyTool,

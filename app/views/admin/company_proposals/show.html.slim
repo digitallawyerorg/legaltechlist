@@ -114,10 +114,16 @@
                     - description_draft = @agent_details["description_draft"] || {}
                     - description_critic = @agent_details["description_critic"] || {}
                     - web_research = @agent_details["web_research"] || {}
+                    - founded_date_source = @agent_details["founded_date_source"] || {}
                     - if description_draft.present?
                         .admin-kicker.mb-1 Proposed description
                         p.small.fw-semibold.mb-1= description_draft["proposed_description"]
                         p.text-muted.small.mb-2= description_draft["rationale"]
+                    - if founded_date_source["source_url"].present?
+                        .admin-kicker.mb-1 Founding year source
+                        p.small.mb-2
+                            = link_to founded_date_source["source_url"], founded_date_source["source_url"], target: "_blank", rel: "noopener"
+                            span.text-muted.ms-1 (cited by enrichment)
                     - if web_research.present?
                         .admin-kicker.mb-1 Research basis
                         p.text-muted.small.mb-2= web_research["note"].presence || web_research["summary"].presence || "Web research mode: #{web_research['mode']}"
