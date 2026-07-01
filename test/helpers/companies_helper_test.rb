@@ -98,7 +98,7 @@ class CompaniesHelperTest < ActionView::TestCase
     reference = company_legaltech_atlas_reference(company)
     assert_equal "LegalTech Atlas", reference[:label]
     assert_equal "https://legaltechatlas.com/companies/clio", reference[:url]
-    assert_equal "legaltechatlas.com", reference[:host]
+    assert_equal reference[:url], reference[:host]
   end
 
   test "company_google_search_reference builds a google search url for the company name" do
@@ -109,7 +109,7 @@ class CompaniesHelperTest < ActionView::TestCase
 
     assert_equal "Google", reference[:label]
     assert_equal "https://www.google.com/search?q=can+you+tell+me+more+about+Legal.io", reference[:url]
-    assert_equal "google.com", reference[:host]
+    assert_equal reference[:url], reference[:host]
   end
 
   test "company_reddit_search_reference builds a reddit search url for the company name" do
@@ -120,7 +120,13 @@ class CompaniesHelperTest < ActionView::TestCase
 
     assert_equal "Reddit", reference[:label]
     assert_equal "https://www.reddit.com/search/?q=%22Legal.io%22", reference[:url]
-    assert_equal "reddit.com", reference[:host]
+    assert_equal reference[:url], reference[:host]
+  end
+
+  test "company_reference_url_display returns a normalized full url" do
+    assert_equal "https://legal.io/about", company_reference_url_display("https://legal.io/about")
+    assert_equal "https://legal.io", company_reference_url_display("legal.io")
+    assert_nil company_reference_url_display("")
   end
 
   test "company_citation_entries returns bluebook apa and bibtex formats" do

@@ -407,6 +407,7 @@ css:
         font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
         font-size: 0.82rem;
         justify-self: start;
+        overflow-wrap: anywhere;
     }
 
     .company-show-page .company-source-arrow {
@@ -604,7 +605,6 @@ css:
 - entity_messages << "This company has been acquired." if @company.status.to_s.downcase == "acquired"
 - entity_messages << "This company is no longer active as an independent vendor." if @company.status.to_s.downcase == "inactive"
 - entity_messages << "Exit recorded #{exit_display}." if exit_display.present?
-- short_host_for = ->(url) { normalized = url.to_s.strip; normalized = "http://#{normalized}" unless normalized.match?(%r{\Ahttps?://}i); URI.parse(normalized).host.to_s.sub(/\Awww\./i, '') rescue url.to_s.gsub(%r{\Ahttps?://(www\.)?}i, '').split('/').first.to_s }
 - funding_amount = @company.total_funding_amount_usd.to_f
 - funding_display = (if funding_amount >= 1_000_000_000 then "$#{(funding_amount / 1_000_000_000).round(1).to_s.sub(/\.0$/, '')}B" elsif funding_amount >= 1_000_000 then "$#{(funding_amount / 1_000_000).round}M" elsif funding_amount.positive? then number_to_currency(funding_amount, precision: 0) else nil end)
 - founded_display = (@company.founded_date.present? && @company.founded_date != "0000") ? @company.founded_date : "-"
@@ -616,14 +616,14 @@ css:
 - key_facts = [{ label: "Status", icon: "fa-solid fa-circle-check", value: status_label }, { label: "Founded", icon: "fa-regular fa-calendar", value: founded_display }, { label: "Headquarters", icon: "fa-solid fa-location-dot", value: headquarters_display }, { label: "Target market", icon: "fa-solid fa-bullseye", value: target_market_display }, { label: "Revenue model", icon: "fa-solid fa-coins", value: revenue_model_display }, { label: "Total funding", icon: "fa-solid fa-dollar-sign", value: funding_display.presence || "-" }]
 - key_facts << { label: "Exit", icon: "fa-solid fa-flag-checkered", value: exit_display } if exit_display.present?
 - company_reference_links = []
-- company_reference_links << { label: "Website", icon: "fa-solid fa-globe", icon_color: "#2563eb", url: website_url, host: short_host_for.call(website_url) } if website_url.present?
-- company_reference_links << { label: "Facebook", icon: "fa-brands fa-facebook", icon_color: "#1877f2", url: @company.facebook_url, host: short_host_for.call(@company.facebook_url) } if @company.facebook_url.present? && @company.facebook_url != "n/a"
-- company_reference_links << { label: "LinkedIn", icon: "fa-brands fa-linkedin", icon_color: "#0a66c2", url: @company.linkedin_url, host: short_host_for.call(@company.linkedin_url) } if @company.linkedin_url.present? && @company.linkedin_url != "n/a"
-- company_reference_links << { label: "X/Twitter", icon: "fa-brands fa-x-twitter", icon_color: "#111827", url: twitter_url, host: short_host_for.call(twitter_url) } if twitter_url.present?
+- company_reference_links << { label: "Website", icon: "fa-solid fa-globe", icon_color: "#2563eb" }.merge(company_reference_link_attrs(website_url)) if website_url.present?
+- company_reference_links << { label: "Facebook", icon: "fa-brands fa-facebook", icon_color: "#1877f2" }.merge(company_reference_link_attrs(@company.facebook_url)) if @company.facebook_url.present? && @company.facebook_url != "n/a"
+- company_reference_links << { label: "LinkedIn", icon: "fa-brands fa-linkedin", icon_color: "#0a66c2" }.merge(company_reference_link_attrs(@company.linkedin_url)) if @company.linkedin_url.present? && @company.linkedin_url != "n/a"
+- company_reference_links << { label: "X/Twitter", icon: "fa-brands fa-x-twitter", icon_color: "#111827" }.merge(company_reference_link_attrs(twitter_url)) if twitter_url.present?
 - external_reference_links = []
-- external_reference_links << { label: "Crunchbase", icon: "fa-solid fa-chart-line", icon_color: "#047857", url: @company.crunchbase_url, host: short_host_for.call(@company.crunchbase_url) } if @company.crunchbase_url.present? && @company.crunchbase_url != "n/a"
+- external_reference_links << { label: "Crunchbase", icon: "fa-solid fa-chart-line", icon_color: "#047857" }.merge(company_reference_link_attrs(@company.crunchbase_url)) if @company.crunchbase_url.present? && @company.crunchbase_url != "n/a"
 - external_reference_links << company_google_search_reference(@company)
-- external_reference_links << { label: "Legal.io", icon: "fa-solid fa-briefcase", icon_color: "#8c1515", url: @company.legalio_url, host: short_host_for.call(@company.legalio_url) } if @company.legalio_url.present? && @company.legalio_url != "n/a"
+- external_reference_links << { label: "Legal.io", icon: "fa-solid fa-briefcase", icon_color: "#8c1515" }.merge(company_reference_link_attrs(@company.legalio_url)) if @company.legalio_url.present? && @company.legalio_url != "n/a"
 - atlas_reference = company_legaltech_atlas_reference(@company)
 - external_reference_links << atlas_reference if atlas_reference.present?
 - external_reference_links << company_reddit_search_reference(@company)

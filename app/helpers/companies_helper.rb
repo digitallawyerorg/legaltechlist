@@ -172,6 +172,21 @@ module CompaniesHelper
     value.sub(%r{\Ahttps?://}i, "").split("/").first.to_s
   end
 
+  def company_reference_url_display(url)
+    value = url.to_s.strip
+    return if value.blank?
+
+    value = "https://#{value}" unless value.match?(%r{\Ahttps?://}i)
+    value
+  end
+
+  def company_reference_link_attrs(url)
+    display_url = company_reference_url_display(url)
+    return {} if display_url.blank?
+
+    { url: display_url, host: display_url }
+  end
+
   def company_inactive?(company)
     company.status.to_s.downcase.in?(%w[inactive closed])
   end
@@ -183,19 +198,21 @@ module CompaniesHelper
     return nil if url.blank?
     return nil unless url.match?(%r{\Ahttps://legaltechatlas\.com/companies/[a-z0-9-]+\z})
 
-    { label: "LegalTech Atlas", icon: "fa-solid fa-map", icon_color: "#8c1515", url: url, host: "legaltechatlas.com" }
+    { label: "LegalTech Atlas", icon: "fa-solid fa-map", icon_color: "#8c1515", url: url, host: url }
   end
 
   def company_google_search_reference(company)
     name = company.name.to_s.strip
     query = CGI.escape("can you tell me more about #{name}")
-    { label: "Google", icon: "fa-brands fa-google", icon_color: "#4285f4", url: "https://www.google.com/search?q=#{query}", host: "google.com" }
+    url = "https://www.google.com/search?q=#{query}"
+    { label: "Google", icon: "fa-brands fa-google", icon_color: "#4285f4", url: url, host: url }
   end
 
   def company_reddit_search_reference(company)
     name = company.name.to_s.strip.gsub('"', "")
     query = CGI.escape("\"#{name}\"")
-    { label: "Reddit", icon: "fa-brands fa-reddit", icon_color: "#ff450f", url: "https://www.reddit.com/search/?q=#{query}", host: "reddit.com" }
+    url = "https://www.reddit.com/search/?q=#{query}"
+    { label: "Reddit", icon: "fa-brands fa-reddit", icon_color: "#ff450f", url: url, host: url }
   end
 
   def company_citation_entries(company, accessed_on: Date.current)
