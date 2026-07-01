@@ -26,6 +26,7 @@ module Mcp
         RunCompanyReviewTool,
         ProposeCompanyUpdateTool,
         UpdateCompanyFieldTool,
+        BackfillFoundedDatesTool,
         ApplySafeFieldsTool,
         MarkReviewTool,
         SuggestTaxonomyTool,

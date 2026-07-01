@@ -67,6 +67,11 @@ module Mcp
         call. Setting founded_date requires a 4-digit year AND a source_url citation (cite-only,
         never guess). For editorial changes (e.g. descriptions) or anything outside that
         allowlist, use propose_company_update, which becomes a proposal a human approves.
+      - To backfill founding years across the directory at scale, use backfill_founded_dates:
+        it enqueues async server-side jobs (server has web egress) that reuse the same cite-only
+        + same-entity guards and only write a year a real source states, preferring official
+        registries. Find the targets with search_companies(missing_founded_date: true), and track
+        the gap with get_stats companies.missing_founded_date. Poll get_company to see results.
       - enrich_proposal is skipped when a proposal is already publishable or was enriched in the
         last few days (it rarely adds facts); pass force=true to override intentionally.
       - Always run duplicate_check before creating a company. If a likely duplicate exists,
@@ -102,7 +107,7 @@ module Mcp
       MCP::Server.new(
         name: "techindex_curator",
         title: "CodeX TechIndex Curator",
-        version: "1.6.0",
+        version: "1.7.0",
         instructions: INSTRUCTIONS,
         tools: Mcp::Tools.all,
         server_context: { actor: actor }

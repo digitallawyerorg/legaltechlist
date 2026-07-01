@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_06_30_120000) do
+ActiveRecord::Schema[8.0].define(version: 2026_07_01_130000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -129,6 +129,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_30_120000) do
     t.string "city"
     t.string "legaltech_atlas_url"
     t.string "slug"
+    t.jsonb "founded_year_provenance"
     t.index ["business_model_id"], name: "index_companies_on_business_model_id"
     t.index ["canonical_domain"], name: "index_companies_on_canonical_domain"
     t.index ["category_id"], name: "index_companies_on_category_id"

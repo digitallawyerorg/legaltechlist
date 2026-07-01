@@ -107,6 +107,44 @@ namespace :data_quality do
     puts "Backfill identity complete mode=#{mode} changed=#{changed}"
   end
 
+  desc "Backfill missing founded_date values from web-cited sources. Defaults to dry-run; set DRY_RUN=false to enqueue jobs. INLINE=true to run synchronously (small batches only). LIMIT=n caps the batch."
+  task backfill_founded_dates: :environment do
+    dry_run = ENV.fetch("DRY_RUN", "true") != "false"
+    inline = ENV.fetch("INLINE", "false") == "true"
+    verbose = ENV.fetch("VERBOSE", "false") == "true"
+    limit = ENV.fetch("LIMIT", "50").to_i
+    filled = 0
+    skipped = Hash.new(0)
+    examples = []
+
+    Company.missing_founded_date.limit(limit).find_each do |company|
+      if dry_run
+        line = "DRY RUN company_id=#{company.id} name=#{company.name.inspect} main_url=#{company.main_url.inspect}"
+        verbose ? puts(line) : (examples << line if examples.size < 20)
+        skipped["dry_run"] += 1
+        next
+      end
+
+      if inline
+        result = CompanyFoundedDateBackfillService.call(company: company)
+        if result["result"] == "filled"
+          filled += 1
+          puts "FILLED company_id=#{company.id} year=#{result['year']} source=#{result['source_url']} tier=#{result['source_tier']}" if verbose
+        else
+          skipped[result["result"]] += 1
+          puts "SKIP company_id=#{company.id} result=#{result['result']} reason=#{result['reason']}" if verbose
+        end
+      else
+        BackfillFoundedDateJob.perform_later(company.id)
+        skipped["enqueued"] += 1
+      end
+    end
+
+    mode = dry_run ? "dry-run" : (inline ? "inline" : "enqueued")
+    puts examples if dry_run && !verbose
+    puts "Backfill founded_date complete mode=#{mode} limit=#{limit} filled=#{filled} skipped=#{skipped.sort.to_h}"
+  end
+
   desc "Normalize company locations missing country names. Defaults to dry-run; set DRY_RUN=false to write."
   task normalize_locations: :environment do
     dry_run = ENV.fetch("DRY_RUN", "true") != "false"

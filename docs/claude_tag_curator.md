@@ -113,6 +113,22 @@ discipline, and the approval rules below.
   round-trip and the "low-confidence taxonomy" hold for confident items. It never overwrites an
   existing taxonomy suggestion or a proposal that already has a company, and a founding-year
   source is kept only if its URL was actually seen in search (uncited sources are dropped).
+- Missing-founded-date signal (Spec A): `founded_date` gaps are now a first-class quality
+  signal — `Company.missing_founded_date` scope, `get_stats` `companies.missing_founded_date`
+  count, and a `search_companies(missing_founded_date: true)` filter (AND-composable with
+  `needs_review`).
+- Server-side founded_date backfill (Spec B): `backfill_founded_dates` enqueues async
+  `BackfillFoundedDateJob`s (off the 30s router timeout) via `CompanyFoundedDateBackfillService`,
+  which reuses the exact cite-only guard (`sourced_year`) and the validated writer
+  (`Company#founded_date_from_source!`, shared with `update_company_field`). Each fill records a
+  `PipelineRun` (`run_type: "founded_date_backfill"`) and a `companies.founded_year_provenance`
+  JSON blob (source_url + tier). Also runnable as `rake data_quality:backfill_founded_dates`
+  (`DRY_RUN`/`INLINE`/`LIMIT`/`VERBOSE`).
+- Same-name entity guard (Spec C): a cited year is accepted only when the source is on the
+  company's own domain, or on a known registry/profile host AND the evidence text names the
+  company — blocking same-name/different-entity traps (e.g. `apualegal.com` for `apua.ai`).
+- Registry-preference tiering (Spec D): when several cited years survive, the source is ranked
+  registry > profile > owned > other; the chosen tier is stored in provenance.
 - Sourced founding year: server-side enrichment fills `founded_date` only when the model
   returns a plausible 4-digit year (>= 1970, <= current year) whose citing source host is
   among the gathered evidence (web-research results or the company's own/crunchbase/

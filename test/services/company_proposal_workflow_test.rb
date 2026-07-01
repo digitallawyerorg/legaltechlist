@@ -243,6 +243,28 @@ class CompanyProposalWorkflowTest < ActiveSupport::TestCase
     assert_equal legal_service_providers.id, suggestion.dig("target_client", "id")
   end
 
+  test "entity_match accepts own-domain and registry citations that name the company" do
+    company = companies(:one) # main_url http://example.com
+    assert CompanyProposalEnrichmentService.entity_match?(company, "https://example.com/about")
+    assert CompanyProposalEnrichmentService.entity_match?(company, "https://www.linkedin.com/company/test-company-one", evidence_text: "Test Company One · Founded 2020")
+  end
+
+  test "entity_match rejects same-name entities from a different domain" do
+    company = companies(:one)
+    # A different, non-registry domain that merely shares the name is not accepted.
+    assert_not CompanyProposalEnrichmentService.entity_match?(company, "https://test-company-one-clone.example/about", evidence_text: "Test Company One founded 2001")
+    # A registry/profile host without evidence naming the company is not accepted.
+    assert_not CompanyProposalEnrichmentService.entity_match?(company, "https://www.linkedin.com/company/someone-else", evidence_text: "A totally different firm")
+  end
+
+  test "source_tier ranks registry over profile over owned over other" do
+    company = companies(:one) # example.com
+    assert_equal :registry, CompanyProposalEnrichmentService.source_tier("https://opencorporates.com/companies/x")
+    assert_equal :profile, CompanyProposalEnrichmentService.source_tier("https://www.linkedin.com/company/x")
+    assert_equal :owned, CompanyProposalEnrichmentService.source_tier("https://example.com/about", company: company)
+    assert_equal :other, CompanyProposalEnrichmentService.source_tier("https://random.example/x", company: company)
+  end
+
   private
 
   def atlas_candidate_run

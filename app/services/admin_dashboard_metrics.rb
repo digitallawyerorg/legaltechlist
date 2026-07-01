@@ -30,6 +30,7 @@ class AdminDashboardMetrics
         visible: Company.where(visible: true).count,
         hidden: Company.where(visible: false).count,
         missing_url: Company.missing_main_url.count,
+        missing_founded_date: Company.missing_founded_date.count,
         weak_description: Company.weak_description.count,
         duplicate_domain: duplicate_domain_ids.size,
         duplicate_name: duplicate_name_ids.size,

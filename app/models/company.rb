@@ -7,6 +7,8 @@ class Company < ActiveRecord::Base
 
   attr_accessor :skip_geocoding
 
+  EARLIEST_PLAUSIBLE_FOUNDING_YEAR = 1970
+
   before_update :publish_tweet, :if => :visible_changed?
   before_update :publish_to_list, :if => :visible_changed?
   after_commit :sync_legaltech_atlas_link, on: :update, if: :should_sync_legaltech_atlas_link?
@@ -49,6 +51,7 @@ class Company < ActiveRecord::Base
 
   scope :publicly_visible, -> { where(visible: true) }
   scope :missing_main_url, -> { where(main_url: [nil, ""]) }
+  scope :missing_founded_date, -> { where(founded_date: [nil, ""]) }
   scope :weak_description, -> { where("description IS NULL OR LENGTH(TRIM(description)) < 40") }
   scope :description_review_candidates, -> { where(description_review_candidate_condition) }
   scope :needs_review, -> { where(quality_status: "needs_review") }
@@ -165,6 +168,28 @@ class Company < ActiveRecord::Base
     URI.parse(raw).host&.sub(/\Awww\./, "")
   rescue URI::InvalidURIError
     nil
+  end
+
+  def self.valid_http_url?(value)
+    uri = URI.parse(value.to_s.strip)
+    uri.is_a?(URI::HTTP) && uri.host.present?
+  rescue URI::InvalidURIError
+    false
+  end
+
+  # Cite-only writer for founded_date shared by the curator tool and the backfill
+  # service: a founding year is only stored with a valid 4-digit year AND a source URL.
+  def founded_date_from_source!(year:, source_url:)
+    raise ArgumentError, "founded_date must be a 4-digit year #{EARLIEST_PLAUSIBLE_FOUNDING_YEAR}-#{Date.current.year}" unless plausible_founding_year?(year)
+    raise ArgumentError, "source_url required (cite-only)" unless self.class.valid_http_url?(source_url)
+
+    self.founded_date = year.to_s.strip
+    save!
+  end
+
+  def plausible_founding_year?(value)
+    value.to_s.strip.match?(/\A(?:19|20)\d{2}\z/) &&
+      (EARLIEST_PLAUSIBLE_FOUNDING_YEAR..Date.current.year).cover?(value.to_s.strip.to_i)
   end
 
   def self.fingerprint_for(name, url)

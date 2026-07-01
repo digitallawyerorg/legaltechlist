@@ -362,8 +362,29 @@ module Mcp
     test "get_stats returns directory and backlog counts" do
       result = call(Mcp::Tools::GetStatsTool)
       assert result["companies"].key?("total")
+      assert result["companies"].key?("missing_founded_date")
       assert result["proposals"].key?("by_status")
       assert result["curator"].key?("min_confidence")
+    end
+
+    test "search_companies filters to companies missing a founded_date" do
+      companies(:one).update_column(:founded_date, "2020")
+      companies(:two).update_column(:founded_date, "")
+
+      result = call(Mcp::Tools::SearchCompaniesTool, missing_founded_date: true)
+      slugs = result["companies"].map { |company| company["slug"] }
+      assert_includes slugs, "test-company-two"
+      assert_not_includes slugs, "test-company-one"
+    end
+
+    test "backfill_founded_dates enqueues async backfills for blank-year companies" do
+      companies(:one).update_column(:founded_date, "")
+      assert_enqueued_with(job: BackfillFoundedDateJob) do
+        result = call(Mcp::Tools::BackfillFoundedDatesTool, limit: 5)
+        assert_equal "enqueued", result["result"]
+        assert_operator result["enqueued"], :>=, 1
+        assert_includes result["company_ids"], companies(:one).id
+      end
     end
 
     test "suggest_improvement records an audit run" do

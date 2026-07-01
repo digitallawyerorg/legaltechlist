@@ -341,4 +341,29 @@ class CompanyTest < ActiveSupport::TestCase
     refute_includes related, unrelated
     refute_includes related, anchor
   end
+
+  test "missing_founded_date scope finds blank founding years" do
+    with_year = companies(:one)
+    with_year.update_column(:founded_date, "2020")
+
+    blank = companies(:one).dup
+    blank.name = "Yearless Legal Co"
+    blank.main_url = "https://yearless-legal.example"
+    blank.founded_date = ""
+    blank.save!
+
+    ids = Company.missing_founded_date.pluck(:id)
+    assert_includes ids, blank.id
+    refute_includes ids, with_year.id
+  end
+
+  test "founded_date_from_source! requires a plausible year and a source url" do
+    company = companies(:one)
+
+    assert_raises(ArgumentError) { company.founded_date_from_source!(year: "not-a-year", source_url: "https://example.com") }
+    assert_raises(ArgumentError) { company.founded_date_from_source!(year: "2018", source_url: "not a url") }
+
+    company.founded_date_from_source!(year: "2018", source_url: "https://opencorporates.com/companies/x")
+    assert_equal "2018", company.reload.founded_date
+  end
 end

@@ -9,15 +9,17 @@ module Mcp
         properties: {
           query: { type: "string", description: "Free-text query matched against name, description, and location." },
           limit: { type: "integer", description: "Max results (1-25, default 10)." },
-          needs_review: { type: "boolean", description: "Only return companies whose quality_status is needs_review." }
+          needs_review: { type: "boolean", description: "Only return companies whose quality_status is needs_review." },
+          missing_founded_date: { type: "boolean", description: "Only return companies with no founded_date set." }
         },
         required: []
       )
 
-      def self.call(server_context:, query: nil, limit: 10, needs_review: false)
+      def self.call(server_context:, query: nil, limit: 10, needs_review: false, missing_founded_date: false)
         capped = [[limit.to_i, 1].max, 25].min
         scope = Company.publicly_visible.includes(:category, :secondary_category)
         scope = scope.needs_review if needs_review
+        scope = scope.missing_founded_date if missing_founded_date
         scope = scope.text_search(query) if query.present?
         companies = scope.order(:name).limit(capped)
 

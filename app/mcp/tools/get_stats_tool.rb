@@ -19,6 +19,7 @@ module Mcp
             "needs_review" => summary[:needs_review],
             "not_reviewed" => summary[:not_reviewed],
             "missing_url" => summary[:missing_url],
+            "missing_founded_date" => summary[:missing_founded_date],
             "weak_description" => summary[:weak_description],
             "unknown_taxonomy" => summary[:unknown_taxonomy],
             "duplicate_domain_candidates" => summary[:duplicate_domain],

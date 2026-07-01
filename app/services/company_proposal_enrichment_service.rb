@@ -5,6 +5,25 @@ class CompanyProposalEnrichmentService
   MARKETING_TERMS = DescriptionDraftAgent::MARKETING_TERMS
   EARLIEST_PLAUSIBLE_FOUNDING_YEAR = 1970
 
+  # Official business registries — the most authoritative founding-year source.
+  REGISTRY_HOSTS = %w[
+    opencorporates.com
+    companieshouse.gov.uk
+    sec.gov
+    bizfileonline.sos.ca.gov
+    handelsregister.de
+  ].freeze
+
+  # Self-reported company profiles with a documented "Founded" field.
+  PROFILE_HOSTS = %w[
+    linkedin.com
+    crunchbase.com
+  ].freeze
+
+  # Registry/profile hosts we accept for a founding year ONLY when the surrounding
+  # evidence text explicitly names the company (guards against same-name entities).
+  ENTITY_REGISTRY_HOSTS = (REGISTRY_HOSTS + PROFILE_HOSTS).freeze
+
   def self.call(**kwargs)
     new(**kwargs).call
   end
@@ -30,6 +49,62 @@ class CompanyProposalEnrichmentService
     return nil unless Array(allowed_hosts).include?(source_host)
 
     normalized
+  end
+
+  # True when the citing source is (a) on the company's own canonical domain, or
+  # (b) on a known registry/profile host AND the surrounding evidence text explicitly
+  # names the company. This blocks year candidates cited from same-name but different
+  # entities (e.g. apualegal.com for a company whose canonical domain is apua.ai).
+  def self.entity_match?(record, source_url, evidence_text: nil)
+    return false if source_url.blank?
+
+    source_domain = Company.canonical_domain_for(source_url)
+    return false if source_domain.blank?
+
+    own_domain = own_canonical_domain(record)
+    return true if own_domain.present? && domains_related?(source_domain, own_domain)
+
+    return false unless ENTITY_REGISTRY_HOSTS.any? { |host| source_domain == host || source_domain.end_with?(".#{host}") }
+
+    name = display_name_for(record)
+    return false if name.blank? || evidence_text.blank?
+
+    evidence_text.to_s.downcase.include?(name.downcase)
+  end
+
+  # Returns :registry, :profile, :owned, or :other for a candidate source_url.
+  # Used to break ties between multiple entity-matched founding-year candidates.
+  def self.source_tier(source_url, company: nil)
+    domain = Company.canonical_domain_for(source_url)
+    return :other if domain.blank?
+
+    return :registry if REGISTRY_HOSTS.any? { |host| domain == host || domain.end_with?(".#{host}") }
+    return :profile if PROFILE_HOSTS.any? { |host| domain == host || domain.end_with?(".#{host}") }
+
+    own = own_canonical_domain(company)
+    return :owned if own.present? && domains_related?(domain, own)
+
+    :other
+  end
+
+  def self.own_canonical_domain(record)
+    return nil if record.nil?
+    return record.canonical_main_domain if record.respond_to?(:canonical_main_domain)
+
+    if record.respond_to?(:final_changes)
+      main_url = record.final_changes["main_url"].presence || record.try(:source_payload)&.dig("website")
+      return Company.canonical_domain_for(main_url)
+    end
+    nil
+  end
+
+  def self.display_name_for(record)
+    return record.name if record.respond_to?(:name) && record.name.present?
+    record.respond_to?(:display_name) ? record.display_name : nil
+  end
+
+  def self.domains_related?(a, b)
+    a == b || a.end_with?(".#{b}") || b.end_with?(".#{a}")
   end
 
   def initialize(proposal:, admin_user:)
@@ -104,12 +179,16 @@ class CompanyProposalEnrichmentService
   def sourced_founded_year
     return if proposal.final_changes["founded_date"].present?
 
+    candidate_source = llm_payload["founded_year_source"]
     year = self.class.sourced_year(
       year: llm_payload["founded_year"],
-      source: llm_payload["founded_year_source"],
+      source: candidate_source,
       allowed_hosts: evidence_hosts
     )
-    @founded_year_source = llm_payload["founded_year_source"] if year.present?
+    return nil if year.blank?
+    return nil unless self.class.entity_match?(proposal, candidate_source, evidence_text: llm_payload["founded_year_evidence_text"])
+
+    @founded_year_source = candidate_source
     year
   end
 
@@ -124,7 +203,12 @@ class CompanyProposalEnrichmentService
   def founded_year_provenance
     return nil if @founded_year_source.blank?
 
-    { "source_url" => @founded_year_source, "mode" => "web_research_cited", "generated_at" => Time.current.utc.iso8601 }
+    {
+      "source_url" => @founded_year_source,
+      "source_tier" => self.class.source_tier(@founded_year_source, company: proposal).to_s,
+      "mode" => "web_research_cited",
+      "generated_at" => Time.current.utc.iso8601
+    }
   end
 
   def parse_json_content(content)
@@ -209,7 +293,7 @@ class CompanyProposalEnrichmentService
       candidate: source_payload.slice("name", "website", "location", "industries", "operating_status", "company_type", "founded_date", "funding_amount_usd", "number_of_funding_rounds", "founders"),
       source_evidence: source_evidence,
       web_research: research_payload,
-      instruction: "Return JSON with keys proposed_description, founded_year, and founded_year_source. proposed_description: one neutral, academic directory sentence of 18-32 words using concrete product/function language grounded only in evidence; do not copy source descriptions; avoid marketing language, source-meta phrasing, customer counts, unverifiable superlatives, and the phrase 'provides or supports'. founded_year: the 4-digit founding year ONLY if a source explicitly states it (check the 'Founded' field on the company's LinkedIn/Crunchbase profile and official business registries such as OpenCorporates or national registries; prefer an official registry over a self-reported profile if they disagree), otherwise null — never guess or estimate. founded_year_source: the exact source URL (from the evidence/web_research above) that states the founded_year, otherwise null."
+      instruction: "Return JSON with keys proposed_description, founded_year, founded_year_source, and founded_year_evidence_text. proposed_description: one neutral, academic directory sentence of 18-32 words using concrete product/function language grounded only in evidence; do not copy source descriptions; avoid marketing language, source-meta phrasing, customer counts, unverifiable superlatives, and the phrase 'provides or supports'. founded_year: the 4-digit founding year ONLY if a source explicitly states it (check the 'Founded' field on the company's LinkedIn/Crunchbase profile and official business registries such as OpenCorporates or national registries; prefer an official registry over a self-reported profile if they disagree), otherwise null — never guess or estimate. founded_year_source: the exact source URL (from the evidence/web_research above) that states the founded_year, otherwise null. founded_year_evidence_text: a short verbatim snippet from that source that names THIS company and states the year (used to confirm the source is about this company and not a same-named one), otherwise null."
     }.to_json
   end
 

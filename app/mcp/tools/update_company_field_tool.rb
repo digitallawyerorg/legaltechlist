@@ -44,8 +44,10 @@ module Mcp
           return error_response("result" => "blocked", "retryable" => false, "error" => "founded_date requires a source_url citation (cite-only — never guess a founding year).") unless valid_http_url?(source_url)
         end
 
-        applied.each { |field, value| company.public_send("#{field}=", value) }
-        company.save!
+        other_fields = applied.except("founded_date")
+        other_fields.each { |field, value| company.public_send("#{field}=", value) }
+        company.save! if other_fields.any?
+        company.founded_date_from_source!(year: applied["founded_date"], source_url: source_url) if applied["founded_date"].present?
 
         audit!(action: "update_company_field", summary: "Updated #{applied.keys.join(', ')} on #{company.name}", records_processed: 1, details: { "company_id" => company.id, "applied" => applied, "source_url" => source_url })
 

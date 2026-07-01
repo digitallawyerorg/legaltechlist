@@ -5,8 +5,13 @@ class CompanyProposalResearchService
     new(**kwargs).call
   end
 
-  def initialize(proposal:)
+  # Accepts a proposal (proposal enrichment) or a published company (founded_date
+  # backfill). Both paths return the same payload shape (results/summary/etc.).
+  def initialize(proposal: nil, company: nil)
+    raise ArgumentError, "provide proposal: or company:" if proposal.nil? && company.nil?
+
     @proposal = proposal
+    @company = company
   end
 
   def call
@@ -35,7 +40,23 @@ class CompanyProposalResearchService
 
   private
 
-  attr_reader :proposal
+  attr_reader :proposal, :company
+
+  def subject_name
+    proposal ? proposal.display_name : company.name
+  end
+
+  def subject_website
+    proposal ? (source_payload["website"] || proposal.final_changes["main_url"]) : company.main_url
+  end
+
+  def subject_crunchbase
+    proposal ? source_payload["crunchbase_url"] : company.crunchbase_url
+  end
+
+  def subject_linkedin
+    proposal ? source_payload["linkedin_url"] : company.linkedin_url
+  end
 
   def responses_web_search_enabled?
     defined?(RubyLLM::ResponsesAPI::BuiltInTools) &&
@@ -59,10 +80,10 @@ class CompanyProposalResearchService
     <<~PROMPT
       Research this legal technology company for a Stanford CodeX TechIndex proposal.
 
-      Company: #{proposal.display_name}
-      Website: #{source_payload["website"] || proposal.final_changes["main_url"]}
-      Crunchbase: #{source_payload["crunchbase_url"]}
-      LinkedIn: #{source_payload["linkedin_url"]}
+      Company: #{subject_name}
+      Website: #{subject_website}
+      Crunchbase: #{subject_crunchbase}
+      LinkedIn: #{subject_linkedin}
 
       Return a concise neutral evidence summary for drafting a directory description.
       Focus on what the company product or service does, who it serves, and legal workflow context.
@@ -87,11 +108,11 @@ class CompanyProposalResearchService
   end
 
   def research_query
-    [proposal.display_name, source_payload["website"] || proposal.final_changes["main_url"], "legal technology"].compact_blank.join(" ")
+    [subject_name, subject_website, "legal technology"].compact_blank.join(" ")
   end
 
   def source_payload
-    proposal.source_payload || {}
+    proposal&.source_payload || {}
   end
 
   def search_results(citations, search_calls)
