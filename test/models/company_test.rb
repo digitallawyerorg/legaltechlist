@@ -174,7 +174,7 @@ class CompanyTest < ActiveSupport::TestCase
     company = companies(:one)
     CompanyLogo.create!(company: company, data: "\x89PNG\r\n\x1a\n".b, content_type: "image/png")
 
-    assert_equal Rails.application.routes.url_helpers.company_logo_path(company), company.logo
+    assert_equal Rails.application.routes.url_helpers.company_logo_path(company.id), company.logo
   end
 
   test "logo returns legacy external url when present" do
@@ -215,5 +215,130 @@ class CompanyTest < ActiveSupport::TestCase
     company.update!(country: "Netherlands", city: "Amsterdam", location: "Old value")
 
     assert_equal "Amsterdam, Netherlands", company.location
+  end
+
+  test "related_to ranks primary category above shared tags" do
+    anchor = companies(:one)
+    shared_tag = tags(:one)
+
+    category_peer = Company.create!(
+      name: "Category Peer Co",
+      location: "Boston, MA",
+      founded_date: "2019",
+      description: "Category peer company description",
+      category: categories(:one),
+      business_model: business_models(:one),
+      target_client: target_clients(:one),
+      visible: true
+    )
+    tag_peer = Company.create!(
+      name: "Tag Peer Co",
+      location: "Boston, MA",
+      founded_date: "2019",
+      description: "Tag peer company description",
+      category: categories(:two),
+      business_model: business_models(:two),
+      target_client: target_clients(:two),
+      visible: true
+    )
+    tag_peer.tags = [shared_tag]
+
+    related = Company.related_to(anchor)
+
+    assert_includes related, category_peer
+    assert_includes related, tag_peer
+    assert_operator related.index(category_peer), :<, related.index(tag_peer)
+  end
+
+  test "related_to ranks secondary category above shared tags when primary matches" do
+    anchor = companies(:one)
+    anchor.update!(secondary_category: categories(:two))
+    shared_tag = tags(:one)
+
+    secondary_peer = Company.create!(
+      name: "Secondary Peer Co",
+      location: "Boston, MA",
+      founded_date: "2019",
+      description: "Secondary peer company description",
+      category: categories(:one),
+      secondary_category: categories(:two),
+      business_model: business_models(:one),
+      target_client: target_clients(:one),
+      visible: true
+    )
+    tag_only_peer = Company.create!(
+      name: "Tag Only Peer Co",
+      location: "Boston, MA",
+      founded_date: "2019",
+      description: "Tag only peer company description",
+      category: categories(:one),
+      business_model: business_models(:one),
+      target_client: target_clients(:one),
+      visible: true
+    )
+    tag_only_peer.tags = [shared_tag]
+
+    related = Company.related_to(anchor)
+
+    assert_includes related, secondary_peer
+    assert_includes related, tag_only_peer
+    assert_operator related.index(secondary_peer), :<, related.index(tag_only_peer)
+  end
+
+  test "related_to uses shared tag count as final tiebreaker" do
+    anchor = companies(:one)
+    shared_tag = tags(:one)
+    other_tag = tags(:two)
+    anchor.tags = [shared_tag, other_tag]
+
+    more_tags_peer = Company.create!(
+      name: "More Tags Peer Co",
+      location: "Boston, MA",
+      founded_date: "2019",
+      description: "More tags peer company description",
+      category: categories(:one),
+      business_model: business_models(:one),
+      target_client: target_clients(:one),
+      visible: true
+    )
+    fewer_tags_peer = Company.create!(
+      name: "Fewer Tags Peer Co",
+      location: "Boston, MA",
+      founded_date: "2019",
+      description: "Fewer tags peer company description",
+      category: categories(:one),
+      business_model: business_models(:one),
+      target_client: target_clients(:one),
+      visible: true
+    )
+
+    more_tags_peer.tags = [shared_tag, other_tag]
+    fewer_tags_peer.tags = [shared_tag]
+
+    related = Company.related_to(anchor)
+
+    assert_operator related.index(more_tags_peer), :<, related.index(fewer_tags_peer)
+  end
+
+  test "related_to includes category peers when anchor has no tags" do
+    anchor = Company.create!(
+      name: "Untagged Anchor Co",
+      location: "Boston, MA",
+      founded_date: "2019",
+      description: "Untagged anchor company description",
+      category: categories(:one),
+      business_model: business_models(:one),
+      target_client: target_clients(:one),
+      visible: true
+    )
+    peer = companies(:one)
+    peer.update!(category: categories(:one))
+    unrelated = companies(:two)
+
+    related = Company.related_to(anchor)
+
+    assert_includes related, peer
+    refute_includes related, unrelated
+    refute_includes related, anchor
   end
 end

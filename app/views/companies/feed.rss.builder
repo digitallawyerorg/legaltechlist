@@ -20,7 +20,7 @@ xml.rss :version => "2.0" do
         xml.pubDate company.created_at.rfc822
 
         xml.link company_url(company)
-        xml.guid company.id
+        xml.guid company_url(company), isPermaLink: "true"
         xml.category company.category&.name.to_s
 
         text = company.description.to_s

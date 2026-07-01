@@ -30,7 +30,7 @@
         .home-category-grid
             - featured_categories.each do |category|
                 - category_count = @home_category_counts.fetch(category.id, 0)
-                = link_to companies_path(category: category.id), class: "home-category-card" do
+                = link_to category_path(category), class: "home-category-card" do
                     .home-category-icon
                         i class="#{category_icon(category.name)}"
                     .home-category-copy

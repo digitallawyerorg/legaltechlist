@@ -18,7 +18,7 @@ class CompanyDiscoveryService
 
   def self.enqueue(**kwargs)
     service = new(**kwargs)
-    service.validate_options!
+    service.send(:validate_options!)
     run = PipelineRun.create!(
       name: service.send(:pipeline_run_name),
       run_type: RUN_TYPE,

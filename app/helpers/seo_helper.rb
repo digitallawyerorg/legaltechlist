@@ -92,12 +92,15 @@ module SeoHelper
   end
 
   def company_organization_json_ld(company)
+    profile_url = company_url(company)
     data = {
       "@context" => "https://schema.org",
       "@type" => "Organization",
+      "@id" => profile_url,
       "name" => company.name,
-      "url" => company.main_url.presence || company_url(company)
+      "url" => company.main_url.presence || profile_url
     }
+    data["sameAs"] = [profile_url] if company.main_url.present?
     data["description"] = company.description if company.description.present?
     data["foundingDate"] = company.founded_date if company.founded_date.present? && company.founded_date.match?(/^\d{4}$/)
     data["address"] = company.display_location if company.display_location.present?

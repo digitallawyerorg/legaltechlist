@@ -1,4 +1,6 @@
 class BusinessModel < ActiveRecord::Base
+  include UrlSlug
+
   has_many :company_business_models, dependent: :destroy
   has_many :companies, through: :company_business_models
 

@@ -1,4 +1,4 @@
-- form_url = @company.persisted? ? custom_admin_company_path(@company) : custom_admin_companies_path
+- form_url = @company.persisted? ? custom_admin_company_path(@company.id) : custom_admin_companies_path
 - form_method = @company.persisted? ? :patch : :post
 
 - form_html = @company.new_record? ? { id: "new_company_form" } : {}
@@ -18,6 +18,10 @@
                 .col-md-6
                     = f.label :name, class: "form-label"
                     = f.text_field :name, class: "form-control", required: @company.new_record?
+                - if @company.persisted?
+                    .col-md-6
+                        = f.label :slug, "Public URL slug", class: "form-label"
+                        = f.text_field :slug, class: "form-control", placeholder: "auto-generated on create"
                 .col-md-6
                     = f.label :main_url, class: "form-label"
                     = f.text_field :main_url, class: "form-control", required: @company.new_record?

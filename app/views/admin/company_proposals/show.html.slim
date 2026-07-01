@@ -18,7 +18,7 @@
         - else
             i.fas.fa-file-alt
             span.fw-semibold Draft:
-        = link_to @company_proposal.company.name, custom_admin_company_review_path(@company_proposal.company), class: "fw-semibold"
+        = link_to @company_proposal.company.name, custom_admin_company_review_path(@company_proposal.company.id), class: "fw-semibold"
         - if @company_proposal.company.visible?
             span.text-muted.small is visible on the public site.
         - else

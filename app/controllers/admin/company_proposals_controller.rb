@@ -47,12 +47,12 @@ module Admin
       if @company_proposal.user_suggestion?
         company = CompanyProposalApplyUpdateService.call(proposal: @company_proposal, admin_user: current_admin_user, publish: publish)
         SlackNotifier.contribution_decision(@company_proposal, decision: "approved", admin_user: current_admin_user, note: "Applied update to #{company.name}.")
-        redirect_to custom_admin_company_review_path(company), notice: "Update applied to #{company.name}."
+        redirect_to custom_admin_company_review_path(company.id), notice: "Update applied to #{company.name}."
       else
         company = CompanyProposalApprovalService.call(proposal: @company_proposal, admin_user: current_admin_user, duplicate_override: params[:duplicate_override] == "1", publish: publish)
         SlackNotifier.contribution_decision(@company_proposal, decision: "approved", admin_user: current_admin_user, note: publish ? "Published #{company.name}." : "Draft created for #{company.name}.")
         notice = publish ? "#{company.name} was approved and published." : "Invisible company draft created for #{company.name}. Review once more before publication."
-        redirect_to custom_admin_company_review_path(company), notice: notice
+        redirect_to custom_admin_company_review_path(company.id), notice: notice
       end
     rescue ActiveRecord::RecordInvalid, ArgumentError => e
       redirect_to custom_admin_company_proposal_path(@company_proposal), alert: e.message

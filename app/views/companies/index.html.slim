@@ -56,8 +56,13 @@ css:
 
 = render "shared/pagination_styles"
 
-- content_for :title, "Legal Tech Companies"
-- content_for :description, "Browse and search #{number_with_delimiter(@total_count)} legal technology companies in the CodeX TechIndex — filter by category, location, status, and funding."
+- if @taxonomy_facet.present?
+    - content_for :title, "#{@taxonomy_facet[:label]} Companies"
+    - content_for :description, "Browse #{number_with_delimiter(@total_count)} legal technology companies tagged with #{@taxonomy_facet[:label]} in the CodeX TechIndex."
+    - content_for :canonical, "#{site_url}#{taxonomy_facet_path(@taxonomy_facet)}"
+- else
+    - content_for :title, "Legal Tech Companies"
+    - content_for :description, "Browse and search #{number_with_delimiter(@total_count)} legal technology companies in the CodeX TechIndex — filter by category, location, status, and funding."
 - active_params = request.query_parameters.symbolize_keys
 - clear_params = active_params.except(:category, :status, :country, :city, :query, :page)
 - selected_category_ids = company_filter_category_ids
@@ -65,7 +70,7 @@ css:
 .public-company-index
     .company-shell
         main.company-main
-            h1.company-index-title Legal Tech Companies
+            h1.company-index-title= @taxonomy_facet.present? ? "#{@taxonomy_facet[:label]} Companies" : "Legal Tech Companies"
             .company-toolbar
                 = render "filter_bar", clear_params: clear_params, selected_category_ids: selected_category_ids, selected_statuses: selected_statuses
 

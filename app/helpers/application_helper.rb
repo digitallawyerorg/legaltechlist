@@ -16,7 +16,7 @@ module ApplicationHelper
                        .group("categories.id", "categories.name")
                        .count
       counts.map do |(category_id, name), count|
-        { id: category_id, name: name, count: count, icon: category_icon(name), url: companies_path(category: category_id) }
+        { id: category_id, name: name, count: count, icon: category_icon(name), url: category_path(Category.find(category_id)) }
       end.sort_by { |category| -category[:count] }
     end
   end

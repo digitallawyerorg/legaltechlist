@@ -2,10 +2,12 @@
 
 one:
   id: 1
+  slug: subscription
   name: Subscription
   description: Monthly or annual recurring revenue
 
 two:
   id: 2
+  slug: services
   name: Services
   description: Human-delivered service revenue

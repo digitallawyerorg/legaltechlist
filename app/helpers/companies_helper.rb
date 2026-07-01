@@ -1,6 +1,12 @@
 module CompaniesHelper
   def company_filter_category_ids
-    Array(params[:category]).map(&:presence).compact.map(&:to_i)
+    Array(params[:category]).map(&:presence).compact.filter_map do |value|
+      if value.to_s.match?(/\A\d+\z/)
+        value.to_i
+      else
+        Category.find_by(slug: value)&.id
+      end
+    end
   end
 
   def company_filter_statuses
@@ -63,8 +69,17 @@ module CompaniesHelper
     context
   end
 
+  def taxonomy_facet_path(facet)
+    case facet[:type]
+    when :category then category_path(facet[:record])
+    when :business_model then business_model_path(facet[:record])
+    when :target_client then target_client_path(facet[:record])
+    when :tag then tag_path(facet[:record])
+    end
+  end
+
   def company_neighbor_path(neighbor, nav_context)
-    company_path(neighbor[:id], nav_context)
+    company_path(neighbor[:slug], nav_context)
   end
 
   def tag_links(tags)
@@ -212,11 +227,18 @@ module CompaniesHelper
     { label: "LegalTech Atlas", icon: "fa-solid fa-map", icon_color: "#8c1515", url: url, host: company_reference_url_label(url) }
   end
 
+  def company_bing_search_reference(company)
+    name = company.name.to_s.strip
+    query = CGI.escape("tell me more about #{name}")
+    url = "https://www.bing.com/mt?q=#{query}"
+    { label: "Bing", icon: "fa-brands fa-microsoft", icon_color: "#008373", url: url, host: "bing.com Copilot Search" }
+  end
+
   def company_google_search_reference(company)
     name = company.name.to_s.strip
     query = CGI.escape("can you tell me more about #{name}")
     url = "https://www.google.com/search?q=#{query}"
-    { label: "Google", icon: "fa-brands fa-google", icon_color: "#4285f4", url: url, host: "google.com" }
+    { label: "Google", icon: "fa-brands fa-google", icon_color: "#4285f4", url: url, host: "google.com AI Summary" }
   end
 
   def company_citation_entries(company, accessed_on: Date.current)
@@ -258,19 +280,7 @@ module CompaniesHelper
   end
 
   def related_company_list(company)
-    tag_ids = company.tags.map(&:id)
-    return yield([]) if tag_ids.empty?
-
-    related_companies = Company.publicly_visible
-                               .joins(:tags)
-                               .includes(:tags, :category, :secondary_category)
-                               .where(tags: { id: tag_ids })
-                               .where.not(id: company.id)
-                               .distinct
-                               .order(:name)
-                               .limit(9)
-
-    yield(related_companies.to_a)
+    yield(Company.related_to(company))
   end
 
   private

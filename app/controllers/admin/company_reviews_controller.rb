@@ -48,9 +48,9 @@ module Admin
       decision = params[:decision].to_s
       CompanyReviewMarkService.call(company: company, decision: decision, admin_user: current_admin_user)
 
-      redirect_to custom_admin_company_review_path(company), notice: mark_review_notice(decision, company.name)
+      redirect_to custom_admin_company_review_path(company.id), notice: mark_review_notice(decision, company.name)
     rescue ArgumentError => e
-      redirect_to custom_admin_company_review_path(company), alert: e.message
+      redirect_to custom_admin_company_review_path(company.id), alert: e.message
     end
 
     private

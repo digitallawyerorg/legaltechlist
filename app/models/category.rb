@@ -1,4 +1,6 @@
 class Category < ActiveRecord::Base
+  include UrlSlug
+
   has_many :companies
   has_many :sub_categories
 

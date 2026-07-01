@@ -2,10 +2,12 @@
 
 one:
   id: 1
+  slug: law-firms
   name: Law Firms
   description: Services targeting law firms
 
 two:
   id: 2
+  slug: corporate-legal
   name: Corporate Legal
   description: Services targeting corporate legal departments

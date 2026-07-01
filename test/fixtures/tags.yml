@@ -2,8 +2,10 @@
 
 one:
   id: 1
+  slug: ai
   name: AI
 
 two:
   id: 2
+  slug: machine-learning
   name: Machine Learning

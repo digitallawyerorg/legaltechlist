@@ -58,7 +58,7 @@
                                     - if proposal.proposal_type == "discovery_candidate"
                                         span.admin-status-pill.text-bg-secondary Discovery
                                     - if proposal.company
-                                        = link_to "Draft", custom_admin_company_review_path(proposal.company), class: "small text-muted"
+                                        = link_to "Draft", custom_admin_company_review_path(proposal.company.id), class: "small text-muted"
                                 - if proposal.user_submission? && proposal.submitter_email.present?
                                     .small.text-muted= "Submitted by #{proposal.submitter_email}"
                                 - elsif url.present?

@@ -72,7 +72,7 @@ module UserSubmissionProtection
     when "company_suggestion"
       [
         params[:submitter_email],
-        params[:id],
+        params[:slug],
         params[:issue_type],
         params[:message]
       ].map { |value| value.to_s.strip.downcase }.join("|")
@@ -93,7 +93,7 @@ module UserSubmissionProtection
   end
 
   def bot_redirect_path
-    action_name == "create" ? companies_path : company_path(params[:id])
+    action_name == "create" ? companies_path : company_path(params[:slug])
   end
 
   def submission_thank_you_notice
@@ -109,7 +109,7 @@ module UserSubmissionProtection
       end
       render :new, status: status
     else
-      redirect_to company_path(params[:id]), alert: flash.now[:alert]
+      redirect_to company_path(params[:slug]), alert: flash.now[:alert]
     end
   end
 end

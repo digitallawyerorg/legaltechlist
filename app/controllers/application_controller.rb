@@ -35,7 +35,9 @@ class ApplicationController < ActionController::Base
   def public_listing_path?
     request.path == "/companies" ||
       request.path.start_with?("/tags/") ||
-      request.path.start_with?("/categories/")
+      request.path.start_with?("/categories/") ||
+      request.path.start_with?("/business_models/") ||
+      request.path.start_with?("/target_clients/")
   end
 
   def detect_device_variant

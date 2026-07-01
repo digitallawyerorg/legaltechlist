@@ -502,16 +502,32 @@ css:
         color: inherit;
     }
 
-    .company-show-page .company-related-avatar {
+    .company-show-page .company-related-logo-frame {
         align-items: center;
+        background: #fce8e8;
+        border: 1px solid rgba(140, 21, 21, 0.12);
         border-radius: 0.55rem;
-        color: #1f2937;
         display: flex;
         flex: 0 0 2.35rem;
-        font-size: 0.95rem;
-        font-weight: 700;
         height: 2.35rem;
         justify-content: center;
+        width: 2.35rem;
+    }
+
+    .company-show-page .company-related-logo-placeholder {
+        color: #8c1515;
+        font-size: 0.95rem;
+        font-weight: 700;
+    }
+
+    .company-show-page .company-related-logo {
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 0.55rem;
+        flex: 0 0 2.35rem;
+        height: 2.35rem;
+        object-fit: contain;
+        padding: 0.2rem;
         width: 2.35rem;
     }
 
@@ -596,6 +612,7 @@ css:
 - inactive_company_tooltip = CompaniesHelper::INACTIVE_COMPANY_TOOLTIP
 - content_for :title, @company.name
 - content_for :description, truncate(@company.description.to_s, length: 160)
+- content_for :canonical, company_url(@company)
 - content_for :json_ld, company_organization_json_ld(@company)
 - twitter_url = (@company.twitter_url.present? && @company.twitter_url != "n/a") ? (@company.twitter_url.include?("@") ? "https://twitter.com/#{@company.twitter_url[1..-1]}" : @company.twitter_url) : nil
 - status_label = @company.status.present? ? @company.status.titleize : "Unknown"
@@ -621,6 +638,7 @@ css:
 - company_reference_links << { label: "LinkedIn", icon: "fa-brands fa-linkedin", icon_color: "#0a66c2" }.merge(company_reference_link_attrs(@company.linkedin_url)) if @company.linkedin_url.present? && @company.linkedin_url != "n/a"
 - company_reference_links << { label: "X/Twitter", icon: "fa-brands fa-x-twitter", icon_color: "#111827" }.merge(company_reference_link_attrs(twitter_url)) if twitter_url.present?
 - external_reference_links = []
+- external_reference_links << company_bing_search_reference(@company)
 - external_reference_links << { label: "Crunchbase", icon: "fa-solid fa-chart-line", icon_color: "#047857" }.merge(company_reference_link_attrs(@company.crunchbase_url)) if @company.crunchbase_url.present? && @company.crunchbase_url != "n/a"
 - external_reference_links << company_google_search_reference(@company)
 - external_reference_links << { label: "Legal.io", icon: "fa-solid fa-briefcase", icon_color: "#8c1515" }.merge(company_reference_link_attrs(@company.legalio_url)) if @company.legalio_url.present? && @company.legalio_url != "n/a"
@@ -632,8 +650,6 @@ css:
 - reviewed_at = @company.human_reviewed_at || @company.quality_reviewed_at || @company.updated_at
 - reviewed_label = reviewed_at.strftime("%B %Y")
 - citation_accessed_on = Date.current
-- related_avatar_colors = ["#dbeafe", "#fce7f3", "#dcfce7", "#fef3c7", "#ede9fe"]
-
 .company-show-page
     .container.company-show-container.pb-4.pb-lg-5
         - if flash[:notice]
@@ -689,7 +705,7 @@ css:
                     - if secondary_category_name.present? && secondary_category_name != "Unknown"
                         span.company-about-keyword= secondary_category_name
                     - @company.tags.each do |tag|
-                        = link_to tag.name, tag_path(tag.name), class: "company-about-keyword"
+                        = link_to tag.name, tag_path(tag), class: "company-about-keyword"
 
         section.company-section
             .company-section-label Key facts
@@ -742,11 +758,14 @@ css:
                 section.company-section
                     .company-section-label Related companies
                     .company-related-grid
-                        - related_companies.each_with_index do |related, index|
+                        - related_companies.each do |related|
                             - related_label = (related.secondary_category&.name.present? && related.secondary_category.name != "Unknown") ? related.secondary_category.name : (related.category&.name.presence || "Legal tech")
                             = link_to company_path(related), class: "company-related-card" do
-                                .company-related-avatar style="background: #{related_avatar_colors[index % related_avatar_colors.length]};"
-                                    = related.name.to_s.first
+                                - if related.logo_placeholder?
+                                    .company-related-logo-frame
+                                        .company-related-logo-placeholder= related.name.to_s.first
+                                - else
+                                    = image_tag related.logo, alt: "#{related.name} logo", class: "company-related-logo", loading: "lazy"
                                 div
                                     .company-related-name= related.name
                                     .company-related-category= related_label

@@ -1,5 +1,6 @@
 class CompaniesController < ApplicationController
   include UserSubmissionProtection
+  include TaxonomyFacetLookup
 
   FEED_COMPANY_LIMIT = 100
 
@@ -49,6 +50,7 @@ class CompaniesController < ApplicationController
   def map
     @companies = Company.publicly_visible.where.not(latitude: nil).where.not(longitude: nil)
     @hash = Gmaps4rails.build_markers(@companies) do |company, marker|
+      profile_path = company_path(company)
       marker.lat company.latitude
       marker.lng company.longitude
       contentString = '<div id="content">'+
@@ -59,10 +61,7 @@ class CompaniesController < ApplicationController
         '<p>' +
         company.description +
         '</p>'+
-        '(last updated June 22, 2009).</p>'+
-        '<a href="/companies/' +
-        company.id.to_s +
-        '" class="btn btn-default">View Info</a>' +
+        '<a href="' + profile_path + '" class="btn btn-default">View Info</a>' +
         '</div>'+
         '</div>';
       marker.infowindow contentString
@@ -149,15 +148,31 @@ class CompaniesController < ApplicationController
       companies = Company.publicly_visible.includes(:category)
 
       companies = companies.text_search(source_params[:query]) if source_params[:query].present?
-      category_ids = selected_category_ids(source_params)
+      category_ids = @facet_category_ids.presence || selected_category_ids(source_params)
       companies = companies.where(category_id: category_ids) if category_ids.any?
+      companies = apply_business_model_filter(companies, @facet_business_model_ids) if @facet_business_model_ids.present?
+      companies = apply_target_client_filter(companies, @facet_target_client_ids) if @facet_target_client_ids.present?
+      companies = companies.joins(:tags).where(tags: { id: @facet_tag_id }) if @facet_tag_id.present?
       companies = companies.where(country: source_params[:country]) if source_params[:country].present?
       companies = companies.where("city ILIKE ?", "%#{source_params[:city]}%") if source_params[:city].present?
       companies = companies.where("location ILIKE ?", "%#{source_params[:location]}%") if source_params[:location].present?
       statuses = selected_statuses(source_params)
       companies = companies.where("LOWER(TRIM(status)) IN (?)", statuses) if statuses.any?
 
-      apply_company_sort(companies, source_params[:sort])
+      apply_company_sort(companies, source_params[:sort]).then do |scoped|
+        needs_distinct = @facet_tag_id.present? || @facet_business_model_ids.present? || @facet_target_client_ids.present?
+        needs_distinct ? scoped.distinct : scoped
+      end
+    end
+
+    def apply_business_model_filter(companies, business_model_ids)
+      join_ids = CompanyBusinessModel.where(business_model_id: business_model_ids).select(:company_id)
+      companies.where(business_model_id: business_model_ids).or(companies.where(id: join_ids))
+    end
+
+    def apply_target_client_filter(companies, target_client_ids)
+      join_ids = CompanyTargetClient.where(target_client_id: target_client_ids).select(:company_id)
+      companies.where(target_client_id: target_client_ids).or(companies.where(id: join_ids))
     end
 
     def apply_company_sort(companies, sort_param)
@@ -193,7 +208,7 @@ class CompaniesController < ApplicationController
       @company_neighbors = company_neighbors_for(@company, @companies_nav_context)
 
       return if @company_neighbors.values.compact.any?
-      return if filtered_companies_scope(@companies_nav_context).exists?(id: @company.id)
+      return if filtered_companies_scope(@companies_nav_context).where(companies: { id: @company.id }).exists?
 
       @companies_nav_context = DEFAULT_NAVIGATION_CONTEXT
       @company_neighbors = company_neighbors_for(@company, @companies_nav_context)
@@ -201,19 +216,19 @@ class CompaniesController < ApplicationController
 
     def company_neighbors_for(company, context)
       scope = filtered_companies_scope(context)
-      company_rows = scope.pluck(:id, :name)
-      index = company_rows.index { |company_id, _name| company_id == company.id }
+      company_rows = scope.unscope(:order).order(Arel.sql("companies.name ASC, companies.id ASC")).pluck("companies.id", "companies.name", "companies.slug")
+      index = company_rows.index { |company_id, _name, _slug| company_id == company.id }
       return { prev: nil, next: nil } unless index
 
       count = company_rows.length
       prev_index = index.positive? ? index - 1 : count - 1
       next_index = index < count - 1 ? index + 1 : 0
-      prev_id, prev_name = company_rows[prev_index]
-      next_id, next_name = company_rows[next_index]
+      _prev_id, prev_name, prev_slug = company_rows[prev_index]
+      _next_id, next_name, next_slug = company_rows[next_index]
 
       {
-        prev: { id: prev_id, name: prev_name },
-        next: { id: next_id, name: next_name }
+        prev: { slug: prev_slug, name: prev_name },
+        next: { slug: next_slug, name: next_name }
       }
     end
 
@@ -232,7 +247,13 @@ class CompaniesController < ApplicationController
     end
 
     def selected_category_ids(source_params = params)
-      Array(source_params[:category]).map(&:presence).compact.map(&:to_i)
+      Array(source_params[:category]).map(&:presence).compact.filter_map do |value|
+        if value.to_s.match?(/\A\d+\z/)
+          value.to_i
+        else
+          Category.find_by(slug: value)&.id
+        end
+      end
     end
 
     def selected_statuses(source_params = params)
@@ -240,8 +261,26 @@ class CompaniesController < ApplicationController
     end
 
     def set_company
-      scope = action_name == "show" ? Company.includes(:category, :secondary_category, :successor_company, :business_model, :business_models, :company_logo, :target_client, :target_clients, :tags) : Company
-      @company = scope.find(params[:id])
+      param = params[:slug].to_s
+      loaded_scope = company_lookup_scope
+
+      if param.match?(/\A\d+\z/)
+        company = Company.find_by(id: param.to_i)
+        raise ActiveRecord::RecordNotFound unless company
+
+        if company.slug.present?
+          redirect_to company_path(company, companies_navigation_context), status: :moved_permanently
+          return
+        end
+
+        @company = loaded_scope.find(company.id)
+      else
+        @company = loaded_scope.find_by_slug_or_id!(param, scope: loaded_scope)
+      end
+    end
+
+    def company_lookup_scope
+      Company.publicly_visible.includes(:category, :secondary_category, :successor_company, :business_model, :business_models, :company_logo, :target_client, :target_clients, :tags)
     end
 
     def suggest_update_params

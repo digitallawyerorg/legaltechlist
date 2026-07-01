@@ -3,6 +3,7 @@ require 'test_helper'
 class CompaniesControllerTest < ActionController::TestCase
   setup do
     @company = companies(:one)
+    @request.env["PATH_INFO"] = companies_path
   end
 
   test "should get index" do
@@ -41,8 +42,9 @@ class CompaniesControllerTest < ActionController::TestCase
   test "index only includes publicly visible companies" do
     hidden = @company.dup
     hidden.name = "Hidden Company"
+    hidden.slug = "hidden-company-test"
     hidden.visible = false
-    hidden.save!
+    hidden.save!(validate: false)
 
     get :index
 
@@ -75,7 +77,9 @@ class CompaniesControllerTest < ActionController::TestCase
   end
 
   test "index filters by category" do
-    get :index, params: { category: @company.category_id }
+    category = categories(:one)
+    @request.env["PATH_INFO"] = category_path(category)
+    get :index, params: { category: category.slug }
 
     assert_response :success
     assert_includes assigns(:companies), @company
@@ -146,8 +150,9 @@ class CompaniesControllerTest < ActionController::TestCase
   test "rss feed is limited to recent visible companies" do
     hidden = @company.dup
     hidden.name = "Hidden Feed Company"
+    hidden.slug = "hidden-feed-company"
     hidden.visible = false
-    hidden.save!
+    hidden.save!(validate: false)
 
     get :feed, format: :rss
 
@@ -242,12 +247,12 @@ class CompaniesControllerTest < ActionController::TestCase
   end
 
   test "should show company" do
-    get :show, params: { id: @company }
+    get :show, params: { slug: @company }
     assert_response :success
   end
 
   test "show renders prev and next navigation in default name order" do
-    get :show, params: { id: companies(:two) }
+    get :show, params: { slug: companies(:two) }
 
     assert_response :success
     assert_select "nav.company-show-nav"
@@ -256,7 +261,7 @@ class CompaniesControllerTest < ActionController::TestCase
   end
 
   test "show next link uses default name order for direct visits" do
-    get :show, params: { id: @company }
+    get :show, params: { slug: @company }
 
     assert_response :success
     assert_select "nav.company-show-nav a.company-show-nav-next[href=?]", company_path(companies(:two), sort: "name_asc")
@@ -264,7 +269,7 @@ class CompaniesControllerTest < ActionController::TestCase
   end
 
   test "show prev and next wrap within active category filter" do
-    get :show, params: { id: companies(:two), category: [companies(:two).category_id], sort: "name_asc" }
+    get :show, params: { slug: companies(:two), category: [companies(:two).category_id], sort: "name_asc" }
 
     assert_response :success
     assert_select "nav.company-show-nav a.company-show-nav-prev[href=?]", company_path(companies(:two), sort: "name_asc", category: [companies(:two).category_id])
@@ -272,14 +277,14 @@ class CompaniesControllerTest < ActionController::TestCase
   end
 
   test "show falls back to default name order when company is outside filter context" do
-    get :show, params: { id: companies(:two), category: [@company.category_id], sort: "name_asc" }
+    get :show, params: { slug: companies(:two), category: [@company.category_id], sort: "name_asc" }
 
     assert_response :success
     assert_select "nav.company-show-nav a.company-show-nav-prev[href=?]", company_path(companies(:one), sort: "name_asc")
   end
 
   test "show preserves filter context in neighbor links" do
-    get :show, params: { id: @company, sort: "founded_desc" }
+    get :show, params: { slug: @company, sort: "founded_desc" }
 
     assert_response :success
     assert_select "nav.company-show-nav a.company-show-nav-prev[href=?]", company_path(companies(:two), sort: "founded_desc")
@@ -287,14 +292,14 @@ class CompaniesControllerTest < ActionController::TestCase
   end
 
   test "show with text search query resolves neighbor navigation without ambiguous sql" do
-    get :show, params: { id: @company, query: @company.name, sort: "founded_desc" }
+    get :show, params: { slug: @company, query: @company.name, sort: "founded_desc" }
 
     assert_response :success
     assert_select "nav.company-show-nav"
   end
 
   test "show omits visit website button and renders external link after url" do
-    get :show, params: { id: @company }
+    get :show, params: { slug: @company }
 
     assert_response :success
     assert_select ".company-visit-btn", count: 0
@@ -307,7 +312,7 @@ class CompaniesControllerTest < ActionController::TestCase
   test "show renders inactive company url without link and disables reference links" do
     @company.update_columns(status: "inactive")
 
-    get :show, params: { id: @company }
+    get :show, params: { slug: @company }
 
     assert_response :success
     assert_select ".company-hero-website-inactive[title=?]", CompaniesHelper::INACTIVE_COMPANY_TOOLTIP
@@ -318,14 +323,14 @@ class CompaniesControllerTest < ActionController::TestCase
   end
 
   test "index company links include list context for show navigation" do
-    get :index, params: { sort: "name_asc", category: @company.category_id }
+    get :index, params: { sort: "name_asc", category: [@company.category_id, companies(:two).category_id] }
 
     assert_response :success
-    assert_select "a.company-name-link[href=?]", company_path(@company, sort: "name_asc", category: [@company.category_id])
+    assert_select "a.company-name-link[href=?]", company_path(@company, sort: "name_asc", category: [@company.category_id, companies(:two).category_id])
   end
 
   test "show renders suggest an update button and modal" do
-    get :show, params: { id: @company }
+    get :show, params: { slug: @company }
 
     assert_response :success
     assert_select "button.company-suggest-update-btn[data-suggest-update-open]", text: /Suggest an update/
@@ -342,7 +347,7 @@ class CompaniesControllerTest < ActionController::TestCase
     assert_no_difference -> { ActionMailer::Base.deliveries.size } do
       assert_difference "CompanyProposal.count", 1 do
         post :suggest_update, params: {
-          id: @company,
+          slug: @company,
           issue_type: "incorrect_details",
           message: "Founded year should be 2014.",
           source_url: "https://example.com/about",
@@ -360,7 +365,7 @@ class CompaniesControllerTest < ActionController::TestCase
 
   test "suggest update requires issue type and message" do
     assert_no_difference -> { ActionMailer::Base.deliveries.size } do
-      post :suggest_update, params: { id: @company, issue_type: "", message: "" }
+      post :suggest_update, params: { slug: @company, issue_type: "", message: "" }
     end
 
     assert_redirected_to company_path(@company)
@@ -370,7 +375,7 @@ class CompaniesControllerTest < ActionController::TestCase
   test "suggest update requires submitter email" do
     assert_no_difference -> { ActionMailer::Base.deliveries.size } do
       post :suggest_update, params: {
-        id: @company,
+        slug: @company,
         issue_type: "incorrect_details",
         message: "Founded year should be 2014.",
         submitter_email: ""
@@ -384,7 +389,7 @@ class CompaniesControllerTest < ActionController::TestCase
   test "suggest update honeypot silently accepts without creating proposal" do
     assert_no_difference "CompanyProposal.count" do
       post :suggest_update, params: {
-        id: @company,
+        slug: @company,
         website_url: "http://bot.example",
         issue_type: "incorrect_details",
         message: "Founded year should be 2014.",
@@ -398,7 +403,7 @@ class CompaniesControllerTest < ActionController::TestCase
   test "suggest update rejects unsupported issue type" do
     assert_no_difference "CompanyProposal.count" do
       post :suggest_update, params: {
-        id: @company,
+        slug: @company,
         issue_type: "spam_issue",
         message: "Founded year should be 2014.",
         submitter_email: "reviewer@example.com"
@@ -412,7 +417,7 @@ class CompaniesControllerTest < ActionController::TestCase
   test "suggest update rejects short messages" do
     assert_no_difference "CompanyProposal.count" do
       post :suggest_update, params: {
-        id: @company,
+        slug: @company,
         issue_type: "incorrect_details",
         message: "Too short",
         submitter_email: "reviewer@example.com"
@@ -433,20 +438,20 @@ class CompaniesControllerTest < ActionController::TestCase
 
   test "public edit route is not available" do
     assert_raises(ActionController::UrlGenerationError) do
-      get :edit, params: { id: @company }
+      get :edit, params: { slug: @company }
     end
   end
 
   test "public update route is not available" do
     assert_raises(ActionController::UrlGenerationError) do
-      patch :update, params: { id: @company, company_contribution: contribution_params }
+      patch :update, params: { slug: @company, company_contribution: contribution_params }
     end
   end
 
   test "public company destroy route is not available" do
     assert_no_difference('Company.count') do
       assert_raises(ActionController::UrlGenerationError) do
-        delete :destroy, params: { id: @company }
+        delete :destroy, params: { slug: @company }
       end
     end
   end

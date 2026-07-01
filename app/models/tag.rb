@@ -1,4 +1,6 @@
 class Tag < ActiveRecord::Base
+  include UrlSlug
+
   has_many :taggings, dependent: :destroy
   has_many :companies, through: :taggings
 

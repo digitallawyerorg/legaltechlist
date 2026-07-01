@@ -101,6 +101,17 @@ class CompaniesHelperTest < ActionView::TestCase
     assert_equal "legaltechatlas.com/companies/clio", reference[:host]
   end
 
+  test "company_bing_search_reference builds a bing copilot search url for the company name" do
+    company = companies(:one)
+    company.name = "Legal.io"
+
+    reference = company_bing_search_reference(company)
+
+    assert_equal "Bing", reference[:label]
+    assert_equal "https://www.bing.com/mt?q=tell+me+more+about+Legal.io", reference[:url]
+    assert_equal "bing.com Copilot Search", reference[:host]
+  end
+
   test "company_google_search_reference builds a google search url for the company name" do
     company = companies(:one)
     company.name = "Legal.io"
@@ -109,7 +120,7 @@ class CompaniesHelperTest < ActionView::TestCase
 
     assert_equal "Google", reference[:label]
     assert_equal "https://www.google.com/search?q=can+you+tell+me+more+about+Legal.io", reference[:url]
-    assert_equal "google.com", reference[:host]
+    assert_equal "google.com AI Summary", reference[:host]
   end
 
   test "company_reference_url_label returns a schemeless url for display" do
@@ -122,6 +133,17 @@ class CompaniesHelperTest < ActionView::TestCase
   test "company_reference_link_url normalizes urls used in reference links" do
     assert_equal "https://legal.io", company_reference_link_url("legal.io")
     assert_equal "https://legal.io/about", company_reference_link_url("https://legal.io/about")
+  end
+
+  test "company_citation_entries use slug profile urls" do
+    company = companies(:one)
+    company.name = "Legal.io"
+
+    entries = company_citation_entries(company, accessed_on: Date.new(2026, 7, 1))
+
+    assert_includes entries[0][:citation], "/companies/#{company.slug}"
+    assert_includes entries[1][:citation], "/companies/#{company.slug}"
+    assert_includes entries[2][:citation], "url = {http://test.host/companies/#{company.slug}}"
   end
 
   test "company_citation_entries returns bluebook apa and bibtex formats" do

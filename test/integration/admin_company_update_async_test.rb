@@ -35,7 +35,7 @@ class AdminCompanyUpdateAsyncTest < ActionDispatch::IntegrationTest
 
     assert_enqueued_with(job: LegaltechAtlasLinkSyncJob, args: [company.id]) do
       assert_enqueued_with(job: CompanyLogoFetchJob, args: [company.id]) do
-        patch custom_admin_company_path(company), params: {
+        patch custom_admin_company_path(company.id), params: {
           company: {
             name: company.name,
             description: company.description,
@@ -52,7 +52,7 @@ class AdminCompanyUpdateAsyncTest < ActionDispatch::IntegrationTest
       end
     end
 
-    assert_redirected_to custom_admin_company_review_path(company)
+    assert_redirected_to custom_admin_company_review_path(company.id)
     assert_not sync_called, "expected LegaltechAtlasLinkSyncService.sync_one not to run during the HTTP request"
     assert_not logo_fetch_called, "expected LogoFetcherService.fetch_for_company not to run during the HTTP request"
   ensure
@@ -65,7 +65,7 @@ class AdminCompanyUpdateAsyncTest < ActionDispatch::IntegrationTest
     company = companies(:one)
 
     assert_no_enqueued_jobs only: [LegaltechAtlasLinkSyncJob, CompanyLogoFetchJob] do
-      patch custom_admin_company_path(company), params: {
+      patch custom_admin_company_path(company.id), params: {
         company: {
           name: company.name,
           description: company.description,
@@ -81,7 +81,7 @@ class AdminCompanyUpdateAsyncTest < ActionDispatch::IntegrationTest
       }
     end
 
-    assert_redirected_to custom_admin_company_review_path(company)
+    assert_redirected_to custom_admin_company_review_path(company.id)
     assert_equal "https://www.legal.io/legal-software/130/test", company.reload.legalio_url
   end
 end

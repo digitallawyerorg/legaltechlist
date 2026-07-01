@@ -1,4 +1,6 @@
 class TargetClient < ActiveRecord::Base
+  include UrlSlug
+
   has_many :companies
 
   scope :canonical, -> {

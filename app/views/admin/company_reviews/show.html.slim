@@ -34,8 +34,13 @@
                     = link_to @company.main_url, class: "admin-company-review-website", target: "_blank", rel: "noopener" do
                         = website_display_label(@company.main_url)
                         i.fas.fa-arrow-up-right-from-square.ms-1.small aria-hidden="true"
+            - if @company.slug.present?
+                .mt-1
+                    = link_to company_path(@company), class: "admin-company-review-website", target: "_blank", rel: "noopener" do
+                        | Public profile
+                        i.fas.fa-arrow-up-right-from-square.ms-1.small aria-hidden="true"
     .admin-proposal-toolbar-primary
-        = link_to edit_custom_admin_company_path(@company), class: "btn btn-outline-secondary" do
+        = link_to edit_custom_admin_company_path(@company.id), class: "btn btn-outline-secondary" do
             i.fas.fa-pen.me-1
             | Edit
         .dropdown
@@ -43,24 +48,24 @@
                 | More
                 i.fas.fa-chevron-down.ms-1.small
             .dropdown-menu.dropdown-menu-end
-                = button_to custom_admin_company_mark_review_path(@company), method: :post, params: { decision: "needs_work" }, class: "dropdown-item", form: { data: { turbo_confirm: "Mark #{@company.name} as needing more review?" } } do
+                = button_to custom_admin_company_mark_review_path(@company.id), method: :post, params: { decision: "needs_work" }, class: "dropdown-item", form: { data: { turbo_confirm: "Mark #{@company.name} as needing more review?" } } do
                     i.fas.fa-clock.me-2
                     | Needs more work
-                = button_to custom_admin_company_mark_review_path(@company), method: :post, params: { decision: "reject" }, class: "dropdown-item text-danger", form: { data: { turbo_confirm: "Reject and hide #{@company.name}?" } } do
+                = button_to custom_admin_company_mark_review_path(@company.id), method: :post, params: { decision: "reject" }, class: "dropdown-item text-danger", form: { data: { turbo_confirm: "Reject and hide #{@company.name}?" } } do
                     i.fas.fa-ban.me-2
                     | Reject and hide
                 hr.dropdown-divider
-                = button_to custom_admin_company_agent_review_path(@company), method: :post, class: "dropdown-item", form: { data: { turbo_confirm: "Run a proposal-only agent review for this company?" } } do
+                = button_to custom_admin_company_agent_review_path(@company.id), method: :post, class: "dropdown-item", form: { data: { turbo_confirm: "Run a proposal-only agent review for this company?" } } do
                     i.fas.fa-robot.me-2
                     | Agent review
-                = button_to custom_admin_company_duplicate_review_path(@company), method: :post, class: "dropdown-item", form: { data: { turbo_confirm: "Run a proposal-only duplicate-domain review for this company?" } } do
+                = button_to custom_admin_company_duplicate_review_path(@company.id), method: :post, class: "dropdown-item", form: { data: { turbo_confirm: "Run a proposal-only duplicate-domain review for this company?" } } do
                     i.fas.fa-clone.me-2
                     | Duplicate review
                 hr.dropdown-divider
-                = button_to custom_admin_company_path(@company), method: :delete, class: "dropdown-item text-danger", form: { data: { turbo_confirm: "Delete #{@company.name}? This permanently removes the company record from TechIndex." } } do
+                = button_to custom_admin_company_path(@company.id), method: :delete, class: "dropdown-item text-danger", form: { data: { turbo_confirm: "Delete #{@company.name}? This permanently removes the company record from TechIndex." } } do
                     i.fas.fa-trash-alt.me-2
                     | Delete
-        = button_to custom_admin_company_mark_review_path(@company), method: :post, params: { decision: "verified" }, class: "btn btn-success", form: { data: { turbo_confirm: "Mark #{@company.name} as verified?" } } do
+        = button_to custom_admin_company_mark_review_path(@company.id), method: :post, params: { decision: "verified" }, class: "btn btn-success", form: { data: { turbo_confirm: "Mark #{@company.name} as verified?" } } do
             i.fas.fa-check.me-1
             | Mark verified
 
@@ -111,7 +116,7 @@
                     dt.col-sm-3 Successor company
                     dd.col-sm-9
                         - if @company.successor_company
-                            = link_to @company.successor_company.name, custom_admin_company_review_path(@company.successor_company)
+                            = link_to @company.successor_company.name, custom_admin_company_review_path(@company.successor_company.id)
                         - else
                             = blank_value
 
@@ -190,7 +195,7 @@
                                 - @duplicate_domain_companies.each_with_index do |company, index|
                                     - if index.positive?
                                         | , 
-                                    = link_to company.name, custom_admin_company_review_path(company)
+                                    = link_to company.name, custom_admin_company_review_path(company.id)
                         - else
                             i.fas.fa-check-circle.text-success aria-hidden="true"
                             span
@@ -205,7 +210,7 @@
                                 - @duplicate_name_companies.each_with_index do |company, index|
                                     - if index.positive?
                                         | , 
-                                    = link_to company.name, custom_admin_company_review_path(company)
+                                    = link_to company.name, custom_admin_company_review_path(company.id)
                         - else
                             i.fas.fa-check-circle.text-success aria-hidden="true"
                             span
@@ -243,7 +248,7 @@
             .card-header.bg-white
                 h2.h5.mb-0 System Metadata
             .card-body.py-2
-                - system_rows = [["ID", @company.id.to_s], ["Canonical domain", field_value.call(@company.canonical_domain.presence || @company.canonical_main_domain)], ["Fingerprint", field_value.call(@company.fingerprint)], ["Created at", compact_date.call(@company.created_at)], ["Updated at", compact_date.call(@company.updated_at)]]
+                - system_rows = [["ID", @company.id.to_s], ["Slug", field_value.call(@company.slug)], ["Canonical domain", field_value.call(@company.canonical_domain.presence || @company.canonical_main_domain)], ["Fingerprint", field_value.call(@company.fingerprint)], ["Created at", compact_date.call(@company.created_at)], ["Updated at", compact_date.call(@company.updated_at)]]
                 .list-group.list-group-flush
                     - system_rows.each do |label, value|
                         .list-group-item.px-0.border-0.py-2

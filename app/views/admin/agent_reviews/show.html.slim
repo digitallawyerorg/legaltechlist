@@ -23,7 +23,7 @@
                 h2.h5.mb-0 Linked Company
             .card-body
                 - if @company
-                    .fw-semibold= link_to @company.name, custom_admin_company_review_path(@company)
+                    .fw-semibold= link_to @company.name, custom_admin_company_review_path(@company.id)
                     .text-muted.small= @company.main_url.presence || "Missing URL"
                 - else
                     p.text-muted.mb-0 This agent output is not linked to a company.

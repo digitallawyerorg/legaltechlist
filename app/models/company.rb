@@ -3,6 +3,7 @@ require "uri"
 
 class Company < ActiveRecord::Base
   include CompanyQualityReview
+  include UrlSlug
 
   attr_accessor :skip_geocoding
 
@@ -90,6 +91,63 @@ class Company < ActiveRecord::Base
 
   def self.tagged_with(name)
     Tag.find_by!(name: name).companies
+  end
+
+  def self.related_to(company, limit: 9)
+    tag_ids = company.tag_ids
+    category_id = company.category_id
+    secondary_category_id = company.secondary_category_id
+
+    return [] if category_id.blank? && secondary_category_id.blank? && tag_ids.empty?
+
+    relevance_conditions = []
+    relevance_binds = {}
+
+    if category_id.present?
+      relevance_conditions << "companies.category_id = :category_id"
+      relevance_binds[:category_id] = category_id
+    end
+
+    if secondary_category_id.present?
+      relevance_conditions << "companies.secondary_category_id = :secondary_category_id"
+      relevance_binds[:secondary_category_id] = secondary_category_id
+    end
+
+    if tag_ids.any?
+      relevance_conditions << "companies.id IN (SELECT company_id FROM taggings WHERE tag_id IN (:tag_ids))"
+      relevance_binds[:tag_ids] = tag_ids
+    end
+
+    primary_score = if category_id.present?
+                      sanitize_sql_array(["CASE WHEN companies.category_id = ? THEN 1 ELSE 0 END", category_id])
+                    else
+                      "0"
+                    end
+    secondary_score = if secondary_category_id.present?
+                        sanitize_sql_array(["CASE WHEN companies.secondary_category_id = ? THEN 1 ELSE 0 END", secondary_category_id])
+                      else
+                        "0"
+                      end
+
+    scope = publicly_visible
+              .where.not(id: company.id)
+              .where(relevance_conditions.join(" OR "), **relevance_binds)
+
+    scope = if tag_ids.any?
+              scope
+                .left_joins(:taggings)
+                .select("companies.*, #{primary_score} AS primary_category_match, #{secondary_score} AS secondary_category_match, COUNT(CASE WHEN taggings.tag_id IN (#{tag_ids.map { |id| connection.quote(id) }.join(',')}) THEN 1 END) AS shared_tags_count")
+                .group("companies.id")
+            else
+              scope
+                .select("companies.*, #{primary_score} AS primary_category_match, #{secondary_score} AS secondary_category_match, 0 AS shared_tags_count")
+            end
+
+    scope
+      .order(Arel.sql("primary_category_match DESC"), Arel.sql("secondary_category_match DESC"), Arel.sql("shared_tags_count DESC"), "companies.name ASC")
+      .limit(limit)
+      .preload(:category, :secondary_category, :company_logo)
+      .to_a
   end
 
   def self.normalized_name_value(value)
@@ -397,7 +455,7 @@ class Company < ActiveRecord::Base
 
   def logo
     if company_logo.present?
-      Rails.application.routes.url_helpers.company_logo_path(self)
+      Rails.application.routes.url_helpers.company_logo_path(id)
     elsif logo_url.present? && !logo_dev_url?(logo_url)
       logo_url
     else

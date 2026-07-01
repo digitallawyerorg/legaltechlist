@@ -203,7 +203,7 @@ module MethodologyHelper
     record_citation = if example_company
                         "Stanford Center for Legal Informatics (CodeX), CodeX TechIndex, #{example_company.name}, #{company_url(example_company, **url_options)} (last visited #{accessed_on})."
                       else
-                        "Stanford Center for Legal Informatics (CodeX), CodeX TechIndex, [Company Name], #{site_url}/companies/[id] (last visited #{accessed_on})."
+                        "Stanford Center for Legal Informatics (CodeX), CodeX TechIndex, [Company Name], #{site_url}/companies/[slug] (last visited #{accessed_on})."
                       end
 
     [

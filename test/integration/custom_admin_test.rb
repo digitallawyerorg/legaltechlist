@@ -97,7 +97,7 @@ class CustomAdminTest < ActionDispatch::IntegrationTest
   test "company review show is available to signed-in admin users" do
     sign_in admin_users(:one)
 
-    get custom_admin_company_review_path(companies(:one))
+    get custom_admin_company_review_path(companies(:one).id)
 
     assert_response :success
     assert_select "h1", companies(:one).name
@@ -124,9 +124,9 @@ class CustomAdminTest < ActionDispatch::IntegrationTest
     company = companies(:one)
     company.update_columns(quality_status: nil, verification_verdict: nil, human_reviewed_at: nil, verified_at: nil)
 
-    post custom_admin_company_mark_review_path(company), params: { decision: "verified" }
+    post custom_admin_company_mark_review_path(company.id), params: { decision: "verified" }
 
-    assert_redirected_to custom_admin_company_review_path(company)
+    assert_redirected_to custom_admin_company_review_path(company.id)
     company.reload
     assert_equal "verified", company.quality_status
     assert_equal "human_confirmed", company.verification_verdict
@@ -148,7 +148,7 @@ class CustomAdminTest < ActionDispatch::IntegrationTest
   end
 
   test "company agent review action requires authentication" do
-    post custom_admin_company_agent_review_path(companies(:one))
+    post custom_admin_company_agent_review_path(companies(:one).id)
 
     assert_redirected_to new_admin_user_session_path
   end
@@ -159,7 +159,7 @@ class CustomAdminTest < ActionDispatch::IntegrationTest
     original_attributes = company.attributes.slice("name", "description", "main_url", "visible", "quality_status", "verification_verdict", "quality_score", "canonical_domain", "fingerprint", "updated_at")
 
     assert_difference "PipelineRun.count", 1 do
-      post custom_admin_company_agent_review_path(company)
+      post custom_admin_company_agent_review_path(company.id)
     end
 
     run = PipelineRun.order(:created_at).last
@@ -379,7 +379,7 @@ class CustomAdminTest < ActionDispatch::IntegrationTest
     assert_select "select[name='review_signal']"
     assert_select "select[name='review_state']"
     assert_select "a[href='#{custom_admin_companies_path(review_signal: 'missing_url')}']"
-    assert_select "form[action='#{custom_admin_company_path(company)}'][method='post'] input[name='_method'][value='delete']"
+    assert_select "form[action='#{custom_admin_company_path(company.id)}'][method='post'] input[name='_method'][value='delete']"
     assert_select "button", "Delete"
 
     companies(:two).update_columns(visible: false)
@@ -392,7 +392,7 @@ class CustomAdminTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "td", text: /#{Regexp.escape(companies(:one).name)}/
 
-    get edit_custom_admin_company_path(company)
+    get edit_custom_admin_company_path(company.id)
     assert_response :success
     assert_select "h1", "Edit #{company.name}"
     assert_select "input[name='company[codex_presenter]'][type='checkbox']"
@@ -407,7 +407,7 @@ class CustomAdminTest < ActionDispatch::IntegrationTest
 
     compound_target_client = TargetClient.create!(name: "Corporate Legal, Law Firms", description: "Legacy compound")
     compound_revenue_model = BusinessModel.create!(name: "Subscription, Services", description: "Legacy compound")
-    get edit_custom_admin_company_path(company)
+    get edit_custom_admin_company_path(company.id)
     checkbox_labels = css_select("label.form-check-label").map(&:text)
     refute_includes checkbox_labels, compound_target_client.name
     refute_includes checkbox_labels, compound_revenue_model.name
@@ -415,8 +415,8 @@ class CustomAdminTest < ActionDispatch::IntegrationTest
     assert_equal BusinessModel.canonical.order(:name).pluck(:name), checkbox_labels & BusinessModel.canonical.pluck(:name)
     assert_equal TargetClient.canonical.order(:name).pluck(:name), checkbox_labels & TargetClient.canonical.pluck(:name)
 
-    patch custom_admin_company_path(company), params: { company: { name: "Custom Managed Company", description: company.description, main_url: company.main_url, visible: company.visible, category_id: company.category_id, business_model_id: company.business_model_id, target_client_id: company.target_client_id, secondary_category_id: company.secondary_category_id } }
-    assert_redirected_to custom_admin_company_review_path(company)
+    patch custom_admin_company_path(company.id), params: { company: { name: "Custom Managed Company", description: company.description, main_url: company.main_url, visible: company.visible, category_id: company.category_id, business_model_id: company.business_model_id, target_client_id: company.target_client_id, secondary_category_id: company.secondary_category_id } }
+    assert_redirected_to custom_admin_company_review_path(company.id)
     assert_equal "Custom Managed Company", company.reload.name
 
     get upload_custom_admin_companies_csv_path
@@ -435,7 +435,7 @@ class CustomAdminTest < ActionDispatch::IntegrationTest
     assert_response :not_found
     assert Company.exists?(company.id)
 
-    delete custom_admin_company_path(company)
+    delete custom_admin_company_path(company.id)
     assert_redirected_to new_admin_user_session_path
     assert Company.exists?(company.id)
 
@@ -443,7 +443,7 @@ class CustomAdminTest < ActionDispatch::IntegrationTest
     proposal = CompanyProposal.create!(status: "approved_to_draft", proposal_type: "atlas_candidate", source: "test", source_identifier: "delete-test", company: company)
 
     assert_difference "Company.count", -1 do
-      delete custom_admin_company_path(company)
+      delete custom_admin_company_path(company.id)
     end
 
     assert_redirected_to custom_admin_companies_path
@@ -542,7 +542,7 @@ class CustomAdminTest < ActionDispatch::IntegrationTest
     end
 
     company = proposal.reload.company
-    assert_redirected_to custom_admin_company_review_path(company)
+    assert_redirected_to custom_admin_company_review_path(company.id)
     assert company.visible?
     assert_equal "published", proposal.status
     assert_equal "Review Proposal", company.name

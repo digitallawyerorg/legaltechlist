@@ -2,6 +2,7 @@
 
 one:
   id: 1
+  slug: test-company-one
   name: Test Company One
   location: San Francisco, CA
   country: United States
@@ -22,6 +23,7 @@ one:
 
 two:
   id: 2
+  slug: test-company-two
   name: Test Company Two
   location: New York, NY
   country: United States

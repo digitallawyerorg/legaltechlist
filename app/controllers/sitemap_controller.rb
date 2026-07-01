@@ -1,7 +1,12 @@
 class SitemapController < ApplicationController
+  SITEMAP_TAG_MIN_COMPANIES = 5
+
   def index
-    @companies = Company.where(visible: true).select(:id, :updated_at).order(updated_at: :desc)
-    @categories = Category.where.not(name: "Unknown").where.not(id: [12, 13, 14]).select(:id, :updated_at)
+    @companies = Company.where(visible: true).select(:id, :slug, :updated_at).order(updated_at: :desc)
+    @categories = Category.where.not(name: "Unknown").where.not(id: [12, 13, 14]).select(:id, :slug, :updated_at)
+    @business_models = BusinessModel.canonical.select(:id, :slug, :updated_at)
+    @target_clients = TargetClient.canonical.select(:id, :slug, :updated_at)
+    @tags = sitemap_tags
     @statistics_pages = [
       { path: statistics_path, updated_at: Time.current },
       { path: statistics_total_companies_path, updated_at: Time.current },
@@ -21,5 +26,16 @@ class SitemapController < ApplicationController
     respond_to do |format|
       format.xml
     end
+  end
+
+  private
+
+  def sitemap_tags
+    Tag.joins(:companies)
+       .where(companies: { visible: true })
+       .group("tags.id", "tags.slug", "tags.updated_at")
+       .having("COUNT(companies.id) >= ?", SITEMAP_TAG_MIN_COMPANIES)
+       .order("COUNT(companies.id) DESC")
+       .select("tags.id, tags.slug, tags.updated_at, COUNT(companies.id) AS companies_count")
   end
 end

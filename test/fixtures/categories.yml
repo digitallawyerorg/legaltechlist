@@ -2,10 +2,12 @@
 
 one:
   id: 1
+  slug: knowledge-research
   name: Knowledge & Research
   description: Legal databases, institutional knowledge management, and practical guidance resources
 
 two:
   id: 2
+  slug: document-management
   name: Document Management
   description: Solutions for managing legal documents

@@ -8,5 +8,7 @@ class SitemapControllerTest < ActionController::TestCase
     assert_includes @response.body, "<loc>"
     assert_includes @response.body, "https://techindex.law.stanford.edu/statistics</loc>"
     assert_includes @response.body, "https://techindex.law.stanford.edu/companies</loc>"
+    assert_includes @response.body, "/companies/#{companies(:one).slug}</loc>"
+    assert_includes @response.body, "/categories/#{categories(:one).slug}</loc>"
   end
 end

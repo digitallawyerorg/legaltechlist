@@ -39,7 +39,7 @@
                             span.admin-status-pill class="text-bg-#{run.status == 'failed' ? 'danger' : 'secondary'}"= run.status
                         td.admin-nowrap
                             - if company
-                                = link_to company.name, custom_admin_company_review_path(company)
+                                = link_to company.name, custom_admin_company_review_path(company.id)
                             - else
                                 span.admin-cell-secondary Not linked
                         td.small.admin-nowrap= run.created_at

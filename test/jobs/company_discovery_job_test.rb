@@ -24,16 +24,16 @@ class CompanyDiscoveryJobTest < ActiveJob::TestCase
       agent_name: CompanyDiscoveryService::AGENT_NAME
     )
     arguments = { "discovery_type" => "country", "country" => "Canada", "dry_run" => true }
-    called = false
-
-    CompanyDiscoveryService.stub(:perform_run!, lambda { |run_id, args|
-      called = true
-      assert_equal run.id, run_id
-      assert_equal arguments, args
-    }) do
-      CompanyDiscoveryJob.perform_now(run.id, arguments)
+    called_with = nil
+    original = CompanyDiscoveryService.method(:perform_run!)
+    CompanyDiscoveryService.define_singleton_method(:perform_run!) do |run_id, args|
+      called_with = [run_id, args]
     end
 
-    assert called
+    CompanyDiscoveryJob.perform_now(run.id, arguments)
+
+    assert_equal [run.id, arguments], called_with
+  ensure
+    CompanyDiscoveryService.define_singleton_method(:perform_run!, original)
   end
 end

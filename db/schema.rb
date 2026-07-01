@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_06_28_130000) do
+ActiveRecord::Schema[8.0].define(version: 2026_06_30_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -65,6 +65,8 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_28_130000) do
     t.text "description"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "slug"
+    t.index ["slug"], name: "index_business_models_on_slug", unique: true
   end
 
   create_table "categories", force: :cascade do |t|
@@ -72,6 +74,8 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_28_130000) do
     t.text "description"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "slug"
+    t.index ["slug"], name: "index_categories_on_slug", unique: true
   end
 
   create_table "companies", force: :cascade do |t|
@@ -124,6 +128,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_28_130000) do
     t.string "country"
     t.string "city"
     t.string "legaltech_atlas_url"
+    t.string "slug"
     t.index ["business_model_id"], name: "index_companies_on_business_model_id"
     t.index ["canonical_domain"], name: "index_companies_on_canonical_domain"
     t.index ["category_id"], name: "index_companies_on_category_id"
@@ -136,6 +141,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_28_130000) do
     t.index ["quality_score"], name: "index_companies_on_quality_score"
     t.index ["quality_status"], name: "index_companies_on_quality_status"
     t.index ["secondary_category_id"], name: "index_companies_on_secondary_category_id"
+    t.index ["slug"], name: "index_companies_on_slug", unique: true
     t.index ["sub_category_id"], name: "index_companies_on_sub_category_id"
     t.index ["successor_company_id"], name: "index_companies_on_successor_company_id"
     t.index ["target_client_id"], name: "index_companies_on_target_client_id"
@@ -320,7 +326,9 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_28_130000) do
     t.string "name"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "slug"
     t.index ["name"], name: "index_tags_on_name"
+    t.index ["slug"], name: "index_tags_on_slug", unique: true
   end
 
   create_table "target_clients", force: :cascade do |t|
@@ -328,6 +336,8 @@ ActiveRecord::Schema[8.0].define(version: 2026_06_28_130000) do
     t.text "description"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "slug"
+    t.index ["slug"], name: "index_target_clients_on_slug", unique: true
   end
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"

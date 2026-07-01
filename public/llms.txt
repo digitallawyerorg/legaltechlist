@@ -27,6 +27,8 @@ Statistics: Statistics charts use the company profiles described above. They cov
 
 - Home: https://techindex.law.stanford.edu/
 - Company directory: https://techindex.law.stanford.edu/companies
+- Company profiles: https://techindex.law.stanford.edu/companies/{slug}
+- Category browse example: https://techindex.law.stanford.edu/categories/document-management-and-automation
 - Suggest a company: https://techindex.law.stanford.edu/companies/new
 - Statistics hub: https://techindex.law.stanford.edu/statistics
 - Data methodology: https://techindex.law.stanford.edu/statistics/methodology
