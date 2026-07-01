@@ -219,13 +219,6 @@ module CompaniesHelper
     { label: "Google", icon: "fa-brands fa-google", icon_color: "#4285f4", url: url, host: "google.com" }
   end
 
-  def company_reddit_search_reference(company)
-    name = company.name.to_s.strip.gsub('"', "")
-    query = CGI.escape("\"#{name}\"")
-    url = "https://www.reddit.com/search/?q=#{query}"
-    { label: "Reddit", icon: "fa-brands fa-reddit", icon_color: "#ff450f", url: url, host: "reddit.com" }
-  end
-
   def company_citation_entries(company, accessed_on: Date.current)
     [
       { label: "Bluebook", icon: "fa-solid fa-scale-balanced", icon_color: "#8c1515", citation: company_bluebook_citation(company, accessed_on: accessed_on) },

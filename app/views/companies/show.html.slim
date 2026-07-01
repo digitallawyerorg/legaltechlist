@@ -626,7 +626,6 @@ css:
 - external_reference_links << { label: "Legal.io", icon: "fa-solid fa-briefcase", icon_color: "#8c1515" }.merge(company_reference_link_attrs(@company.legalio_url)) if @company.legalio_url.present? && @company.legalio_url != "n/a"
 - atlas_reference = company_legaltech_atlas_reference(@company)
 - external_reference_links << atlas_reference if atlas_reference.present?
-- external_reference_links << company_reddit_search_reference(@company)
 - reference_sections = []
 - reference_sections << { title: "Company references", links: company_reference_links } if company_reference_links.any?
 - reference_sections << { title: "External references", links: external_reference_links } if external_reference_links.any?

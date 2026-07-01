@@ -112,17 +112,6 @@ class CompaniesHelperTest < ActionView::TestCase
     assert_equal "google.com", reference[:host]
   end
 
-  test "company_reddit_search_reference builds a reddit search url for the company name" do
-    company = companies(:one)
-    company.name = "Legal.io"
-
-    reference = company_reddit_search_reference(company)
-
-    assert_equal "Reddit", reference[:label]
-    assert_equal "https://www.reddit.com/search/?q=%22Legal.io%22", reference[:url]
-    assert_equal "reddit.com", reference[:host]
-  end
-
   test "company_reference_url_label returns a schemeless url for display" do
     assert_equal "legal.io/about", company_reference_url_label("https://legal.io/about")
     assert_equal "legal.io", company_reference_url_label("legal.io")
