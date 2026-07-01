@@ -43,27 +43,48 @@ class CompanyFoundedDateBackfillService
     CompanyFoundedYearResearchService.call(company: company)
   end
 
-  # The research service returns cite-able {year, source_url, evidence_text} candidates
-  # from a targeted founding-year web search. Every candidate is filtered through the
-  # SAME cite-only + same-entity guards used by enrichment.
+  # The research service runs a targeted founding-year web search and returns cite-able
+  # {year, source_url, evidence_text} candidates. Because the search model itself is the
+  # source of the citations (unlike proposal enrichment, whose evidence hosts come from a
+  # pre-gathered research set), the gate here is: a plausible year, a valid source URL,
+  # and a same-entity confirmation (own-domain citation, or a verbatim snippet that names
+  # THIS company in full). Registry-preference tiering breaks ties.
   def extract_candidates(research_payload)
-    allowed_hosts = evidence_hosts(research_payload)
-
     Array(research_payload["candidates"]).filter_map do |candidate|
       candidate = candidate.stringify_keys if candidate.respond_to?(:stringify_keys)
-      source_url = candidate["source_url"]
-      year = CompanyProposalEnrichmentService.sourced_year(year: candidate["year"], source: source_url, allowed_hosts: allowed_hosts)
+      year = plausible_year(candidate["year"])
+      source_url = candidate["source_url"].to_s.strip
+      evidence_text = candidate["evidence_text"].to_s
       next nil if year.nil?
-      next nil unless CompanyProposalEnrichmentService.entity_match?(company, source_url, evidence_text: candidate["evidence_text"])
+      next nil unless Company.valid_http_url?(source_url)
+      next nil unless same_entity?(source_url, evidence_text)
 
-      { year: year, source_url: source_url, evidence_text: candidate["evidence_text"], tier: CompanyProposalEnrichmentService.source_tier(source_url, company: company) }
+      { year: year, source_url: source_url, evidence_text: evidence_text, tier: CompanyProposalEnrichmentService.source_tier(source_url, company: company) }
     end
   end
 
-  def evidence_hosts(research_payload)
-    urls = Array(research_payload["results"]).map { |result| result["url"] }
-    urls << company.main_url
-    urls.compact_blank.filter_map { |url| CompanyProposalEnrichmentService.host_for(url) }.uniq
+  def plausible_year(value)
+    normalized = value.to_s.strip
+    return nil unless normalized.match?(/\A(?:19|20)\d{2}\z/)
+    return nil unless (CompanyProposalEnrichmentService::EARLIEST_PLAUSIBLE_FOUNDING_YEAR..Date.current.year).cover?(normalized.to_i)
+
+    normalized
+  end
+
+  # Trust a citation on the company's own domain; otherwise accept only when the verbatim
+  # evidence snippet names THIS company in full. Matching the full name (not just a token)
+  # blocks same-name-but-different-company dead ends (e.g. "APUA Legal" for "APUA Innovation Oy").
+  def same_entity?(source_url, evidence_text)
+    source_domain = Company.canonical_domain_for(source_url)
+    return false if source_domain.blank?
+
+    own_domain = company.canonical_main_domain
+    return true if own_domain.present? && CompanyProposalEnrichmentService.domains_related?(source_domain, own_domain)
+
+    name = company.name.to_s.squish
+    return false if name.blank? || evidence_text.blank?
+
+    evidence_text.squish.downcase.include?(name.downcase)
   end
 
   # Registry > profile > owned > other, then earlier collection order.

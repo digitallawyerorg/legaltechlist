@@ -23,12 +23,11 @@ class CompanyFoundedDateBackfillServiceTest < ActiveSupport::TestCase
     assert PipelineRun.where(run_type: "founded_date_backfill").where("details ->> 'company_id' = ?", company.id.to_s).exists?
   end
 
-  test "skips when the cited candidate host is not in gathered evidence" do
+  test "skips when the cited evidence does not name the company" do
     company = blank_year_company(name: "Company B", main_url: "https://companyb.example")
     research = {
-      "results" => [{ "url" => "https://companyb.example/about" }],
       "candidates" => [
-        { "year" => "2010", "source_url" => "https://some-registry.example/x", "evidence_text" => "Company B founded 2010" }
+        { "year" => "2010", "source_url" => "https://some-registry.example/x", "evidence_text" => "An unrelated firm was founded 2010." }
       ]
     }
 
@@ -40,10 +39,26 @@ class CompanyFoundedDateBackfillServiceTest < ActiveSupport::TestCase
     assert company.reload.founded_date.blank?
   end
 
-  test "rejects a same-name entity cited from a different domain (APUA trap)" do
-    company = blank_year_company(name: "APUA", main_url: "https://apua.ai")
+  test "fills from a neutral registry aggregator that names the company in full" do
+    company = blank_year_company(name: "APUA Innovation Oy", main_url: "https://apua.ai")
     research = {
-      "results" => [{ "url" => "https://apualegal.com/about" }],
+      "candidates" => [
+        { "year" => "2025", "source_url" => "https://woorati.com/en/companies/3567127-7/apua-innovation-oy", "evidence_text" => "APUA Innovation Oy Business ID: 3567127-7 Founded: 2025" }
+      ]
+    }
+
+    result = CompanyFoundedYearResearchService.stub(:call, research) do
+      CompanyFoundedDateBackfillService.call(company: company)
+    end
+
+    assert_equal "filled", result["result"]
+    assert_equal "2025", result["year"]
+    assert_equal "2025", company.reload.founded_date
+  end
+
+  test "rejects a same-name entity cited from a different domain (APUA trap)" do
+    company = blank_year_company(name: "APUA Innovation Oy", main_url: "https://apua.ai")
+    research = {
       "candidates" => [
         { "year" => "2015", "source_url" => "https://apualegal.com/about", "evidence_text" => "APUA Legal was founded in 2015." }
       ]
