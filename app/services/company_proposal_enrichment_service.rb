@@ -1,10 +1,35 @@
 require "timeout"
+require "uri"
 
 class CompanyProposalEnrichmentService
   MARKETING_TERMS = DescriptionDraftAgent::MARKETING_TERMS
+  EARLIEST_PLAUSIBLE_FOUNDING_YEAR = 1970
 
   def self.call(**kwargs)
     new(**kwargs).call
+  end
+
+  # Normalize a URL to its bare host (lowercased, no leading www.), or nil.
+  def self.host_for(url)
+    host = URI.parse(url.to_s.strip).host
+    host&.downcase&.delete_prefix("www.")
+  rescue URI::InvalidURIError
+    nil
+  end
+
+  # A founding year is accepted ONLY when it is a plausible 4-digit year AND the
+  # citing source host is among the evidence we actually gathered (research results
+  # or the company's own domains). This prevents writing hallucinated/unsourced years.
+  def self.sourced_year(year:, source:, allowed_hosts:)
+    normalized = year.to_s.strip
+    return nil unless normalized.match?(/\A(?:19|20)\d{2}\z/)
+    return nil unless (EARLIEST_PLAUSIBLE_FOUNDING_YEAR..Date.current.year).cover?(normalized.to_i)
+
+    source_host = host_for(source)
+    return nil if source_host.blank?
+    return nil unless Array(allowed_hosts).include?(source_host)
+
+    normalized
   end
 
   def initialize(proposal:, admin_user:)
@@ -34,9 +59,10 @@ class CompanyProposalEnrichmentService
   attr_reader :proposal, :admin_user
 
   def enriched_changes
-    {
+    @enriched_changes ||= {
       "description" => proposed_description,
-      "number_of_funding_rounds" => number_of_funding_rounds
+      "number_of_funding_rounds" => number_of_funding_rounds,
+      "founded_date" => sourced_founded_year
     }.compact
   end
 
@@ -54,18 +80,51 @@ class CompanyProposalEnrichmentService
   end
 
   def proposed_description
-    clean_description(llm_description.presence || fallback_description)
+    clean_description(llm_payload["proposed_description"].presence || fallback_description)
   end
 
-  def llm_description
-    return unless llm_enabled?
+  # A single LLM call returns description + a strictly-sourced founding year.
+  def llm_payload
+    @llm_payload ||= fetch_llm_payload
+  end
+
+  def fetch_llm_payload
+    return {} unless llm_enabled?
 
     chat = RubyLLM.chat(model: hard_model, provider: :openai, assume_model_exists: true)
     response = Timeout.timeout(llm_timeout_seconds) { chat.ask(description_prompt) }
-    parsed = parse_json_content(response.content)
-    parsed["proposed_description"]
+    payload = parse_json_content(response.content)
+    payload.is_a?(Hash) ? payload : {}
   rescue StandardError
-    nil
+    {}
+  end
+
+  # Only fill founded_date when it is blank and the model cited a real source we
+  # gathered. Records the citing source for provenance/auditing.
+  def sourced_founded_year
+    return if proposal.final_changes["founded_date"].present?
+
+    year = self.class.sourced_year(
+      year: llm_payload["founded_year"],
+      source: llm_payload["founded_year_source"],
+      allowed_hosts: evidence_hosts
+    )
+    @founded_year_source = llm_payload["founded_year_source"] if year.present?
+    year
+  end
+
+  def evidence_hosts
+    urls = Array(research_payload["results"]).map { |result| result["url"] }
+    urls << (source_payload["website"] || proposal.final_changes["main_url"])
+    urls << source_payload["crunchbase_url"]
+    urls << source_payload["linkedin_url"]
+    urls.compact_blank.filter_map { |url| self.class.host_for(url) }.uniq
+  end
+
+  def founded_year_provenance
+    return nil if @founded_year_source.blank?
+
+    { "source_url" => @founded_year_source, "mode" => "web_research_cited", "generated_at" => Time.current.utc.iso8601 }
   end
 
   def parse_json_content(content)
@@ -123,6 +182,7 @@ class CompanyProposalEnrichmentService
         "confidence" => "low",
         "rationale" => description_rationale
       },
+      "founded_date_source" => founded_year_provenance,
       "description_critic" => description_critic(final_changes["description"])
     }
   end
@@ -149,7 +209,7 @@ class CompanyProposalEnrichmentService
       candidate: source_payload.slice("name", "website", "location", "industries", "operating_status", "company_type", "founded_date", "funding_amount_usd", "number_of_funding_rounds", "founders"),
       source_evidence: source_evidence,
       web_research: research_payload,
-      instruction: "Return JSON with key proposed_description. Draft one neutral, academic directory sentence of 18-32 words. Use concrete product/function language grounded only in evidence. Do not copy source descriptions. Avoid marketing language, source-meta phrasing, customer counts, unverifiable superlatives, and the phrase 'provides or supports'."
+      instruction: "Return JSON with keys proposed_description, founded_year, and founded_year_source. proposed_description: one neutral, academic directory sentence of 18-32 words using concrete product/function language grounded only in evidence; do not copy source descriptions; avoid marketing language, source-meta phrasing, customer counts, unverifiable superlatives, and the phrase 'provides or supports'. founded_year: the 4-digit founding year ONLY if a provided source explicitly states it, otherwise null — never guess or estimate. founded_year_source: the exact source URL (from the evidence/web_research above) that states the founded_year, otherwise null."
     }.to_json
   end
 

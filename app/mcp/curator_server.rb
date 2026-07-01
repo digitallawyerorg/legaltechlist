@@ -36,11 +36,19 @@ module Mcp
       Page with offset (offset=0, 50, 100, ...) until has_more is false so you reach every
       pending item, not just the first page.
 
-      Founding year (founded_date) is OPTIONAL and does not block publication. If you can
-      find a reliable source for the year, set it via update_proposal (a 4-digit year); if
-      not, publish without it and leave it for later backfill. Never fabricate, guess, or
-      estimate a founding year. Note: enrich_proposal does not source founding years — it
-      only drafts descriptions and taxonomy — so do not rely on it to fill founded_date.
+      You have your own web search/browsing. Prefer to research, draft the description, pick
+      taxonomy (from get_taxonomy), and find a sourced founding year yourself, then write them
+      with update_proposal — that is synchronous and fast. Use enrich_proposal when you want
+      server-side, web-grounded enrichment instead: it is ASYNC — it returns
+      "enrichment_queued", and you must poll get_proposal until enriched_at is newer (success)
+      or agent_details.enrichment_error appears (failure). Do not blind-retry a queued
+      enrichment.
+
+      Founding year (founded_date) is OPTIONAL and does not block publication. Set it via
+      update_proposal (a 4-digit year) only when you can cite a real source; otherwise publish
+      without it and leave it for later backfill. Never fabricate, guess, or estimate a year.
+      Server-side enrichment fills founded_date only when a gathered source explicitly states
+      it (and records the citing source); it leaves the field blank otherwise.
 
       Trust the tool responses: approve_proposal returns `result` (published/drafted/blocked)
       and `published` (true/false); a `result` of "blocked" or any error means nothing was
@@ -86,7 +94,7 @@ module Mcp
       MCP::Server.new(
         name: "techindex_curator",
         title: "CodeX TechIndex Curator",
-        version: "1.3.0",
+        version: "1.4.0",
         instructions: INSTRUCTIONS,
         tools: Mcp::Tools.all,
         server_context: { actor: actor }

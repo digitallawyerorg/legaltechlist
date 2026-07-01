@@ -2,6 +2,8 @@ require "test_helper"
 
 module Mcp
   class CuratorToolsTest < ActiveSupport::TestCase
+    include ActiveJob::TestHelper
+
     setup do
       @curator = AdminUser.find_or_create_by!(email: Mcp::CuratorActor.email) do |user|
         user.password = "password123"
@@ -269,6 +271,40 @@ module Mcp
       assert_equal "Neutral legal-tech directory description for testing purposes.", result["persisted_changes"]["description"]
       assert result.key?("publish_ready")
       assert result.key?("blockers")
+    end
+
+    test "enrich_proposal queues async enrichment and returns a poll contract" do
+      proposal = pending_proposal
+      assert_enqueued_with(job: EnrichProposalJob, args: [proposal.id, @curator.id]) do
+        result = call(Mcp::Tools::EnrichProposalTool, id: proposal.id)
+        assert_equal "enrichment_queued", result["result"]
+        assert result["poll"].present?
+      end
+    end
+
+    test "get_proposal surfaces enrichment state for polling" do
+      proposal = pending_proposal
+      result = call(Mcp::Tools::GetProposalTool, id: proposal.id)
+      assert result.key?("enriched_at")
+      assert result.key?("enrichment_error")
+    end
+
+    test "EnrichProposalJob enriches the proposal off the request thread" do
+      proposal = pending_proposal
+      EnrichProposalJob.perform_now(proposal.id, @curator.id)
+      assert proposal.reload.enriched_at.present?
+    end
+
+    test "sourced_year accepts a plausible year cited by gathered evidence" do
+      year = CompanyProposalEnrichmentService.sourced_year(year: "2015", source: "https://www.techcrunch.com/article", allowed_hosts: ["techcrunch.com"])
+      assert_equal "2015", year
+    end
+
+    test "sourced_year rejects an uncited or implausible year" do
+      assert_nil CompanyProposalEnrichmentService.sourced_year(year: "2015", source: "https://random-blog.example/x", allowed_hosts: ["techcrunch.com"])
+      assert_nil CompanyProposalEnrichmentService.sourced_year(year: "1200", source: "https://techcrunch.com", allowed_hosts: ["techcrunch.com"])
+      assert_nil CompanyProposalEnrichmentService.sourced_year(year: "not a year", source: "https://techcrunch.com", allowed_hosts: ["techcrunch.com"])
+      assert_nil CompanyProposalEnrichmentService.sourced_year(year: "2015", source: "", allowed_hosts: ["techcrunch.com"])
     end
 
     test "get_stats returns directory and backlog counts" do

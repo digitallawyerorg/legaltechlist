@@ -27,6 +27,9 @@ module Mcp
           "final_changes" => proposal.final_changes,
           "duplicate_signals" => proposal.duplicate_signals,
           "duplicate_blocking" => proposal.duplicate_blocking?,
+          "enriched_at" => proposal.enriched_at&.iso8601,
+          "enrichment_error" => proposal.agent_details["enrichment_error"],
+          "founded_date_source" => proposal.agent_details["founded_date_source"],
           "quality" => CompanyProposalQualityService.call(proposal),
           "admin_url" => admin_proposal_url(proposal)
         )

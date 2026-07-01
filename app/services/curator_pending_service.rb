@@ -1,6 +1,8 @@
-# Tiered curation loop for pending proposals, mirroring scripts/discovery_batch.rb:
-# enrich -> assess quality -> auto-publish only when the proposal passes the quality
-# gate and has no duplicate signals; otherwise leave it for human approval. Discovery
+# Tiered curation loop for pending proposals: un-enriched proposals get an
+# asynchronous enrichment job queued (enrichment runs off the request thread, so
+# it is not bound by the HTTP timeout) and are left for a later pass; already-enriched
+# proposals are assessed and auto-published only when they pass the quality gate and
+# have no duplicate signals; otherwise they are left for human approval. Discovery
 # candidates flagged as nonprofit/advocacy are rejected.
 class CuratorPendingService
   DISCOVERY_SOURCE = CompanyDiscoveryService::SOURCE
@@ -33,8 +35,12 @@ class CuratorPendingService
           next
         end
 
-        enrich!(proposal)
-        proposal.reload
+        unless proposal.enriched_at?
+          EnrichProposalJob.perform_later(proposal.id, admin_user.id)
+          queued << outcome(proposal, reason: "enrichment_queued")
+          next
+        end
+
         quality = CompanyProposalQualityService.call(proposal)
 
         if proposal.duplicate_blocking?
@@ -93,12 +99,6 @@ class CuratorPendingService
     return "daily_publish_budget_exhausted" unless budget.positive?
 
     "needs_review"
-  end
-
-  def enrich!(proposal)
-    CompanyProposalEnrichmentService.call(proposal: proposal, admin_user: admin_user)
-  rescue StandardError => e
-    Rails.logger.debug("[CuratorPendingService] enrich failed for proposal #{proposal.id}: #{e.message}")
   end
 
   def discovery_candidate?(proposal)

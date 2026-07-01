@@ -93,9 +93,21 @@ discipline, and the approval rules below.
   for many small/international companies). The quality gate emits a non-blocking warning
   when it is missing (`missing_publish_blocking_fields` excludes it), and `Company`
   allows a blank `founded_date` (but a present value must contain a 4-digit year).
-  `enrich_proposal` does not source founding years — it only drafts descriptions and
-  taxonomy — so it is not, and must not be, wired to fill `founded_date`. Never fabricate
-  a year; publish without it and backfill from a real source later.
+  Never fabricate a year; publish without it and backfill from a real source later.
+- Async enrichment: `enrich_proposal` is asynchronous — it enqueues `EnrichProposalJob`
+  (ActiveJob `:async` adapter, i.e. off the request thread so it is not bound by the
+  30s HTTP router timeout) and returns `enrichment_queued`. Callers poll `get_proposal`
+  until `enriched_at` is newer than `enriched_at_before` (success) or
+  `agent_details.enrichment_error` appears (failure). `curate_pending` likewise enqueues
+  enrichment for un-enriched proposals and publishes only already-enriched ones on a
+  later pass. Because the curator (Claude) has its own web browsing, prefer researching
+  and writing fields via `update_proposal` (synchronous); use `enrich_proposal` for
+  server-side web-grounded enrichment.
+- Sourced founding year: server-side enrichment fills `founded_date` only when the model
+  returns a plausible 4-digit year (>= 1970, <= current year) whose citing source host is
+  among the gathered evidence (web-research results or the company's own/crunchbase/
+  linkedin domains); the citation is recorded in `agent_details.founded_date_source`.
+  Otherwise `founded_date` is left blank — it never writes an unsourced/guessed year.
 - Authoritative responses: `approve_proposal` returns `result`
   (`published`/`drafted`/`update_applied`/`blocked`) plus a `published` boolean on every
   path (success and failure), so a caller cannot mistake a blocked/drafted item for a
