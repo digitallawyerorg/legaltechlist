@@ -94,3 +94,7 @@ gem 'dotenv'
 gem "ruby_llm", "~> 1.16"
 
 gem "ruby_llm-responses_api", "~> 0.5.4"
+
+# MCP server for the Claude Tag curator connector
+gem "mcp", "~> 0.4"
+gem "jwt", "~> 2.9"

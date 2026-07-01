@@ -1,0 +1,131 @@
+require "test_helper"
+
+module Mcp
+  class CuratorToolsTest < ActiveSupport::TestCase
+    setup do
+      @curator = AdminUser.find_or_create_by!(email: Mcp::CuratorActor.email) do |user|
+        user.password = "password123"
+        user.password_confirmation = "password123"
+      end
+      @context = { actor: "test" }
+    end
+
+    test "search_companies returns visible companies with quality signals" do
+      result = call(Mcp::Tools::SearchCompaniesTool, query: "Test Company")
+      names = result["companies"].map { |company| company["name"] }
+      assert_includes names, "Test Company One"
+      assert result["companies"].first.key?("quality_status")
+    end
+
+    test "get_company returns a full profile by slug" do
+      result = call(Mcp::Tools::GetCompanyTool, slug: "test-company-one")
+      assert_equal "Test Company One", result["name"]
+      assert result.key?("revenue_models")
+      assert result.key?("duplicate_domain_matches")
+    end
+
+    test "get_company reports missing companies as an error" do
+      response = Mcp::Tools::GetCompanyTool.call(server_context: @context, slug: "does-not-exist")
+      assert response.error?
+    end
+
+    test "duplicate_check flags an existing canonical domain" do
+      result = call(Mcp::Tools::DuplicateCheckTool, name: "Brand New Co", url: "http://example.com")
+      assert_equal "existing_or_possible_duplicate", result["status"]
+      assert result["domain_matches"].any?
+    end
+
+    test "assess_proposal is read only and reports the quality gate" do
+      proposal = pending_proposal
+      assert_no_difference "Company.count" do
+        result = call(Mcp::Tools::AssessProposalTool, id: proposal.id)
+        assert_equal false, result["publish_ready"]
+        assert result["quality"]["blockers"].any?
+      end
+    end
+
+    test "approve_proposal blocks publishing when the quality gate fails" do
+      proposal = pending_proposal
+      response = Mcp::Tools::ApproveProposalTool.call(server_context: @context, id: proposal.id, publish: true)
+      assert response.error?
+      assert_equal "pending", proposal.reload.status
+    end
+
+    test "approve_proposal creates an invisible draft without publishing" do
+      proposal = ready_proposal
+      assert_difference "Company.count", 1 do
+        result = call(Mcp::Tools::ApproveProposalTool, id: proposal.id, publish: false)
+        assert_equal false, result["published"]
+      end
+      assert_equal "approved_to_draft", proposal.reload.status
+      assert_not proposal.company.visible?
+    end
+
+    test "reject_proposal marks the proposal rejected and writes an audit run" do
+      proposal = pending_proposal
+      assert_difference -> { PipelineRun.where(run_type: "curator_mcp").count }, 1 do
+        call(Mcp::Tools::RejectProposalTool, id: proposal.id, reason: "Out of scope")
+      end
+      assert_equal "rejected", proposal.reload.status
+      assert_equal "Out of scope", proposal.rejection_reason
+      assert_equal @curator, proposal.admin_user
+    end
+
+    test "apply_safe_fields only writes allowlisted fields" do
+      company = companies(:one)
+      call(Mcp::Tools::ApplySafeFieldsTool, slug: company.slug, fields: { "quality_status" => "verified", "name" => "HACKED" })
+      company.reload
+      assert_equal "verified", company.quality_status
+      assert_equal "Test Company One", company.name
+    end
+
+    test "mark_review reject hides the company" do
+      company = companies(:two)
+      call(Mcp::Tools::MarkReviewTool, slug: company.slug, decision: "reject")
+      company.reload
+      assert_equal "rejected", company.quality_status
+      assert_not company.visible
+    end
+
+    private
+
+    def call(tool, **args)
+      JSON.parse(tool.call(server_context: @context, **args).to_h[:content].first[:text])
+    end
+
+    def pending_proposal
+      CompanyProposal.create!(
+        status: "pending",
+        proposal_type: "atlas_candidate",
+        source: "legaltechatlas_csv",
+        source_identifier: "curator-tool-#{SecureRandom.hex(4)}",
+        source_payload: { "name" => "Curator Test Co", "website" => "https://curator-test.example" },
+        proposed_changes: { "name" => "Curator Test Co", "main_url" => "https://curator-test.example" },
+        final_changes: {},
+        duplicate_signals: {}
+      )
+    end
+
+    def ready_proposal
+      CompanyProposal.create!(
+        status: "ready_for_review",
+        proposal_type: "atlas_candidate",
+        source: "legaltechatlas_csv",
+        source_identifier: "curator-ready-#{SecureRandom.hex(4)}",
+        source_payload: { "name" => "Ready Co", "website" => "https://ready.example" },
+        proposed_changes: { "name" => "Ready Co", "main_url" => "https://ready.example" },
+        final_changes: {
+          "name" => "Ready Co",
+          "main_url" => "https://ready.example",
+          "location" => "Boston, MA",
+          "founded_date" => "2022",
+          "description" => "Ready Co develops legal technology for contract review workflows used by law firms.",
+          "category_id" => categories(:one).id,
+          "business_model_id" => business_models(:one).id,
+          "target_client_id" => target_clients(:one).id
+        },
+        duplicate_signals: {}
+      )
+    end
+  end
+end

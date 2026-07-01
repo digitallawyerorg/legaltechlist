@@ -1,0 +1,73 @@
+module Mcp
+  module Tools
+    # Shared helpers for all curator tools: actor resolution, JSON responses,
+    # company lookup/serialization, and audit logging to PipelineRun.
+    class BaseTool < MCP::Tool
+      class << self
+        def curator
+          Mcp::CuratorActor.admin_user!
+        end
+
+        def json_response(payload)
+          MCP::Tool::Response.new([{ type: "text", text: payload.to_json }])
+        end
+
+        def error_response(payload)
+          MCP::Tool::Response.new([{ type: "text", text: payload.to_json }], error: true)
+        end
+
+        def not_found(message)
+          error_response("error" => message)
+        end
+
+        def find_company(identifier)
+          value = identifier.to_s.strip
+          Company.find_by(slug: value) || (value.match?(/\A\d+\z/) ? Company.find_by(id: value.to_i) : nil)
+        end
+
+        def profile_url(company)
+          "#{Mcp::CuratorPolicy.site_url}/companies/#{company.slug}"
+        end
+
+        def admin_proposal_url(proposal)
+          SlackNotifier.admin_proposal_url(proposal)
+        end
+
+        def company_summary(company)
+          {
+            "id" => company.id,
+            "slug" => company.slug,
+            "name" => company.name,
+            "profile_url" => profile_url(company),
+            "main_url" => company.main_url,
+            "category" => company.category&.name,
+            "secondary_category" => company.secondary_category&.name,
+            "status" => company.status,
+            "visible" => company.visible,
+            "quality_status" => company.quality_status,
+            "verification_verdict" => company.verification_verdict,
+            "human_reviewed_at" => company.human_reviewed_at&.iso8601,
+            "founded_date" => company.founded_date,
+            "location" => company.display_location
+          }
+        end
+
+        def audit!(action:, summary:, records_processed: 0, details: {})
+          PipelineRun.create!(
+            name: "Curator MCP: #{action}",
+            run_type: "curator_mcp",
+            status: "succeeded",
+            agent_name: "ClaudeTagCurator",
+            records_processed: records_processed,
+            started_at: Time.current,
+            finished_at: Time.current,
+            details: { "action" => action, "actor" => "claude_tag", "summary" => summary }.merge(details.deep_stringify_keys)
+          )
+        rescue StandardError => e
+          Rails.logger.debug("[CuratorMCP] audit failed for #{action}: #{e.message}")
+          nil
+        end
+      end
+    end
+  end
+end

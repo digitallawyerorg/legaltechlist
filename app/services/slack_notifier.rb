@@ -91,6 +91,29 @@ class SlackNotifier
     end
   end
 
+  def self.curator_summary(result)
+    return unless configured?
+
+    published = Array(result["published"])
+    queued = Array(result["queued_for_review"])
+    rejected = Array(result["rejected"])
+
+    lines = ["*Published:* #{published.size} · *Needs review:* #{queued.size} · *Rejected:* #{rejected.size}"]
+    lines << "Auto-publish disabled (kill-switch on)." unless result["autopublish_enabled"]
+
+    blocks = [
+      header("Curator run"),
+      section(lines.join("\n"))
+    ]
+
+    if queued.any?
+      review_lines = queued.first(8).map { |item| "• <#{item['admin_url']}|#{item['name']}> — #{item['reason']}" }
+      blocks << section("*Awaiting approval*\n#{review_lines.join("\n")}")
+    end
+
+    post_message(blocks: blocks, text: "Curator run: #{published.size} published, #{queued.size} awaiting review")
+  end
+
   def self.header(text)
     { type: "header", text: { type: "plain_text", text: text.truncate(150), emoji: true } }
   end

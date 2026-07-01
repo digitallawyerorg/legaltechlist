@@ -7,6 +7,19 @@ Rails.application.routes.draw do
   get 'up', to: proc { [200, { 'Content-Type' => 'text/plain' }, ['OK']] }, as: :rails_health_check
   get 'logos/:id', to: 'logos#show', as: :company_logo
 
+  # Claude Tag curator connector (remote MCP over Streamable HTTP)
+  match '/mcp', to: 'mcp/curator#handle', via: %i[get post delete], as: :mcp_curator
+
+  # OAuth 2.1 for the curator connector (discovery, DCR, authorize, token)
+  get '/.well-known/oauth-protected-resource', to: 'mcp/oauth#protected_resource'
+  get '/.well-known/oauth-protected-resource/mcp', to: 'mcp/oauth#protected_resource'
+  get '/.well-known/oauth-authorization-server', to: 'mcp/oauth#authorization_server'
+  get '/.well-known/oauth-authorization-server/mcp', to: 'mcp/oauth#authorization_server'
+  get '/.well-known/openid-configuration', to: 'mcp/oauth#authorization_server'
+  post '/oauth/register', to: 'mcp/oauth#register'
+  get '/oauth/authorize', to: 'mcp/oauth#authorize'
+  post '/oauth/token', to: 'mcp/oauth#token'
+
   # Admin and Authentication
   devise_for :admin_users, path: "admin", path_names: { sign_in: "login", sign_out: "logout" }
   get 'admin', to: redirect('/admin/app/companies'), as: :admin_root
