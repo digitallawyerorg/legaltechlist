@@ -58,6 +58,16 @@ discipline, and the approval rules below.
 - `curate_pending` and `approve_proposal(publish: true)` only publish when
   `CompanyProposalQualityService#publish_ready` is true and the proposal has no
   duplicate signals.
+- Autonomy is gated in two layers: objective checks (quality gate, duplicates, daily
+  budget, kill-switches) AND a self-reported `confidence` on `approve_proposal`.
+  Autonomous publish/apply requires `confidence >= MCP_CURATOR_MIN_CONFIDENCE`
+  (default 0.8). Confidence can only reduce autonomy; it never bypasses the objective
+  gates. `human_approved: true` overrides both layers after a human approves in Slack.
+- New entries: auto-publish requires the quality gate + no duplicates +
+  `MCP_CURATOR_AUTOPUBLISH=true` + sufficient confidence.
+- Existing companies: `approve_proposal` applies a `user_suggestion` edit autonomously
+  only when `MCP_CURATOR_AUTOAPPLY_UPDATES=true` + sufficient confidence; otherwise it
+  requires `human_approved: true`.
 - Publishing a proposal that fails the gate requires `human_approved: true` on
   `approve_proposal` (set this only after a human approves in the Slack thread).
 - `MCP_CURATOR_AUTOPUBLISH=false` is a global kill-switch for automatic publishing.
@@ -79,7 +89,9 @@ discipline, and the approval rules below.
 | `MCP_OAUTH_ISSUER` | request base URL | OAuth issuer; set to the canonical HTTPS host on Heroku. |
 | `MCP_OAUTH_SECRET` | `secret_key_base` | HMAC secret for signing OAuth JWTs. |
 | `MCP_OAUTH_ALLOWED_REDIRECT_HOSTS` | `claude.ai,claude.com,console.anthropic.com` | Extra allowed OAuth redirect hosts (comma-separated). |
-| `MCP_CURATOR_AUTOPUBLISH` | `true` | Auto-publish kill-switch. |
+| `MCP_CURATOR_AUTOPUBLISH` | `true` | Auto-publish kill-switch for NEW entries. |
+| `MCP_CURATOR_AUTOAPPLY_UPDATES` | `false` | Allow autonomous edits to EXISTING companies. |
+| `MCP_CURATOR_MIN_CONFIDENCE` | `0.8` | Min self-reported confidence for any autonomous publish/apply. |
 | `MCP_CURATOR_MAX_DISCOVERY_LIMIT` | `25` | Cap on discovery `limit`. |
 | `MCP_CURATOR_MAX_CURATE_LIMIT` | `100` | Cap on `curate_pending` batch size. |
 | `MCP_CURATOR_MAX_DAILY_PUBLISH` | `50` | Daily auto-publish budget. |

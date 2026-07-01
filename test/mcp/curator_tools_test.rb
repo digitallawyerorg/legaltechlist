@@ -138,6 +138,46 @@ module Mcp
       assert_equal "published", proposal.reload.status
     end
 
+    test "approve_proposal publishes autonomously with high confidence when autopublish is on" do
+      proposal = ready_proposal
+      with_env("MCP_CURATOR_AUTOPUBLISH" => "true", "MCP_CURATOR_MIN_CONFIDENCE" => "0.8") do
+        result = call(Mcp::Tools::ApproveProposalTool, id: proposal.id, publish: true, confidence: 0.95)
+        assert_equal true, result["published"]
+      end
+      assert_equal "published", proposal.reload.status
+    end
+
+    test "approve_proposal refuses autonomous publish below the confidence threshold" do
+      proposal = ready_proposal
+      with_env("MCP_CURATOR_AUTOPUBLISH" => "true", "MCP_CURATOR_MIN_CONFIDENCE" => "0.8") do
+        response = Mcp::Tools::ApproveProposalTool.call(server_context: @context, id: proposal.id, publish: true, confidence: 0.4)
+        assert response.error?
+      end
+      assert_equal "ready_for_review", proposal.reload.status
+    end
+
+    test "existing-company update applies autonomously when enabled and confident" do
+      company = companies(:one)
+      call(Mcp::Tools::ProposeCompanyUpdateTool, slug: company.slug, changes: { "location" => "Auto City, CA" }, rationale: "Verified.")
+      proposal = CompanyProposal.order(:created_at).last
+      with_env("MCP_CURATOR_AUTOAPPLY_UPDATES" => "true", "MCP_CURATOR_MIN_CONFIDENCE" => "0.8") do
+        call(Mcp::Tools::ApproveProposalTool, id: proposal.id, confidence: 0.9)
+      end
+      assert_equal "Auto City, CA", company.reload.location
+    end
+
+    test "existing-company update stays blocked when autoapply is disabled even at high confidence" do
+      company = companies(:one)
+      original = company.location
+      call(Mcp::Tools::ProposeCompanyUpdateTool, slug: company.slug, changes: { "location" => "Blocked City" }, rationale: "x")
+      proposal = CompanyProposal.order(:created_at).last
+      with_env("MCP_CURATOR_AUTOAPPLY_UPDATES" => "false") do
+        response = Mcp::Tools::ApproveProposalTool.call(server_context: @context, id: proposal.id, confidence: 0.99)
+        assert response.error?
+      end
+      assert_equal original, company.reload.location
+    end
+
     test "suggest_improvement records an audit run" do
       assert_difference -> { PipelineRun.where(run_type: "curator_mcp").count }, 1 do
         result = call(Mcp::Tools::SuggestImprovementTool, suggestion: "Add a bulk re-tagging tool.", area: "tooling")
@@ -146,6 +186,14 @@ module Mcp
     end
 
     private
+
+    def with_env(vars)
+      previous = {}
+      vars.each { |key, value| previous[key] = ENV[key]; ENV[key] = value }
+      yield
+    ensure
+      previous.each { |key, value| value.nil? ? ENV.delete(key) : ENV[key] = value }
+    end
 
     def call(tool, **args)
       JSON.parse(tool.call(server_context: @context, **args).to_h[:content].first[:text])

@@ -37,10 +37,17 @@ module Mcp
         note it instead of adding a new entry.
 
       Autonomy and approval:
-      - You may auto-publish only NEW entries that pass the quality gate and have no duplicate
-        signals, and only when auto-publish is enabled. Everything else — and every edit to an
-        existing company — waits for explicit human approval (approve_proposal with
-        human_approved=true) in Slack.
+      - The goal is to maintain the index autonomously, but only act when you are certain.
+        "Certain" means the objective checks pass AND you can honestly report high confidence
+        that the change is correct and well-sourced.
+      - To publish/apply autonomously, pass a `confidence` (0.0-1.0). The server acts only when
+        confidence meets its threshold AND the objective gates pass (quality gate, no duplicate
+        signals, daily budget, and the relevant kill-switch is enabled). Confidence can only
+        lower autonomy; it never bypasses the objective gates.
+      - When you are not certain — thin or conflicting evidence, possible duplicate or
+        out-of-scope company, or an ambiguous edit — do NOT publish/apply. Leave it for a human
+        (omit publish/human_approved or set a low confidence) and briefly say what is uncertain.
+      - A human can always force an action with human_approved=true after approving in Slack.
       - Keep Slack replies short and include the /admin/proposals/:id link so a human can review.
 
       Every action is attributed to the curator account and audited. If you notice recurring

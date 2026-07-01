@@ -10,6 +10,26 @@ module Mcp
       ENV.fetch("MCP_CURATOR_AUTOPUBLISH", "true") == "true"
     end
 
+    # Allow the curator to apply edits to EXISTING companies without a human,
+    # separate from new-entry auto-publishing. Off by default: live-entry changes
+    # are higher risk, so opt in only once the connector is trusted.
+    def autoapply_updates_enabled?
+      ENV.fetch("MCP_CURATOR_AUTOAPPLY_UPDATES", "false") == "true"
+    end
+
+    # Minimum self-reported confidence (0.0-1.0) required for any autonomous
+    # publish/apply. This is an additional brake on top of the objective gates,
+    # never a substitute for them.
+    def min_confidence
+      ENV.fetch("MCP_CURATOR_MIN_CONFIDENCE", "0.8").to_f
+    end
+
+    def confidence_ok?(value)
+      return false if value.nil?
+
+      value.to_f >= min_confidence
+    end
+
     def max_discovery_limit
       ENV.fetch("MCP_CURATOR_MAX_DISCOVERY_LIMIT", "25").to_i
     end
