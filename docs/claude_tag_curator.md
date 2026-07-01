@@ -119,7 +119,9 @@ discipline, and the approval rules below.
   `needs_review`).
 - Server-side founded_date backfill (Spec B): `backfill_founded_dates` enqueues async
   `BackfillFoundedDateJob`s (off the 30s router timeout) via `CompanyFoundedDateBackfillService`,
-  which reuses the exact cite-only guard (`sourced_year`) and the validated writer
+  which runs a targeted founding-year web search (`CompanyFoundedYearResearchService`, OpenAI
+  Responses API web-search — server-side egress to LinkedIn/Crunchbase/registries), then reuses
+  the exact cite-only guard (`sourced_year`) and the validated writer
   (`Company#founded_date_from_source!`, shared with `update_company_field`). Each fill records a
   `PipelineRun` (`run_type: "founded_date_backfill"`) and a `companies.founded_year_provenance`
   JSON blob (source_url + tier). Also runnable as `rake data_quality:backfill_founded_dates`

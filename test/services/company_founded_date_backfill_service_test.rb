@@ -11,7 +11,7 @@ class CompanyFoundedDateBackfillServiceTest < ActiveSupport::TestCase
       ]
     }
 
-    result = CompanyProposalResearchService.stub(:call, research) do
+    result = CompanyFoundedYearResearchService.stub(:call, research) do
       CompanyFoundedDateBackfillService.call(company: company)
     end
 
@@ -32,7 +32,7 @@ class CompanyFoundedDateBackfillServiceTest < ActiveSupport::TestCase
       ]
     }
 
-    result = CompanyProposalResearchService.stub(:call, research) do
+    result = CompanyFoundedYearResearchService.stub(:call, research) do
       CompanyFoundedDateBackfillService.call(company: company)
     end
 
@@ -49,7 +49,7 @@ class CompanyFoundedDateBackfillServiceTest < ActiveSupport::TestCase
       ]
     }
 
-    result = CompanyProposalResearchService.stub(:call, research) do
+    result = CompanyFoundedYearResearchService.stub(:call, research) do
       CompanyFoundedDateBackfillService.call(company: company)
     end
 
@@ -72,7 +72,7 @@ class CompanyFoundedDateBackfillServiceTest < ActiveSupport::TestCase
       ]
     }
 
-    result = CompanyProposalResearchService.stub(:call, research) do
+    result = CompanyFoundedYearResearchService.stub(:call, research) do
       CompanyFoundedDateBackfillService.call(company: company)
     end
 
