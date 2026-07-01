@@ -641,7 +641,8 @@ css:
 - external_reference_links << company_bing_search_reference(@company)
 - external_reference_links << { label: "Crunchbase", icon: "fa-solid fa-chart-line", icon_color: "#047857" }.merge(company_reference_link_attrs(@company.crunchbase_url)) if @company.crunchbase_url.present? && @company.crunchbase_url != "n/a"
 - external_reference_links << company_google_search_reference(@company)
-- external_reference_links << { label: "Legal.io", icon: "fa-solid fa-briefcase", icon_color: "#8c1515" }.merge(company_reference_link_attrs(@company.legalio_url)) if @company.legalio_url.present? && @company.legalio_url != "n/a"
+- legalio_reference = company_legalio_reference(@company)
+- external_reference_links << legalio_reference if legalio_reference.present?
 - atlas_reference = company_legaltech_atlas_reference(@company)
 - external_reference_links << atlas_reference if atlas_reference.present?
 - reference_sections = []

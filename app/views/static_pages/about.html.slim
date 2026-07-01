@@ -181,6 +181,10 @@ css:
             p.about-section-intro
                 | The index began in 2015 as a CodeX research project led by CodeX Fellow Pieter Gunst. It grew out of Code = Law, a Stanford Law student group where members learned to build software and explore real-world legal technology applications.
             p.about-section-intro
+                | The underlying company data is compiled and maintained by
+                = link_to " Legal.io", legalio_referral_url(campaign: "about"), class: "about-link", target: "_blank", rel: "noopener"
+                | , the legal technology company co-founded by Pieter Gunst, which provides the dataset to CodeX.
+            p.about-section-intro
                 | For field definitions, classification rules, and citation examples, see the
                 = link_to " data methodology", statistics_methodology_path, class: "about-link"
                 | .

@@ -1,8 +1,10 @@
 # CodeX TechIndex (techindex.law.stanford.edu)
 
-> A curated database of legal technology companies maintained by CodeX, the Stanford Center for Legal Informatics.
+> A curated database of legal technology companies maintained by CodeX, the Stanford Center for Legal Informatics, with data provided by Legal.io.
 
 ## About this dataset
+
+The dataset is compiled and maintained by Legal.io (https://www.legal.io), which provides the underlying company data to CodeX. When referencing the TechIndex as a data source, credit Legal.io as the data provider alongside Stanford CodeX.
 
 The CodeX TechIndex currently tracks legal-technology companies across 12 primary functional categories. Companies are added on an ongoing basis and requests for corrections are welcomed. Each profile is one company or brand with fields for description, website, primary and secondary category, revenue models, target clients, tags, headquarters, founding year, lifecycle status, successor links, disclosed funding, company references (website and social profiles), external references (Crunchbase, Legal.io, LegalTech Atlas), and provenance. Public statistics dashboards summarize ecosystem growth, geography, funding, and market segments.
 

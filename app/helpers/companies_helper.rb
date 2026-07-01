@@ -219,6 +219,16 @@ module CompaniesHelper
 
   INACTIVE_COMPANY_TOOLTIP = "This company is no longer active".freeze
 
+  def company_legalio_reference(company)
+    url = company.legalio_url.to_s.strip
+    return nil if url.blank? || url == "n/a"
+
+    link_url = company_reference_link_url(url)
+    return nil if link_url.blank?
+
+    { label: "Legal.io", icon: "fa-solid fa-briefcase", icon_color: "#8c1515", url: legalio_referral_url(link_url, campaign: "company_profile"), host: company_reference_url_label(url) }
+  end
+
   def company_legaltech_atlas_reference(company)
     url = company.legaltech_atlas_url.to_s.strip
     return nil if url.blank?

@@ -300,6 +300,7 @@ css:
 
 - content_for :title, "Data Methodology & Dictionary"
 - content_for :description, "Data dictionary, classification scheme, and statistics conventions for the Stanford CodeX TechIndex legal technology index."
+- content_for :json_ld, dataset_json_ld(name: "CodeX TechIndex legal technology company dataset", description: SeoHelper::DEFAULT_DESCRIPTION, url: statistics_methodology_url)
 - category_rows = methodology_category_rows
 - company_count = visible_company_count
 
@@ -316,6 +317,10 @@ css:
             .methodology-section-label Overview
             .methodology-principle-box
                 p== methodology_overview_html(number_with_delimiter(company_count))
+
+        section.methodology-section#methodology-data-source
+            .methodology-section-label Data source
+            p.methodology-section-intro== methodology_data_source_html
 
         section.methodology-section#methodology-eligibility
             .methodology-section-label What is a legal technology company?

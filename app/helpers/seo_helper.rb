@@ -3,8 +3,40 @@ module SeoHelper
   DEFAULT_DESCRIPTION = "Explore the CodeX TechIndex — a curated database of legal technology companies with ecosystem statistics, funding data, and research insights from Stanford CodeX.".freeze
   DEFAULT_SITE_URL = "https://techindex.law.stanford.edu".freeze
 
+  LEGALIO_NAME = "Legal.io".freeze
+  LEGALIO_URL = "https://www.legal.io".freeze
+  # Canonical profiles used to consolidate Legal.io as a single entity for search engines.
+  LEGALIO_SAME_AS = [
+    "https://www.legal.io",
+    "https://www.linkedin.com/company/legal-io/"
+  ].freeze
+
   def site_url
     ENV.fetch("SITE_URL", DEFAULT_SITE_URL)
+  end
+
+  def legalio_organization_json_hash
+    {
+      "@type" => "Organization",
+      "name" => LEGALIO_NAME,
+      "url" => LEGALIO_URL,
+      "sameAs" => LEGALIO_SAME_AS
+    }
+  end
+
+  # Appends UTM parameters so referral traffic to Legal.io is attributable in analytics.
+  def legalio_referral_url(base_url = LEGALIO_URL, campaign: "data_partner")
+    uri = URI.parse(base_url)
+    params = URI.decode_www_form(uri.query || "")
+    params += [
+      ["utm_source", "techindex.law.stanford.edu"],
+      ["utm_medium", "referral"],
+      ["utm_campaign", campaign]
+    ]
+    uri.query = URI.encode_www_form(params)
+    uri.to_s
+  rescue URI::InvalidURIError
+    base_url
   end
 
   def seo_page_title
@@ -52,7 +84,8 @@ module SeoHelper
         "@type" => "Organization",
         "name" => "CodeX, Stanford Center for Legal Informatics",
         "url" => "https://law.stanford.edu/codex-the-stanford-center-for-legal-informatics/"
-      }
+      },
+      "sourceOrganization" => legalio_organization_json_hash
     }.to_json
   end
 
@@ -67,6 +100,8 @@ module SeoHelper
         "@type" => "Organization",
         "name" => "CodeX, Stanford Center for Legal Informatics"
       },
+      "provider" => legalio_organization_json_hash,
+      "sourceOrganization" => legalio_organization_json_hash,
       "dateModified" => Date.current.iso8601,
       "license" => "#{site_url}/about/data"
     }.to_json

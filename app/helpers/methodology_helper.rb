@@ -162,6 +162,14 @@ module MethodologyHelper
     ])
   end
 
+  def methodology_data_source_html
+    safe_join([
+      "The TechIndex dataset is compiled and maintained by ",
+      link_to("Legal.io", legalio_referral_url(campaign: "methodology"), class: "methodology-link", target: "_blank", rel: "noopener"),
+      ", which provides the underlying company data to CodeX. Records draw on public sources and Legal.io's ongoing legal market research, and are reviewed against the eligibility and classification rules on this page."
+    ])
+  end
+
   def methodology_revenue_model_guidance
     REVENUE_MODEL_GUIDANCE
   end
