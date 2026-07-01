@@ -40,6 +40,10 @@
                         | Public profile
                         i.fas.fa-arrow-up-right-from-square.ms-1.small aria-hidden="true"
     .admin-proposal-toolbar-primary
+        - if @company.slug.present?
+            = link_to company_path(@company), class: "btn btn-outline-secondary", target: "_blank", rel: "noopener" do
+                i.fas.fa-arrow-up-right-from-square.me-1
+                | View on site
         = link_to edit_custom_admin_company_path(@company.id), class: "btn btn-outline-secondary" do
             i.fas.fa-pen.me-1
             | Edit

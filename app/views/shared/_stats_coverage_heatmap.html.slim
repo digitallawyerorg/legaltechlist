@@ -1,0 +1,81 @@
+/ locals: heatmaps, default_dimension (optional), dimensions (optional)
+- dimensions = local_assigns.fetch(:dimensions, stats_coverage_heatmap_dimensions)
+- default_dimension = local_assigns.fetch(:default_dimension, "category")
+- heatmap_id = local_assigns.fetch(:heatmap_id, "stats-coverage-heatmap")
+- legend_ratios = [0.14, 0.32, 0.52, 0.74, 1.0]
+.stats-chart-card.stats-coverage-heatmap data-coverage-heatmap=heatmap_id
+    .stats-chart-header
+        .stats-chart-header-row
+            .stats-chart-heading
+                h2.stats-chart-title Data Coverage
+                p.stats-chart-subtitle Cross-referencing the index to surface where coverage is thin. Darker cells hold more companies; hatched cells are gaps where no companies are recorded yet.
+            .stats-chart-controls
+                label.stats-coverage-heatmap-label for="#{heatmap_id}-select" Break down by
+                select.stats-dimension-select id="#{heatmap_id}-select" data-coverage-heatmap-select=heatmap_id
+                    - dimensions.each do |dimension|
+                        option value=dimension[:key] selected=(dimension[:key] == default_dimension) = dimension[:label]
+    .stats-chart-body.stats-coverage-heatmap-body
+        - dimensions.each do |dimension|
+            - grid = heatmaps[dimension[:key]]
+            - is_default = dimension[:key] == default_dimension
+            .stats-coverage-panel data-coverage-panel=dimension[:key] hidden=(!is_default)
+                - if grid && grid[:rows].any? && grid[:columns].any?
+                    .stats-coverage-grid-wrap
+                        .stats-coverage-grid style="--coverage-cols: #{grid[:columns].size}"
+                            .stats-coverage-corner
+                                span.stats-coverage-axis-secondary= grid[:secondary_label]
+                                span.stats-coverage-axis-primary= grid[:primary_label]
+                            - grid[:columns].each do |column|
+                                .stats-coverage-colhead title=column
+                                    span.stats-coverage-colhead-label= column
+                            .stats-coverage-colhead.stats-coverage-total-head
+                                span.stats-coverage-colhead-label Total
+                            - grid[:rows].each do |row|
+                                .stats-coverage-rowhead title=row[:label]
+                                    = row[:label]
+                                - row[:cells].each_with_index do |value, index|
+                                    - cell = coverage_heatmap_cell_presentation(value, grid[:max])
+                                    div.stats-coverage-cell class=(cell[:gap] ? "is-gap" : nil) style=(cell[:gap] ? nil : "background: #{cell[:background]}; color: #{cell[:text_color]};") title="#{row[:label]} \u00b7 #{grid[:columns][index]}: #{value}"
+                                        span.stats-coverage-cell-value= value
+                                .stats-coverage-cell.stats-coverage-total-cell title="#{row[:label]} total: #{row[:total]}"
+                                    span.stats-coverage-cell-value= row[:total]
+                    .stats-coverage-legend
+                        span.stats-coverage-legend-label Fewer
+                        .stats-coverage-legend-scale
+                            - legend_ratios.each do |ratio|
+                                span.stats-coverage-legend-swatch style="background: #{coverage_heatmap_scale_color(ratio)}"
+                        span.stats-coverage-legend-label More
+                        span.stats-coverage-legend-gap
+                            span.stats-coverage-legend-gap-swatch
+                            span No companies (data gap)
+                - else
+                    p.stats-coverage-empty No data available for this breakdown yet.
+javascript:
+    (function() {
+        function bindCoverageHeatmaps() {
+            document.querySelectorAll("[data-coverage-heatmap-select]").forEach(function(select) {
+                if (select.dataset.coverageBound === "true") return;
+                select.dataset.coverageBound = "true";
+
+                let target = select.getAttribute("data-coverage-heatmap-select");
+                let card = document.querySelector('[data-coverage-heatmap="' + target + '"]');
+                if (!card) return;
+
+                function showPanel(key) {
+                    card.querySelectorAll("[data-coverage-panel]").forEach(function(panel) {
+                        panel.hidden = panel.getAttribute("data-coverage-panel") !== key;
+                    });
+                }
+
+                select.addEventListener("change", function() {
+                    showPanel(select.value);
+                });
+
+                showPanel(select.value);
+            });
+        }
+
+        document.addEventListener("turbo:load", bindCoverageHeatmaps);
+        document.addEventListener("turbo:render", bindCoverageHeatmaps);
+        bindCoverageHeatmaps();
+    })();

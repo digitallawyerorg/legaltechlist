@@ -758,3 +758,188 @@ css:
             padding-right: 0.65rem;
         }
     }
+
+    .stats-coverage-heatmap .stats-chart-controls {
+        gap: 0.5rem;
+    }
+
+    .stats-coverage-heatmap-label {
+        color: rgba(42, 39, 35, 0.55);
+        font-size: 0.78rem;
+        font-weight: 600;
+        margin: 0;
+    }
+
+    .stats-coverage-heatmap-body {
+        padding: 1.1rem 1.25rem 1.35rem;
+    }
+
+    .stats-coverage-grid-wrap {
+        overflow-x: auto;
+        padding-bottom: 0.35rem;
+    }
+
+    .stats-coverage-grid {
+        display: grid;
+        gap: 3px;
+        grid-template-columns: minmax(7.5rem, 1.3fr) repeat(var(--coverage-cols), minmax(2.9rem, 1fr)) minmax(3rem, 0.7fr);
+        min-width: 34rem;
+    }
+
+    .stats-coverage-corner {
+        align-items: flex-end;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+        gap: 0.1rem;
+        padding: 0 0.5rem 0.4rem 0;
+        text-align: right;
+    }
+
+    .stats-coverage-axis-secondary {
+        color: rgba(42, 39, 35, 0.72);
+        font-size: 0.72rem;
+        font-weight: 600;
+    }
+
+    .stats-coverage-axis-primary {
+        color: rgba(42, 39, 35, 0.42);
+        font-size: 0.68rem;
+    }
+
+    .stats-coverage-colhead {
+        align-items: flex-end;
+        color: rgba(42, 39, 35, 0.6);
+        display: flex;
+        font-size: 0.68rem;
+        font-weight: 600;
+        justify-content: center;
+        line-height: 1.2;
+        padding-bottom: 0.4rem;
+        text-align: center;
+    }
+
+    .stats-coverage-colhead-label {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        max-width: 100%;
+    }
+
+    .stats-coverage-total-head {
+        color: rgba(42, 39, 35, 0.42);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+    }
+
+    .stats-coverage-rowhead {
+        align-items: center;
+        color: #2a2723;
+        display: flex;
+        font-size: 0.78rem;
+        font-weight: 500;
+        line-height: 1.25;
+        overflow: hidden;
+        padding-right: 0.6rem;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .stats-coverage-cell {
+        align-items: center;
+        background: #eef0f2;
+        border-radius: 6px;
+        color: #2a2723;
+        display: flex;
+        font-size: 0.78rem;
+        font-variant-numeric: tabular-nums;
+        font-weight: 600;
+        justify-content: center;
+        min-height: 2.85rem;
+        transition: transform 0.12s ease, box-shadow 0.12s ease;
+    }
+
+    .stats-coverage-cell:hover {
+        box-shadow: 0 0 0 2px rgba(42, 39, 35, 0.18);
+        transform: translateY(-1px);
+    }
+
+    .stats-coverage-cell.is-gap {
+        background-color: #f7f4ee;
+        background-image: repeating-linear-gradient(45deg, rgba(140, 21, 21, 0.14) 0, rgba(140, 21, 21, 0.14) 1px, transparent 1px, transparent 6px);
+        border: 1px dashed rgba(140, 21, 21, 0.35);
+        color: rgba(42, 39, 35, 0.3);
+    }
+
+    .stats-coverage-cell.is-gap .stats-coverage-cell-value {
+        font-weight: 500;
+    }
+
+    .stats-coverage-total-cell {
+        background: transparent;
+        color: rgba(42, 39, 35, 0.6);
+        font-weight: 700;
+    }
+
+    .stats-coverage-total-cell:hover {
+        box-shadow: none;
+        transform: none;
+    }
+
+    .stats-coverage-legend {
+        align-items: center;
+        color: rgba(42, 39, 35, 0.55);
+        display: flex;
+        flex-wrap: wrap;
+        font-size: 0.76rem;
+        gap: 0.5rem;
+        margin-top: 1rem;
+    }
+
+    .stats-coverage-legend-scale {
+        display: inline-flex;
+        gap: 2px;
+    }
+
+    .stats-coverage-legend-swatch {
+        border-radius: 3px;
+        display: inline-block;
+        height: 0.9rem;
+        width: 1.35rem;
+    }
+
+    .stats-coverage-legend-gap {
+        align-items: center;
+        display: inline-flex;
+        gap: 0.4rem;
+        margin-left: 0.75rem;
+    }
+
+    .stats-coverage-legend-gap-swatch {
+        background-color: #f7f4ee;
+        background-image: repeating-linear-gradient(45deg, rgba(140, 21, 21, 0.14) 0, rgba(140, 21, 21, 0.14) 1px, transparent 1px, transparent 6px);
+        border: 1px dashed rgba(140, 21, 21, 0.35);
+        border-radius: 3px;
+        display: inline-block;
+        height: 0.9rem;
+        width: 0.9rem;
+    }
+
+    .stats-coverage-empty {
+        color: rgba(42, 39, 35, 0.55);
+        font-size: 0.9rem;
+        margin: 0;
+        padding: 1.5rem 0;
+        text-align: center;
+    }
+
+    @media (max-width: 767.98px) {
+        .stats-coverage-heatmap-body {
+            padding: 0.85rem 0.85rem 1.1rem;
+        }
+
+        .stats-coverage-cell {
+            font-size: 0.72rem;
+            min-height: 2.5rem;
+        }
+    }

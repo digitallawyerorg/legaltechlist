@@ -33,3 +33,4 @@
                     h1.stats-hero-title Statistics
                     p.stats-hero-subtitle Research insights into the legal technology landscape
             == stats_index_cards
+            = render partial: "shared/stats_coverage_heatmap", locals: { heatmaps: build_coverage_heatmaps }

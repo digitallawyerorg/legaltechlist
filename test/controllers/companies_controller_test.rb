@@ -1,6 +1,8 @@
 require 'test_helper'
 
 class CompaniesControllerTest < ActionController::TestCase
+  include Devise::Test::ControllerHelpers
+
   setup do
     @company = companies(:one)
     @request.env["PATH_INFO"] = companies_path
@@ -333,7 +335,7 @@ class CompaniesControllerTest < ActionController::TestCase
     get :show, params: { slug: @company }
 
     assert_response :success
-    assert_select "button.company-suggest-update-btn[data-suggest-update-open]", text: /Suggest an update/
+    assert_select "button.company-suggest-update-btn[data-suggest-update-open]", text: /Suggest update/
     assert_select "#company-suggest-update-modal"
     assert_select ".company-suggest-update-modal-option", minimum: 7
     assert_select "form[action=?][method=?]", suggest_update_company_path(@company), "post"

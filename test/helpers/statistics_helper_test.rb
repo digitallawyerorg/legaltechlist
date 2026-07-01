@@ -211,4 +211,102 @@ class StatisticsHelperTest < ActiveSupport::TestCase
     assert preview.all? { |row| row[:label].present? && row[:share].positive? }
     assert_equal preview.map { |row| row[:share] }, preview.map { |row| row[:share] }.sort.reverse
   end
+
+  test "stats_coverage_heatmap_dimensions lists selectable primary dimensions" do
+    helper = Class.new { include StatisticsHelper }.new
+    dimensions = helper.stats_coverage_heatmap_dimensions
+
+    assert_equal %w[category business_model location target_market fundraising], dimensions.map { |dimension| dimension[:key] }
+    assert_equal "Category", dimensions.first[:label]
+    location = dimensions.find { |dimension| dimension[:key] == "location" }
+    assert_equal "Category", location[:secondary]
+  end
+
+  test "coverage_heatmap_grid keeps region columns in order and flags gaps" do
+    helper = Class.new { include StatisticsHelper }.new
+    counts = {
+      "Contract Management" => { "North America" => 10, "Europe" => 4 },
+      "E-Discovery" => { "North America" => 2 }
+    }
+
+    grid = helper.coverage_heatmap_grid(counts, primary_label: "Category", secondary_label: "Region", column_order: StatisticsHelper::COVERAGE_HEATMAP_REGION_ORDER)
+
+    assert_equal ["North America", "Europe"], grid[:columns]
+    assert_equal "Contract Management", grid[:rows].first[:label]
+    assert_equal 14, grid[:rows].first[:total]
+    assert_equal [10, 4], grid[:rows].first[:cells]
+    ediscovery = grid[:rows].find { |row| row[:label] == "E-Discovery" }
+    assert_equal [2, 0], ediscovery[:cells]
+    assert_equal 10, grid[:max]
+  end
+
+  test "coverage_heatmap_grid honors an explicit row order" do
+    helper = Class.new { include StatisticsHelper }.new
+    counts = {
+      "Seed" => { "Europe" => 3 },
+      "Operating" => { "North America" => 12 },
+      "IPO" => { "North America" => 1 }
+    }
+
+    grid = helper.coverage_heatmap_grid(counts, primary_label: "Fundraising", secondary_label: "Region", column_order: StatisticsHelper::COVERAGE_HEATMAP_REGION_ORDER, row_order: StatisticsHelper::VENTURE_STAGE_ORDER)
+
+    assert_equal %w[Operating Seed IPO], grid[:rows].map { |row| row[:label] }
+  end
+
+  test "coverage_heatmap_grid buckets overflow rows and columns into Other" do
+    helper = Class.new { include StatisticsHelper }.new
+    counts = {
+      "Row A" => { "C1" => 5, "C2" => 4, "C3" => 3 },
+      "Row B" => { "C1" => 2 },
+      "Row C" => { "C3" => 1 }
+    }
+
+    grid = helper.coverage_heatmap_grid(counts, primary_label: "X", secondary_label: "Y", row_limit: 1, column_limit: 1)
+
+    assert_equal ["C1", StatisticsHelper::COVERAGE_HEATMAP_OTHER_LABEL], grid[:columns]
+    assert_equal ["Row A", StatisticsHelper::COVERAGE_HEATMAP_OTHER_LABEL], grid[:rows].map { |row| row[:label] }
+    other_row = grid[:rows].last
+    assert_equal 3, other_row[:total]
+    assert_equal [2, 1], other_row[:cells]
+  end
+
+  test "coverage_heatmap_cell_presentation distinguishes gaps from filled cells" do
+    helper = Class.new { include StatisticsHelper }.new
+
+    gap = helper.coverage_heatmap_cell_presentation(0, 20)
+    assert gap[:gap]
+    assert_nil gap[:background]
+
+    filled = helper.coverage_heatmap_cell_presentation(20, 20)
+    assert_not filled[:gap]
+    assert_match(/\Argb\(/, filled[:background])
+    assert_equal "#ffffff", filled[:text_color]
+
+    faint = helper.coverage_heatmap_cell_presentation(1, 200)
+    assert_equal "#2a2723", faint[:text_color]
+  end
+
+  test "coverage_heatmap_scale_color interpolates and clamps ratio" do
+    helper = Class.new { include StatisticsHelper }.new
+
+    assert_equal "rgb(250, 241, 236)", helper.coverage_heatmap_scale_color(0)
+    assert_equal "rgb(140, 21, 21)", helper.coverage_heatmap_scale_color(1.0)
+    assert_equal "rgb(140, 21, 21)", helper.coverage_heatmap_scale_color(2.5)
+  end
+
+  test "build_coverage_heatmaps returns a grid for every dimension" do
+    helper = Class.new { include StatisticsHelper }.new
+    heatmaps = helper.build_coverage_heatmaps
+
+    assert_equal %w[category business_model location target_market fundraising].sort, heatmaps.keys.sort
+    heatmaps.each_value do |grid|
+      assert grid.key?(:rows)
+      assert grid.key?(:columns)
+      assert_operator grid[:max], :>=, 0
+      grid[:rows].each do |row|
+        assert_equal grid[:columns].size, row[:cells].size
+        assert_operator row[:total], :>=, 0
+      end
+    end
+  end
 end

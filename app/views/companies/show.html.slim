@@ -82,8 +82,37 @@ css:
     }
 
     .company-show-page .company-hero-actions {
+        align-items: center;
+        display: inline-flex;
         flex: 0 0 auto;
+        gap: 0.5rem;
         padding-top: 0.15rem;
+    }
+
+    .company-show-page .company-admin-gear-btn {
+        align-items: center;
+        background: #fff;
+        border: 1px solid #e1dccf;
+        border-radius: 999px;
+        color: #6b6258;
+        cursor: pointer;
+        display: inline-flex;
+        height: 2.35rem;
+        justify-content: center;
+        text-decoration: none;
+        transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+        width: 2.35rem;
+    }
+
+    .company-show-page .company-admin-gear-btn:hover {
+        background: #faf8f4;
+        border-color: #d4cec0;
+        color: #2b2926;
+        text-decoration: none;
+    }
+
+    .company-show-page .company-admin-gear-btn-icon {
+        font-size: 0.9rem;
     }
 
     .company-show-page .company-suggest-update-btn {
@@ -686,9 +715,12 @@ css:
                                 = website_display_label(@company.main_url)
                                 i.fa-solid.fa-arrow-up-right-from-square.company-hero-website-icon aria-hidden="true"
             .company-hero-actions
+                - if admin_user_signed_in?
+                    = link_to custom_admin_company_review_path(@company.id), class: "company-admin-gear-btn", title: "admin", aria: { label: "admin" } do
+                        i.fa-solid.fa-gear.company-admin-gear-btn-icon aria-hidden="true"
                 button.company-suggest-update-btn type="button" data-suggest-update-open=""
                     i.fa-regular.fa-pen-to-square.company-suggest-update-btn-icon aria-hidden="true"
-                    | Suggest an update
+                    | Suggest update
 
         section.company-section.company-about-section
             .company-section-label About

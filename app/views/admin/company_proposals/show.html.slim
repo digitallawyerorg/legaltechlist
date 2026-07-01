@@ -26,6 +26,10 @@
 
 .admin-proposal-toolbar.mb-3
     .admin-proposal-toolbar-secondary
+        - if @company_proposal.company&.slug.present?
+            = link_to company_path(@company_proposal.company), class: "btn btn-outline-secondary", target: "_blank", rel: "noopener" do
+                i.fas.fa-arrow-up-right-from-square.me-1
+                | View on site
         = button_to enrich_custom_admin_company_proposal_path(@company_proposal), method: :post, class: "btn btn-outline-secondary", form: { data: { turbo_confirm: "Generate proposal-only enrichment without changing company records?" } } do
             i.fas.fa-wand-magic-sparkles.me-1
             | Enrich

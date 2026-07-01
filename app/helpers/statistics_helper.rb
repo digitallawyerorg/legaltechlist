@@ -34,6 +34,25 @@ module StatisticsHelper
     "#5a865a", "#ae6a59", "#5b9bd5", "#6b6b8d", "#c67171", "#820000"
   ].freeze
 
+  COVERAGE_HEATMAP_REGION_ORDER = [
+    "North America", "Europe", "Asia-Pacific", "Latin America", "Middle East", "Africa", "Other"
+  ].freeze
+
+  COVERAGE_HEATMAP_DIMENSIONS = [
+    { key: "category", label: "Category", secondary: "Region" },
+    { key: "business_model", label: "Business model", secondary: "Region" },
+    { key: "location", label: "Location", secondary: "Category" },
+    { key: "target_market", label: "Target market", secondary: "Region" },
+    { key: "fundraising", label: "Fundraising", secondary: "Region" }
+  ].freeze
+
+  COVERAGE_HEATMAP_OTHER_LABEL = "Other".freeze
+  COVERAGE_HEATMAP_ROW_LIMIT = 10
+  COVERAGE_HEATMAP_COLUMN_LIMIT = 8
+  COVERAGE_HEATMAP_MIN_RATIO = 0.14
+  COVERAGE_HEATMAP_SCALE_START = [250, 241, 236].freeze
+  COVERAGE_HEATMAP_SCALE_END = [140, 21, 21].freeze
+
   STATS_CHART_PAGES = [
     { actions: %w[total_companies], title: "Total Companies", path: :statistics_total_companies_path },
     { actions: %w[country_distribution], title: "Geographic Distribution", path: :statistics_country_distribution_path },
@@ -482,7 +501,132 @@ module StatisticsHelper
     rows
   end
 
+  def stats_coverage_heatmap_dimensions
+    COVERAGE_HEATMAP_DIMENSIONS
+  end
+
+  def build_coverage_heatmaps
+    category_region = Hash.new { |hash, key| hash[key] = Hash.new(0) }
+    business_model_region = Hash.new { |hash, key| hash[key] = Hash.new(0) }
+    target_region = Hash.new { |hash, key| hash[key] = Hash.new(0) }
+    stage_region = Hash.new { |hash, key| hash[key] = Hash.new(0) }
+    region_category = Hash.new { |hash, key| hash[key] = Hash.new(0) }
+
+    stats_index_scope.includes(:category, :business_models, :business_model, :target_clients, :target_client).find_each do |company|
+      region = coverage_heatmap_region_for(company)
+      category = coverage_heatmap_category_for(company)
+      stage = canonical_venture_stage_name(company.funding_status)
+      business_models = TaxonomyNormalizationService.canonical_revenue_model_names(company.revenue_model_names.join(", ")).uniq
+      targets = company.audience_names.reject { |target| target.blank? || target == "Unknown" }.uniq
+
+      if region
+        category_region[category][region] += 1 if category
+        business_models.each { |model| business_model_region[model][region] += 1 }
+        targets.each { |target| target_region[target][region] += 1 }
+        stage_region[stage][region] += 1
+        region_category[region][category] += 1 if category
+      end
+    end
+
+    {
+      "category" => coverage_heatmap_grid(category_region, primary_label: "Category", secondary_label: "Region", column_order: COVERAGE_HEATMAP_REGION_ORDER),
+      "business_model" => coverage_heatmap_grid(business_model_region, primary_label: "Business model", secondary_label: "Region", column_order: COVERAGE_HEATMAP_REGION_ORDER),
+      "location" => coverage_heatmap_grid(region_category, primary_label: "Location", secondary_label: "Category", row_order: COVERAGE_HEATMAP_REGION_ORDER),
+      "target_market" => coverage_heatmap_grid(target_region, primary_label: "Target market", secondary_label: "Region", column_order: COVERAGE_HEATMAP_REGION_ORDER),
+      "fundraising" => coverage_heatmap_grid(stage_region, primary_label: "Fundraising", secondary_label: "Region", column_order: COVERAGE_HEATMAP_REGION_ORDER, row_order: VENTURE_STAGE_ORDER)
+    }
+  end
+
+  def coverage_heatmap_grid(counts, primary_label:, secondary_label:, column_order: nil, row_order: nil, row_limit: COVERAGE_HEATMAP_ROW_LIMIT, column_limit: COVERAGE_HEATMAP_COLUMN_LIMIT)
+    counts = counts.transform_values { |columns| columns.reject { |_, value| value.to_i.zero? } }.reject { |_, columns| columns.empty? }
+
+    column_totals = Hash.new(0)
+    counts.each_value { |columns| columns.each { |label, value| column_totals[label] += value } }
+
+    if column_order
+      columns = column_order.select { |label| column_totals[label].to_i.positive? }
+      overflow_columns = []
+    else
+      ranked_columns = column_totals.sort_by { |label, total| [-total, label] }.map(&:first)
+      columns = ranked_columns.first(column_limit)
+      overflow_columns = ranked_columns.drop(column_limit)
+    end
+    column_labels = columns + (overflow_columns.any? ? [COVERAGE_HEATMAP_OTHER_LABEL] : [])
+
+    row_totals = counts.transform_values { |cols| cols.values.sum }
+    ordered_rows =
+      if row_order
+        (row_order & counts.keys) + counts.keys.reject { |label| row_order.include?(label) }.sort_by { |label| [-row_totals[label], label] }
+      else
+        counts.keys.sort_by { |label| [-row_totals[label], label] }
+      end
+    ordered_rows = ordered_rows.select { |label| row_totals[label].to_i.positive? }
+
+    top_rows = ordered_rows.first(row_limit)
+    overflow_rows = ordered_rows.drop(row_limit)
+
+    rows = top_rows.map do |label|
+      { label: label, total: row_totals[label], cells: coverage_heatmap_row_cells(counts[label], columns, overflow_columns) }
+    end
+
+    if overflow_rows.any?
+      merged = Hash.new(0)
+      overflow_rows.each { |label| counts[label].each { |col, value| merged[col] += value } }
+      rows << { label: COVERAGE_HEATMAP_OTHER_LABEL, total: overflow_rows.sum { |label| row_totals[label] }, cells: coverage_heatmap_row_cells(merged, columns, overflow_columns) }
+    end
+
+    max = rows.flat_map { |row| row[:cells] }.max.to_i
+
+    { primary_label: primary_label, secondary_label: secondary_label, columns: column_labels, rows: rows, max: max }
+  end
+
+  def coverage_heatmap_scale_color(ratio)
+    ratio = ratio.to_f.clamp(0.0, 1.0)
+    rgb = COVERAGE_HEATMAP_SCALE_START.each_index.map do |index|
+      (COVERAGE_HEATMAP_SCALE_START[index] + (COVERAGE_HEATMAP_SCALE_END[index] - COVERAGE_HEATMAP_SCALE_START[index]) * ratio).round
+    end
+    "rgb(#{rgb.join(', ')})"
+  end
+
+  def coverage_heatmap_cell_presentation(value, max)
+    value = value.to_i
+    return { value: value, gap: true, background: nil, text_color: nil, ratio: 0.0 } if value <= 0
+
+    max = 1 if max.to_i < 1
+    ratio = Math.sqrt(value.to_f / max.to_f)
+    ratio = COVERAGE_HEATMAP_MIN_RATIO if ratio < COVERAGE_HEATMAP_MIN_RATIO
+
+    {
+      value: value,
+      gap: false,
+      background: coverage_heatmap_scale_color(ratio),
+      text_color: ratio >= 0.55 ? "#ffffff" : "#2a2723",
+      ratio: ratio.round(3)
+    }
+  end
+
   private
+
+  def coverage_heatmap_region_for(company)
+    country = company.resolved_country
+    return nil if country.blank?
+
+    LocationRegionResolver.region_for_country(country)
+  end
+
+  def coverage_heatmap_category_for(company)
+    name = company.category&.name
+    return nil if name.blank? || name == "Unknown"
+
+    name
+  end
+
+  def coverage_heatmap_row_cells(column_counts, columns, overflow_columns)
+    column_counts ||= {}
+    cells = columns.map { |label| column_counts[label].to_i }
+    cells << overflow_columns.sum { |label| column_counts[label].to_i } if overflow_columns.any?
+    cells
+  end
 
   def stats_chart_page_match?(page)
     return false unless page[:actions].include?(action_name)
