@@ -126,6 +126,7 @@ class CompaniesHelperTest < ActionView::TestCase
   test "company_reference_url_label returns a schemeless url for display" do
     assert_equal "legal.io/about", company_reference_url_label("https://legal.io/about")
     assert_equal "legal.io", company_reference_url_label("legal.io")
+    assert_equal "www.legal.io", company_reference_url_label("https://www.legal.io/")
     assert_nil company_reference_url_label("")
   end
 

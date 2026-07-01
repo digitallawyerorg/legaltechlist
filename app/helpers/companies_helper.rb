@@ -184,7 +184,7 @@ module CompaniesHelper
     link_url = company_reference_link_url(url)
     return if link_url.blank?
 
-    link_url.sub(%r{\Ahttps?://}i, "")
+    link_url.sub(%r{\Ahttps?://}i, "").chomp("/")
   end
 
   def company_reference_short_host(url)
