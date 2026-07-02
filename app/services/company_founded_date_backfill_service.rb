@@ -5,23 +5,32 @@
 # provenance so any backfilled year is auditable.
 class CompanyFoundedDateBackfillService
   TIER_RANK = { registry: 0, profile: 1, owned: 2, other: 3 }.freeze
+  # After any attempt (fill or miss) we record attempted_at, and skip re-running a
+  # ~180s web search on the same company within this window. Blind sweeps therefore
+  # stop re-researching known no-source companies and reach untried ones instead.
+  RE_ATTEMPT_COOLDOWN = 3.days
 
   def self.call(**kwargs)
     new(**kwargs).call
   end
 
-  def initialize(company:, admin_user: nil)
+  def initialize(company:, admin_user: nil, force: false)
     @company = company
     @admin_user = admin_user
+    @force = force
   end
 
   # Returns a hash: { "result" =>, "company_id" =>, "year" =>, "source_url" =>, "source_tier" =>, "reason" => }
   def call
     return { "result" => "skipped_present", "company_id" => company.id } if company.founded_date.present?
+    return { "result" => "skipped_recently_attempted", "company_id" => company.id, "attempted_at" => last_attempted_at&.iso8601 } if !force && recently_attempted?
 
     research = fetch_research
     chosen = choose_candidate(extract_candidates(research))
-    return { "result" => "skipped_no_source", "company_id" => company.id, "reason" => "no cited candidate year in gathered evidence" } if chosen.nil?
+    if chosen.nil?
+      mark_attempt!("no_source")
+      return { "result" => "skipped_no_source", "company_id" => company.id, "reason" => "no cited candidate year in gathered evidence" }
+    end
 
     company.founded_date_from_source!(year: chosen[:year], source_url: chosen[:source_url])
     record_provenance!(chosen)
@@ -29,15 +38,44 @@ class CompanyFoundedDateBackfillService
 
     { "result" => "filled", "company_id" => company.id, "year" => chosen[:year], "source_url" => chosen[:source_url], "source_tier" => chosen[:tier].to_s }
   rescue ArgumentError => e
+    mark_attempt!("no_year", reason: e.message)
     { "result" => "skipped_no_year", "company_id" => company.id, "reason" => e.message }
   rescue StandardError => e
     Rails.logger.debug("[CompanyFoundedDateBackfillService] company_id=#{company.id} #{e.class}: #{e.message}")
+    mark_attempt!("error", reason: "#{e.class}: #{e.message}")
     { "result" => "error", "company_id" => company.id, "reason" => "#{e.class}: #{e.message}" }
   end
 
   private
 
-  attr_reader :company, :admin_user
+  attr_reader :company, :admin_user, :force
+
+  def recently_attempted?
+    at = last_attempted_at
+    at.present? && at > RE_ATTEMPT_COOLDOWN.ago
+  end
+
+  def last_attempted_at
+    raw = company.founded_year_provenance&.dig("attempted_at")
+    raw.present? ? Time.iso8601(raw) : nil
+  rescue ArgumentError
+    nil
+  end
+
+  # Records a lightweight attempt marker on a miss so the cooldown/selection can skip
+  # this company on later runs (reuses founded_year_provenance — no new column).
+  def mark_attempt!(status, reason: nil)
+    return unless company.respond_to?(:founded_year_provenance=)
+
+    company.update_columns(founded_year_provenance: {
+      "status" => status,
+      "mode" => "server_backfill",
+      "attempted_at" => Time.current.utc.iso8601,
+      "reason" => reason
+    }.compact)
+  rescue StandardError => e
+    Rails.logger.debug("[CompanyFoundedDateBackfillService] mark_attempt failed company_id=#{company.id}: #{e.message}")
+  end
 
   def fetch_research
     CompanyFoundedYearResearchService.call(company: company)
@@ -96,9 +134,11 @@ class CompanyFoundedDateBackfillService
     return unless company.respond_to?(:founded_year_provenance=)
 
     company.update_columns(founded_year_provenance: {
+      "status" => "filled",
       "source_url" => chosen[:source_url],
       "source_tier" => chosen[:tier].to_s,
       "mode" => "server_backfill",
+      "attempted_at" => Time.current.utc.iso8601,
       "generated_at" => Time.current.utc.iso8601
     })
   end

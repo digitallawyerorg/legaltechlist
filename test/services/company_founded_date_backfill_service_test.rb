@@ -23,7 +23,7 @@ class CompanyFoundedDateBackfillServiceTest < ActiveSupport::TestCase
     assert PipelineRun.where(run_type: "founded_date_backfill").where("details ->> 'company_id' = ?", company.id.to_s).exists?
   end
 
-  test "skips when the cited evidence does not name the company" do
+  test "skips when the cited evidence does not name the company and records a no_source marker" do
     company = blank_year_company(name: "Company B", main_url: "https://companyb.example")
     research = {
       "candidates" => [
@@ -37,6 +37,35 @@ class CompanyFoundedDateBackfillServiceTest < ActiveSupport::TestCase
 
     assert_equal "skipped_no_source", result["result"]
     assert company.reload.founded_date.blank?
+    assert_equal "no_source", company.founded_year_provenance["status"]
+    assert company.founded_year_provenance["attempted_at"].present?
+  end
+
+  test "skips a company attempted within the cooldown without researching again" do
+    company = blank_year_company(name: "Recently Tried", main_url: "https://recent.example")
+    company.update_column(:founded_year_provenance, { "status" => "no_source", "attempted_at" => 1.day.ago.utc.iso8601 })
+
+    fill = { "candidates" => [{ "year" => "2019", "source_url" => "https://recent.example/about", "evidence_text" => "Recently Tried founded 2019" }] }
+    result = CompanyFoundedYearResearchService.stub(:call, fill) do
+      CompanyFoundedDateBackfillService.call(company: company)
+    end
+
+    assert_equal "skipped_recently_attempted", result["result"]
+    assert company.reload.founded_date.blank?
+  end
+
+  test "force re-attempts a company inside the cooldown window" do
+    company = blank_year_company(name: "Forced Co", main_url: "https://forced.example")
+    company.update_column(:founded_year_provenance, { "status" => "no_source", "attempted_at" => 1.day.ago.utc.iso8601 })
+
+    fill = { "candidates" => [{ "year" => "2019", "source_url" => "https://forced.example/about", "evidence_text" => "Forced Co founded 2019" }] }
+    result = CompanyFoundedYearResearchService.stub(:call, fill) do
+      CompanyFoundedDateBackfillService.call(company: company, force: true)
+    end
+
+    assert_equal "filled", result["result"]
+    assert_equal "2019", company.reload.founded_date
+    assert_equal "filled", company.founded_year_provenance["status"]
   end
 
   test "fills from a neutral registry aggregator that names the company in full" do

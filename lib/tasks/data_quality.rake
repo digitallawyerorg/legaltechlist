@@ -107,17 +107,28 @@ namespace :data_quality do
     puts "Backfill identity complete mode=#{mode} changed=#{changed}"
   end
 
-  desc "Backfill missing founded_date values from web-cited sources. Defaults to dry-run; set DRY_RUN=false to enqueue jobs. INLINE=true to run synchronously (small batches only). LIMIT=n caps the batch."
+  desc "Backfill missing founded_date values from web-cited sources. Defaults to dry-run; set DRY_RUN=false to enqueue jobs. INLINE=true to run synchronously (small batches only). LIMIT=n caps the batch. FORCE=true ignores the ~3-day re-attempt cooldown. COMPANY_IDS=1,2,3 targets specific companies (implies force)."
   task backfill_founded_dates: :environment do
     dry_run = ENV.fetch("DRY_RUN", "true") != "false"
     inline = ENV.fetch("INLINE", "false") == "true"
     verbose = ENV.fetch("VERBOSE", "false") == "true"
     limit = ENV.fetch("LIMIT", "50").to_i
+    company_ids = ENV["COMPANY_IDS"].to_s.split(",").map(&:to_i).reject(&:zero?)
+    force = ENV.fetch("FORCE", "false") == "true" || company_ids.any?
     filled = 0
     skipped = Hash.new(0)
     examples = []
 
-    Company.missing_founded_date.limit(limit).find_each do |company|
+    scope =
+      if company_ids.any?
+        Company.missing_founded_date.where(id: company_ids)
+      elsif force
+        Company.missing_founded_date
+      else
+        Company.founded_date_backfill_due(CompanyFoundedDateBackfillService::RE_ATTEMPT_COOLDOWN)
+      end
+
+    scope.order(:id).limit(limit).find_each do |company|
       if dry_run
         line = "DRY RUN company_id=#{company.id} name=#{company.name.inspect} main_url=#{company.main_url.inspect}"
         verbose ? puts(line) : (examples << line if examples.size < 20)
@@ -126,7 +137,7 @@ namespace :data_quality do
       end
 
       if inline
-        result = CompanyFoundedDateBackfillService.call(company: company)
+        result = CompanyFoundedDateBackfillService.call(company: company, force: force)
         if result["result"] == "filled"
           filled += 1
           puts "FILLED company_id=#{company.id} year=#{result['year']} source=#{result['source_url']} tier=#{result['source_tier']}" if verbose
@@ -135,14 +146,14 @@ namespace :data_quality do
           puts "SKIP company_id=#{company.id} result=#{result['result']} reason=#{result['reason']}" if verbose
         end
       else
-        BackfillFoundedDateJob.perform_later(company.id)
+        BackfillFoundedDateJob.perform_later(company.id, nil, force)
         skipped["enqueued"] += 1
       end
     end
 
     mode = dry_run ? "dry-run" : (inline ? "inline" : "enqueued")
     puts examples if dry_run && !verbose
-    puts "Backfill founded_date complete mode=#{mode} limit=#{limit} filled=#{filled} skipped=#{skipped.sort.to_h}"
+    puts "Backfill founded_date complete mode=#{mode} limit=#{limit} force=#{force} filled=#{filled} skipped=#{skipped.sort.to_h}"
   end
 
   desc "Normalize company locations missing country names. Defaults to dry-run; set DRY_RUN=false to write."

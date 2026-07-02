@@ -68,13 +68,16 @@ module Mcp
         never guess). For editorial changes (e.g. descriptions) or anything outside that
         allowlist, use propose_company_update, which becomes a proposal a human approves.
       - To backfill founding years across the directory at scale, use backfill_founded_dates:
-        it enqueues async jobs that now run on a dedicated durable worker (Solid Queue), so a
-        large batch drains reliably off the request path and survives deploys/restarts — no
-        in-process contention. Each job runs a targeted founding-year web search (server has web
-        egress to LinkedIn/Crunchbase/registries) and only writes a year a real source states for
-        THIS company, preferring official registries. Find the targets with
-        search_companies(missing_founded_date: true), track the gap with get_stats
-        companies.missing_founded_date, and poll get_company to see results.
+        it enqueues async jobs on a dedicated durable worker (Solid Queue), so a large batch
+        drains reliably off the request path and survives deploys/restarts. Each job runs a
+        targeted founding-year web search (server has web egress to LinkedIn/Crunchbase/
+        registries) and only writes a year a real source states for THIS company, preferring
+        official registries. Runs are cheap to repeat: a blind run (limit) only picks companies
+        not attempted in the last ~3 days and records an attempt marker on a miss, so re-runs
+        reach untried companies instead of re-researching known no-source ones. To fill specific
+        companies right now (e.g. newly published ones), pass company_ids — that targets exactly
+        those and bypasses the cooldown. Find targets with search_companies(missing_founded_date:
+        true), track the gap with get_stats companies.missing_founded_date, and poll get_company.
       - enrich_proposal is skipped when a proposal is already publishable or was enriched in the
         last few days (it rarely adds facts); pass force=true to override intentionally.
       - Always run duplicate_check before creating a company. If a likely duplicate exists,

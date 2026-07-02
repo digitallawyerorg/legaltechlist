@@ -126,8 +126,13 @@ discipline, and the approval rules below.
   the exact cite-only guard (`sourced_year`) and the validated writer
   (`Company#founded_date_from_source!`, shared with `update_company_field`). Each fill records a
   `PipelineRun` (`run_type: "founded_date_backfill"`) and a `companies.founded_year_provenance`
-  JSON blob (source_url + tier). Also runnable as `rake data_quality:backfill_founded_dates`
-  (`DRY_RUN`/`INLINE`/`LIMIT`/`VERBOSE`).
+  JSON blob (`status` + source_url + tier). Cheap to re-run: every attempt (fill or miss) writes
+  `founded_year_provenance` with `status` + `attempted_at`, and a blind run only selects companies
+  not attempted within `RE_ATTEMPT_COOLDOWN` (3 days) via `Company.founded_date_backfill_due` — so
+  re-runs reach untried companies rather than re-researching known no-source ones. Pass
+  `company_ids` (tool) / `COMPANY_IDS` (rake) to target specific companies and bypass the cooldown.
+  Also runnable as `rake data_quality:backfill_founded_dates`
+  (`DRY_RUN`/`INLINE`/`LIMIT`/`VERBOSE`/`FORCE`/`COMPANY_IDS`).
 - Same-name entity guard (Spec C): a cited year is accepted only when the source is on the
   company's own domain, or on a known registry/profile host AND the evidence text names the
   company — blocking same-name/different-entity traps (e.g. `apualegal.com` for `apua.ai`).

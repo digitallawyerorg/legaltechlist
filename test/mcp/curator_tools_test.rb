@@ -387,6 +387,19 @@ module Mcp
       end
     end
 
+    test "backfill_founded_dates skips companies attempted within the cooldown on a blind run" do
+      companies(:one).update_columns(founded_date: "", founded_year_provenance: { "status" => "no_source", "attempted_at" => 1.day.ago.utc.iso8601 })
+      result = call(Mcp::Tools::BackfillFoundedDatesTool, limit: 50)
+      assert_not_includes result["company_ids"], companies(:one).id
+    end
+
+    test "backfill_founded_dates targets specific company_ids and bypasses the cooldown" do
+      companies(:one).update_columns(founded_date: "", founded_year_provenance: { "status" => "no_source", "attempted_at" => 1.day.ago.utc.iso8601 })
+      result = call(Mcp::Tools::BackfillFoundedDatesTool, company_ids: [companies(:one).id])
+      assert result["targeted"]
+      assert_includes result["company_ids"], companies(:one).id
+    end
+
     test "suggest_improvement records an audit run" do
       assert_difference -> { PipelineRun.where(run_type: "curator_mcp").count }, 1 do
         result = call(Mcp::Tools::SuggestImprovementTool, suggestion: "Add a bulk re-tagging tool.", area: "tooling")

@@ -52,6 +52,17 @@ class Company < ActiveRecord::Base
   scope :publicly_visible, -> { where(visible: true) }
   scope :missing_main_url, -> { where(main_url: [nil, ""]) }
   scope :missing_founded_date, -> { where(founded_date: [nil, ""]) }
+  # Companies still missing a founded_date that have NOT had a server-side backfill
+  # attempt within the cooldown window. Uses the founded_year_provenance.attempted_at
+  # marker so blind sweeps stop re-researching known no-source companies every run.
+  # ISO-8601 UTC timestamps compare correctly as strings (fixed format), avoiding a cast.
+  scope :founded_date_backfill_due, ->(cooldown = 3.days) {
+    cutoff = cooldown.ago.utc.iso8601
+    missing_founded_date.where(
+      "founded_year_provenance IS NULL OR (founded_year_provenance ->> 'attempted_at') IS NULL OR (founded_year_provenance ->> 'attempted_at') < ?",
+      cutoff
+    )
+  }
   scope :weak_description, -> { where("description IS NULL OR LENGTH(TRIM(description)) < 40") }
   scope :description_review_candidates, -> { where(description_review_candidate_condition) }
   scope :needs_review, -> { where(quality_status: "needs_review") }
