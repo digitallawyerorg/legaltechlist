@@ -57,11 +57,14 @@ module Mcp
       published unless the response says published:true.
 
       Change discipline:
-      - Add new companies via discover_companies. Discovery now classifies candidates in the same
-        search pass, so most proposals arrive already carrying a taxonomy suggestion (accepted when
-        confident) and, when a source documented it, a cited founding year — no separate enrich
-        round-trip needed. Review the pre-filled taxonomy, adjust with update_proposal if wrong,
-        then approve. Only enrich when facts are genuinely missing.
+      - Add new companies via discover_companies. Discovery now classifies AND describes candidates
+        in the same search pass, so most proposals arrive already carrying a taxonomy suggestion
+        (accepted when confident), a neutral encyclopedic description (with a recorded critic
+        verdict), and, when a source documented it, a cited founding year — publishable straight
+        from discovery with no separate enrich round-trip. Review the pre-filled description and
+        taxonomy, adjust with update_proposal if wrong, then approve. Discovery only leaves the
+        description blank when its draft was weak/uncertain; enrich only those genuinely-missing
+        cases.
       - To backfill a safe factual field (founding year, location, founders, status) on an
         already-published company, use update_company_field — it edits the live profile in one
         call. Setting founded_date requires a 4-digit year AND a source_url citation (cite-only,
@@ -115,7 +118,7 @@ module Mcp
       MCP::Server.new(
         name: "techindex_curator",
         title: "CodeX TechIndex Curator",
-        version: "1.7.0",
+        version: "1.8.0",
         instructions: INSTRUCTIONS,
         tools: Mcp::Tools.all,
         server_context: { actor: actor }

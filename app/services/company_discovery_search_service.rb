@@ -162,6 +162,13 @@ class CompanyDiscoverySearchService
       founding year (e.g. the company's LinkedIn/Crunchbase "Founded" field or an official
       registry); use null if no source documents it. Never guess a founding year.
 
+      For description, write ONE neutral, encyclopedic sentence of 18-32 words describing
+      what the company actually does for legal workflows, using concrete product/function
+      language grounded only in what search results show. It must be fit for an academic
+      directory: no marketing language, no superlatives, no customer counts, no "leading"
+      or "innovative", and no first-person or promotional phrasing. Do not copy a company's
+      own tagline verbatim; describe the function plainly.
+
       Return JSON only with this shape:
       #{json_output_schema}
     PROMPT
@@ -200,7 +207,7 @@ class CompanyDiscoverySearchService
             "website": "https://example.com",
             "location": "City, Country",
             "founded_date": "2018",
-            "description": "One neutral sentence on what the company does for legal workflows.",
+            "description": "One neutral, encyclopedic sentence (18-32 words) on the company's legal-tech product/function, no marketing language.",
             "why_discovered": "Short reason this company matches the discovery task.",
             #{taxonomy_schema_fields}
     FIELDS
@@ -210,7 +217,7 @@ class CompanyDiscoverySearchService
             "website": "https://example.com",
             "location": "City, Country",
             "founded_date": "2018",
-            "description": "One neutral sentence on what the company does for legal workflows.",
+            "description": "One neutral, encyclopedic sentence (18-32 words) on the company's legal-tech product/function, no marketing language.",
             "why_discovered": "Short reason this company matches the discovery task.",
             "funding_round_year": "2024",
             "funding_round_type": "Series A",

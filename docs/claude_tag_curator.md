@@ -114,6 +114,17 @@ discipline, and the approval rules below.
   round-trip and the "low-confidence taxonomy" hold for confident items. It never overwrites an
   existing taxonomy suggestion or a proposal that already has a company, and a founding-year
   source is kept only if its URL was actually seen in search (uncited sources are dropped).
+- Discovery-time description drafting: the same `discover_companies` pass now also drafts a
+  neutral, encyclopedic description (18-32 words, no marketing language). At proposal creation the
+  draft is cleaned (`CompanyProposalEnrichmentService.clean_description`) and run through the
+  deterministic critic (`.description_critic_for`); only a draft that passes (and clears the
+  quality gate's word-count bar) is promoted to `final_changes["description"]` with the recorded
+  `agent_details.description_critic` verdict and a `description_draft` note. Because a confident
+  candidate now arrives with description + taxonomy + optional cited year, it is publishable
+  straight from discovery and `CompanyCandidateRowProcessorService` skips the enrichment
+  round-trip entirely (`enrichment_needed?` is false). Weak/uncertain drafts are left blank so
+  `enrich_proposal`/auto-enrichment drafts one as before. The discovery sentence is intentionally
+  NOT stored as `source_description`, so promoting it never trips the copied-source guard.
 - Missing-founded-date signal (Spec A): `founded_date` gaps are now a first-class quality
   signal — `Company.missing_founded_date` scope, `get_stats` `companies.missing_founded_date`
   count, and a `search_companies(missing_founded_date: true)` filter (AND-composable with

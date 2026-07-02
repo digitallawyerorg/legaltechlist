@@ -87,6 +87,43 @@ class CompanyProposalEnrichmentService
     :other
   end
 
+  # Neutralize a drafted description: squish, strip marketing terms and source-meta
+  # phrasing. Shared by enrichment and discovery-time drafting so both produce the
+  # same house style.
+  def self.clean_description(description)
+    cleaned = description.to_s.squish
+    MARKETING_TERMS.each do |term|
+      cleaned = cleaned.gsub(/\b#{Regexp.escape(term)}\b/i, "")
+    end
+    cleaned = cleaned.gsub(/\bprovides or supports\b/i, "develops")
+    cleaned = cleaned.gsub(/\b(?:listed|included)\s+in\s+TechIndex\b/i, "")
+    cleaned = cleaned.gsub(/\b(?:based on|according to|identified in)\s+(?:available records|directory metadata|stored profiles|source data)\b/i, "")
+    cleaned = cleaned.gsub(/\bai\b/i, "AI")
+    cleaned.squish
+  end
+
+  def self.description_issues(description, source_description: nil, full_source_description: nil)
+    text = description.to_s
+    issues = []
+    issues << "Draft is shorter than expected." if text.split.size < 12
+    issues << "Draft may contain marketing language." if MARKETING_TERMS.any? { |term| text.downcase.include?(term) }
+    issues << "Draft may copy the source description." if [source_description, full_source_description].compact_blank.any? { |source| text.squish.casecmp?(source.to_s.squish) }
+    issues << "Draft may describe source metadata rather than company facts." if text.match?(/\b(available records|directory metadata|stored profiles|source data|current record)\b/i)
+    issues << "Draft is too generic for publication." if text.match?(/\bprovides or supports legal technology services\b/i)
+    issues
+  end
+
+  def self.description_critic_for(description, source_description: nil, full_source_description: nil, suggested_revision: "")
+    issues = description_issues(description, source_description: source_description, full_source_description: full_source_description)
+    {
+      "verdict" => issues.any? ? "revise" : "pass",
+      "issues" => issues,
+      "rationale" => issues.any? ? "Human revision is recommended before approval." : "No deterministic description issues were found.",
+      "suggested_revision" => issues.any? ? suggested_revision.to_s : "",
+      "mode" => "deterministic_fallback"
+    }
+  end
+
   def self.own_canonical_domain(record)
     return nil if record.nil?
     return record.canonical_main_domain if record.respond_to?(:canonical_main_domain)
@@ -238,15 +275,7 @@ class CompanyProposalEnrichmentService
   end
 
   def clean_description(description)
-    cleaned = description.to_s.squish
-    MARKETING_TERMS.each do |term|
-      cleaned = cleaned.gsub(/\b#{Regexp.escape(term)}\b/i, "")
-    end
-    cleaned = cleaned.gsub(/\bprovides or supports\b/i, "develops")
-    cleaned = cleaned.gsub(/\b(?:listed|included)\s+in\s+TechIndex\b/i, "")
-    cleaned = cleaned.gsub(/\b(?:based on|according to|identified in)\s+(?:available records|directory metadata|stored profiles|source data)\b/i, "")
-    cleaned = cleaned.gsub(/\bai\b/i, "AI")
-    cleaned.squish
+    self.class.clean_description(description)
   end
 
   def agent_details(final_changes)
@@ -272,20 +301,12 @@ class CompanyProposalEnrichmentService
   end
 
   def description_critic(description)
-    issues = []
-    issues << "Draft is shorter than expected." if description.to_s.split.size < 12
-    issues << "Draft may contain marketing language." if marketing_language?(description)
-    issues << "Draft may copy the source description." if copied_source_description?(description)
-    issues << "Draft may describe source metadata rather than company facts." if source_meta_language?(description)
-    issues << "Draft is too generic for publication." if generic_description?(description)
-
-    {
-      "verdict" => issues.any? ? "revise" : "pass",
-      "issues" => issues,
-      "rationale" => issues.any? ? "Human revision is recommended before approval." : "No deterministic description issues were found.",
-      "suggested_revision" => issues.any? ? fallback_description : "",
-      "mode" => "deterministic_fallback"
-    }
+    self.class.description_critic_for(
+      description,
+      source_description: source_payload["source_description"],
+      full_source_description: source_payload["full_source_description"],
+      suggested_revision: fallback_description
+    )
   end
 
   def description_prompt
@@ -354,23 +375,5 @@ class CompanyProposalEnrichmentService
 
   def number_of_funding_rounds
     source_payload["number_of_funding_rounds"].presence || source_payload["Number of Funding Rounds"].presence
-  end
-
-  def marketing_language?(description)
-    text = description.to_s.downcase
-    MARKETING_TERMS.any? { |term| text.include?(term) }
-  end
-
-  def copied_source_description?(description)
-    source_description = source_payload["source_description"].to_s.squish
-    source_description.present? && description.to_s.squish.casecmp?(source_description)
-  end
-
-  def source_meta_language?(description)
-    description.to_s.match?(/\b(available records|directory metadata|stored profiles|source data|current record)\b/i)
-  end
-
-  def generic_description?(description)
-    description.to_s.match?(/\bprovides or supports legal technology services\b/i)
   end
 end

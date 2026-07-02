@@ -1,4 +1,5 @@
 require "test_helper"
+require "minitest/mock"
 
 class CompanyCandidateRowProcessorServiceTest < ActiveSupport::TestCase
   test "discovery candidates arrive pre-classified from search taxonomy and cited year" do
@@ -70,5 +71,68 @@ class CompanyCandidateRowProcessorServiceTest < ActiveSupport::TestCase
     existing.reload
     assert_equal "curator", existing.agent_details.dig("taxonomy_suggestion", "mode")
     assert_equal categories(:two).id, existing.final_changes["category_id"]
+  end
+
+  test "clean drafted description is promoted at discovery time and skips enrichment" do
+    admin = AdminUser.create!(email: "rp-#{SecureRandom.hex(3)}@example.com", password: "password123", password_confirmation: "password123")
+    drafted = "Acme Legal develops contract review and clause extraction software for corporate legal teams to analyze agreements and monitor obligations across large document collections."
+    candidate = {
+      "name" => "Acme Legal Draft",
+      "website" => "https://acme-draft.example",
+      "canonical_domain" => "acme-draft.example",
+      "location" => "London, United Kingdom",
+      "founded_date" => "2020",
+      "category_name" => categories(:one).name,
+      "business_model_names" => [business_models(:one).name],
+      "target_client_names" => [target_clients(:one).name],
+      "discovery_description" => drafted,
+      "status" => "absent_candidate"
+    }
+
+    CompanyProposalEnrichmentService.stub(:call, ->(*) { raise "enrichment should not run for a fully-drafted discovery candidate" }) do
+      CompanyCandidateRowProcessorService.call(
+        candidate: candidate,
+        index: 0,
+        admin_user: admin,
+        source: "llm_discovery",
+        proposal_type: "discovery_candidate",
+        source_label: "LLM Discovery"
+      )
+    end
+
+    proposal = CompanyProposal.find_by(source: "llm_discovery", source_identifier: "acme-draft.example")
+    assert proposal, "expected a discovery proposal to be created"
+    assert_equal drafted, proposal.final_changes["description"]
+    assert_equal "pass", proposal.agent_details.dig("description_critic", "verdict")
+    assert CompanyProposalQualityService.call(proposal)["publish_ready"], "confident discovery candidate should be publish-ready without enrichment"
+  end
+
+  test "weak drafted description is left for enrichment" do
+    admin = AdminUser.create!(email: "rp-#{SecureRandom.hex(3)}@example.com", password: "password123", password_confirmation: "password123")
+    candidate = {
+      "name" => "Weak Draft Legal",
+      "website" => "https://weak-draft.example",
+      "canonical_domain" => "weak-draft.example",
+      "category_name" => categories(:one).name,
+      "business_model_names" => [business_models(:one).name],
+      "target_client_names" => [target_clients(:one).name],
+      "discovery_description" => "Legal tech company.",
+      "status" => "absent_candidate"
+    }
+
+    CompanyCandidateRowProcessorService.call(
+      candidate: candidate,
+      index: 0,
+      admin_user: admin,
+      source: "llm_discovery",
+      proposal_type: "discovery_candidate",
+      source_label: "LLM Discovery",
+      skip_auto_draft: true
+    )
+
+    proposal = CompanyProposal.find_by(source: "llm_discovery", source_identifier: "weak-draft.example")
+    assert proposal, "expected a discovery proposal to be created"
+    assert proposal.final_changes["description"].blank?, "weak draft should not be promoted"
+    assert proposal.agent_details["description_critic"].blank?, "no critic verdict should be recorded for a rejected draft"
   end
 end

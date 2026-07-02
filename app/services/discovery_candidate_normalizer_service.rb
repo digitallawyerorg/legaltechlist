@@ -18,12 +18,16 @@ class DiscoveryCandidateNormalizerService
   attr_reader :discovery_hash
 
   def atlas_row
+    # NOTE: the discovery description is intentionally NOT mapped to the Atlas
+    # "Description" (which becomes source_description) — for discovery candidates the
+    # LLM sentence IS the neutral draft, so it is promoted to the proposal description
+    # (see CompanyCandidateRowProcessorService) rather than kept as third-party source
+    # text that the copied-source guard would flag.
     {
       "Organization Name" => discovery_hash["name"],
       "Website" => discovery_hash["website"],
       "Headquarters Location" => discovery_hash["location"],
       "Founded Date" => discovery_hash["founded_date"],
-      "Description" => discovery_hash["description"],
       "Operating Status" => discovery_hash["operating_status"].presence || "Active"
     }
   end
@@ -51,7 +55,8 @@ class DiscoveryCandidateNormalizerService
       "category_name" => discovery_hash["category_name"],
       "business_model_names" => discovery_hash["business_model_names"].presence,
       "target_client_names" => discovery_hash["target_client_names"].presence,
-      "founded_year_source" => discovery_hash["founded_year_source"]
+      "founded_year_source" => discovery_hash["founded_year_source"],
+      "discovery_description" => discovery_hash["description"].to_s.squish.presence
     }.compact
   end
 end

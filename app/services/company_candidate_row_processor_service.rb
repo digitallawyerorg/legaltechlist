@@ -81,14 +81,28 @@ class CompanyCandidateRowProcessorService
       reviewer_notes: reviewer_notes
     }
 
-    # 6a: when the discovery search already classified the candidate and cited a
-    # founding year, pre-fill the taxonomy and citation at creation time so the
-    # proposal arrives classified — no separate enrich round-trip and no
-    # "low-confidence taxonomy" hold for confident items.
-    if prefill_discovery_taxonomy?(proposal)
-      tax = discovery_taxonomy_prefill
-      attrs[:final_changes] = base_final.merge(tax["final_changes"]) if tax["final_changes"].present?
-      attrs[:agent_details] = (proposal.agent_details || {}).merge(tax["agent_details"]) if tax["agent_details"].present?
+    # When the discovery search already classified the candidate, cited a founding
+    # year, and drafted a publishable description, pre-fill all of that at creation
+    # time so a confident proposal arrives ready — no separate enrich round-trip and
+    # no "low-confidence taxonomy" / missing-description hold (6a + description draft).
+    if prefill_discovery_metadata?(proposal)
+      merged_final = base_final.dup
+      merged_agent = (proposal.agent_details || {}).dup
+
+      if candidate["category_name"].present? && merged_agent["taxonomy_suggestion"].blank?
+        tax = discovery_taxonomy_prefill
+        merged_final.merge!(tax["final_changes"]) if tax["final_changes"].present?
+        merged_agent.merge!(tax["agent_details"]) if tax["agent_details"].present?
+      end
+
+      if candidate["discovery_description"].present? && merged_final["description"].blank? && merged_agent["description_critic"].blank?
+        desc = discovery_description_prefill
+        merged_final.merge!(desc["final_changes"]) if desc["final_changes"].present?
+        merged_agent.merge!(desc["agent_details"]) if desc["agent_details"].present?
+      end
+
+      attrs[:final_changes] = merged_final
+      attrs[:agent_details] = merged_agent if merged_agent.present?
     end
 
     proposal.assign_attributes(attrs)
@@ -96,11 +110,35 @@ class CompanyCandidateRowProcessorService
     proposal
   end
 
-  def prefill_discovery_taxonomy?(proposal)
-    proposal_type == "discovery_candidate" &&
-      proposal.company_id.blank? &&
-      proposal.agent_details["taxonomy_suggestion"].blank? &&
-      candidate["category_name"].present?
+  def prefill_discovery_metadata?(proposal)
+    proposal_type == "discovery_candidate" && proposal.company_id.blank?
+  end
+
+  # Promote the description drafted during the discovery web-search pass to the
+  # proposal description, but only when it clears the deterministic critic and the
+  # quality gate's word-count bar. Otherwise leave it blank so enrichment drafts one.
+  def discovery_description_prefill
+    draft = CompanyProposalEnrichmentService.clean_description(candidate["discovery_description"])
+    return {} if draft.blank? || draft.split.size < 12
+
+    critic = CompanyProposalEnrichmentService.description_critic_for(
+      draft,
+      source_description: candidate["source_description"],
+      full_source_description: candidate["full_source_description"]
+    )
+    return {} unless critic["verdict"] == "pass"
+
+    {
+      "final_changes" => { "description" => draft },
+      "agent_details" => {
+        "description_critic" => critic,
+        "description_draft" => {
+          "proposed_description" => draft,
+          "confidence" => "medium",
+          "rationale" => "Drafted during the discovery web-search pass; no separate enrichment round-trip."
+        }
+      }
+    }
   end
 
   def discovery_taxonomy_prefill
