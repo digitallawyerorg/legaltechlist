@@ -63,6 +63,14 @@
                             td.text-end= number_with_delimiter(data[:companies])
                             td.text-end= number_to_currency(data[:total_funding], precision: 0)
                             td.text-end= number_to_currency(data[:avg_funding], precision: 0)
+        - if @missing_significant_countries.present?
+            .stats-country-gaps.mt-4
+                h3.h6.mb-1 Significant markets with no entries yet
+                p.small.text-muted.mb-2 These major legal and economic markets are not yet represented in the index.
+                .d-flex.flex-wrap.gap-2
+                    - @missing_significant_countries.each do |country_name|
+                        span.badge.bg-light.text-dark.border.fw-normal
+                            = render partial: "shared/stats_country_name", locals: { country_name: country_name }
     - csv_path = statistics_country_distribution_path(format: :csv)
     - xlsx_path = statistics_country_distribution_path(format: :xlsx)
     - download_filename = "country_distribution"

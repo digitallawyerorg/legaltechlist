@@ -52,6 +52,16 @@ class StaticPagesControllerTest < ActionController::TestCase
     assert_not_includes @response.body, "drawRegionCountrySunburstChart"
   end
 
+  test "country distribution surfaces significant markets with no entries" do
+    get :country_distribution
+    assert_response :success
+    assert assigns(:missing_significant_countries).is_a?(Array)
+    if assigns(:missing_significant_countries).any?
+      assert_select ".stats-country-gaps", 1
+      assert_select ".stats-country-gaps h3", text: "Significant markets with no entries yet"
+    end
+  end
+
   test "country distribution region view renders sankey chart" do
     get :country_distribution, params: { view: "region" }
     assert_response :success

@@ -657,6 +657,19 @@ class StaticPagesController < ApplicationController
 
   GROWTH_VIEWS = %w[cumulative annual].freeze
   GEO_VIEWS = %w[country region].freeze
+  # Economically/legally significant markets we expect to eventually cover. When one
+  # has no entries it is surfaced on the country distribution page so coverage gaps are
+  # visible. Names are canonical English (matching Company#resolved_country).
+  SIGNIFICANT_COUNTRIES = [
+    "United States", "China", "Japan", "Germany", "India", "United Kingdom", "France",
+    "Italy", "Brazil", "Canada", "Russia", "South Korea", "Australia", "Spain", "Mexico",
+    "Indonesia", "Netherlands", "Saudi Arabia", "Turkey", "Switzerland", "Poland", "Sweden",
+    "Belgium", "Argentina", "Norway", "Austria", "United Arab Emirates", "Israel", "Ireland",
+    "Denmark", "Singapore", "South Africa", "Nigeria", "Egypt", "Malaysia", "Philippines",
+    "Vietnam", "Pakistan", "Bangladesh", "Thailand", "Colombia", "Chile", "Portugal",
+    "Finland", "Greece", "Czech Republic", "Romania", "New Zealand", "Hungary", "Ukraine",
+    "Qatar", "Kuwait", "Kenya"
+  ].freeze
   INDUSTRY_FOCUS_DIMENSIONS = %w[industry revenue_model market_focus].freeze
   FUNDING_DIMENSIONS = %w[category region venture_stage].freeze
   CATEGORY_EVOLUTION_CHART_COLORS = [
@@ -795,9 +808,21 @@ class StaticPagesController < ApplicationController
 
     @top_countries = @table_data.take(3).map { |data| data[:country] }
     @top_funded_countries = @table_data.sort_by { |data| -data[:total_funding] }.take(3).map { |data| data[:country] }
+    @missing_significant_countries = significant_countries_without_entries(country_metrics.keys)
 
     max_companies = country_metrics.values.map { |metrics| metrics[:companies] }.max || 0
     @geo_map_max = [((max_companies / 50.0).ceil * 50), 50].max
+  end
+
+  # Significant markets (SIGNIFICANT_COUNTRIES) that currently have no entries.
+  # Matching is done on ISO code so alternate spellings of present countries still count.
+  def significant_countries_without_entries(present_country_names)
+    present_isos = present_country_names.filter_map { |name| LocationCountryResolver.country_iso_code(name) }.to_set
+
+    SIGNIFICANT_COUNTRIES.reject do |country|
+      iso = LocationCountryResolver.country_iso_code(country)
+      iso && present_isos.include?(iso)
+    end
   end
 
   def load_companies_by_region_data
@@ -1346,11 +1371,14 @@ class StaticPagesController < ApplicationController
   end
 
   def extract_country(company_or_location)
-    if company_or_location.is_a?(Company)
+    raw = if company_or_location.is_a?(Company)
       company_or_location.resolved_country
     else
       ::LocationCountryResolver.country_name_for(company_or_location)
     end
+    return if raw.blank?
+
+    ::LocationCountryResolver.normalize_country_name(raw)
   end
 
   def normalize_country_name(country)

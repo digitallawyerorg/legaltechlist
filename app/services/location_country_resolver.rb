@@ -38,8 +38,53 @@ class LocationCountryResolver
     "Côte d'Ivoire" => "Ivory Coast",
     "Channel Islands" => "United Kingdom",
     "Cayman Islands" => "Cayman Islands",
-    "Trinidad and Tobago" => "Trinidad and Tobago"
+    "Trinidad and Tobago" => "Trinidad and Tobago",
+    # Native-language and common alternate country names, collapsed to the canonical
+    # English name used across the directory and statistics so we don't show the same
+    # country twice (e.g. "Schweiz" alongside "Switzerland").
+    "Schweiz" => "Switzerland",
+    "Suisse" => "Switzerland",
+    "Svizzera" => "Switzerland",
+    "Deutschland" => "Germany",
+    "Österreich" => "Austria",
+    "Oesterreich" => "Austria",
+    "España" => "Spain",
+    "Espana" => "Spain",
+    "Brasil" => "Brazil",
+    "Italia" => "Italy",
+    "Nederland" => "Netherlands",
+    "Holland" => "Netherlands",
+    "België" => "Belgium",
+    "Belgie" => "Belgium",
+    "Belgique" => "Belgium",
+    "Danmark" => "Denmark",
+    "Sverige" => "Sweden",
+    "Norge" => "Norway",
+    "Suomi" => "Finland",
+    "Éire" => "Ireland",
+    "Eire" => "Ireland",
+    "Republic of Ireland" => "Ireland",
+    "Polska" => "Poland",
+    "Czechia" => "Czech Republic",
+    "Česko" => "Czech Republic",
+    "Cesko" => "Czech Republic",
+    "Slovak Republic" => "Slovakia",
+    "Magyarország" => "Hungary",
+    "Magyarorszag" => "Hungary",
+    "Türkiye" => "Turkey",
+    "Turkiye" => "Turkey",
+    "México" => "Mexico",
+    "Hellas" => "Greece",
+    "Korea" => "South Korea",
+    "Republic of Korea" => "South Korea",
+    "Viet Nam" => "Vietnam"
   }.freeze
+
+  # Case-insensitive index of COUNTRY_ALIASES so variants survive differences in
+  # capitalization (e.g. "schweiz", "SCHWEIZ"). Exact-case lookups still take priority.
+  COUNTRY_ALIASES_DOWNCASED = COUNTRY_ALIASES.each_with_object({}) do |(name, canonical), memo|
+    memo[name.to_s.downcase] ||= canonical
+  end.freeze
 
   ADMINISTRATIVE_REGION_COUNTRIES = {
     "CA" => "United States",
@@ -474,16 +519,24 @@ class LocationCountryResolver
 
     def normalize_country_name(country)
       normalized_country = country.to_s.squish
-      without_crunchbase_prefix = normalized_country.sub(/\ANA\s*-\s*/i, "")
-      without_trailing_digits = without_crunchbase_prefix.sub(/\d+\z/, "")
+      return normalized_country if normalized_country.blank?
 
-      COUNTRY_ALIASES[without_crunchbase_prefix] ||
-        COUNTRY_ALIASES[without_trailing_digits] ||
+      without_crunchbase_prefix = normalized_country.sub(/\ANA\s*-\s*/i, "")
+      without_trailing_digits = without_crunchbase_prefix.sub(/\d+\z/, "").squish
+
+      alias_for_country(without_crunchbase_prefix) ||
+        alias_for_country(without_trailing_digits) ||
         (UK_ADMINISTRATIVE_AREAS.include?(without_crunchbase_prefix) ? "United Kingdom" : nil) ||
         without_crunchbase_prefix
     end
 
     private
+
+    def alias_for_country(key)
+      return nil if key.blank?
+
+      COUNTRY_ALIASES[key] || COUNTRY_ALIASES_DOWNCASED[key.downcase]
+    end
 
     def split_parts(location)
       location.to_s.split(",").map { |part| part.strip.gsub(/[^\p{L}\p{N}\s'-]/, "") }.reject(&:blank?)

@@ -210,7 +210,7 @@ module StatisticsHelper
     total = 0
 
     stats_geographic_distribution_scope.find_each do |company|
-      country = company.resolved_country
+      country = stats_normalized_country(company)
       next if country.blank?
 
       country_counts[country] += 1
@@ -235,7 +235,7 @@ module StatisticsHelper
     total = 0
 
     stats_geographic_distribution_scope.find_each do |company|
-      country = company.resolved_country
+      country = stats_normalized_country(company)
       next if country.blank?
 
       region = LocationRegionResolver.region_for_country(country)
@@ -386,7 +386,7 @@ module StatisticsHelper
   def stats_funding_region_preview(top_count: 3)
     totals = Hash.new(0.0)
     stats_geographic_distribution_scope.where("total_funding_amount_usd > 0").find_each do |company|
-      country = company.resolved_country
+      country = stats_normalized_country(company)
       next if country.blank?
 
       region = LocationRegionResolver.region_for_country(country)
@@ -457,7 +457,7 @@ module StatisticsHelper
   def stats_index_funding_country_count
     countries = Set.new
     stats_geographic_distribution_scope.where("total_funding_amount_usd > 0").find_each do |company|
-      country = company.resolved_country
+      country = stats_normalized_country(company)
       countries << country if country.present?
     end
     countries.size
@@ -712,8 +712,15 @@ module StatisticsHelper
 
   private
 
-  def coverage_heatmap_region_for(company)
+  def stats_normalized_country(company)
     country = company.resolved_country
+    return if country.blank?
+
+    LocationCountryResolver.normalize_country_name(country)
+  end
+
+  def coverage_heatmap_region_for(company)
+    country = stats_normalized_country(company)
     return nil if country.blank?
 
     LocationRegionResolver.region_for_country(country)

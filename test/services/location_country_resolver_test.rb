@@ -62,6 +62,24 @@ class LocationCountryResolverTest < ActiveSupport::TestCase
     assert_equal "Ivory Coast", LocationCountryResolver.normalize_country_name("Côte d'Ivoire")
   end
 
+  test "normalize_country_name collapses native-language and variant country names" do
+    assert_equal "Switzerland", LocationCountryResolver.normalize_country_name("Schweiz")
+    assert_equal "Switzerland", LocationCountryResolver.normalize_country_name("Suisse")
+    assert_equal "Germany", LocationCountryResolver.normalize_country_name("Deutschland")
+    assert_equal "Spain", LocationCountryResolver.normalize_country_name("España")
+    assert_equal "Brazil", LocationCountryResolver.normalize_country_name("Brasil")
+    assert_equal "Czech Republic", LocationCountryResolver.normalize_country_name("Czechia")
+    assert_equal "South Korea", LocationCountryResolver.normalize_country_name("Korea")
+  end
+
+  test "normalize_country_name is case-insensitive for aliases and preserves canonical names" do
+    assert_equal "Switzerland", LocationCountryResolver.normalize_country_name("schweiz")
+    assert_equal "Switzerland", LocationCountryResolver.normalize_country_name("SCHWEIZ")
+    assert_equal "Switzerland", LocationCountryResolver.normalize_country_name("Switzerland")
+    assert_equal "United States", LocationCountryResolver.normalize_country_name("United States")
+    assert_nil LocationCountryResolver.normalize_country_name(nil).presence
+  end
+
   test "format_for_display keeps city and country for flag-friendly storage" do
     assert_equal "Newark, United States", LocationCountryResolver.format_for_display("Newark, Delaware, United States")
     assert_equal "Austin, United States", LocationCountryResolver.format_for_display("Austin, Texas, United States")
