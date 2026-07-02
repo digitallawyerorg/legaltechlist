@@ -132,7 +132,9 @@ discipline, and the approval rules below.
   re-runs reach untried companies rather than re-researching known no-source ones. Pass
   `company_ids` (tool) / `COMPANY_IDS` (rake) to target specific companies and bypass the cooldown.
   Also runnable as `rake data_quality:backfill_founded_dates`
-  (`DRY_RUN`/`INLINE`/`LIMIT`/`VERBOSE`/`FORCE`/`COMPANY_IDS`).
+  (`DRY_RUN`/`INLINE`/`LIMIT`/`VERBOSE`/`FORCE`/`COMPANY_IDS`). `get_company` exposes
+  `founded_year_provenance` and a derived `founded_date_backfill_status` (`filled` with citation /
+  `no_source`/`error` attempted / `untried`) so backfill outcomes are auditable via the read API.
 - Same-name entity guard (Spec C): a cited year is accepted only when the source is on the
   company's own domain, or on a known registry/profile host AND the evidence text names the
   company — blocking same-name/different-entity traps (e.g. `apualegal.com` for `apua.ai`).

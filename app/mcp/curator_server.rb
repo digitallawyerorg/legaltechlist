@@ -77,7 +77,9 @@ module Mcp
         reach untried companies instead of re-researching known no-source ones. To fill specific
         companies right now (e.g. newly published ones), pass company_ids — that targets exactly
         those and bypasses the cooldown. Find targets with search_companies(missing_founded_date:
-        true), track the gap with get_stats companies.missing_founded_date, and poll get_company.
+        true), track the gap with get_stats companies.missing_founded_date, and poll get_company —
+        which reports founded_year_provenance and a founded_date_backfill_status of "filled" (with
+        the citation), "no_source"/"error" (attempted, nothing sourced), or "untried".
       - enrich_proposal is skipped when a proposal is already publishable or was enriched in the
         last few days (it rarely adds facts); pass force=true to override intentionally.
       - Always run duplicate_check before creating a company. If a likely duplicate exists,

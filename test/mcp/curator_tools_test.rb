@@ -31,6 +31,19 @@ module Mcp
       assert response.error?
     end
 
+    test "get_company surfaces founded_date backfill provenance and status" do
+      companies(:one).update_columns(founded_date: "", founded_year_provenance: { "status" => "no_source", "attempted_at" => 1.day.ago.utc.iso8601 })
+      result = call(Mcp::Tools::GetCompanyTool, slug: "test-company-one")
+      assert_equal "no_source", result["founded_year_provenance"]["status"]
+      assert_equal "no_source", result["founded_date_backfill_status"]
+    end
+
+    test "get_company reports untried companies with no backfill marker" do
+      companies(:one).update_columns(founded_date: "", founded_year_provenance: nil)
+      result = call(Mcp::Tools::GetCompanyTool, slug: "test-company-one")
+      assert_equal "untried", result["founded_date_backfill_status"]
+    end
+
     test "duplicate_check flags an existing canonical domain" do
       result = call(Mcp::Tools::DuplicateCheckTool, name: "Brand New Co", url: "http://example.com")
       assert_equal "existing_or_possible_duplicate", result["status"]
