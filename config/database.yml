@@ -17,7 +17,9 @@
 default: &default
   adapter: postgresql
   encoding: unicode
-  pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
+  # Large enough for the Solid Queue worker (needs ~JOB_THREADS + a few reserved
+  # connections for the dispatcher/heartbeat) as well as Puma on the web dyno.
+  pool: <%= [ENV.fetch("RAILS_MAX_THREADS", 5).to_i, ENV.fetch("JOB_THREADS", 3).to_i + 3].max %>
 
 development:
   <<: *default
