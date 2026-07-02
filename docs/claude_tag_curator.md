@@ -96,8 +96,9 @@ discipline, and the approval rules below.
   allows a blank `founded_date` (but a present value must contain a 4-digit year).
   Never fabricate a year; publish without it and backfill from a real source later.
 - Async enrichment: `enrich_proposal` is asynchronous — it enqueues `EnrichProposalJob`
-  (ActiveJob `:async` adapter, i.e. off the request thread so it is not bound by the
-  30s HTTP router timeout) and returns `enrichment_queued`. Callers poll `get_proposal`
+  (processed by the durable Solid Queue worker on the dedicated `jobs` dyno, off the request
+  thread so it is not bound by the 30s HTTP router timeout, and durable across deploys/restarts)
+  and returns `enrichment_queued`. Callers poll `get_proposal`
   until `enriched_at` is newer than `enriched_at_before` (success) or
   `agent_details.enrichment_error` appears (failure). `curate_pending` likewise enqueues
   enrichment for un-enriched proposals and publishes only already-enriched ones on a
@@ -118,7 +119,8 @@ discipline, and the approval rules below.
   count, and a `search_companies(missing_founded_date: true)` filter (AND-composable with
   `needs_review`).
 - Server-side founded_date backfill (Spec B): `backfill_founded_dates` enqueues async
-  `BackfillFoundedDateJob`s (off the 30s router timeout) via `CompanyFoundedDateBackfillService`,
+  `BackfillFoundedDateJob`s (durable Solid Queue on the `jobs` dyno, off the 30s router timeout;
+  reliable at batch scale and safe across deploys) via `CompanyFoundedDateBackfillService`,
   which runs a targeted founding-year web search (`CompanyFoundedYearResearchService`, OpenAI
   Responses API web-search — server-side egress to LinkedIn/Crunchbase/registries), then reuses
   the exact cite-only guard (`sourced_year`) and the validated writer
@@ -222,6 +224,24 @@ heroku run bin/rails curator:setup -a your-app
 
 2. Deploy so `POST /mcp` and the `/.well-known/*` + `/oauth/*` routes are reachable
    over public HTTPS. Stateless mode means multiple dynos / Puma workers are fine.
+
+### Background jobs (Solid Queue)
+
+Active Job runs on the durable, DB-backed **Solid Queue** adapter (single database — the
+tables live in the primary DB via `CreateSolidQueueTables`). Jobs are processed by a dedicated
+`jobs` process type (`jobs: bundle exec bin/jobs` in the `Procfile`), separate from the `web`
+dyno and the `worker` dyno (which still runs the `CompanyImportWorkerService` import loop). This
+replaced the old in-process `:async` adapter, which ran jobs on the web dyno's threads and lost
+still-queued jobs on deploy — the failure mode that made large `backfill_founded_dates` batches
+drain slowly and drop. Enable it after deploying:
+
+```bash
+heroku run bin/rails db:migrate -a your-app   # creates the solid_queue_* tables
+heroku ps:scale jobs=1 -a your-app            # start the worker (Standard-1x is plenty)
+```
+
+Concurrency is tunable via `JOB_CONCURRENCY` (processes) and `JOB_THREADS` (threads/process)
+in `config/queue.yml`.
 
 ## Test the deployed server safely (no secrets in logs)
 

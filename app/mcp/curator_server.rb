@@ -40,9 +40,9 @@ module Mcp
       taxonomy (from get_taxonomy), and find a sourced founding year yourself, then write them
       with update_proposal — that is synchronous and fast. Use enrich_proposal when you want
       server-side, web-grounded enrichment instead: it is ASYNC — it returns
-      "enrichment_queued", and you must poll get_proposal until enriched_at is newer (success)
-      or agent_details.enrichment_error appears (failure). Do not blind-retry a queued
-      enrichment.
+      "enrichment_queued" and runs on the durable worker (Solid Queue), so you must poll
+      get_proposal until enriched_at is newer (success) or agent_details.enrichment_error appears
+      (failure). Do not blind-retry a queued enrichment.
 
       Founding year (founded_date) is OPTIONAL and does not block publication. Set it via
       update_proposal (a 4-digit year) only when you can cite a real source; otherwise publish
@@ -68,10 +68,13 @@ module Mcp
         never guess). For editorial changes (e.g. descriptions) or anything outside that
         allowlist, use propose_company_update, which becomes a proposal a human approves.
       - To backfill founding years across the directory at scale, use backfill_founded_dates:
-        it enqueues async server-side jobs (server has web egress) that reuse the same cite-only
-        + same-entity guards and only write a year a real source states, preferring official
-        registries. Find the targets with search_companies(missing_founded_date: true), and track
-        the gap with get_stats companies.missing_founded_date. Poll get_company to see results.
+        it enqueues async jobs that now run on a dedicated durable worker (Solid Queue), so a
+        large batch drains reliably off the request path and survives deploys/restarts — no
+        in-process contention. Each job runs a targeted founding-year web search (server has web
+        egress to LinkedIn/Crunchbase/registries) and only writes a year a real source states for
+        THIS company, preferring official registries. Find the targets with
+        search_companies(missing_founded_date: true), track the gap with get_stats
+        companies.missing_founded_date, and poll get_company to see results.
       - enrich_proposal is skipped when a proposal is already publishable or was enriched in the
         last few days (it rarely adds facts); pass force=true to override intentionally.
       - Always run duplicate_check before creating a company. If a likely duplicate exists,

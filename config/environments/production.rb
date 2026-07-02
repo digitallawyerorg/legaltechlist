@@ -71,8 +71,9 @@ Rails.application.configure do
     config.cache_store = :memory_store, { size: 64.megabytes }
   end
 
-  # Run jobs in-process on the web dyno (no separate worker for Active Job).
-  config.active_job.queue_adapter = :async
+  # Durable, DB-backed Active Job processing handled by the dedicated `jobs` dyno
+  # (Solid Queue). Jobs survive deploys/restarts and don't contend with web traffic.
+  config.active_job.queue_adapter = :solid_queue
   config.action_mailer.perform_caching = false
 
   # Ignore bad email addresses and do not raise email delivery errors.
