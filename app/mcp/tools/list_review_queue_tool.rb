@@ -3,7 +3,7 @@ module Mcp
     class ListReviewQueueTool < BaseTool
       tool_name "list_review_queue"
       title "List review queue"
-      description "List company proposals awaiting curation, with cached quality signals and duplicate flags."
+      description "List company proposals awaiting curation, with quality signals (publish_ready, score) and duplicate flags. Quality is computed live when not yet cached, so publish_ready is always populated."
       annotations(read_only_hint: true, destructive_hint: false, idempotent_hint: true, title: "List review queue")
       input_schema(
         properties: {
@@ -39,7 +39,9 @@ module Mcp
           "has_more" => (skipped + proposals.size) < total,
           "count" => proposals.size,
           "proposals" => proposals.map do |proposal|
-            cached = proposal.cached_quality_report || {}
+            # Fall back to a live quality read when the cached report has not been
+            # materialized yet (freshly-committed proposals) so publish_ready is never null.
+            cached = proposal.cached_quality_report.presence || CompanyProposalQualityService.call(proposal)
             {
               "id" => proposal.id,
               "name" => proposal.display_name,

@@ -57,14 +57,20 @@ module Mcp
       published unless the response says published:true.
 
       Change discipline:
-      - Add new companies via discover_companies. Discovery now classifies AND describes candidates
-        in the same search pass, so most proposals arrive already carrying a taxonomy suggestion
-        (accepted when confident), a neutral encyclopedic description (with a recorded critic
-        verdict), and, when a source documented it, a cited founding year — publishable straight
-        from discovery with no separate enrich round-trip. Review the pre-filled description and
-        taxonomy, adjust with update_proposal if wrong, then approve. Discovery only leaves the
-        description blank when its draft was weak/uncertain; enrich only those genuinely-missing
-        cases.
+      - Add new companies via discover_companies. It is ASYNC — it returns "discovery_queued" with a
+        run_id and runs on the durable worker (Solid Queue), so it is never limited by the HTTP
+        timeout. Poll get_discovery_run(run_id) until status is "succeeded" (results attached:
+        summary, queued_proposal_ids, candidate preview) or "failed" (error attached). Do not treat
+        a slow/timed-out call as a failure; poll the run instead. Discovery classifies AND describes
+        candidates in the same search pass, so most proposals arrive already carrying a taxonomy
+        suggestion (accepted when confident), a neutral encyclopedic description (with a recorded
+        description_critic verdict, visible via get_proposal), and, when a source documented it, a
+        cited founding year — publishable straight from discovery with no separate enrich round-trip.
+        Review the pre-filled description and taxonomy, adjust with update_proposal if wrong, then
+        approve. Discovery only leaves the description blank when its draft was weak/uncertain;
+        enrich only those genuinely-missing cases. Founding year is cite-gated: discovery keeps a
+        year only when it has a real source, otherwise it leaves it blank as a clean
+        backfill_founded_dates target — never an uncited guess.
       - To backfill a safe factual field (founding year, location, founders, status) on an
         already-published company, use update_company_field — it edits the live profile in one
         call. Setting founded_date requires a 4-digit year AND a source_url citation (cite-only,
@@ -118,7 +124,7 @@ module Mcp
       MCP::Server.new(
         name: "techindex_curator",
         title: "CodeX TechIndex Curator",
-        version: "1.8.0",
+        version: "1.9.0",
         instructions: INSTRUCTIONS,
         tools: Mcp::Tools.all,
         server_context: { actor: actor }

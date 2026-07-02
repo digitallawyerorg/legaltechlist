@@ -30,6 +30,8 @@ module Mcp
           "enriched_at" => proposal.enriched_at&.iso8601,
           "enrichment_error" => proposal.agent_details["enrichment_error"],
           "founded_date_source" => proposal.agent_details["founded_date_source"],
+          "description_critic" => proposal.agent_details["description_critic"],
+          "taxonomy_suggestion" => proposal.agent_details["taxonomy_suggestion"],
           "quality" => CompanyProposalQualityService.call(proposal),
           "admin_url" => admin_proposal_url(proposal)
         )

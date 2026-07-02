@@ -94,6 +94,7 @@ class CompanyDiscoverySearchServiceTest < ActiveSupport::TestCase
     assert_equal ["Subscription"], company["business_model_names"]
     assert_equal ["Law Firms"], company["target_client_names"]
     assert_equal "https://linkedin.example/company/taxo", company["founded_year_source"]
+    assert_equal "2019", company["founded_date"], "a cited year should be kept"
   end
 
   test "drops an uncited founding-year source" do
@@ -110,7 +111,9 @@ class CompanyDiscoverySearchServiceTest < ActiveSupport::TestCase
     end
 
     result = CompanyDiscoverySearchService.call(discovery_type: "category", context: { category: "Knowledge & Research" }, exclusion_list: { "names" => [], "domains" => [] }, limit: 5, search_client: client)
-    assert_nil result["companies"].first["founded_year_source"]
+    company = result["companies"].first
+    assert_nil company["founded_year_source"]
+    assert_nil company["founded_date"], "an uncited year should be dropped, not stored"
   end
 
   test "retries once when search returns zero companies" do

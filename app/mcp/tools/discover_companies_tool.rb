@@ -3,7 +3,7 @@ module Mcp
     class DiscoverCompaniesTool < BaseTool
       tool_name "discover_companies"
       title "Discover companies"
-      description "Run LLM web-search discovery for new legal-tech companies. Defaults to a dry run; set queue_proposals=true to create discovery proposals for review."
+      description "Queue asynchronous LLM web-search discovery for new legal-tech companies, then poll get_discovery_run until it completes. Runs off the request thread so it is never limited by the HTTP timeout. Defaults to a dry run (search preview only); set queue_proposals=true to create discovery proposals for review."
       annotations(read_only_hint: false, destructive_hint: false, idempotent_hint: false, title: "Discover companies")
       input_schema(
         properties: {
@@ -33,24 +33,23 @@ module Mcp
           admin_user: curator
         }.merge(seed_option(discovery_type.to_s, seed))
 
-        run = CompanyDiscoveryService.call(**options)
-        details = run.details || {}
+        run = CompanyDiscoveryService.enqueue(**options)
 
         audit!(
           action: "discover_companies",
-          summary: "Discovery #{discovery_type} (#{seed}) run ##{run.id}",
-          records_processed: run.records_processed,
+          summary: "Queued discovery #{discovery_type} (#{seed}) run ##{run.id}",
+          records_processed: 0,
           details: { "run_id" => run.id, "queue_proposals" => queue }
         )
 
         json_response(
+          "result" => "discovery_queued",
           "run_id" => run.id,
           "discovery_type" => discovery_type,
           "seed" => seed,
           "dry_run" => !queue,
-          "summary" => details["summary"],
-          "queued_proposals_count" => Array(details["proposal_results"]).size,
-          "candidates_preview" => Array(details["candidates"]).first(20).map { |c| c.slice("name", "website", "status") }
+          "status" => run.status,
+          "poll" => "Call get_discovery_run(#{run.id}) until status is 'succeeded' (results attached) or 'failed' (error attached). Discovery usually takes 20-90s; queue_proposals runs commit as they finish."
         )
       rescue ArgumentError, CompanyDiscoveryService::CostLimitExceededError => e
         not_found(e.message)

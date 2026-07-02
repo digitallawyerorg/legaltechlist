@@ -15,6 +15,7 @@ module Mcp
         GetStatsTool,
         # Discovery
         DiscoverCompaniesTool,
+        GetDiscoveryRunTool,
         # Proposal curation (tiered)
         EnrichProposalTool,
         AssessProposalTool,

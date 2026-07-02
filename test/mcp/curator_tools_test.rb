@@ -372,6 +372,56 @@ module Mcp
       end
     end
 
+    test "discover_companies enqueues an async run and returns a run id to poll" do
+      assert_enqueued_with(job: CompanyDiscoveryJob) do
+        result = call(Mcp::Tools::DiscoverCompaniesTool, discovery_type: "country", seed: "France")
+        assert_equal "discovery_queued", result["result"]
+        assert result["run_id"].present?
+        assert_equal "pending", result["status"]
+        assert_match(/get_discovery_run/, result["poll"])
+      end
+    end
+
+    test "discover_companies rejects an invalid discovery type without enqueuing" do
+      assert_no_enqueued_jobs(only: CompanyDiscoveryJob) do
+        response = Mcp::Tools::DiscoverCompaniesTool.call(server_context: @context, discovery_type: "nonsense")
+        assert response.error?
+      end
+    end
+
+    test "get_discovery_run reports pending and then succeeded results" do
+      run = PipelineRun.create!(name: "Company discovery: France", run_type: CompanyDiscoveryService::RUN_TYPE, status: "pending", agent_name: "CompanyDiscoveryService")
+      pending = call(Mcp::Tools::GetDiscoveryRunTool, run_id: run.id)
+      assert_equal "pending", pending["result"]
+
+      run.update!(status: "succeeded", records_processed: 1, details: {
+        "discovery_type" => "country",
+        "summary" => { "discovered_count" => 2 },
+        "proposal_results" => [{ "proposal_id" => 4242, "action" => "queued_for_review" }],
+        "candidates" => [{ "name" => "Foo Legal", "website" => "https://foo.example", "status" => "absent_candidate" }]
+      })
+      done = call(Mcp::Tools::GetDiscoveryRunTool, run_id: run.id)
+      assert_equal "succeeded", done["result"]
+      assert_equal [4242], done["queued_proposal_ids"]
+      assert_equal 1, done["queued_proposals_count"]
+    end
+
+    test "get_proposal surfaces the discovery description critic verdict" do
+      proposal = ready_proposal
+      proposal.update!(agent_details: { "description_critic" => { "verdict" => "pass", "issues" => [] } })
+      result = call(Mcp::Tools::GetProposalTool, id: proposal.id)
+      assert_equal "pass", result["description_critic"]["verdict"]
+    end
+
+    test "list_review_queue computes publish_ready live when no cached report exists" do
+      proposal = ready_proposal
+      assert_nil proposal.cached_quality_report
+      result = call(Mcp::Tools::ListReviewQueueTool, status: "ready_for_review")
+      row = result["proposals"].find { |entry| entry["id"] == proposal.id }
+      assert row, "expected the ready proposal in the queue"
+      assert_not_nil row["publish_ready"]
+    end
+
     test "get_stats returns directory and backlog counts" do
       result = call(Mcp::Tools::GetStatsTool)
       assert result["companies"].key?("total")

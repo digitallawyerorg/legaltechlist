@@ -158,9 +158,11 @@ class CompanyDiscoverySearchService
       For each company also classify it using ONLY the controlled vocabulary below,
       and capture a founding year only if a source documents it:
       #{allowed_taxonomy_guidance}
-      For founded_year_source, give the exact URL from search results that documents the
-      founding year (e.g. the company's LinkedIn/Crunchbase "Founded" field or an official
-      registry); use null if no source documents it. Never guess a founding year.
+      For founded_year_source, give the exact URL from search results that explicitly
+      documents the founding year (e.g. the company's LinkedIn/Crunchbase "Founded" field
+      or an official registry). If you cannot find a source that states the founding year,
+      set BOTH founded_date and founded_year_source to null. Never guess a founding year,
+      and do not use a page that does not actually show the year as its source.
 
       For description, write ONE neutral, encyclopedic sentence of 18-32 words describing
       what the company actually does for legal workflows, using concrete product/function
@@ -266,11 +268,17 @@ class CompanyDiscoverySearchService
     website = clean_url(company["website"])
     return if name.blank? || website.blank?
 
+    # Evidence-gate the founding year: only keep it when the model returned a source
+    # URL it actually saw in search. An uncited year is effectively a guess, so we drop
+    # it and let the sourced backfill fill it later (cite-only, never fabricate).
+    founded_year_source = cited_source_url(company["founded_year_source"], search_urls)
+    founded_date = founded_year_source.present? ? company["founded_date"].to_s.strip.presence : nil
+
     payload = {
       "name" => name,
       "website" => website,
       "location" => company["location"].to_s.strip.presence,
-      "founded_date" => company["founded_date"].to_s.strip.presence,
+      "founded_date" => founded_date,
       "description" => company["description"].to_s.squish.presence,
       "why_discovered" => company["why_discovered"].to_s.squish.presence,
       "discovery_type" => discovery_type,
@@ -279,7 +287,7 @@ class CompanyDiscoverySearchService
       "category_name" => company["category"].to_s.strip.presence,
       "business_model_names" => clean_name_list(company["business_models"]),
       "target_client_names" => clean_name_list(company["target_clients"]),
-      "founded_year_source" => cited_source_url(company["founded_year_source"], search_urls)
+      "founded_year_source" => founded_year_source
     }
     payload.merge!(funding_hint_payload(company)) if discovery_type == "funding_year"
     payload.compact

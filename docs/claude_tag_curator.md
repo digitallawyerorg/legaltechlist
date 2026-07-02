@@ -30,8 +30,9 @@ Read / context: `search_companies`, `get_company`, `list_review_queue`,
 categories, business models, target clients, and canonical tags), `get_stats`
 (directory size, data-quality gaps, and backlog counts for cadence planning).
 
-Discovery: `discover_companies` (dry run by default; `queue_proposals: true` creates
-`discovery_candidate` proposals).
+Discovery: `discover_companies` (async — dry run by default; `queue_proposals: true`
+creates `discovery_candidate` proposals) and `get_discovery_run` (poll a discovery run
+by `run_id`).
 
 Proposal curation (tiered): `enrich_proposal`, `assess_proposal`, `update_proposal`
 (set allowlisted company fields into `final_changes` before approval; setting taxonomy
@@ -40,7 +41,11 @@ blocker), `curate_pending`, `approve_proposal`, `reject_proposal`.
 
 `list_review_queue` supports paging: it returns `total`, `offset`, `limit`, and
 `has_more`, and accepts an `offset` param so the full backlog is reachable beyond the
-first 50 items (page with offset=0, 50, 100, ... until `has_more` is false).
+first 50 items (page with offset=0, 50, 100, ... until `has_more` is false). `publish_ready`
+and `quality_score` fall back to a live quality read when a proposal's cached report has
+not been materialized yet (so freshly-committed proposals never show `publish_ready: null`).
+`get_proposal` surfaces `description_critic` and `taxonomy_suggestion` so a discovery-time
+pass/verdict is observable on the proposal.
 
 Maintenance: `run_company_review`, `propose_company_update` (queue an editorial edit
 to an existing company as a `user_suggestion` proposal), `update_company_field`
@@ -105,6 +110,13 @@ discipline, and the approval rules below.
   later pass. Because the curator (Claude) has its own web browsing, prefer researching
   and writing fields via `update_proposal` (synchronous); use `enrich_proposal` for
   server-side web-grounded enrichment.
+- Async discovery: `discover_companies` is asynchronous — it validates input, creates a
+  `PipelineRun` (`run_type: company_discovery`), enqueues `CompanyDiscoveryJob` on the durable
+  Solid Queue worker (off the 30s HTTP router timeout, safe across deploys), and returns
+  `discovery_queued` with a `run_id`. Callers poll `get_discovery_run(run_id)` until `status` is
+  `succeeded` (attaches `summary`, `queued_proposal_ids`, and a candidate preview) or `failed`
+  (attaches the error). A slow/timed-out request is never a failure — the work commits on the
+  worker regardless; poll the run.
 - Discovery-time classification (6a): the `discover_companies` web-search pass now also
   classifies each candidate using the controlled vocabulary and captures a founding year with
   its citing URL. At proposal creation the mapped taxonomy is written to `final_changes`
@@ -112,8 +124,10 @@ discipline, and the approval rules below.
   `agent_details.taxonomy_suggestion` (mode `discovery_search`) when fully mapped, and a cited
   year is stored in `agent_details.founded_date_source`. This removes the separate enrich
   round-trip and the "low-confidence taxonomy" hold for confident items. It never overwrites an
-  existing taxonomy suggestion or a proposal that already has a company, and a founding-year
-  source is kept only if its URL was actually seen in search (uncited sources are dropped).
+  existing taxonomy suggestion or a proposal that already has a company. The founding year is
+  cite-gated at the source: `CompanyDiscoverySearchService` keeps `founded_date` only when the
+  model returned a source URL it actually saw in search; an uncited year is dropped (not stored)
+  so the company becomes a clean `backfill_founded_dates` target rather than an uncited guess.
 - Discovery-time description drafting: the same `discover_companies` pass now also drafts a
   neutral, encyclopedic description (18-32 words, no marketing language). At proposal creation the
   draft is cleaned (`CompanyProposalEnrichmentService.clean_description`) and run through the
