@@ -48,14 +48,15 @@ css:
     .public-nav-actions {
         align-items: center;
         display: flex;
-        flex-shrink: 0;
+        flex-wrap: wrap;
         gap: 0.65rem;
         margin: 0 0 0 auto;
     }
 
     .public-nav-search {
+        flex: 0 1 18rem;
         max-width: 28rem;
-        min-width: 18rem;
+        min-width: 0;
     }
 
     .public-nav-contribute {
@@ -96,7 +97,7 @@ css:
 
     .public-nav-search .form-control {
         background: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(255, 255, 255, 0.24);
+        border: 1px solid rgba(255, 255, 255, 0.36);
         border-radius: 0.7rem;
         color: rgba(255, 255, 255, 0.92);
         font-size: 0.86rem;
@@ -277,7 +278,7 @@ css:
     }
 
     .public-footer-nav-title {
-        color: rgba(255, 255, 255, 0.42);
+        color: rgba(255, 255, 255, 0.48);
         font-size: 0.68rem;
         font-weight: 700;
         letter-spacing: 0.12em;
@@ -306,7 +307,7 @@ css:
 
     .public-footer-bottom {
         border-top: 1px solid rgba(255, 255, 255, 0.08);
-        color: rgba(255, 255, 255, 0.38);
+        color: rgba(255, 255, 255, 0.48);
         font-size: 0.72rem;
         padding-top: 1.25rem;
     }
@@ -337,7 +338,7 @@ css:
     }
 
     .public-footer-disclaimer {
-        color: rgba(255, 255, 255, 0.38);
+        color: rgba(255, 255, 255, 0.48);
         font-size: 0.68rem;
         line-height: 1.55;
         margin: 0.75rem 0 0;
@@ -345,7 +346,7 @@ css:
     }
 
     .public-footer-disclaimer a {
-        color: rgba(255, 255, 255, 0.52);
+        color: rgba(255, 255, 255, 0.72);
         text-decoration: none;
     }
 

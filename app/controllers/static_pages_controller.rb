@@ -673,8 +673,8 @@ class StaticPagesController < ApplicationController
   INDUSTRY_FOCUS_DIMENSIONS = %w[industry revenue_model market_focus].freeze
   FUNDING_DIMENSIONS = %w[category region venture_stage].freeze
   CATEGORY_EVOLUTION_CHART_COLORS = [
-    "#8c1515", "#175e54", "#2986cc", "#8e5fa2", "#d55e00", "#37a4a6",
-    "#5a865a", "#ae6a59", "#5b9bd5", "#6b6b8d", "#c67171", "#820000"
+    "#8c1515", "#175e54", "#2986cc", "#8e5fa2", "#d55e00", "#359ea0",
+    "#5a865a", "#ae6a59", "#5794cc", "#6b6b8d", "#c67171", "#820000"
   ].freeze
 
   def growth_view_param
