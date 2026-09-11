@@ -22,23 +22,23 @@ class PublicEntrypointsTest < ActionDispatch::IntegrationTest
     assert_select ".home-title", "CodeX TechIndex"
     assert_select ".home-category-card"
     assert_operator @response.body.index(">By category</h2>"), :<, @response.body.index(">Statistics</h2>")
-    assert_select ".stats-index-card", count: 10
+    assert_select ".stats-index-card", count: 9
     assert_select ".stats-hero-title", count: 0
     assert_select "h2.stats-chart-title", count: 0
   end
 
-  test "statistics index shows ten curated cards" do
+  test "statistics index shows nine curated cards" do
     get statistics_path
 
     assert_response :success
     assert_select ".stats-hero-title", text: "Statistics"
     assert_select ".stats-hero-subtitle", text: /Research insights into the legal technology landscape/
     assert_select "h2.stats-chart-title", count: 0
-    assert_select ".stats-index-card", count: 10
+    assert_select ".stats-index-card", count: 9
     assert_select ".stats-index-card-vertical-bars", minimum: 1
     assert_select ".stats-index-card-country-bars", minimum: 1
     assert_select "svg path[stroke]", minimum: 1
-    ["Ecosystem Growth", "Geographic Distribution", "Category Expansion", "Business Model", "Target Audience", "Funding by Category", "Funding by Region", "AI in Legal Tech", "Technology Themes", "Data Coverage"].each do |title|
+    ["Ecosystem Growth", "Geographic Distribution", "Category Expansion", "Business Model", "Target Audience", "Funding by Category", "Funding by Region", "AI in Legal Tech", "Technology Themes"].each do |title|
       assert_select ".stats-index-card-title", text: title
     end
     assert_select ".stats-index-card-desc", text: "The number of legal tech companies created over time."

@@ -13,7 +13,6 @@
 - funding_region_card_visual = capture { render partial: "shared/stats_index_card_country_bars", locals: { country_rows: stats_funding_region_preview, label_width: "5.5rem", bar_color: "#2c4a6e" } }
 - ai_card_visual = capture { render partial: "shared/stats_index_card_area_line", locals: { color: "#820000", line_path: ai_trend[:line_path], area_path: ai_trend[:area_path], gradient_id: "statsSparkAi" } }
 - tags_card_visual = capture { render partial: "shared/stats_index_card_country_bars", locals: { country_rows: stats_tag_distribution_preview, label_width: "5.5rem", bar_color: "#37a4a6" } }
-- coverage_card_visual = capture { render partial: "shared/stats_index_card_heatmap", locals: { preview: stats_coverage_heatmap_preview } }
 - stats_index_cards = capture do
     .stats-index-grid
         = render partial: "shared/stats_index_card", locals: { path: statistics_total_companies_path, title: "Ecosystem Growth", description: "The number of legal tech companies created over time.", meta: "From 2000 – #{current_year}", heading_tag: card_heading_tag, visual_html: growth_card_visual }
@@ -25,7 +24,6 @@
         = render partial: "shared/stats_index_card", locals: { path: statistics_funding_by_region_path, title: "Funding by Region", description: "Where funding is geographically concentrated.", meta: "#{stats_index_funding_country_count} countries", heading_tag: card_heading_tag, visual_html: funding_region_card_visual }
         = render partial: "shared/stats_index_card", locals: { path: statistics_ai_trends_path, title: "AI in Legal Tech", description: "Growth in AI-focused legal tech companies.", meta: "#{stats_index_ai_company_count} companies", heading_tag: card_heading_tag, visual_html: ai_card_visual }
         = render partial: "shared/stats_index_card", locals: { path: statistics_tag_distribution_path, title: "Technology Themes", description: "The tags most commonly applied across the index.", meta: "#{stats_index_tag_count} tags", heading_tag: card_heading_tag, visual_html: tags_card_visual }
-        = render partial: "shared/stats_index_card", locals: { path: statistics_data_coverage_path, title: "Data Coverage", description: "Where the index is thin — spotting gaps across dimensions and regions.", meta: "#{stats_coverage_heatmap_dimensions.size} dimensions × regions", heading_tag: card_heading_tag, visual_html: coverage_card_visual }
 - if embedded
     == stats_index_cards
 - else

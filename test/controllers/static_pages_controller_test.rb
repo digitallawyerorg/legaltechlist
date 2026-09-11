@@ -22,7 +22,7 @@ class StaticPagesControllerTest < ActionController::TestCase
   test "should get statistics" do
     get :statistics
     assert_response :success
-    assert_select ".stats-index-card", count: 10
+    assert_select ".stats-index-card", count: 9
   end
 
   test "business_model redirects to industry focus revenue model view" do
@@ -143,7 +143,7 @@ class StaticPagesControllerTest < ActionController::TestCase
     assert_response :success
     assert_select "h1.stats-chart-title", text: "Total Companies"
     assert_select ".stats-segment-control .stats-segment.is-active", text: "Cumulative"
-    assert_select ".stats-chart-nav .stats-chart-nav-prev .stats-chart-nav-title", text: "Data Coverage"
+    assert_select ".stats-chart-nav .stats-chart-nav-prev .stats-chart-nav-title", text: "Technology Themes"
     assert_select ".stats-chart-nav .stats-chart-nav-next .stats-chart-nav-title", text: "Geographic Distribution"
     assert_select ".stats-page-back", count: 0
   end

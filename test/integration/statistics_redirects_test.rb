@@ -12,6 +12,13 @@ class StatisticsRedirectsIntegrationTest < ActionDispatch::IntegrationTest
     assert_redirected_to "/statistics/funding_by_category?dimension=venture_stage"
   end
 
+  test "data coverage is no longer public and redirects to statistics hub" do
+    get "/statistics/data_coverage"
+
+    assert_response :moved_permanently
+    assert_redirected_to "/statistics"
+  end
+
   test "category evolution redirects to five year view" do
     get "/statistics/category_evolution"
     assert_redirected_to "/statistics/category_evolution_5_years"
