@@ -1,0 +1,111 @@
+/ Behaviour the admin markup already assumes but nothing was providing.
+/
+/ The admin layout loads bootstrap.bundle and nothing else — no Turbo, no UJS. Rails
+/ still renders the data-turbo-confirm attributes that button_to writes, so every
+/ destructive admin action carried a confirmation nothing was listening for: "Reject
+/ and hide", "Return to contributor" and "Delete this company. This permanently removes
+/ the company record from TechIndex" all fired on the first click with no prompt at all.
+/
+/ Inlined rather than shipped as an asset because this app serves committed precompiled
+/ assets and its sprockets manifest links files that no longer exist, so a new asset
+/ cannot resolve. The layout already inlines its CSS the same way.
+javascript:
+  (function () {
+    "use strict";
+
+    // The admin navbar scrolls with the page rather than being fixed, so this is
+    // breathing room above the heading, not a header height to clear.
+    var SCROLL_OFFSET = 16;
+
+    function confirmationFor(form, submitter) {
+      if (submitter && submitter.dataset) {
+        var own = submitter.dataset.turboConfirm || submitter.dataset.confirm;
+        if (own) { return own; }
+      }
+      return form.dataset.turboConfirm || form.dataset.confirm || null;
+    }
+
+    function markBusy(form, submitter) {
+      form.dataset.adminSubmitting = "true";
+      var control = (submitter && submitter.tagName) ? submitter : form.querySelector("[type=submit]");
+      if (!control) { return; }
+      // Disabled after the submission is already under way: a control disabled during
+      // the submit event does not send its own name and value.
+      window.setTimeout(function () {
+        control.setAttribute("aria-busy", "true");
+        control.disabled = true;
+      }, 0);
+    }
+
+    document.addEventListener("submit", function (event) {
+      var form = event.target;
+      if (!form || form.tagName !== "FORM") { return; }
+
+      // A second click while the first is still in flight would repeat the action.
+      if (form.dataset.adminSubmitting === "true") {
+        event.preventDefault();
+        return;
+      }
+
+      var message = confirmationFor(form, event.submitter);
+      if (message && !window.confirm(message)) {
+        event.preventDefault();
+        return;
+      }
+
+      markBusy(form, event.submitter);
+    });
+
+    // Restored from the back-forward cache, a page would otherwise come back with the
+    // buttons still disabled from the submission that navigated away.
+    window.addEventListener("pageshow", function (event) {
+      if (!event.persisted) { return; }
+      Array.prototype.forEach.call(document.querySelectorAll("form[data-admin-submitting]"), function (form) {
+        delete form.dataset.adminSubmitting;
+        Array.prototype.forEach.call(form.querySelectorAll("[aria-busy=true]"), function (control) {
+          control.removeAttribute("aria-busy");
+          control.disabled = false;
+        });
+      });
+    });
+
+    // A panel opened from a control far down the page is no use where it already sits.
+    // The Return to contributor form lives near the top of a long record, so a reviewer
+    // opening it from the Reviewer decision section at the foot of the page saw nothing
+    // happen at all.
+    function reveal(panel) {
+      if (!panel) { return; }
+
+      var heading = panel.querySelector("h1, h2, h3, h4, h5, h6") || panel;
+      var top = heading.getBoundingClientRect().top + window.pageYOffset - SCROLL_OFFSET;
+      var reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      window.scrollTo({ top: Math.max(top, 0), behavior: reduced ? "auto" : "smooth" });
+
+      var field = panel.querySelector("textarea, select, input:not([type=hidden]):not([type=checkbox]):not([type=radio])");
+      // The scroll above already framed the heading; letting focus scroll again would
+      // pull it straight back off the top of the viewport.
+      if (field) { field.focus({ preventScroll: true }); }
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+      var panels = [];
+
+      Array.prototype.forEach.call(document.querySelectorAll("[data-bs-toggle=collapse][data-bs-target]"), function (control) {
+        var panel = document.querySelector(control.getAttribute("data-bs-target"));
+        if (!panel) { return; }
+
+        if (panels.indexOf(panel) === -1) {
+          panels.push(panel);
+          panel.addEventListener("shown.bs.collapse", function (event) {
+            if (event.target === panel) { reveal(panel); }
+          });
+        }
+
+        // Bootstrap fires nothing when a control targets a panel that is already open,
+        // and collapsing what the reviewer just asked to see would be the wrong answer.
+        control.addEventListener("click", function () {
+          if (panel.classList.contains("show")) { reveal(panel); }
+        });
+      });
+    });
+  })();

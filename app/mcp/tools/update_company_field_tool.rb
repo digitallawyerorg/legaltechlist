@@ -110,15 +110,35 @@ module Mcp
         company.save! if other_fields.any?
         company.founded_date_from_source!(year: applied["founded_date"], source_url: source_url) if applied["founded_date"].present?
 
-        audit!(action: "update_company_field", summary: "Updated #{applied.keys.join(', ')} on #{company.name}", records_processed: 1, details: { "company_id" => company.id, "applied" => applied, "previous" => previous, "reason" => reason, "source_url" => source_url })
+        # Read back rather than reported back. Until now this returned the values it had
+        # been asked to write, which is an echo of the request and not evidence that the
+        # database accepted it — a rejected tag, a validation that silently dropped a
+        # value, or a save that never ran all reported "updated" just the same.
+        company.reload
+        confirmed, unconfirmed = confirm_saved(company, applied)
+        result = if unconfirmed.empty?
+          "updated"
+        elsif confirmed.empty?
+          "not_saved"
+        else
+          "partially_updated"
+        end
+
+        audit!(action: "update_company_field", summary: "Updated #{confirmed.keys.join(', ').presence || 'nothing'} on #{company.name}", records_processed: 1, details: { "company_id" => company.id, "requested" => applied, "confirmed" => confirmed, "unconfirmed" => unconfirmed, "result" => result, "previous" => previous, "reason" => reason, "source_url" => source_url })
 
         json_response(
           "rejected_tags" => rejected_tags,
           "rejected_tags_note" => (rejected_tags.any? ? "These are not in the controlled vocabulary and were not applied. Use get_taxonomy for valid tags." : nil),
-          "result" => "updated",
+          "result" => result,
+          "error" => (unconfirmed_error(unconfirmed) if unconfirmed.any?),
           "company_id" => company.id,
           "company_slug" => company.slug,
-          "applied" => applied,
+          "requested" => applied,
+          "confirmed" => confirmed,
+          "unconfirmed" => unconfirmed,
+          # Kept under its original name so existing callers do not break, but it now
+          # carries what was actually saved rather than what was asked for.
+          "applied" => confirmed,
           "source_url" => source_url,
           "company" => company_summary(company)
         )
@@ -128,6 +148,53 @@ module Mcp
         Rails.logger.debug("[UpdateCompanyFieldTool] transient failure for #{slug}: #{e.class}: #{e.message}")
         error_response("result" => "error", "retryable" => true, "error" => "Transient failure (#{e.class}); safe to retry: #{e.message}")
       end
+
+      # Compares each requested value against what the reloaded record actually holds.
+      # Per field, so a multi-field write that saved three of four says which one failed
+      # instead of reporting a flat success or a flat failure.
+      def self.confirm_saved(company, applied)
+        confirmed = {}
+        unconfirmed = {}
+
+        applied.each do |field, requested|
+          saved = saved_value_for(company, field)
+          if values_match?(field, requested, saved)
+            confirmed[field] = saved
+          else
+            unconfirmed[field] = { "requested" => requested, "saved" => saved }
+          end
+        end
+
+        [confirmed, unconfirmed]
+      end
+
+      def self.saved_value_for(company, field)
+        case field
+        when "all_tags" then company.tags.map(&:name).sort.join(", ")
+        else company.public_send(field)
+        end
+      end
+
+      def self.values_match?(field, requested, saved)
+        case field
+        when "all_tags"
+          tag_set(requested) == tag_set(saved)
+        when "secondary_category_id"
+          requested.presence.to_s == saved.presence.to_s
+        else
+          requested.to_s.strip == saved.to_s.strip
+        end
+      end
+
+      def self.tag_set(value)
+        value.to_s.split(",").map { |tag| tag.strip.downcase }.reject(&:blank?).to_set
+      end
+
+      def self.unconfirmed_error(unconfirmed)
+        "The write reported success, but #{unconfirmed.keys.to_sentence} did not save: " \
+          "#{unconfirmed.map { |field, pair| "#{field} was requested as #{pair['requested'].inspect} and reads back as #{pair['saved'].inspect}" }.join('; ')}."
+      end
+
 
       # Provenance for an in-place edit to a live entry, and the lock that stops the next
       # automated pass undoing it. Appended, never replaced, so a record's repair history

@@ -380,6 +380,23 @@ class Company < ActiveRecord::Base
     with_normalized_name(company.normalized_name).where.not(id: company.id).order(:name)
   end
 
+  # Cross-domain duplicates for a single record. Deliberately not restricted to visible
+  # rows the way the pair queue's scan is: on the pair queue hiding the loser is how a
+  # pair gets resolved, but on a record page the question is "does another entry for
+  # this company already exist anywhere", and an unpublished draft is precisely the row
+  # that would otherwise be minted a second time.
+  def self.duplicates_by_core_name_for(company)
+    core = ProposalDuplicateDetectorService.core_name(company.name)
+    return none if core.blank?
+
+    ids = where.not(name: [nil, ""]).where.not(id: company.id).pluck(:id, :name)
+               .select { |_id, name| ProposalDuplicateDetectorService.core_name(name) == core }
+               .map(&:first)
+    return none if ids.empty?
+
+    where(id: ids).order(:name)
+  end
+
   def self.duplicates_by_domain_for(company)
     domain = company.canonical_domain.presence || company.canonical_main_domain
     return none if domain.blank?

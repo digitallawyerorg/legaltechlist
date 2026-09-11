@@ -279,41 +279,36 @@
                         | Reject and hide
 
     .col-lg-4
+        - unresolved_duplicates = @duplicate_matches.count(&:unresolved?)
         .card.border-0.shadow-sm.mb-3
-            .card-header.bg-white
+            .card-header.bg-white.d-flex.justify-content-between.align-items-center.gap-2
                 h2.h5.mb-0 Duplicate Check
+                - if unresolved_duplicates.positive?
+                    span.badge.text-bg-warning.text-dark= "#{unresolved_duplicates} unresolved"
             .card-body.py-2
-                .list-group.list-group-flush
-                    .list-group-item.px-0.border-0.d-flex.align-items-center.gap-2.py-2
-                        - if @duplicate_domain_companies.any?
-                            i.fas.fa-exclamation-triangle.text-warning aria-hidden="true"
-                            span
-                                span.fw-semibold Canonical domain
-                                span.text-muted.ms-1 —
-                                - @duplicate_domain_companies.each_with_index do |company, index|
-                                    - if index.positive?
-                                        | , 
-                                    = link_to company.name, custom_admin_company_review_path(company.id)
-                        - else
-                            i.fas.fa-check-circle.text-success aria-hidden="true"
-                            span
-                                span.fw-semibold Canonical domain
-                                span.text-muted.ms-1 — No duplicates
-                    .list-group-item.px-0.border-0.d-flex.align-items-center.gap-2.py-2
-                        - if @duplicate_name_companies.any?
-                            i.fas.fa-exclamation-triangle.text-warning aria-hidden="true"
-                            span
-                                span.fw-semibold Normalized name
-                                span.text-muted.ms-1 —
-                                - @duplicate_name_companies.each_with_index do |company, index|
-                                    - if index.positive?
-                                        | , 
-                                    = link_to company.name, custom_admin_company_review_path(company.id)
-                        - else
-                            i.fas.fa-check-circle.text-success aria-hidden="true"
-                            span
-                                span.fw-semibold Normalized name
-                                span.text-muted.ms-1 — No duplicates
+                - if @duplicate_matches.empty?
+                    .d-flex.align-items-center.gap-2.py-2
+                        i.fas.fa-check-circle.text-success aria-hidden="true"
+                        span.small No other entry matches this record on domain, name, or name core.
+                - else
+                    .list-group.list-group-flush
+                        - @duplicate_matches.each do |match|
+                            .list-group-item.px-0.border-0.py-2
+                                .d-flex.align-items-start.gap-2
+                                    - if match.unresolved?
+                                        i.fas.fa-exclamation-triangle.text-warning.mt-1 aria-hidden="true"
+                                    - else
+                                        i.fas.fa-circle-check.text-muted.mt-1 aria-hidden="true"
+                                    div
+                                        = link_to match.company.name, custom_admin_company_review_path(match.company.id), class: "fw-semibold text-decoration-none"
+                                        .mt-1.d-flex.flex-wrap.gap-1
+                                            span.admin-status-pill class=match.status_badge_class
+                                                = match.status_label
+                                            span.badge.text-bg-light.text-dark= match.visibility_label
+                                        .text-muted.small.mt-1= match.reason_text
+                    - if unresolved_duplicates.positive?
+                        p.text-muted.small.mb-0.mt-2
+                            | Open both records and compare before publishing this one. Keep whichever entry is more complete and reject the other — nothing here is merged, hidden or rejected automatically.
 
         .card.border-0.shadow-sm.mb-3
             .card-header.bg-white
@@ -363,12 +358,21 @@
                     ul.list-unstyled.mb-0
                         - @company_pipeline_runs.each do |run|
                             li.mb-2
-                                = link_to run.name, custom_admin_agent_review_path(run), class: "text-decoration-none fw-semibold"
+                                - if run.reviewer_action?
+                                    .fw-semibold= run.name
+                                - else
+                                    = link_to run.name, custom_admin_agent_review_path(run), class: "text-decoration-none fw-semibold"
                                 .text-muted.small
-                                    = run.status.humanize
+                                    - status_class = { "failed" => "text-danger", "partial" => "text-warning" }[run.status]
+                                    span class=status_class
+                                        = run.status.humanize
+                                    - if run.agent_name.present?
+                                        span= " · #{run.agent_name}"
                                     - if run.finished_at.present?
                                         span= " · #{run.finished_at.to_date.to_fs(:long)}"
                                     - elsif run.created_at.present?
                                         span= " · #{run.created_at.to_date.to_fs(:long)}"
+                                - if run.error_message.present?
+                                    .text-danger.small= run.error_message
                 - else
-                    p.text-muted.mb-0 No agent or duplicate reviews have been run for this company yet.
+                    p.text-muted.mb-0 Nothing has been recorded against this company yet — no reviewer decisions, and no agent or duplicate reviews.

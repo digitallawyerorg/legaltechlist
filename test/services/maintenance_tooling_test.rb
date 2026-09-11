@@ -71,6 +71,53 @@ class MaintenanceToolingTest < ActiveSupport::TestCase
     assert_equal "veronto.de", @company.canonical_domain, "the dedup key follows the url"
   end
 
+  # ---- 1b. success is confirmed, not echoed -------------------------------
+
+  # The tool used to return the values it had been asked to write. That is an echo of
+  # the request, not evidence the database accepted it — which is exactly how an agent
+  # comes away believing it fixed a record it did not touch.
+  test "a successful write reports values read back from the record, not the ones requested" do
+    result = call_tool(Mcp::Tools::UpdateCompanyFieldTool, slug: @company.slug,
+                       fields: { "city" => "Munich" }, reason: "Correcting the city.")
+
+    assert_equal "updated", result["result"]
+    assert_equal "Munich", result["confirmed"]["city"]
+    assert_empty result["unconfirmed"]
+    assert_equal @company.reload.city, result["confirmed"]["city"]
+  end
+
+  test "a value the record did not keep is reported as unsaved rather than as success" do
+    result = call_tool(Mcp::Tools::UpdateCompanyFieldTool, slug: @company.slug,
+                       fields: { "all_tags" => "not-a-real-tag-in-the-vocabulary" }, reason: "Testing a rejected tag.")
+
+    refute_equal "updated", result["result"], "a tag the vocabulary refused is not a saved tag"
+    assert result["unconfirmed"]["all_tags"].present?
+    assert_match(/reported success, but/, result["error"])
+    assert_equal "not-a-real-tag-in-the-vocabulary", result["unconfirmed"]["all_tags"]["requested"]
+  end
+
+  test "a multi-field write says which field failed instead of failing flat" do
+    result = call_tool(Mcp::Tools::UpdateCompanyFieldTool, slug: @company.slug,
+                       fields: { "city" => "Munich", "all_tags" => "not-a-real-tag-in-the-vocabulary" },
+                       reason: "One good field and one the vocabulary will refuse.")
+
+    assert_equal "partially_updated", result["result"]
+    assert_equal "Munich", result["confirmed"]["city"]
+    assert_includes result["unconfirmed"].keys, "all_tags"
+    assert_equal "Munich", @company.reload.city, "the field that did save stays saved"
+  end
+
+  test "the audit records what was confirmed, not what was asked for" do
+    call_tool(Mcp::Tools::UpdateCompanyFieldTool, slug: @company.slug,
+              fields: { "city" => "Munich", "all_tags" => "not-a-real-tag-in-the-vocabulary" },
+              reason: "One good field and one the vocabulary will refuse.")
+
+    run = PipelineRun.where(run_type: "curator_mcp").order(:created_at).last
+    assert_equal "partially_updated", run.details["result"]
+    assert_equal "Munich", run.details["confirmed"]["city"]
+    assert_includes run.details["unconfirmed"].keys, "all_tags"
+  end
+
   # ---- 2. a repair is not undone by the next enrichment -------------------
 
   test "writing a description locks the record against automated description changes" do
