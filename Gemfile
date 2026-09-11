@@ -54,7 +54,7 @@ gem 'ffi', '~> 1.17.4'
 
 group :development, :test do
   gem 'byebug', '~> 11.1.3'
-  gem 'minitest', '~> 5.25'
+  gem 'minitest', '~> 6.0'
   gem 'rails-controller-testing'
 end
 
