@@ -265,6 +265,7 @@ GEM
     minitest (6.0.6)
       drb (~> 2.0)
       prism (~> 1.5)
+    minitest-mock (5.27.0)
     msgpack (1.8.5)
     multi_xml (0.9.1)
       bigdecimal (>= 3.1, < 5)
@@ -508,6 +509,7 @@ DEPENDENCIES
   mcp (~> 0.4)
   mini_racer
   minitest (~> 6.0)
+  minitest-mock
   parallel
   pg (~> 1.6.3)
   pg_search (~> 2.4)
