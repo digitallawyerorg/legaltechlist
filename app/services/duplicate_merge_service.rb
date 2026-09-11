@@ -1,11 +1,22 @@
 # Folds the verified improvements from a duplicate proposal into the record that is
 # being kept, then rejects the proposal in favour of it.
 #
-# Deliberately narrow. It writes only fields DuplicateComparisonService marked
-# mergeable, which means: the existing entry has nothing there, the field is not part of
-# the entry's identity, and something was actually retrieved for the proposal. A
-# populated value is never overwritten because the proposal disagrees with it — that is
-# a conflict for a human, not a merge.
+# Two kinds of write, and the difference matters.
+#
+# A gap fill is offered by default: the existing entry has nothing there, the field is
+# not part of the entry's identity, and something was actually retrieved for the
+# proposal. Nothing is lost by filling it.
+#
+# An override replaces a value the entry already holds, and is never offered by
+# default, never recommended, and never selected for the reviewer. It exists because
+# the alternative was worse: the comparison would tell a reviewer the two records
+# disagreed on location — "United States" against "Las Vegas, NV, USA" — invite them to
+# check the sources, and then give them nowhere to put the answer. The verification
+# happened; the worse value stayed. A reviewer may now take a conflicting field, one at
+# a time, and what moved is recorded with both values.
+#
+# Identity fields (name, main_url) are outside both: changing what an entry *is* is a
+# rename or a rebrand, not a duplicate resolution.
 class DuplicateMergeService
   def self.call(**kwargs)
     new(**kwargs).call
@@ -20,21 +31,39 @@ class DuplicateMergeService
 
   def call
     comparison = DuplicateComparisonService.call(proposal: proposal, company: company)
-    allowed = comparison["mergeable_fields"] & requested_fields
+    fillable = comparison["mergeable_fields"] & requested_fields
+    overrides = comparison["overridable_fields"] & requested_fields
+    allowed = fillable + overrides
     raise ArgumentError, "None of the selected fields can be merged into #{company.name}." if allowed.empty?
 
     rows = comparison["rows"].index_by { |row| row["key"] }
     applied = allowed.each_with_object({}) do |field, acc|
       row = rows[field]
+      # Structurally impossible for a gap fill or an override to carry a blank — both
+      # verdicts require the proposal to hold a value — but a blank write here would
+      # erase a populated field on a live entry, so it is refused rather than trusted.
+      next if row["proposal_value"].to_s.strip.blank?
+
       company.public_send("#{field}=", row["proposal_value"])
-      acc[field] = { "from" => row["company_value"], "to" => row["proposal_value"], "sources" => row["evidence"] }
+      acc[field] = {
+        "from" => row["company_value"],
+        "to" => row["proposal_value"],
+        "kind" => overrides.include?(field) ? "override" : "gap_fill",
+        "sources" => row["evidence"]
+      }
+    end
+    raise ArgumentError, "Nothing was applied: every selected field was blank in the proposal." if applied.empty?
+
+    # The proposal is only resolved once the record it is being resolved in favour of
+    # has actually taken the change. Rejecting first would discard the evidence for a
+    # write that then failed.
+    ActiveRecord::Base.transaction do
+      company.save!
+      record_merge!(applied)
+      reject_proposal!(applied)
     end
 
-    company.save!
-    record_merge!(applied)
-    reject_proposal!(applied)
-
-    { "company_id" => company.id, "applied" => applied }
+    { "company_id" => company.id, "applied" => applied, "overrides" => overrides }
   end
 
   private
@@ -55,7 +84,8 @@ class DuplicateMergeService
         "proposal_id" => proposal.id,
         "merged_by" => admin_user&.email,
         "merged_at" => Time.current.utc.iso8601,
-        "applied_changes" => applied
+        "applied_changes" => applied,
+        "overridden_fields" => applied.select { |_field, change| change["kind"] == "override" }.keys
       }
     )
   end
@@ -74,7 +104,8 @@ class DuplicateMergeService
           "company_id" => company.id,
           "resolved_by" => admin_user&.email,
           "resolved_at" => Time.current.utc.iso8601,
-          "merged_fields" => applied.keys
+          "merged_fields" => applied.keys,
+          "overridden_fields" => applied.select { |_field, change| change["kind"] == "override" }.keys
         }
       )
     )

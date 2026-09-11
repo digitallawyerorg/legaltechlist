@@ -83,17 +83,30 @@ module Admin
       target = duplicate_target
       return redirect_to custom_admin_company_proposal_path(@company_proposal), alert: "No matching company to merge into." unless target
 
-      result = DuplicateMergeService.call(proposal: @company_proposal, company: target, fields: params[:fields], admin_user: current_admin_user)
+      result = DuplicateMergeService.call(proposal: @company_proposal, company: target, fields: selected_merge_fields, admin_user: current_admin_user)
       SlackNotifier.contribution_decision(@company_proposal, decision: "rejected", admin_user: current_admin_user, note: @company_proposal.rejection_reason)
 
-      redirect_to custom_admin_company_review_path(target.id),
-                  notice: "Merged #{result['applied'].keys.map(&:humanize).map(&:downcase).to_sentence} into #{target.name}. The duplicate proposal was rejected and this record is canonical."
+      applied = result["applied"].keys.map(&:humanize).map(&:downcase).to_sentence
+      replaced = result["applied"].select { |_field, change| change["kind"] == "override" }.keys
+      notice = "Merged #{applied} into #{target.name}. The duplicate proposal was rejected and this record is canonical."
+      notice += " #{replaced.map(&:humanize).map(&:downcase).to_sentence.upcase_first} #{'was'.pluralize(replaced.size == 1 ? 1 : 2)} replaced, not filled in — the previous values are on the merge record." if replaced.any?
+
+      redirect_to custom_admin_company_review_path(target.id), notice: notice
     rescue ArgumentError => e
       redirect_to compare_duplicate_custom_admin_company_proposal_path(@company_proposal), alert: e.message
     end
 
     def reject
       load_proposal
+
+      # Repeating a rejection is not an error worth an error page: the reviewer's
+      # intent is already satisfied. Saying so and returning them to the queue beats a
+      # second write that would overwrite the original reason and re-notify Slack.
+      if @company_proposal.rejected?
+        return redirect_to reject_return_path,
+                           notice: "#{@company_proposal.display_name} was already resolved#{" on #{@company_proposal.rejected_at.to_date.to_fs(:long)}" if @company_proposal.rejected_at}. Nothing was changed."
+      end
+
       @company_proposal.update!(
         status: "rejected",
         admin_user: current_admin_user,
@@ -105,10 +118,31 @@ module Admin
 
       SlackNotifier.contribution_decision(@company_proposal, decision: "rejected", admin_user: current_admin_user, note: @company_proposal.rejection_reason)
 
-      redirect_to queue_redirect_path(custom_admin_company_proposals_path(status: params[:return_status].presence || "pending_review")), notice: rejection_notice
+      redirect_to reject_return_path, notice: rejection_notice
+    # The status is only written inside the update above, so a refusal here leaves the
+    # proposal exactly as it was — and says why, in the admin, rather than dropping the
+    # reviewer on the public error page.
+    rescue ActiveRecord::RecordInvalid => e
+      redirect_to custom_admin_company_proposal_path(@company_proposal, queue: returning_queue_context.presence),
+                  alert: "#{@company_proposal.display_name} could not be rejected: #{e.record.errors.full_messages.to_sentence.presence || e.message} Nothing was changed."
     end
 
     private
+
+    # Gap fills arrive as checkboxes; a field both records hold arrives as an explicit
+    # choice between keeping what the index has and taking what the proposal says, and
+    # only the second of those is a write.
+    def selected_merge_fields
+      chosen = Array(params[:fields]).map(&:to_s)
+      choices = params[:field_choice]
+      choices = choices.respond_to?(:to_unsafe_h) ? choices.to_unsafe_h : choices.to_h if choices.present?
+      chosen += Array(choices).select { |_field, choice| choice.to_s == "proposal" }.map { |field, _| field.to_s } if choices.present?
+      chosen.uniq
+    end
+
+    def reject_return_path
+      queue_redirect_path(custom_admin_company_proposals_path(status: params[:return_status].presence || "pending_review"))
+    end
 
     # Rejecting a duplicate is only half the decision — which record survives is the
     # other half, and it has to be recorded or the next reviewer cannot tell that this

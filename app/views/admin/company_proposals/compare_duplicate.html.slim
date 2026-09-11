@@ -48,27 +48,68 @@
                             - when "conflict"
                                 span.badge.text-bg-warning Disagree
 
+- mergeable_rows = @comparison["rows"].select { |row| row["mergeable"] }
+- overridable_rows = @comparison["rows"].select { |row| row["overridable"] }
+- blocked_conflicts = @comparison["rows"].select { |row| row["verdict"] == "conflict" && !row["overridable"] }
+
 .row.g-3
     .col-lg-7
-        - if @comparison["mergeable_fields"].any?
+        - if mergeable_rows.any? || overridable_rows.any?
             .card.border-0.shadow-sm
                 .card-header.bg-white.py-2
-                    h2.h6.mb-0 Merge what the proposal adds
+                    h2.h6.mb-0 Apply verified values to #{@comparison["company_name"]}
                 .card-body.py-3
-                    p.text-muted.small
-                        | Only gaps are offered. A value already in the index is never replaced from here — where the two disagree, decide by hand.
-                    = form_with url: merge_duplicate_custom_admin_company_proposal_path(@company_proposal), method: :post, local: true do
+                    = form_with url: merge_duplicate_custom_admin_company_proposal_path(@company_proposal), method: :post, local: true, id: "merge-form" do
                         = hidden_field_tag :company_id, @comparison["company_id"]
-                        - @comparison["rows"].select { |row| row["mergeable"] }.each do |row|
-                            .form-check.mb-2
-                                = check_box_tag "fields[]", row["key"], true, class: "form-check-input", id: "merge_#{row['key']}"
-                                = label_tag "merge_#{row['key']}", row["label"], class: "form-check-label small fw-semibold"
-                                .text-muted.small= truncate(row["proposal_value"].to_s, length: 180)
-                                - if row["evidence"].any?
-                                    .small
-                                        - row["evidence"].each do |url|
-                                            = link_to truncate(url, length: 48), url, target: "_blank", rel: "noopener", class: "me-2"
-                        = submit_tag "Merge selected, then reject this proposal", class: "btn btn-success mt-2", data: { turbo_confirm: "Fill those fields on #{@comparison['company_name']} and reject this proposal in its favour?" }
+
+                        - if mergeable_rows.any?
+                            h3.h6.mb-1 Gaps this proposal fills
+                            p.text-muted.small.mb-2
+                                | Nothing is lost by taking these — the index has no value for them.
+                            - mergeable_rows.each do |row|
+                                .form-check.mb-2
+                                    = check_box_tag "fields[]", row["key"], true, class: "form-check-input", id: "merge_#{row['key']}"
+                                    = label_tag "merge_#{row['key']}", row["label"], class: "form-check-label small fw-semibold"
+                                    .text-muted.small= truncate(row["proposal_value"].to_s, length: 180)
+                                    - if row["evidence"].any?
+                                        .small
+                                            - row["evidence"].each do |url|
+                                                = link_to truncate(url, length: 48), url, target: "_blank", rel: "noopener", class: "me-2"
+
+                        - if overridable_rows.any?
+                            h3.h6.mb-1 class=("mt-3" if mergeable_rows.any?)
+                                | Where the two disagree
+                            p.text-muted.small.mb-2
+                                | Both records hold a value for these. Keeping what the index has is the default; choose the proposal's only where you have checked the sources and found it to be the better value. The previous value is kept on the merge record either way.
+                            - overridable_rows.each do |row|
+                                .border.rounded.p-2.mb-2
+                                    .small.fw-semibold.mb-1= row["label"]
+                                    .form-check.mb-1
+                                        = radio_button_tag "field_choice[#{row['key']}]", "keep", true, class: "form-check-input js-merge-choice", id: "keep_#{row['key']}", data: { field: row["key"], preview: truncate(row["company_value"].to_s, length: 120).presence || "Blank" }
+                                        = label_tag "keep_#{row['key']}", "Keep existing", class: "form-check-label small"
+                                        .text-muted.small.ms-4= truncate(row["company_value"].to_s, length: 180)
+                                    .form-check.mb-1
+                                        = radio_button_tag "field_choice[#{row['key']}]", "proposal", false, class: "form-check-input js-merge-choice", id: "use_#{row['key']}", data: { field: row["key"], preview: truncate(row["proposal_value"].to_s, length: 120).presence || "Blank" }
+                                        = label_tag "use_#{row['key']}", "Use proposal", class: "form-check-label small"
+                                        .text-muted.small.ms-4= truncate(row["proposal_value"].to_s, length: 180)
+                                    - if row["evidence"].any?
+                                        .small.ms-4
+                                            - row["evidence"].each do |url|
+                                                = link_to truncate(url, length: 48), url, target: "_blank", rel: "noopener", class: "me-2"
+                                    .small.mt-1
+                                        span.text-muted= "#{@comparison['company_name']} will read: "
+                                        span.fw-semibold data-merge-result=row["key"]
+                                            = truncate(row["company_value"].to_s, length: 120).presence || "Blank"
+
+                        - if blocked_conflicts.any?
+                            p.text-muted.small.mt-2.mb-0
+                                = "Not offered here: #{blocked_conflicts.map { |row| row['label'].downcase }.to_sentence}. "
+                                - if @comparison["verification_state"] != "evidence_backed"
+                                    | Nothing was independently retrieved for this proposal, so it cannot change a live entry.
+                                - else
+                                    | Changing what an entry is — its name or its website — is a rename, not a duplicate resolution.
+
+                        = submit_tag "Apply selected changes and reject this proposal", class: "btn btn-success mt-2", data: { turbo_confirm: "Apply the selected values to #{@comparison['company_name']} and reject this proposal in its favour?" }
         - else
             .card.border-0.shadow-sm
                 .card-body.py-3
@@ -90,3 +131,16 @@
                     = hidden_field_tag :return_status, "duplicate"
                     = submit_tag "Reject this proposal", class: "btn btn-outline-danger", data: { turbo_confirm: "Reject this proposal and keep #{@comparison['company_name']}?" }
                 = link_to "Back to the proposal", custom_admin_company_proposal_path(@company_proposal), class: "btn btn-link btn-sm ps-0 mt-2"
+
+
+/ The resulting value, shown as the reviewer chooses, so the canonical record is
+/ previewed before it is written rather than after.
+javascript:
+  (function () {
+    Array.prototype.forEach.call(document.querySelectorAll(".js-merge-choice"), function (input) {
+      input.addEventListener("change", function () {
+        var target = document.querySelector("[data-merge-result=" + JSON.stringify(input.dataset.field) + "]");
+        if (target) { target.textContent = input.dataset.preview; }
+      });
+    });
+  })();
