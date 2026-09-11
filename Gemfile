@@ -40,7 +40,6 @@ gem 'i18n', '~> 1.15' # Update this from 0.9.5
 # Keep specific versions for these
 gem 'browser', '6.2.0'
 gem 'geocoder', '1.8.6'
-gem 'gmaps4rails', '2.1.2'
 gem 'figaro', '1.3.0'
 gem 'sendgrid', '1.2.4'
 gem 'mail'  # Remove version constraint

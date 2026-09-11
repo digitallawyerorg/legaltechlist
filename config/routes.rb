@@ -88,7 +88,7 @@ Rails.application.routes.draw do
 
   # Company views
   get 'feed', to: 'companies#feed'
-  get 'map', to: 'companies#map'
+  get 'map', to: redirect('/statistics/country_distribution', status: 301)
 
   # Static pages
   get 'about', to: 'static_pages#about'

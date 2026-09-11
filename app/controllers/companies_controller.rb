@@ -47,28 +47,6 @@ class CompaniesController < ApplicationController
     end
   end
 
-  def map
-    @companies = Company.publicly_visible.where.not(latitude: nil).where.not(longitude: nil)
-    @hash = Gmaps4rails.build_markers(@companies) do |company, marker|
-      profile_path = company_path(company)
-      marker.lat company.latitude
-      marker.lng company.longitude
-      contentString = '<div id="content">'+
-        '<h2 id="firstHeading" class="firstHeading">' +
-        company.name +
-        '</h2>'+
-        '<div id="bodyContent">'+
-        '<p>' +
-        company.description +
-        '</p>'+
-        '<a href="' + profile_path + '" class="btn btn-default">View Info</a>' +
-        '</div>'+
-        '</div>';
-      marker.infowindow contentString
-      marker.json({ title: company.name })
-    end
-  end
-
   def feed
     @companies = Company.publicly_visible
                         .includes(:category)
