@@ -10,7 +10,8 @@ css:
     .company-search-field { position: relative; }
     .company-search-icon { color: #9ca3af; font-size: 0.82rem; left: 0.95rem; position: absolute; top: 50%; transform: translateY(-50%); }
     .company-search .form-control { background: rgba(255, 255, 255, 0.86); border-color: #8c877f; border-radius: 0.55rem; font-size: 0.9rem; min-height: 2.55rem; padding-left: 2.3rem; }
-    .company-search .form-control:focus { border-color: #cbbfae; box-shadow: 0 0 0 0.15rem rgba(140, 21, 21, 0.08); }
+    .company-search .form-control:focus { border-color: #6f6860; box-shadow: 0 0 0 0.15rem rgba(140, 21, 21, 0.08); }
+    .company-search .form-control:focus-visible { border-color: #6f6860; box-shadow: none; outline: 3px solid #2a2723; outline-offset: 2px; }
     .company-filter-controls { align-items: center; display: flex; flex: 1 1 auto; flex-wrap: wrap; gap: 0.45rem; }
     .company-filter-btn { align-items: center; background: #fff; border: 1px solid #8c877f; border-radius: 0.55rem; color: #4b5563; display: inline-flex; font-size: 0.84rem; font-weight: 600; gap: 0.35rem; min-height: 2.55rem; padding: 0.4rem 0.85rem; white-space: nowrap; }
     .company-filter-btn:hover, .company-filter-btn:focus { background: #faf8f3; border-color: #cbbfae; color: #2a2723; }
@@ -36,6 +37,8 @@ css:
     .company-filter-reset:hover { color: #6f1111; text-decoration: underline; }
     .company-sort-form { display: flex; flex: 0 0 auto; gap: 0.4rem; margin-left: auto; }
     .company-sort-submit { flex: 0 0 auto; white-space: nowrap; }
+    .company-sort-submit.btn-outline-secondary { --bs-btn-color: #6f6860; --bs-btn-border-color: #6f6860; --bs-btn-hover-bg: #6f6860; --bs-btn-hover-border-color: #6f6860; --bs-btn-active-bg: #57514a; --bs-btn-active-border-color: #57514a; }
+    .company-sort-submit.btn-outline-secondary:focus-visible { box-shadow: none; outline: 3px solid #2a2723; outline-offset: 2px; }
     .company-sort { border-color: #8c877f; border-radius: 0.55rem; font-size: 0.9rem; min-height: 2.55rem; min-width: 10.25rem; }
     .company-sort:focus-visible { box-shadow: none; outline: 3px solid #2a2723; outline-offset: 2px; }
     .company-table-card { background: #fff; border: 1px solid #e5dfd5; border-radius: 0.6rem; overflow: hidden; }

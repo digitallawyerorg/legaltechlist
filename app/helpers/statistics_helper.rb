@@ -30,8 +30,8 @@ module StatisticsHelper
   }.freeze
 
   STATS_INDEX_CHART_COLORS = [
-    "#8c1515", "#175e54", "#2986cc", "#8e5fa2", "#d55e00", "#359ea0",
-    "#5a865a", "#ae6a59", "#5794cc", "#6b6b8d", "#c67171", "#820000"
+    "#650d0c", "#0e423c", "#216da9", "#624070", "#bf5200", "#37a1a4",
+    "#3d5e3f", "#875243", "#538cc1", "#424259", "#b56767", "#560100"
   ].freeze
 
   STATS_SERIES_DASH_PATTERNS = [
