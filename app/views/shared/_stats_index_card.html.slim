@@ -1,8 +1,9 @@
-/ locals: path, title, description, meta (optional), visual_html (required)
+/ locals: path, title, description, meta (optional), visual_html (required), heading_tag (optional)
+- heading_tag = local_assigns.fetch(:heading_tag, "h3")
 = link_to path, class: "stats-index-card" do
-    h3.stats-index-card-title= title
+    = content_tag(heading_tag, title, class: "stats-index-card-title")
     p.stats-index-card-desc= description
-    .stats-index-card-visual aria-hidden="true"
+    .stats-index-card-visual
         == visual_html
     .stats-index-card-footer
         - if local_assigns[:meta].present?

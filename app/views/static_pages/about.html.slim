@@ -44,7 +44,7 @@ css:
         font-size: 0.72rem;
         font-weight: 700;
         letter-spacing: 0.12em;
-        margin-bottom: 0.85rem;
+        margin: 0 0 0.85rem;
         text-transform: uppercase;
     }
 
@@ -175,14 +175,14 @@ css:
             p.about-lead A curated research database of legal technology companies by CodeX, the Stanford Center for Legal Informatics.
 
         section.about-section
-            .about-section-label The project
+            h2.about-section-label The project
             p.about-section-intro
                 | The CodeX TechIndex tracks #{company_count} legal-technology companies with profiles, taxonomy, and public statistics on ecosystem growth, geography, funding, and market segments.
             p.about-section-intro
                 | The index began in 2015 as a CodeX research project led by CodeX Fellow Pieter Gunst. It grew out of Code = Law, a Stanford Law student group where members learned to build software and explore real-world legal technology applications.
             p.about-section-intro
                 | The underlying company data is compiled and maintained by
-                = link_to " Legal.io", legalio_referral_url(campaign: "about"), class: "about-link", target: "_blank", rel: "noopener"
+                = link_to new_tab_label(" Legal.io"), legalio_referral_url(campaign: "about"), class: "about-link", target: "_blank", rel: "noopener"
                 | , the legal technology company co-founded by Pieter Gunst, which provides the dataset to CodeX.
             p.about-section-intro
                 | For field definitions, classification rules, and citation examples, see the
@@ -190,7 +190,7 @@ css:
                 | .
 
         section.about-section
-            .about-section-label Contribute
+            h2.about-section-label Contribute
             p.about-section-intro Help keep the directory current by suggesting missing companies or corrections.
             .about-actions
                 = link_to new_company_path, class: "about-action" do
@@ -201,7 +201,7 @@ css:
                     | Browse companies
 
         section.about-section
-            .about-section-label Contributors
+            h2.about-section-label Contributors
             p.about-section-intro People who have helped build and maintain the TechIndex over the years.
             .about-table-wrap
                 table.about-table
@@ -216,8 +216,8 @@ css:
                                 td.contributor-name= contributor[:name]
                                 td= about_contributor_role(contributor)
                                 td
-                                    = link_to "LinkedIn", about_linkedin_url(contributor[:linkedin]), target: "_blank", rel: "noopener", class: "about-link"
+                                    = link_to new_tab_label("LinkedIn"), about_linkedin_url(contributor[:linkedin]), target: "_blank", rel: "noopener", class: "about-link"
 
         section.about-section
-            .about-section-label Disclaimer
+            h2.about-section-label Disclaimer
             p.about-disclaimer The companies and services listed in this database are provided for informational purposes only and are not endorsed by CodeX, Stanford Law School, or Stanford University. Info may be out of date.

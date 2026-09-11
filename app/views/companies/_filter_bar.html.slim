@@ -11,12 +11,12 @@
 .company-filter-bar
     = form_with url: companies_path, method: :get, local: true, html: { class: "company-search" } do
         - selected_category_ids.each do |category_id|
-            = hidden_field_tag "category[]", category_id
+            = hidden_field_tag "category[]", category_id, id: nil
         - selected_statuses.each do |status|
-            = hidden_field_tag "status[]", status
-        = hidden_field_tag :country, params[:country] if params[:country].present?
-        = hidden_field_tag :city, params[:city] if params[:city].present?
-        = hidden_field_tag :sort, params[:sort] if params[:sort].present?
+            = hidden_field_tag "status[]", status, id: nil
+        = hidden_field_tag :country, params[:country], id: nil if params[:country].present?
+        = hidden_field_tag :city, params[:city], id: nil if params[:city].present?
+        = hidden_field_tag :sort, params[:sort], id: nil if params[:sort].present?
         .company-search-field
             i.fa.fa-search.company-search-icon aria-hidden="true"
             = search_field_tag :query, params[:query], class: "form-control", placeholder: "Search companies", aria: { label: "Search companies" }
@@ -26,12 +26,12 @@
                 span= category_button_label
             .dropdown-menu.company-filter-menu
                 = form_with url: companies_path, method: :get, local: true, html: { class: "company-filter-checkbox-form", data: { company_filter_form: "category" } } do
-                    = hidden_field_tag :query, params[:query] if params[:query].present?
-                    = hidden_field_tag :country, params[:country] if params[:country].present?
-                    = hidden_field_tag :city, params[:city] if params[:city].present?
-                    = hidden_field_tag :sort, params[:sort] if params[:sort].present?
+                    = hidden_field_tag :query, params[:query], id: nil if params[:query].present?
+                    = hidden_field_tag :country, params[:country], id: nil if params[:country].present?
+                    = hidden_field_tag :city, params[:city], id: nil if params[:city].present?
+                    = hidden_field_tag :sort, params[:sort], id: nil if params[:sort].present?
                     - selected_statuses.each do |status|
-                        = hidden_field_tag "status[]", status
+                        = hidden_field_tag "status[]", status, id: nil
                     - if show_category_search
                         .company-filter-search
                             input.form-control.form-control-sm type="text" placeholder="Search categories..." aria-label="Search categories" data-company-filter-search="category"
@@ -50,12 +50,12 @@
                     span= status_button_label
                 .dropdown-menu.company-filter-menu
                     = form_with url: companies_path, method: :get, local: true, html: { class: "company-filter-checkbox-form", data: { company_filter_form: "status" } } do
-                        = hidden_field_tag :query, params[:query] if params[:query].present?
-                        = hidden_field_tag :country, params[:country] if params[:country].present?
-                        = hidden_field_tag :city, params[:city] if params[:city].present?
-                        = hidden_field_tag :sort, params[:sort] if params[:sort].present?
+                        = hidden_field_tag :query, params[:query], id: nil if params[:query].present?
+                        = hidden_field_tag :country, params[:country], id: nil if params[:country].present?
+                        = hidden_field_tag :city, params[:city], id: nil if params[:city].present?
+                        = hidden_field_tag :sort, params[:sort], id: nil if params[:sort].present?
                         - selected_category_ids.each do |category_id|
-                            = hidden_field_tag "category[]", category_id
+                            = hidden_field_tag "category[]", category_id, id: nil
                         .company-filter-list
                             label.company-filter-master.company-filter-checkbox-option
                                 input type="checkbox" data-company-filter-master="status" checked=company_filter_master_checked?(selected_statuses, @status_counts.size) data-company-filter-master-indeterminate=(company_filter_master_indeterminate?(selected_statuses, @status_counts.size) ? "true" : nil)
@@ -70,12 +70,12 @@
                 span= location_button_label
             .dropdown-menu.company-filter-menu.company-filter-location-menu
                 = form_with url: companies_path, method: :get, local: true, html: { class: "company-filter-location-form" } do
-                    = hidden_field_tag :query, params[:query] if params[:query].present?
+                    = hidden_field_tag :query, params[:query], id: nil if params[:query].present?
                     - selected_category_ids.each do |category_id|
-                        = hidden_field_tag "category[]", category_id
+                        = hidden_field_tag "category[]", category_id, id: nil
                     - selected_statuses.each do |status|
-                        = hidden_field_tag "status[]", status
-                    = hidden_field_tag :sort, params[:sort] if params[:sort].present?
+                        = hidden_field_tag "status[]", status, id: nil
+                    = hidden_field_tag :sort, params[:sort], id: nil if params[:sort].present?
                     = label_tag :country, "Country", class: "form-label form-label-sm mb-1"
                     = select_tag :country, options_for_select([["All countries", ""]] + Array(@country_counts).sort.map { |country, count| ["#{country} (#{number_with_delimiter(count)})", country] }, params[:country]), class: "form-select form-select-sm", aria: { label: "Filter by country" }
                     = label_tag :city, "City", class: "form-label form-label-sm mb-1 mt-2"
@@ -84,11 +84,11 @@
         - if filters_active
             = link_to "Reset", companies_path(clear_params), class: "company-filter-reset"
     = form_with url: companies_path, method: :get, local: true, html: { class: "company-sort-form" } do
-        = hidden_field_tag :query, params[:query] if params[:query].present?
+        = hidden_field_tag :query, params[:query], id: nil if params[:query].present?
         - selected_category_ids.each do |category_id|
-            = hidden_field_tag "category[]", category_id
+            = hidden_field_tag "category[]", category_id, id: nil
         - selected_statuses.each do |status|
-            = hidden_field_tag "status[]", status
-        = hidden_field_tag :country, params[:country] if params[:country].present?
-        = hidden_field_tag :city, params[:city] if params[:city].present?
+            = hidden_field_tag "status[]", status, id: nil
+        = hidden_field_tag :country, params[:country], id: nil if params[:country].present?
+        = hidden_field_tag :city, params[:city], id: nil if params[:city].present?
         = select_tag :sort, options_for_select(@sort_options, params[:sort].presence || "founded_desc"), class: "form-select form-select-sm company-sort", onchange: "this.form.submit()", aria: { label: "Sort companies" }

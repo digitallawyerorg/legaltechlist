@@ -58,7 +58,7 @@ css:
         font-size: 0.72rem;
         font-weight: 700;
         letter-spacing: 0.12em;
-        margin-bottom: 0.85rem;
+        margin: 0 0 0.85rem;
         text-transform: uppercase;
     }
 
@@ -314,20 +314,20 @@ css:
             p.methodology-lead How the TechIndex defines legal technology company profiles, classification, and statistics.
 
         section.methodology-section#methodology-overview
-            .methodology-section-label Overview
+            h2.methodology-section-label Overview
             .methodology-principle-box
                 p== methodology_overview_html(number_with_delimiter(company_count))
 
         section.methodology-section#methodology-data-source
-            .methodology-section-label Data source
+            h2.methodology-section-label Data source
             p.methodology-section-intro== methodology_data_source_html
 
         section.methodology-section#methodology-eligibility
-            .methodology-section-label What is a legal technology company?
+            h2.methodology-section-label What is a legal technology company?
             p.methodology-section-intro= methodology_eligibility_guidance
 
         section.methodology-section#methodology-profiles
-            .methodology-section-label Company profiles
+            h2.methodology-section-label Company profiles
             p.methodology-section-intro= methodology_category_guidance
             .accordion.methodology-accordion.mt-3 id="methodologyProfiles"
                 .accordion-item
@@ -412,17 +412,17 @@ css:
                             p.methodology-section-intro.px-3.pt-3.pb-3= methodology_tags_guidance
 
         section.methodology-section#methodology-statistics
-            .methodology-section-label Statistics
+            h2.methodology-section-label Statistics
             p.methodology-section-intro= methodology_statistics_guidance
 
         section.methodology-section#methodology-citations
-            .methodology-section-label Citations
+            h2.methodology-section-label Citations
             p.methodology-section-intro= methodology_citations_guidance
             .methodology-reference-list
                 - methodology_citation_entries.each_with_index do |entry, index|
                     .methodology-reference-row
                         .methodology-reference-icon
-                            i class="#{entry[:icon]}" style="color: #{entry[:icon_color]};"
+                            i class="#{entry[:icon]}" style="color: #{entry[:icon_color]};" aria-hidden="true"
                         .methodology-reference-text
                             span.methodology-reference-index= "[#{index + 1}]"
                             = entry[:citation]
