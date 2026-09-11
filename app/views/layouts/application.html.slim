@@ -357,12 +357,17 @@ css:
 
     .public-footer-disclaimer a {
         color: rgba(255, 255, 255, 0.72);
-        text-decoration: none;
+        text-decoration: underline;
+        text-underline-offset: 0.15em;
     }
 
     .public-footer-disclaimer a:hover {
         color: rgba(255, 255, 255, 0.72);
         text-decoration: underline;
+    }
+
+    .badge.bg-danger-subtle.text-danger {
+        --bs-danger-rgb: 164, 38, 44;
     }
 
     @media (max-width: 767.98px) {

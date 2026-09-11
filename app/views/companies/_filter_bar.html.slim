@@ -41,7 +41,7 @@
                             span.company-filter-checkbox-label All categories
                         - @category_counts.each do |category|
                             label.company-filter-checkbox-option data-filter-name=category[:name].downcase
-                                = check_box_tag "category[]", category[:id], company_filter_category_checked?(category[:id], selected_category_ids)
+                                = check_box_tag "category[]", category[:id], company_filter_category_checked?(category[:id], selected_category_ids), id: nil
                                 span.company-filter-checkbox-label= category[:name]
                                 span.company-filter-count= number_with_delimiter(category[:count])
         - if @status_counts.any?
@@ -62,7 +62,7 @@
                                 span.company-filter-checkbox-label All statuses
                             - @status_counts.each do |status, count|
                                 label.company-filter-checkbox-option data-filter-name=status.to_s.humanize.downcase
-                                    = check_box_tag "status[]", status, company_filter_status_checked?(status, selected_statuses)
+                                    = check_box_tag "status[]", status, company_filter_status_checked?(status, selected_statuses), id: nil
                                     span.company-filter-checkbox-label= status.to_s.humanize
                                     span.company-filter-count= number_with_delimiter(count)
         .dropdown.company-filter-dropdown
