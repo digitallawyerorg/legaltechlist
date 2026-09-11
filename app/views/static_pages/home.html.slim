@@ -18,7 +18,8 @@
             .home-search.mx-auto
                 .position-relative
                     i.fa.fa-search.home-search-icon
-                    = search_field_tag :query, nil, class: "form-control", placeholder: "Search tools, categories, or companies", id: "search-input", readonly: true, aria: { label: "Search companies" }, data: { nav_search_trigger: true }
+                    button#search-input.form-control.text-start type="button" aria-haspopup="dialog" aria-expanded="false" data-nav-search-trigger="true"
+                        | Search tools, categories, or companies
 
 - categories = @home_categories || []
 - featured_categories = categories.first(12)
@@ -151,8 +152,10 @@ css:
         box-shadow: 0 0 0 0.15rem rgba(140, 21, 21, 0.08);
     }
 
-    .home-search .form-control[readonly] {
+    .home-search button.form-control {
+        align-items: center;
         cursor: pointer;
+        display: flex;
     }
 
     .home-section-title {
