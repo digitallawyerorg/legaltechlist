@@ -3,8 +3,8 @@ source 'https://rubygems.org'
 ruby '3.3.10'
 
 # Core
-gem 'rails', '~> 8.0.0'
-gem 'pg', '~> 1.5.4'
+gem 'rails', '~> 8.1.3'
+gem 'pg', '~> 1.6.3'
 gem 'puma'
 gem 'redis', '~> 5.0'
 gem 'sprockets-rails'
@@ -17,7 +17,7 @@ gem 'kaminari', '~> 1.2.1'
 gem 'sass-rails', '~> 6.0'
 gem 'coffee-rails', '~> 5.0'
 gem 'uglifier', '>= 4.2.0'
-gem 'jquery-rails', '~> 4.5'
+gem 'jquery-rails', '~> 4.6'
 gem 'turbolinks', '~> 5.2.1'
 gem 'slim-rails'
 
@@ -30,27 +30,27 @@ gem 'caxlsx'
 gem 'caxlsx_rails'
 
 # API and Data
-gem 'jbuilder', '~> 2.0'
-gem 'sdoc', '~> 2.6.0'
-gem 'pg_search', '~> 2.3'
+gem 'jbuilder', '~> 2.15'
+gem 'sdoc', '~> 2.6.5'
+gem 'pg_search', '~> 2.4'
 
 # Remove version constraint
-gem 'i18n', '~> 1.8'  # Update this from 0.9.5
+gem 'i18n', '~> 1.15' # Update this from 0.9.5
 
 # Keep specific versions for these
 gem 'browser', '2.0.3'
-gem 'geocoder', '1.6.3'
+gem 'geocoder', '1.8.6'
 gem 'gmaps4rails', '2.1.2'
-gem 'figaro', '1.2.0'
+gem 'figaro', '1.3.0'
 gem 'sendgrid', '1.2.4'
 gem 'mail'  # Remove version constraint
 gem 'd3-rails', '5.9.2'
 gem 'bootstrap_form', '2.7.0'
-gem 'google-analytics-rails', '1.1.0'
+gem 'google-analytics-rails', '1.1.1'
 
 # Twitter integration
 gem 'twitter', '~> 7.0'
-gem 'ffi', '~> 1.17.0'
+gem 'ffi', '~> 1.17.4'
 
 group :development, :test do
   gem 'byebug', '~> 11.1.3'
@@ -59,8 +59,8 @@ group :development, :test do
 end
 
 group :development do
-  gem 'listen', '~> 3.2'
-  gem 'web-console', '~> 4.2'
+  gem 'listen', '~> 3.10'
+  gem 'web-console', '~> 4.3'
 end
 
 gem 'json', '~> 2.21'
@@ -69,9 +69,9 @@ gem 'csv'
 gem 'bootsnap', '>= 1.4.4', require: false
 
 # Add these gems
-gem 'bootstrap', '~> 5.3.3'
+gem 'bootstrap', '~> 5.3.8'
 gem 'sassc-rails'
-gem 'font-awesome-sass', '~> 6.5.1'
+gem 'font-awesome-sass', '~> 6.7.2'
 
 # JavaScript runtime
 gem 'execjs'
@@ -83,7 +83,7 @@ gem 'importmap-rails'
 gem "turbo-rails"
 
 gem 'httparty'
-gem 'aws-sdk-s3', '~> 1.141'
+gem 'aws-sdk-s3', '~> 1.230'
 
 # For company validation script
 gem 'ruby-openai'
@@ -93,10 +93,10 @@ gem 'dotenv'
 
 gem "ruby_llm", "~> 1.16"
 
-gem "ruby_llm-responses_api", "~> 0.5.4"
+gem "ruby_llm-responses_api", "~> 0.6.1"
 
 # MCP server for the Claude Tag curator connector
 gem "mcp", "~> 0.4"
 gem "jwt", "~> 2.9"
 
-gem "solid_queue", "~> 1.4"
+gem "solid_queue", "~> 1.7"
