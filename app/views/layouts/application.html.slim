@@ -101,7 +101,7 @@ css:
 
     .public-nav-search .form-control {
         background: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(255, 255, 255, 0.36);
+        border: 1px solid rgba(255, 255, 255, 0.42);
         border-radius: 0.7rem;
         color: rgba(255, 255, 255, 0.92);
         font-size: 0.86rem;
@@ -334,7 +334,8 @@ css:
         color: rgba(255, 255, 255, 0.52);
         font-size: 0.72rem;
         margin-left: auto;
-        text-decoration: none;
+        text-decoration: underline;
+        text-underline-offset: 0.15em;
         white-space: nowrap;
     }
 
@@ -368,6 +369,10 @@ css:
 
     .badge.bg-danger-subtle.text-danger {
         --bs-danger-rgb: 164, 38, 44;
+    }
+
+    .badge.bg-success-subtle.text-success {
+        --bs-success-rgb: 20, 108, 67;
     }
 
     @media (max-width: 767.98px) {
