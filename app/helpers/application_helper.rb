@@ -1,6 +1,16 @@
 module ApplicationHelper
   include CacheKeyVersions
 
+  # Visually hidden warning that a link opens in a new browser tab.
+  def new_tab_note
+    tag.span " (opens in new tab)", class: "visually-hidden"
+  end
+
+  # Link text plus the new-tab warning, for links that carry target="_blank".
+  def new_tab_label(text)
+    safe_join([text, new_tab_note])
+  end
+
   def visible_company_count
     Rails.cache.fetch("companies/visible_count/#{company_cache_version}", expires_in: 10.minutes) do
       Company.where(visible: true).count

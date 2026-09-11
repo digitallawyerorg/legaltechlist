@@ -8,6 +8,6 @@
         - bar_width = (row[:share].to_f / max_share * 100).round(1)
         .stats-index-card-country-row style="grid-template-columns: #{label_width} minmax(0, 1fr) 2rem;"
             span.stats-index-card-country-label= row[:label]
-            .stats-index-card-country-track
+            .stats-index-card-country-track aria-hidden="true"
                 .stats-index-card-country-fill style="width: #{bar_width}%; background-color: #{bar_color};"
             span.stats-index-card-country-share= "#{row[:share]}%"

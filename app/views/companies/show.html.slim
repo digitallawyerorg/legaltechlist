@@ -306,7 +306,7 @@ css:
         font-size: 0.72rem;
         font-weight: 700;
         letter-spacing: 0.12em;
-        margin-bottom: 0.85rem;
+        margin: 0 0 0.85rem;
         text-transform: uppercase;
     }
 
@@ -712,12 +712,12 @@ css:
                 - elsif acquirer_name_display.present? && acquirer && acquirer[:url].present?
                     p.mb-0.mt-2
                         | Acquirer:
-                        = link_to acquirer_name_display, acquirer[:url], target: "_blank", rel: "noopener"
+                        = link_to new_tab_label(acquirer_name_display), acquirer[:url], target: "_blank", rel: "noopener"
 
         .company-hero
             .company-hero-main
                 - if @company.logo_placeholder?
-                    .company-logo-frame
+                    .company-logo-frame aria-hidden="true"
                         .company-logo-placeholder= @company.name.to_s.first
                 - else
                     = image_tag @company.logo, alt: "#{@company.name} logo", class: "company-logo-image"
@@ -731,6 +731,7 @@ css:
                             = link_to website_url, class: "company-hero-website", target: "_blank", rel: "noopener" do
                                 = website_display_label(@company.main_url)
                                 i.fa-solid.fa-arrow-up-right-from-square.company-hero-website-icon aria-hidden="true"
+                                = new_tab_note
             .company-hero-actions
                 - if admin_user_signed_in?
                     = link_to custom_admin_company_review_path(@company.id), class: "company-admin-gear-btn", title: "admin", aria: { label: "admin" } do
@@ -740,7 +741,7 @@ css:
                     | Suggest update
 
         section.company-section.company-about-section
-            .company-section-label About
+            h2.company-section-label About
             - if @company.description.present?
                 p.company-show-body= @company.description
             - else
@@ -758,7 +759,7 @@ css:
                         = link_to tag.name, tag_path(tag), class: "company-about-keyword"
 
         section.company-section
-            .company-section-label Key facts
+            h2.company-section-label Key facts
             .company-key-facts-list
                 - key_facts.each do |fact|
                     .company-key-fact-card
@@ -770,13 +771,13 @@ css:
 
         - reference_sections.each do |reference_section|
             section.company-section
-                .company-section-label= reference_section[:title]
+                h2.company-section-label= reference_section[:title]
                 .company-source-list
                     - reference_section[:links].each do |source_link|
                         - if company_inactive
                             .company-source-row.company-source-row-inactive
                                 .company-source-icon
-                                    i class="#{source_link[:icon]}" style="color: #{source_link[:icon_color]};"
+                                    i class="#{source_link[:icon]}" style="color: #{source_link[:icon_color]};" aria-hidden="true"
                                 .company-source-label= source_link[:label]
                                 .company-source-host= source_link[:host]
                                 span.company-source-arrow title=inactive_company_tooltip aria-label=inactive_company_tooltip
@@ -784,13 +785,14 @@ css:
                         - else
                             = link_to source_link[:url], class: "company-source-row", target: "_blank", rel: "noopener" do
                                 .company-source-icon
-                                    i class="#{source_link[:icon]}" style="color: #{source_link[:icon_color]};"
+                                    i class="#{source_link[:icon]}" style="color: #{source_link[:icon_color]};" aria-hidden="true"
                                 .company-source-label= source_link[:label]
                                 .company-source-host= source_link[:host]
                                 i.fa-solid.fa-arrow-up-right-from-square.company-source-arrow aria-hidden="true"
+                                = new_tab_note
 
         section.company-section
-            .company-section-label Cite this entry
+            h2.company-section-label Cite this entry
             .company-reference-list
                 - company_citation_entries(@company, accessed_on: citation_accessed_on).each_with_index do |entry, index|
                     .company-reference-row
@@ -806,16 +808,16 @@ css:
         - related_company_list @company do |related_companies|
             - if related_companies.any?
                 section.company-section
-                    .company-section-label Related companies
+                    h2.company-section-label Related companies
                     .company-related-grid
                         - related_companies.each do |related|
                             - related_label = (related.secondary_category&.name.present? && related.secondary_category.name != "Unknown") ? related.secondary_category.name : (related.category&.name.presence || "Legal tech")
                             = link_to company_path(related), class: "company-related-card" do
                                 - if related.logo_placeholder?
-                                    .company-related-logo-frame
+                                    .company-related-logo-frame aria-hidden="true"
                                         .company-related-logo-placeholder= related.name.to_s.first
                                 - else
-                                    = image_tag related.logo, alt: "#{related.name} logo", class: "company-related-logo", loading: "lazy"
+                                    = image_tag related.logo, alt: "", class: "company-related-logo", loading: "lazy"
                                 div
                                     .company-related-name= related.name
                                     .company-related-category= related_label

@@ -1,5 +1,6 @@
 - show_hero = local_assigns.fetch(:show_hero, true)
 - embedded = local_assigns.fetch(:embedded, false)
+- card_heading_tag = embedded ? "h3" : "h2"
 - current_year = Time.current.year
 - category_trend = stats_industry_focus_trend
 - ai_trend = stats_ai_trends_trend
@@ -15,16 +16,16 @@
 - coverage_card_visual = capture { render partial: "shared/stats_index_card_heatmap", locals: { preview: stats_coverage_heatmap_preview } }
 - stats_index_cards = capture do
     .stats-index-grid
-        = render partial: "shared/stats_index_card", locals: { path: statistics_total_companies_path, title: "Ecosystem Growth", description: "The number of legal tech companies created over time.", meta: "From 2000 – #{current_year}", visual_html: growth_card_visual }
-        = render partial: "shared/stats_index_card", locals: { path: statistics_country_distribution_path, title: "Geographic Distribution", description: "Where legal tech companies are being founded.", meta: "By country & region", visual_html: geo_card_visual }
-        = render partial: "shared/stats_index_card", locals: { path: statistics_category_evolution_5_years_path, title: "Category Expansion", description: "Growth of legal tech companies by category.", meta: "#{stats_index_category_count} categories", visual_html: category_card_visual }
-        = render partial: "shared/stats_index_card", locals: { path: statistics_business_model_path, title: "Business Model", description: "How legal tech companies make money.", meta: "#{stats_index_business_model_count} business models", visual_html: business_model_card_visual }
-        = render partial: "shared/stats_index_card", locals: { path: statistics_target_client_path, title: "Target Audience", description: "Which client segments legal tech companies serve.", meta: "#{stats_index_target_market_count} target markets", visual_html: target_market_card_visual }
-        = render partial: "shared/stats_index_card", locals: { path: statistics_funding_by_category_path, title: "Funding by Category", description: "Capital allocated across different market segments.", meta: "#{stats_compact_funding(stats_index_total_funding_amount)} in Funding", visual_html: funding_category_card_visual }
-        = render partial: "shared/stats_index_card", locals: { path: statistics_funding_by_region_path, title: "Funding by Region", description: "Where funding is geographically concentrated.", meta: "#{stats_index_funding_country_count} countries", visual_html: funding_region_card_visual }
-        = render partial: "shared/stats_index_card", locals: { path: statistics_ai_trends_path, title: "AI in Legal Tech", description: "Growth in AI-focused legal tech companies.", meta: "#{stats_index_ai_company_count} companies", visual_html: ai_card_visual }
-        = render partial: "shared/stats_index_card", locals: { path: statistics_tag_distribution_path, title: "Technology Themes", description: "The tags most commonly applied across the index.", meta: "#{stats_index_tag_count} tags", visual_html: tags_card_visual }
-        = render partial: "shared/stats_index_card", locals: { path: statistics_data_coverage_path, title: "Data Coverage", description: "Where the index is thin — spotting gaps across dimensions and regions.", meta: "#{stats_coverage_heatmap_dimensions.size} dimensions × regions", visual_html: coverage_card_visual }
+        = render partial: "shared/stats_index_card", locals: { path: statistics_total_companies_path, title: "Ecosystem Growth", description: "The number of legal tech companies created over time.", meta: "From 2000 – #{current_year}", heading_tag: card_heading_tag, visual_html: growth_card_visual }
+        = render partial: "shared/stats_index_card", locals: { path: statistics_country_distribution_path, title: "Geographic Distribution", description: "Where legal tech companies are being founded.", meta: "By country & region", heading_tag: card_heading_tag, visual_html: geo_card_visual }
+        = render partial: "shared/stats_index_card", locals: { path: statistics_category_evolution_5_years_path, title: "Category Expansion", description: "Growth of legal tech companies by category.", meta: "#{stats_index_category_count} categories", heading_tag: card_heading_tag, visual_html: category_card_visual }
+        = render partial: "shared/stats_index_card", locals: { path: statistics_business_model_path, title: "Business Model", description: "How legal tech companies make money.", meta: "#{stats_index_business_model_count} business models", heading_tag: card_heading_tag, visual_html: business_model_card_visual }
+        = render partial: "shared/stats_index_card", locals: { path: statistics_target_client_path, title: "Target Audience", description: "Which client segments legal tech companies serve.", meta: "#{stats_index_target_market_count} target markets", heading_tag: card_heading_tag, visual_html: target_market_card_visual }
+        = render partial: "shared/stats_index_card", locals: { path: statistics_funding_by_category_path, title: "Funding by Category", description: "Capital allocated across different market segments.", meta: "#{stats_compact_funding(stats_index_total_funding_amount)} in Funding", heading_tag: card_heading_tag, visual_html: funding_category_card_visual }
+        = render partial: "shared/stats_index_card", locals: { path: statistics_funding_by_region_path, title: "Funding by Region", description: "Where funding is geographically concentrated.", meta: "#{stats_index_funding_country_count} countries", heading_tag: card_heading_tag, visual_html: funding_region_card_visual }
+        = render partial: "shared/stats_index_card", locals: { path: statistics_ai_trends_path, title: "AI in Legal Tech", description: "Growth in AI-focused legal tech companies.", meta: "#{stats_index_ai_company_count} companies", heading_tag: card_heading_tag, visual_html: ai_card_visual }
+        = render partial: "shared/stats_index_card", locals: { path: statistics_tag_distribution_path, title: "Technology Themes", description: "The tags most commonly applied across the index.", meta: "#{stats_index_tag_count} tags", heading_tag: card_heading_tag, visual_html: tags_card_visual }
+        = render partial: "shared/stats_index_card", locals: { path: statistics_data_coverage_path, title: "Data Coverage", description: "Where the index is thin — spotting gaps across dimensions and regions.", meta: "#{stats_coverage_heatmap_dimensions.size} dimensions × regions", heading_tag: card_heading_tag, visual_html: coverage_card_visual }
 - if embedded
     == stats_index_cards
 - else

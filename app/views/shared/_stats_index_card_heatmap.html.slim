@@ -1,6 +1,6 @@
 / locals: preview (hash with :rows, :columns, :max)
 - columns_size = preview[:columns].size
-.stats-index-card-heatmap style="--coverage-preview-cols: #{columns_size}"
+.stats-index-card-heatmap aria-hidden="true" style="--coverage-preview-cols: #{columns_size}"
     - preview[:rows].each do |row|
         - row[:cells].each do |value|
             - cell = coverage_heatmap_cell_presentation(value, preview[:max])

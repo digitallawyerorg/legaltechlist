@@ -16,8 +16,8 @@ footer.footer.public-footer
             .public-footer-bottom-row
                 div © #{Time.current.year} Stanford Center for Legal Informatics
                 = link_to "Data methodology", statistics_methodology_path, class: "public-footer-meta-link"
-                = link_to "Accessibility", "https://www.stanford.edu/site/accessibility", class: "public-footer-meta-link", target: "_blank", rel: "noopener"
+                = link_to new_tab_label("Accessibility"), "https://www.stanford.edu/site/accessibility", class: "public-footer-meta-link", target: "_blank", rel: "noopener"
             p.public-footer-disclaimer
                 ' The companies and services listed in this database are provided for informational purposes only and are not endorsed by CodeX, Stanford Law School, or Stanford University. Info may be out of date. Data provided by
-                = link_to "Legal.io", legalio_referral_url(campaign: "footer"), target: "_blank", rel: "noopener"
+                = link_to new_tab_label("Legal.io"), legalio_referral_url(campaign: "footer"), target: "_blank", rel: "noopener"
                 | .

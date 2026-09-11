@@ -48,7 +48,7 @@ css:
                         i.fa.fa-chevron-right.company-search-modal-item-chevron aria-hidden="true"
             .company-search-modal-section.d-none data-company-search-results=""
                 .company-search-modal-section-label Companies
-                .company-search-modal-results data-company-search-results-list=""
+                .company-search-modal-results role="status" aria-live="polite" aria-atomic="false" data-company-search-results-list=""
                 .company-search-modal-footer.d-none data-company-search-footer=""
                     a.company-search-modal-footer-link data-company-search-view-all="" href=companies_path View all results
 
@@ -170,6 +170,11 @@ javascript:
                     showEmptyState("No companies found");
                     return;
                 }
+
+                const summary = document.createElement("p");
+                summary.className = "visually-hidden";
+                summary.textContent = totalCount.toLocaleString() + (totalCount === 1 ? " company" : " companies") + " found for \"" + query + "\"";
+                resultsList.appendChild(summary);
 
                 companies.forEach(function(company) {
                     const link = document.createElement("a");

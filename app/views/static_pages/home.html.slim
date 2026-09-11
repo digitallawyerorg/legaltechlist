@@ -11,13 +11,13 @@
             .home-actions.d-flex.flex-wrap.justify-content-center.gap-2
                 = link_to companies_path, class: "btn home-primary-action" do
                     ' Browse the directory
-                    i.fa.fa-arrow-right.ms-1
+                    i.fa.fa-arrow-right.ms-1 aria-hidden="true"
                 = link_to statistics_path, class: "btn home-secondary-action" do
-                    i.fa.fa-chart-line.me-2
+                    i.fa.fa-chart-line.me-2 aria-hidden="true"
                     | View statistics
             .home-search.mx-auto
                 .position-relative
-                    i.fa.fa-search.home-search-icon
+                    i.fa.fa-search.home-search-icon aria-hidden="true"
                     button#search-input.form-control.text-start type="button" aria-haspopup="dialog" aria-expanded="false" data-nav-search-trigger="true"
                         | Search tools, categories, or companies
 
@@ -33,7 +33,7 @@
                 - category_count = @home_category_counts.fetch(category.id, 0)
                 = link_to category_path(category), class: "home-category-card" do
                     .home-category-icon
-                        i class="#{category_icon(category.name)}"
+                        i class="#{category_icon(category.name)}" aria-hidden="true"
                     .home-category-copy
                         .home-category-name= category.name
                         .home-category-count= "#{number_with_delimiter(category_count)} companies"

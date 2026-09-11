@@ -331,7 +331,7 @@ class CompaniesControllerTest < ActionController::TestCase
 
     assert_response :success
     assert_select ".company-status-note", text: /acquired by LawVu/i
-    assert_select ".company-status-note a[href=?]", "https://lawvu.com", text: "LawVu"
+    assert_select ".company-status-note a[href=?]", "https://lawvu.com", text: /\ALawVu/
   end
 
   test "index company links include list context for show navigation" do

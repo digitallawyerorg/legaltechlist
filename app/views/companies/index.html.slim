@@ -46,6 +46,7 @@ css:
     .company-table tbody tr:hover { background: #fffdf8; }
     .company-name-cell { align-items: center; display: flex; gap: 0.6rem; min-width: 0; }
     .company-logo { background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 0.25rem; flex: 0 0 auto; height: 1.75rem; object-fit: contain; padding: 0.12rem; width: 1.75rem; }
+    .company-logo-placeholder { align-items: center; color: #8c1515; display: inline-flex; font-size: 0.82rem; font-weight: 700; justify-content: center; line-height: 1; }
     .company-name-link { color: #111827; display: block; font-weight: 700; text-decoration: none; }
     .company-name-link:hover { color: #8c1515; text-decoration: underline; }
     .company-description { color: #6b7280; font-size: 0.72rem; line-height: 1.25; max-width: 36rem; }
@@ -90,7 +91,10 @@ css:
                                 tr
                                     td
                                         .company-name-cell
-                                            = image_tag company.logo, class: "company-logo", alt: "#{company.name} logo", loading: "lazy"
+                                            - if company.logo_placeholder?
+                                                span.company-logo.company-logo-placeholder aria-hidden="true"= company.name.to_s.first
+                                            - else
+                                                = image_tag company.logo, class: "company-logo", alt: "", loading: "lazy"
                                             div
                                                 = link_to company.name, company_path(company, companies_nav_context_params), class: "company-name-link"
                                                 .company-description= truncate(company.description.to_s, length: 105)

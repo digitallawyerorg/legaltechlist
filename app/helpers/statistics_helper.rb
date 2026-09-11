@@ -34,6 +34,12 @@ module StatisticsHelper
     "#5a865a", "#ae6a59", "#5b9bd5", "#6b6b8d", "#c67171", "#820000"
   ].freeze
 
+  STATS_SERIES_DASH_PATTERNS = [
+    [], [9, 4], [2, 3], [14, 4, 2, 4], [6, 3, 2, 3], [1, 4]
+  ].freeze
+
+  STATS_SERIES_POINT_STYLES = %w[circle triangle rect rectRot].freeze
+
   COVERAGE_HEATMAP_REGION_ORDER = [
     "North America", "Europe", "Asia-Pacific", "Latin America", "Middle East", "Africa", "Other"
   ].freeze
@@ -266,6 +272,15 @@ module StatisticsHelper
 
   def stats_index_chart_colors(count, offset: 0)
     STATS_INDEX_CHART_COLORS.cycle.take(count + offset).drop(offset)
+  end
+
+  # Per-series Chart.js options so series stay distinguishable without colour
+  # perception: a dash pattern (also drawn in the legend swatch) and a marker shape.
+  def stats_series_style(index)
+    {
+      borderDash: STATS_SERIES_DASH_PATTERNS[index % STATS_SERIES_DASH_PATTERNS.size],
+      pointStyle: STATS_SERIES_POINT_STYLES[index % STATS_SERIES_POINT_STYLES.size]
+    }
   end
 
   def build_venture_stage_metrics
