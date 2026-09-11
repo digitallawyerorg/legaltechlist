@@ -97,6 +97,6 @@ gem "ruby_llm-responses_api", "~> 0.6.1"
 
 # MCP server for the Claude Tag curator connector
 gem "mcp", "~> 0.4"
-gem "jwt", "~> 2.9"
+gem "jwt", "~> 3.2"
 
 gem "solid_queue", "~> 1.7"
