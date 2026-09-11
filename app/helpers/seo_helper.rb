@@ -44,7 +44,7 @@ module SeoHelper
   end
 
   def seo_full_title
-    content_for?(:title) ? "#{content_for(:title)} | #{SITE_NAME}" : SITE_NAME
+    content_for?(:title) ? safe_join([content_for(:title), " | ", SITE_NAME]) : SITE_NAME
   end
 
   def seo_description

@@ -69,7 +69,7 @@ css:
 - selected_statuses = company_filter_statuses
 .public-company-index
     .company-shell
-        main.company-main
+        .company-main
             h1.company-index-title= @taxonomy_facet.present? ? "#{@taxonomy_facet[:label]} Companies" : "Legal Tech Companies"
             .company-toolbar
                 = render "filter_bar", clear_params: clear_params, selected_category_ids: selected_category_ids, selected_statuses: selected_statuses

@@ -92,8 +92,8 @@ css:
                             label.company-suggest-update-modal-label for="company_suggest_update_source_url"
                                 | Source
                                 span.company-suggest-update-modal-label-optional  · optional
-                            p.company-suggest-update-modal-field-hint A link that supports the change helps us review faster.
-                            = url_field_tag :source_url, nil, id: "company_suggest_update_source_url", class: "company-suggest-update-modal-input", placeholder: "https://"
+                            p#company_suggest_update_source_url_hint.company-suggest-update-modal-field-hint A link that supports the change helps us review faster.
+                            = url_field_tag :source_url, nil, id: "company_suggest_update_source_url", class: "company-suggest-update-modal-input", placeholder: "https://", aria: { describedby: "company_suggest_update_source_url_hint" }
                         .company-suggest-update-modal-field
                             label.company-suggest-update-modal-label for="company_suggest_update_submitter_email"
                                 = required_label_text("Your email")

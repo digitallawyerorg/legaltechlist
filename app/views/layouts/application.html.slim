@@ -15,6 +15,18 @@ css:
         min-height: 100vh;
     }
 
+    .public-skip-link:focus {
+        background: #fffdf8;
+        border-radius: 0.35rem;
+        box-shadow: 0 2px 8px rgba(17, 24, 39, 0.18);
+        color: #2a2723;
+        left: 0.75rem;
+        padding: 0.5rem 0.85rem;
+        position: fixed;
+        top: 0.75rem;
+        z-index: 1040;
+    }
+
     .public-page {
         background: #f3efe6;
         display: flex;
@@ -345,7 +357,7 @@ css:
     }
 
 doctype html
-html
+html lang="en"
     head
         title= seo_page_title
         meta name="viewport" content="width=device-width, initial-scale=1.0"
@@ -361,7 +373,7 @@ html
         meta name="twitter:card" content="summary"
         meta name="twitter:title" content=seo_full_title
         meta name="twitter:description" content=seo_description
-        meta name="language" content="us"
+        meta name="language" content="en"
         meta name="audience" content="all"
         meta name="robots" content=(content_for?(:robots) ? content_for(:robots) : "index,follow")
         meta name="turbo-prefetch" content="false"
@@ -399,8 +411,9 @@ html
                 gtag('config', '#{google_analytics_id}');
 
     body
+        = link_to "Skip to main content", "#main-content", class: "visually-hidden-focusable public-skip-link"
         = render "shared/navbar"
-        .public-page style="margin-top: 60px"
+        main#main-content.public-page style="margin-top: 60px"
             = yield
         = render "shared/footer"
         = render "shared/company_search_modal"
