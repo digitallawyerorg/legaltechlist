@@ -49,7 +49,7 @@ gem 'bootstrap_form', '2.7.0'
 gem 'google-analytics-rails', '1.1.1'
 
 # Twitter integration
-gem 'twitter', '~> 7.0'
+gem 'twitter', '~> 8.3'
 gem 'ffi', '~> 1.17.4'
 
 group :development, :test do
