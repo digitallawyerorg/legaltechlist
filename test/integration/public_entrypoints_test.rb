@@ -57,7 +57,7 @@ class PublicEntrypointsTest < ActionDispatch::IntegrationTest
     get root_path
 
     assert_response :success
-    assert_select ".public-nav-search input[name='query'][type='search'][data-nav-search-trigger]"
+    assert_select ".public-nav-search button[type='button'][aria-haspopup='dialog'][data-nav-search-trigger]"
     assert_select ".overview-toggle", text: "Overview"
   end
 

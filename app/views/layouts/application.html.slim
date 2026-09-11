@@ -130,8 +130,16 @@ css:
         color: #fff;
     }
 
-    .public-nav-search .form-control[readonly] {
+    .public-nav-search button.form-control {
+        align-items: center;
         cursor: pointer;
+        display: flex;
+    }
+
+    .navbar .nav-link:focus-visible {
+        outline: 2px solid #fff;
+        outline-offset: 2px;
+        box-shadow: none;
     }
 
     @media (max-width: 991.98px) {
