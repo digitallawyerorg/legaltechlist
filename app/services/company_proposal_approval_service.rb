@@ -1,4 +1,7 @@
 class CompanyProposalApprovalService
+  # The statuses that put a proposal in front of a reviewer as work still to do.
+  OPEN_STATUSES = %w[pending ready_for_review needs_revision].freeze
+
   def self.call(**kwargs)
     new(**kwargs).call
   end
@@ -34,6 +37,29 @@ class CompanyProposalApprovalService
 
     guard_against_existing_company!
 
+    # The company and the link back to it land together or not at all. A company saved
+    # without its proposal link is an orphan the next approval cannot see, so a retry
+    # would mint a second one — and the proposal would sit in the queue either way.
+    company = nil
+    ActiveRecord::Base.transaction do
+      company = build_company!
+      proposal.update!(
+        status: publish ? "published" : "approved_to_draft",
+        company: company,
+        admin_user: admin_user,
+        reviewed_at: Time.current,
+        approved_at: Time.current
+      )
+    end
+
+    company
+  end
+
+  private
+
+  attr_reader :proposal, :admin_user, :duplicate_override, :publish, :reviewed_description_digest
+
+  def build_company!
     company = Company.new(company_attributes)
     company.visible = publish
     company.quality_status = "needs_review"
@@ -58,20 +84,8 @@ class CompanyProposalApprovalService
       company.save!
     end
 
-    proposal.update!(
-      status: publish ? "published" : "approved_to_draft",
-      company: company,
-      admin_user: admin_user,
-      reviewed_at: Time.current,
-      approved_at: Time.current
-    )
-
     company
   end
-
-  private
-
-  attr_reader :proposal, :admin_user, :duplicate_override, :publish, :reviewed_description_digest
 
   # Publish an already-created draft (or no-op if already visible). Publishing is
   # still the sensitive action, so it re-checks duplicate and publish blockers.
@@ -80,8 +94,21 @@ class CompanyProposalApprovalService
 
     if publish && !company.visible?
       validate_proposal!
-      company.update!(visible: true)
-      proposal.update!(status: "published", admin_user: admin_user, reviewed_at: Time.current, approved_at: Time.current)
+      ActiveRecord::Base.transaction do
+        company.update!(visible: true)
+        proposal.update!(status: "published", admin_user: admin_user, reviewed_at: Time.current, approved_at: Time.current)
+      end
+    elsif proposal.status.in?(OPEN_STATUSES)
+      # A proposal that already minted a company but still reads as open work is the
+      # same item sitting in two queues at once. Approving it again is the reviewer
+      # saying "this one is done", so record that instead of handing back the company
+      # and leaving the proposal queued with no way to clear it.
+      proposal.update!(
+        status: company.visible? ? "published" : "approved_to_draft",
+        admin_user: admin_user,
+        reviewed_at: Time.current,
+        approved_at: proposal.approved_at || Time.current
+      )
     end
 
     company

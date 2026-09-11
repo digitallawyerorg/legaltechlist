@@ -2,6 +2,10 @@ require "timeout"
 require "uri"
 
 class CompanyProposalEnrichmentService
+  # Statuses that mean the proposal is done with the review queue. Enrichment may still
+  # run on one (with force), but it must not drag it back into an active queue.
+  TERMINAL_STATUSES = %w[approved_to_draft published rejected].freeze
+
   MARKETING_TERMS = DescriptionDraftAgent::MARKETING_TERMS
   EARLIEST_PLAUSIBLE_FOUNDING_YEAR = 1970
 
@@ -191,6 +195,7 @@ class CompanyProposalEnrichmentService
   end
 
   def locked_reason
+    return "it has already been rejected" if proposal.status == "rejected"
     return "it has already been approved (#{proposal.status})" if proposal.status.in?(%w[approved_to_draft published])
     return "a human reviewed it at #{proposal.reviewed_at.utc.iso8601}" if proposal.reviewed_at.present?
     return "enrichment is turned off for this record" if do_not_enrich?
@@ -310,7 +315,15 @@ class CompanyProposalEnrichmentService
     @description_verification = nil
   end
 
+  # Enrichment reports on a proposal; it does not decide where the proposal sits in the
+  # workflow. A record that has already been approved into a company draft has left the
+  # review queue, and moving it back would put the same piece of work in two places at
+  # once — the draft under Company review and the proposal under Review, each looking
+  # like it still needs a decision. force overrides the refusal to enrich, not the
+  # workflow state the refusal was protecting.
   def enriched_status(quality)
+    return proposal.status if proposal.status.in?(TERMINAL_STATUSES)
+
     quality["verification_state"] == "unverified" ? "needs_revision" : "ready_for_review"
   end
 

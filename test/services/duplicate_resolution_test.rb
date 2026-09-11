@@ -86,13 +86,14 @@ class DuplicateResolutionTest < ActiveSupport::TestCase
     proposal = proposal_for({"founded_date" => "2021", "location" => "Paris, France"})
 
     assert_difference "PipelineRun.count", 1 do
-      DuplicateMergeService.call(proposal: proposal, company: @company, fields: %w[founded_date location], admin_user: @admin)
+      DuplicateMergeService.call(proposal: proposal, company: @company, fields: %w[founded_date], admin_user: @admin)
     end
 
     @company.reload
     proposal.reload
     assert_equal "2021", @company.founded_date, "the gap was filled"
-    assert_equal "Lyon, France", @company.location, "a populated value is never overwritten from here"
+    assert_equal "Lyon, France", @company.location,
+                 "a field the reviewer did not name is left alone, however much the proposal disagrees with it"
     assert_equal "rejected", proposal.status
     assert_equal @company.id, proposal.agent_details.dig("canonical_record", "company_id")
     assert_equal ["founded_date"], proposal.agent_details.dig("canonical_record", "merged_fields")
@@ -104,14 +105,25 @@ class DuplicateResolutionTest < ActiveSupport::TestCase
     assert run.details.dig("applied_changes", "founded_date", "sources").any?, "the merge records what supported the value"
   end
 
-  test "merging refuses when none of the selected fields are mergeable" do
-    proposal = proposal_for({"location" => "Paris, France"})
+  test "merging refuses a field that is not the reviewer's to change" do
+    proposal = proposal_for({"main_url" => "https://pactolane.io"})
 
     error = assert_raises(ArgumentError) do
-      DuplicateMergeService.call(proposal: proposal, company: @company, fields: %w[location], admin_user: @admin)
+      DuplicateMergeService.call(proposal: proposal, company: @company, fields: %w[main_url], admin_user: @admin)
     end
     assert_match(/None of the selected fields can be merged/, error.message)
+    assert_equal "https://www.pactolane.com", @company.reload.main_url,
+                 "identity is a rename decision, not a duplicate resolution"
+  end
+
+  test "merging refuses everything from a proposal nothing was retrieved for" do
+    proposal = proposal_for({"location" => "Paris, France", "founded_date" => "2021"}, evidence: false)
+
+    assert_raises(ArgumentError) do
+      DuplicateMergeService.call(proposal: proposal, company: @company, fields: %w[location founded_date], admin_user: @admin)
+    end
     assert_equal "Lyon, France", @company.reload.location
+    assert_nil @company.founded_date
   end
 
   # ---- confidence tiering -------------------------------------------------

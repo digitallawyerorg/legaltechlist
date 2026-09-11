@@ -12,7 +12,10 @@
 #   identical    both hold the same value
 #   only_here    the proposal has a value the existing record lacks  -> mergeable
 #   only_there   the existing record has a value the proposal lacks
-#   conflict     both hold values and they differ                    -> never auto-merged
+#   conflict     both hold values and they differ                    -> never auto-merged,
+#                                                                        overridable only by
+#                                                                        an explicit per-field
+#                                                                        reviewer choice
 #   both_blank   neither holds a value
 class DuplicateComparisonService
   # Compared in the order a reviewer reads them, and deliberately limited to fields
@@ -57,6 +60,7 @@ class DuplicateComparisonService
       "company_name" => company.name,
       "rows" => rows,
       "mergeable_fields" => rows.select { |row| row["mergeable"] }.map { |row| row["key"] },
+      "overridable_fields" => rows.select { |row| row["overridable"] }.map { |row| row["key"] },
       "conflicts" => rows.select { |row| row["verdict"] == "conflict" }.map { |row| row["key"] },
       "verification_state" => quality_report["verification_state"],
       "recommendation" => recommendation(rows),
@@ -92,6 +96,11 @@ class DuplicateComparisonService
       # when something was actually retrieved for this proposal. An unverified record
       # never writes to a live entry.
       "mergeable" => verdict == "only_here" && key.in?(MERGEABLE_FIELDS) && evidence_backed?,
+      # A field both records hold, differently. Never merged by default and never
+      # recommended — but a reviewer who has checked the sources and found the
+      # proposal's value to be the better one needs somewhere to say so, or the
+      # verification they just did has nowhere to go and the worse value stays.
+      "overridable" => verdict == "conflict" && key.in?(MERGEABLE_FIELDS) && evidence_backed?,
       "evidence" => evidence_for(key)
     }
   end
@@ -152,7 +161,8 @@ class DuplicateComparisonService
     elsif conflicts.any?
       {
         "action" => "needs_human",
-        "summary" => "The two records disagree on #{conflicts.map { |row| row['label'].downcase }.to_sentence} and neither is obviously better. Check the sources before deciding — nothing here should be merged automatically."
+        "summary" => "The two records disagree on #{conflicts.map { |row| row['label'].downcase }.to_sentence} and neither is obviously better. Check the sources, then choose per field below — nothing here is merged automatically.",
+        "fields" => conflicts.select { |row| row["overridable"] }.map { |row| row["key"] }
       }
     else
       {
