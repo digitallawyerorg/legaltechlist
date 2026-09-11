@@ -1,2 +1,2 @@
 li.page-item
-  = link_to_unless current_page.last?, raw('<i class="fa fa-angles-right"></i>'), url, remote: remote, class: 'page-link'
+  = link_to_unless current_page.last?, raw('<i class="fa fa-angles-right" aria-hidden="true"></i><span class="visually-hidden">Last page</span>'), url, remote: remote, class: 'page-link'

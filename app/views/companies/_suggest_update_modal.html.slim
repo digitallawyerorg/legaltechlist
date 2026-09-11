@@ -92,8 +92,8 @@ css:
                             label.company-suggest-update-modal-label for="company_suggest_update_source_url"
                                 | Source
                                 span.company-suggest-update-modal-label-optional  · optional
-                            p.company-suggest-update-modal-field-hint A link that supports the change helps us review faster.
-                            = url_field_tag :source_url, nil, id: "company_suggest_update_source_url", class: "company-suggest-update-modal-input", placeholder: "https://"
+                            p#company_suggest_update_source_url_hint.company-suggest-update-modal-field-hint A link that supports the change helps us review faster.
+                            = url_field_tag :source_url, nil, id: "company_suggest_update_source_url", class: "company-suggest-update-modal-input", placeholder: "https://", aria: { describedby: "company_suggest_update_source_url_hint" }
                         .company-suggest-update-modal-field
                             label.company-suggest-update-modal-label for="company_suggest_update_submitter_email"
                                 = required_label_text("Your email")
@@ -120,6 +120,8 @@ javascript:
             const messageField = modal.querySelector("[data-suggest-update-message]");
             const modalTitle = modal.querySelector("#company-suggest-update-modal-title");
             const defaultMessagePlaceholder = messageField ? messageField.getAttribute("placeholder") : "";
+            const panel = modal.querySelector(".company-suggest-update-modal-panel");
+            let lastFocused = null;
 
             function showStep(stepName) {
                 modal.querySelectorAll("[data-suggest-update-step]").forEach(function(step) {
@@ -142,11 +144,22 @@ javascript:
                 if (emailField) emailField.value = "";
             }
 
+            function focusableItems() {
+                if (!panel) return [];
+                const candidates = panel.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+                return Array.prototype.filter.call(candidates, function(element) {
+                    return element.offsetParent !== null && !element.disabled;
+                });
+            }
+
             function openModal() {
+                lastFocused = document.activeElement;
                 modal.classList.add("is-open");
                 modal.setAttribute("aria-hidden", "false");
                 document.body.style.overflow = "hidden";
                 resetModal();
+                const firstOption = modal.querySelector(".company-suggest-update-modal-option");
+                if (firstOption) window.setTimeout(function() { firstOption.focus(); }, 0);
             }
 
             function closeModal() {
@@ -154,6 +167,8 @@ javascript:
                 modal.setAttribute("aria-hidden", "true");
                 document.body.style.overflow = "";
                 resetModal();
+                if (lastFocused && typeof lastFocused.focus === "function") lastFocused.focus();
+                lastFocused = null;
             }
 
             document.querySelectorAll("[data-suggest-update-open]").forEach(function(trigger) {
@@ -193,6 +208,23 @@ javascript:
                     if (messageField) window.setTimeout(function() { messageField.focus(); }, 0);
                 });
             });
+
+            if (panel) {
+                panel.addEventListener("keydown", function(event) {
+                    if (event.key !== "Tab") return;
+                    const focusable = focusableItems();
+                    if (!focusable.length) return;
+                    const first = focusable[0];
+                    const last = focusable[focusable.length - 1];
+                    if (event.shiftKey && document.activeElement === first) {
+                        event.preventDefault();
+                        last.focus();
+                    } else if (!event.shiftKey && document.activeElement === last) {
+                        event.preventDefault();
+                        first.focus();
+                    }
+                });
+            }
 
             document.addEventListener("keydown", function(event) {
                 if (event.key === "Escape" && modal.classList.contains("is-open")) closeModal();

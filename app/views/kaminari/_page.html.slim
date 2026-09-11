@@ -1,6 +1,6 @@
 - if page.current?
   li.page-item.active
-    = content_tag :a, page, class: 'page-link', href: '#'
+    = content_tag :span, page, class: 'page-link', 'aria-current': 'page'
 - else
   li.page-item
     = link_to page, url, remote: remote, rel: page.rel, class: 'page-link'

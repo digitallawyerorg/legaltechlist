@@ -582,12 +582,22 @@ css:
         padding-top: 1.5rem;
     }
 
-    .company-show-page .company-maintainer-note a {
+    .company-show-page .company-maintainer-note a,
+    .company-show-page .company-maintainer-note .company-maintainer-note-link {
         color: #8c1515;
         text-decoration: none;
     }
 
-    .company-show-page .company-maintainer-note a:hover {
+    .company-show-page .company-maintainer-note .company-maintainer-note-link {
+        background: none;
+        border: 0;
+        font: inherit;
+        padding: 0;
+        vertical-align: baseline;
+    }
+
+    .company-show-page .company-maintainer-note a:hover,
+    .company-show-page .company-maintainer-note .company-maintainer-note-link:hover {
         text-decoration: underline;
     }
 
@@ -814,7 +824,8 @@ css:
 
         .company-maintainer-note
             | Entry maintained by Stanford CodeX. Last reviewed #{reviewed_label}.
-            = link_to "Suggest an update", "#", class: "ms-2", data: { suggest_update_open: true }
+            button.ms-2.company-maintainer-note-link type="button" aria-haspopup="dialog" data-suggest-update-open=""
+                | Suggest an update
 
 = render "companies/suggest_update_modal"
 = render "shared/citation_copy_script"

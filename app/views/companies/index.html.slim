@@ -34,7 +34,8 @@ css:
     .company-filter-location-form { padding: 0.15rem 0.1rem 0; }
     .company-filter-reset { color: #8c1515; flex: 0 0 auto; font-size: 0.82rem; font-weight: 800; text-decoration: none; white-space: nowrap; }
     .company-filter-reset:hover { color: #6f1111; text-decoration: underline; }
-    .company-sort-form { flex: 0 0 auto; margin-left: auto; }
+    .company-sort-form { display: flex; flex: 0 0 auto; gap: 0.4rem; margin-left: auto; }
+    .company-sort-submit { flex: 0 0 auto; white-space: nowrap; }
     .company-sort { border-color: #ded7ca; border-radius: 0.55rem; font-size: 0.9rem; min-height: 2.55rem; min-width: 10.25rem; }
     .company-table-card { background: #fff; border: 1px solid #e5dfd5; border-radius: 0.6rem; overflow: hidden; }
     .company-table { font-size: 0.82rem; margin-bottom: 0; min-width: 860px; }
@@ -70,7 +71,7 @@ css:
 - selected_statuses = company_filter_statuses
 .public-company-index
     .company-shell
-        main.company-main
+        .company-main
             h1.company-index-title= @taxonomy_facet.present? ? "#{@taxonomy_facet[:label]} Companies" : "Legal Tech Companies"
             .company-toolbar
                 = render "filter_bar", clear_params: clear_params, selected_category_ids: selected_category_ids, selected_statuses: selected_statuses
