@@ -25,7 +25,7 @@
     "@babel/plugin-transform-destructuring": "^7.26.0",
     "@babel/plugin-transform-regenerator": "^7.26.0",
     "@babel/plugin-transform-runtime": "^7.26.10",
-    "babel-loader": "^9.2.1",
+    "babel-loader": "^10.1.1",
     "webpack": "^5.110.3",
     "webpack-cli": "^5.1.4",
     "webpack-dev-server": "^6.0.0"
