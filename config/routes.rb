@@ -30,6 +30,7 @@ Rails.application.routes.draw do
   post 'admin/review/companies/:id/agent-review', to: 'admin/company_reviews#create_agent_review', as: :custom_admin_company_agent_review
   post 'admin/review/companies/:id/duplicate-review', to: 'admin/company_reviews#create_duplicate_review', as: :custom_admin_company_duplicate_review
   post 'admin/review/companies/:id/mark-review', to: 'admin/company_reviews#mark_review', as: :custom_admin_company_mark_review
+  get 'admin/data-coverage', to: 'admin/data_coverage#show', as: :custom_admin_data_coverage
   get 'admin/discoveries/new', to: 'admin/discoveries#new', as: :new_custom_admin_discovery
   post 'admin/discoveries', to: 'admin/discoveries#create', as: :custom_admin_discoveries
   get 'admin/pipeline-runs', to: 'admin/pipeline_run_reviews#index', as: :custom_admin_pipeline_runs
@@ -141,5 +142,5 @@ Rails.application.routes.draw do
   get 'statistics/category_evolution_5_years/download', to: 'static_pages#download_category_evolution_5_years', as: :download_category_evolution_5_years
   get 'statistics/funding_by_category', to: 'static_pages#funding_by_category', as: :statistics_funding_by_category
   get 'statistics/funding_by_category/download', to: 'static_pages#download_funding_by_category', as: :download_funding_by_category
-  get 'statistics/data_coverage', to: 'static_pages#data_coverage', as: :statistics_data_coverage
+  get 'statistics/data_coverage', to: redirect('/statistics', status: 301)
 end

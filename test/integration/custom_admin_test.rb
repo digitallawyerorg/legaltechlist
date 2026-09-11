@@ -3,6 +3,22 @@ require "test_helper"
 class CustomAdminTest < ActionDispatch::IntegrationTest
   include Devise::Test::IntegrationHelpers
 
+  test "data coverage requires an admin session" do
+    get custom_admin_data_coverage_path
+
+    assert_redirected_to new_admin_user_session_path
+  end
+
+  test "signed-in admin sees the data coverage heatmap" do
+    sign_in admin_users(:one)
+
+    get custom_admin_data_coverage_path
+
+    assert_response :success
+    assert_select "h1.stats-chart-title", text: "Data Coverage"
+    assert_select ".admin-navbar .nav-link.active", text: "Coverage"
+  end
+
   test "custom admin redirects unauthenticated users to login" do
     get custom_admin_root_path
 
