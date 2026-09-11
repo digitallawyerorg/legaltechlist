@@ -16,7 +16,7 @@
     "bootstrap": "^5.3.8",
     "chart.js": "^4.5.1",
     "chartkick": "^5.0.1",
-    "jquery": "^3.7.1",
+    "jquery": "^4.0.0",
     "puppeteer": "^24.6.0",
     "turbolinks": "^5.2.0"
   },
