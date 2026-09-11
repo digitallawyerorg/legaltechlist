@@ -1,5 +1,8 @@
 class PipelineRun < ActiveRecord::Base
-  STATUSES = %w[pending running succeeded failed].freeze
+  # "partial" is a real outcome, not a tidied-up failure: a reviewer action that saved
+  # some of what it was asked to save is neither a success nor a clean failure, and
+  # flattening it into either loses the only detail worth looking up afterwards.
+  STATUSES = %w[pending running succeeded failed partial].freeze
 
   validates :name, presence: true
   validates :run_type, presence: true
@@ -10,6 +13,12 @@ class PipelineRun < ActiveRecord::Base
   scope :running, -> { where(status: "running") }
   scope :failed, -> { where(status: "failed") }
   scope :for_company, ->(company) { where("(details ->> 'company_id')::bigint = ?", company.id) }
+
+  # Reviewer actions and agent runs share this table; only the agent runs carry a
+  # findings packet, so only they have a review page to link to.
+  def reviewer_action?
+    run_type == ReviewerActionAudit::RUN_TYPE
+  end
 
   def mark_running!
     update!(status: "running", started_at: Time.current)
