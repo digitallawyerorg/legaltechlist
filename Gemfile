@@ -83,7 +83,7 @@ gem 'importmap-rails'
 gem "turbo-rails"
 
 gem 'httparty'
-gem 'aws-sdk-s3', '~> 1.230'
+gem 'aws-sdk-s3', '~> 1.231'
 
 # For company validation script
 gem 'ruby-openai'
