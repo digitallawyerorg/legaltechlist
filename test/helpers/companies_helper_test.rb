@@ -173,4 +173,18 @@ class CompaniesHelperTest < ActionView::TestCase
 
     assert_includes citation, "title = {{CodeX TechIndex: Smith & Jones}}"
   end
+
+  test "company_index_heading drops Companies for category facets only" do
+    assert_equal "Legal Tech Companies", company_index_heading(nil)
+
+    assert_equal "Litigation & Dispute Resolution",
+                 company_index_heading(type: :category, label: "Litigation & Dispute Resolution")
+
+    assert_equal "Law Firms Companies",
+                 company_index_heading(type: :target_client, label: "Law Firms")
+    assert_equal "Subscription Companies",
+                 company_index_heading(type: :business_model, label: "Subscription")
+    assert_equal "Contract Analysis Companies",
+                 company_index_heading(type: :tag, label: "Contract Analysis")
+  end
 end
