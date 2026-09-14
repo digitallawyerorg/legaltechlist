@@ -10,7 +10,7 @@ gem 'redis', '~> 5.0'
 gem 'sprockets-rails'
 
 # Admin and Authentication
-gem 'devise', '~> 4.9'
+gem 'devise', '~> 5.0'
 gem 'kaminari', '~> 1.2.1'
 
 # Frontend
