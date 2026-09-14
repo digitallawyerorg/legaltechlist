@@ -6,7 +6,7 @@ ruby '3.3.10'
 gem 'rails', '~> 8.1.3'
 gem 'pg', '~> 1.6.3'
 gem 'puma'
-gem 'redis', '~> 5.0'
+gem 'redis', '~> 6.0'
 gem 'sprockets-rails'
 
 # Admin and Authentication
