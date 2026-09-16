@@ -130,6 +130,37 @@ class UserSubmissionWorkflowTest < ActiveSupport::TestCase
     assert_nil proposal.enriched_at
   end
 
+  test "triage rejects a blocklisted submission domain at intake" do
+    proposal = user_contribution_proposal(
+      description: "Contract workflow software for in-house teams, built for busy counsel.",
+      main_url: "https://www.fxutwwaassxocp.com/"
+    )
+
+    CompanyUserSubmissionProcessorService.call(proposal: proposal)
+
+    proposal.reload
+    assert_equal "rejected", proposal.status
+    assert_equal "blocklisted_domain", proposal.agent_details.dig("triage", "mode")
+    assert_match(/blocklist/i, proposal.rejection_reason)
+    assert_nil proposal.enriched_at
+  end
+
+  test "triage rejects a blocklisted link host even with the dot space-mangled" do
+    proposal = user_contribution_proposal(
+      description: "Restore any site from Web Archives. In case you no longer want to receive " \
+                   "future correspondence from this message, kindly fill the form at brnd .li/delist " \
+                   "url with your domain address (URL)."
+    )
+
+    CompanyUserSubmissionProcessorService.call(proposal: proposal)
+
+    proposal.reload
+    assert_equal "rejected", proposal.status
+    assert_equal "blocklisted_link", proposal.agent_details.dig("triage", "mode")
+    assert_match(/brnd\.li/, proposal.rejection_reason)
+    assert_nil proposal.enriched_at
+  end
+
   test "processor queues uncertain submissions for review" do
     proposal = user_contribution_proposal(description: "We are the best leading world-class revolutionary legal platform.")
 
@@ -287,7 +318,13 @@ class UserSubmissionWorkflowTest < ActiveSupport::TestCase
     )
   end
 
-  def user_contribution_proposal(description:)
+  def user_contribution_proposal(description:, main_url: "https://spam-#{SecureRandom.hex(4)}.example")
+    changes = {
+      "name" => "Spam Co",
+      "main_url" => main_url,
+      "description" => description
+    }
+
     CompanyProposal.create!(
       status: "pending",
       proposal_type: "user_contribution",
@@ -295,16 +332,8 @@ class UserSubmissionWorkflowTest < ActiveSupport::TestCase
       source_identifier: SecureRandom.uuid,
       submitter_email: "spam@example.com",
       source_payload: {},
-      proposed_changes: {
-        "name" => "Spam Co",
-        "main_url" => "https://spam-#{SecureRandom.hex(4)}.example",
-        "description" => description
-      },
-      final_changes: {
-        "name" => "Spam Co",
-        "main_url" => "https://spam-#{SecureRandom.hex(4)}.example",
-        "description" => description
-      }
+      proposed_changes: changes,
+      final_changes: changes
     )
   end
 
