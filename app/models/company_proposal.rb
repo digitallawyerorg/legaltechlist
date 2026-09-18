@@ -22,6 +22,17 @@ class CompanyProposal < ActiveRecord::Base
   scope :user_contributions, -> { where(proposal_type: "user_contribution") }
   scope :user_suggestions, -> { where(proposal_type: "user_suggestion") }
 
+  # A proposal parked with its contributor: the next action is the submitter's, not a
+  # reviewer's. It deliberately stays inside pending_review — the duplicate queue and
+  # the approval path both read that scope — and is instead kept off the Review Tab's
+  # default view by Admin::CompanyProposalsController, which gives it its own chip.
+  scope :awaiting_contributor, -> {
+    where("agent_details #>> '{current_contributor_request,state}' = ?", CompanyProposalReturnService::AWAITING_STATE)
+  }
+  scope :not_awaiting_contributor, -> {
+    where("agent_details #>> '{current_contributor_request,state}' IS DISTINCT FROM ?", CompanyProposalReturnService::AWAITING_STATE)
+  }
+
   EDITABLE_COMPANY_FIELDS = %w[
     name
     main_url

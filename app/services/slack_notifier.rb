@@ -78,8 +78,13 @@ class SlackNotifier
   def self.contribution_decision(proposal, decision:, admin_user: nil, note: nil)
     return unless configured?
 
-    emoji = decision.to_s == "approved" ? ":white_check_mark:" : ":x:"
-    label = decision.to_s == "approved" ? "Approved" : "Rejected"
+    # Anything not named here reads as a rejection, which is right for "rejected" and
+    # wrong for a record handed back to its submitter, so returns are named explicitly.
+    emoji, label = case decision.to_s
+                   when "approved" then [":white_check_mark:", "Approved"]
+                   when "returned_to_contributor" then [":leftwards_arrow_with_hook:", "Returned to contributor"]
+                   else [":x:", "Rejected"]
+                   end
     reviewer = admin_user&.email || "admin"
     text = "#{emoji} *#{label}* by #{reviewer}"
     text += "\n#{note}" if note.present?
