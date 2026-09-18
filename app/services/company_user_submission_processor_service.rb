@@ -28,8 +28,8 @@ class CompanyUserSubmissionProcessorService
     # already published under a later name, on another TLD, or into a hidden draft was
     # enriched and drafted as new work, and the duplicate only surfaced at approval, by
     # which point a second row existed or the submitted text had been overwritten.
-    duplicate = blocking_duplicate_signals
-    return route_to_duplicate_resolution!(duplicate) if duplicate
+    duplicate = DuplicateGate.check(proposal)
+    return routed_result(DuplicateGate.route!(duplicate)) if duplicate.blocking?
 
     return process_user_suggestion!(triage) if proposal.user_suggestion?
 
@@ -64,56 +64,40 @@ class CompanyUserSubmissionProcessorService
   attr_reader :proposal
 
   # A suggestion is already bound to its company, so a match against that same company is
-  # the record commenting on itself, not a second listing — the detector excludes it. Any
+  # the record commenting on itself, not a second listing — the matcher excludes it. Any
   # other blocking match, on either proposal type, is a submission that needs resolving
-  # against an existing record before it can be treated as new.
-  def blocking_duplicate_signals
-    signals = proposal.current_duplicate_signals(refresh: true)
-    signals if signals["blocking"]
-  end
-
-  # Duplicate resolution, not the normal review flow: the submission stays open with the
-  # canonical record named on it, and no automated step touches it. That means it is not
-  # enriched (which would overwrite the submitted text before anyone has read it), not
-  # auto-drafted, not auto-published and not auto-applied. It lands in the reviewer's
-  # duplicate queue, where the two records can be compared and merged, which is the
-  # decision this shape of submission actually needs.
-  def route_to_duplicate_resolution!(signals)
-    matches = Array(signals["name_matches"]) + Array(signals["domain_matches"])
-    canonical = matches.find { |match| match["visible"] } || matches.first
-    note = signals["recommended_action"].presence || "Resolve against the existing record before publishing."
-
-    proposal.record_duplicate_evidence!(signals)
-    proposal.update!(
-      status: "ready_for_review",
-      reviewed_at: Time.current,
-      reviewer_notes: [proposal.reviewer_notes, "Routed to duplicate resolution. #{note}"].compact_blank.join("\n"),
-      duplicate_signals: signals,
-      agent_details: proposal.agent_details.merge(
-        "duplicate_routing" => {
-          "routed_at" => Time.current.utc.iso8601,
-          "confidence" => signals["confidence"],
-          "canonical_company_id" => canonical&.dig("id"),
-          "canonical_company_visible" => canonical&.dig("visible"),
-          "canonical_proposal_id" => Array(signals["proposal_matches"]).first&.dig("proposal_id"),
-          "recommended_action" => note
-        }.compact
-      )
-    )
-
-    result("duplicate_resolution", note)
+  # against an existing record before it can be treated as new. Deciding that, and moving
+  # the record into the duplicate queue, is DuplicateGate's job for every path; this one
+  # only translates the outcome into the result shape callers here expect.
+  def routed_result(decision)
+    result("duplicate_resolution", decision.recommended_action)
   end
 
   def process_user_suggestion!(triage)
     apply_suggestion_interpretation!
     proposal.reload
 
+    # Interpretation rewrites the name, URL and profile links this suggestion is asking
+    # for, and those are exactly what identity is matched on — so the answer from before
+    # it ran is not the answer that governs the write. The gate is asked again on the
+    # interpreted record, before auto-apply is even considered.
+    interpreted = DuplicateGate.check(proposal)
+    return routed_result(DuplicateGate.route!(interpreted)) if interpreted.blocking?
+
     if auto_apply_suggestion?
-      company = CompanyProposalApplyUpdateService.call(
-        proposal: proposal,
-        admin_user: nil,
-        publish: proposal.company.visible?
-      )
+      begin
+        company = CompanyProposalApplyUpdateService.call(
+          proposal: proposal,
+          admin_user: nil,
+          publish: proposal.company.visible?
+        )
+      rescue DuplicateGate::Blocked => e
+        # Reached only when a match appears between the check above and the write — a twin
+        # arriving mid-run. The gate has already routed the record; report that rather
+        # than announcing an approval or crashing the run.
+        return result("duplicate_resolution", e.message)
+      end
+
       SlackNotifier.contribution_decision(
         proposal,
         decision: "approved",

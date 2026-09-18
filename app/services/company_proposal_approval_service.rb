@@ -130,13 +130,13 @@ class CompanyProposalApprovalService
   end
 
   def validate_proposal!
-    # Force a fresh resolution rather than reusing anything computed earlier in this
-    # process: approval is the moment the answer has to be current, and a sibling
-    # proposal may have been resolved (or created) since it was last looked at.
-    signals = proposal.current_duplicate_signals(refresh: true)
-    if signals["blocking"] && !duplicate_override
-      raise ArgumentError, "Resolve the duplicate before approval: #{signals['recommended_action']}"
-    end
+    # The same gate every other ingestion path goes through. It forces a fresh resolution
+    # rather than reusing anything computed earlier in this process — approval is the
+    # moment the answer has to be current, and a sibling proposal may have been resolved
+    # (or created) since this one was last looked at — and it routes the record to
+    # duplicate resolution before refusing, so a blocked approval leaves the proposal
+    # somewhere a reviewer will find it.
+    DuplicateGate.enforce!(proposal, override: duplicate_override)
     raise ArgumentError, "Resolve publish blockers before publication: #{publish_blockers.to_sentence}" if publish && publish_blockers.any?
   end
 
