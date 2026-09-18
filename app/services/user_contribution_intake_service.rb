@@ -54,36 +54,25 @@ class UserContributionIntakeService
     end
   end
 
+  # The signals the row is created with, from the same matcher every later reader uses.
+  #
+  # This used to compare exact normalized names and exact canonical domains, and to set
+  # recommended_action to "Review duplicate domain before approval." whenever the
+  # submission had a URL at all — advice against empty match arrays, which is how the
+  # stored signals came to be read as noise. It now says nothing unless something matched,
+  # and says what matched.
   def duplicate_signals
-    domain = Company.canonical_domain_for(form.main_url)
-    normalized_name = Company.normalized_name_value(form.name)
+    matches = CompanyIdentityMatcher.matches_for(
+      name: form.name,
+      domains: [Company.canonical_domain_for(form.main_url)],
+      profiles: CompanyIdentityMatcher.profile_keys("linkedin_url" => form.linkedin_url, "crunchbase_url" => form.crunchbase_url)
+    )
 
     {
-      "name_matches" => name_matches(normalized_name),
-      "domain_matches" => domain_matches(domain),
-      "recommended_action" => domain.present? ? "Review duplicate domain before approval." : nil
-    }.compact
-  end
-
-  def name_matches(normalized_name)
-    return [] if normalized_name.blank?
-
-    Company.where.not(name: [nil, ""]).select { |company| Company.normalized_name_value(company.name) == normalized_name }.first(5).map { |company| company_match_payload(company) }
-  end
-
-  def domain_matches(domain)
-    return [] if domain.blank?
-
-    Company.where.not(main_url: [nil, ""]).select { |company| company.canonical_main_domain == domain }.first(5).map { |company| company_match_payload(company) }
-  end
-
-  def company_match_payload(company)
-    {
-      "id" => company.id,
-      "name" => company.name,
-      "main_url" => company.main_url,
-      "canonical_domain" => company.canonical_main_domain,
-      "visible" => company.visible?
+      "name_matches" => CompanyIdentityMatcher.name_matches(matches),
+      "domain_matches" => CompanyIdentityMatcher.domain_matches(matches),
+      "blocking" => matches.any?,
+      "checked_at" => Time.current.utc.iso8601
     }
   end
 end

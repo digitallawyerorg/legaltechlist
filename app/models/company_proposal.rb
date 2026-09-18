@@ -78,8 +78,52 @@ class CompanyProposal < ActiveRecord::Base
   # hand, and persisting it keeps the stored column converging on the live one.
   def persist_duplicate_signals!
     signals = current_duplicate_signals
+    record_duplicate_evidence!(signals)
     update_columns(duplicate_signals: signals) if persisted? && duplicate_signals != signals
     signals
+  end
+
+  # An append-only record of what the guard saw, kept because the live view forgets.
+  #
+  # The stored duplicate_signals column is a cache of the current answer, and the current
+  # answer changes when a *related* record changes state: resolving one of two twin
+  # proposals drops it out of the comparison set, so the survivor goes from a blocking
+  # match to empty arrays, and the evidence that anything was ever wrong goes with it. A
+  # proposal that was auto-applied over a blocking duplicate now reads as though it ran
+  # on an uncontested row.
+  #
+  # This entry is written the first time a distinct blocking match is seen and is never
+  # rewritten or removed, so the disposition can be audited against what was actually
+  # known at the time.
+  MAX_DUPLICATE_EVIDENCE_ENTRIES = 20
+
+  def record_duplicate_evidence!(signals = current_duplicate_signals)
+    return signals unless persisted? && signals["blocking"]
+
+    entry = duplicate_evidence_entry(signals)
+    history = duplicate_evidence
+    return signals if history.any? { |seen| seen["matched"] == entry["matched"] }
+
+    update_columns(agent_details: agent_details.merge(
+      "duplicate_evidence" => (history + [entry]).last(MAX_DUPLICATE_EVIDENCE_ENTRIES)
+    ))
+    signals
+  end
+
+  def duplicate_evidence
+    Array(agent_details["duplicate_evidence"]).select { |entry| entry.is_a?(Hash) }
+  end
+
+  def duplicate_evidence_entry(signals)
+    matches = Array(signals["name_matches"]) + Array(signals["domain_matches"])
+    {
+      "first_seen_at" => Time.current.utc.iso8601,
+      "status" => status,
+      "confidence" => signals["confidence"],
+      "recommended_action" => signals["recommended_action"],
+      "matched" => matches.map { |match| match.slice("id", "name", "match_type", "matched_value", "confidence", "visible", "quality_status") } +
+                   Array(signals["proposal_matches"]).map { |match| match.slice("proposal_id", "name", "match_type", "status", "is_older") }
+    }
   end
 
   def duplicate_blocking?

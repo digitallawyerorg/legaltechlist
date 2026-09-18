@@ -14,8 +14,9 @@ class AtlasCandidateNormalizerService
     website = clean_url(row["Website"])
     canonical_domain = Company.canonical_domain_for(website)
     normalized_name = Company.normalized_name_value(name)
-    name_matches = name_match_payloads(normalized_name)
-    domain_matches = domain_match_payloads(canonical_domain)
+    found = matches(name, canonical_domain)
+    name_matches = name_match_payloads(found)
+    domain_matches = domain_match_payloads(found)
 
     {
       "status" => name_matches.any? || domain_matches.any? ? "existing_or_possible_duplicate" : "absent_candidate",
@@ -50,35 +51,30 @@ class AtlasCandidateNormalizerService
     row["Organization Name"].to_s.strip
   end
 
-  # Everything that could collide: published entries and unpublished drafts alike.
-  # A rejected record is genuinely out of the way and stays excluded.
-  def matchable
-    Company.where("companies.quality_status IS DISTINCT FROM ?", "rejected")
+  # The same matcher the approval gate and the review queue use. This used to compare
+  # exact normalized names and exact canonical domains of its own, so a clearance check
+  # here could come back absent on a company the gate would later block — which is how a
+  # curator cleared a submission for a brand the index already published on another TLD.
+  # Hidden drafts count, and each match carries its own `visible` flag: excluding them is
+  # what let a second approval mint a duplicate of a company the first approval had
+  # created but not yet published.
+  def matches(name, canonical_domain)
+    @matches ||= CompanyIdentityMatcher.matches_for(
+      name: name,
+      domains: [canonical_domain],
+      profiles: CompanyIdentityMatcher.profile_keys(
+        "linkedin_url" => clean_url(row["LinkedIn"]),
+        "crunchbase_url" => clean_url(row["Organization Name URL"])
+      )
+    )
   end
 
-  def name_match_payloads(normalized_name)
-    return [] if normalized_name.blank?
-
-    # Hidden drafts count. Excluding them is what let a second approval mint a duplicate
-    # of a company the first approval had already created but not yet published.
-    matchable.where.not(name: [nil, ""]).select { |company| company.normalized_name == normalized_name }.first(10).map { |company| company_payload(company) }
+  def name_match_payloads(matches)
+    CompanyIdentityMatcher.name_matches(matches)
   end
 
-  def domain_match_payloads(canonical_domain)
-    return [] if canonical_domain.blank?
-
-    matchable.where.not(main_url: [nil, ""]).select { |company| (company.canonical_domain.presence || company.canonical_main_domain) == canonical_domain }.first(10).map { |company| company_payload(company) }
-  end
-
-  def company_payload(company)
-    {
-      "id" => company.id,
-      "name" => company.name,
-      "main_url" => company.main_url,
-      "canonical_domain" => company.canonical_domain.presence || company.canonical_main_domain,
-      "visible" => company.visible,
-      "quality_status" => company.quality_status
-    }
+  def domain_match_payloads(matches)
+    CompanyIdentityMatcher.domain_matches(matches)
   end
 
   def recommended_action(name_matches, domain_matches)

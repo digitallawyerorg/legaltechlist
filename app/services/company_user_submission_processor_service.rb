@@ -20,6 +20,17 @@ class CompanyUserSubmissionProcessorService
       return result("rejected", triage["reason"])
     end
 
+    # Before anything else decides what happens to this submission: does the index
+    # already hold this company? Nothing here used to ask. Triage's own duplicate rule
+    # compared canonical domains against publicly visible rows only, and everything after
+    # it — enrichment, the draft, the auto-publish — ran without consulting the detector
+    # that the approval gate and the admin queue both use. So a submission for a company
+    # already published under a later name, on another TLD, or into a hidden draft was
+    # enriched and drafted as new work, and the duplicate only surfaced at approval, by
+    # which point a second row existed or the submitted text had been overwritten.
+    duplicate = blocking_duplicate_signals
+    return route_to_duplicate_resolution!(duplicate) if duplicate
+
     return process_user_suggestion!(triage) if proposal.user_suggestion?
 
     if triage["verdict"] == "review"
@@ -51,6 +62,47 @@ class CompanyUserSubmissionProcessorService
   private
 
   attr_reader :proposal
+
+  # A suggestion is already bound to its company, so a match against that same company is
+  # the record commenting on itself, not a second listing — the detector excludes it. Any
+  # other blocking match, on either proposal type, is a submission that needs resolving
+  # against an existing record before it can be treated as new.
+  def blocking_duplicate_signals
+    signals = proposal.current_duplicate_signals(refresh: true)
+    signals if signals["blocking"]
+  end
+
+  # Duplicate resolution, not the normal review flow: the submission stays open with the
+  # canonical record named on it, and no automated step touches it. That means it is not
+  # enriched (which would overwrite the submitted text before anyone has read it), not
+  # auto-drafted, not auto-published and not auto-applied. It lands in the reviewer's
+  # duplicate queue, where the two records can be compared and merged, which is the
+  # decision this shape of submission actually needs.
+  def route_to_duplicate_resolution!(signals)
+    matches = Array(signals["name_matches"]) + Array(signals["domain_matches"])
+    canonical = matches.find { |match| match["visible"] } || matches.first
+    note = signals["recommended_action"].presence || "Resolve against the existing record before publishing."
+
+    proposal.record_duplicate_evidence!(signals)
+    proposal.update!(
+      status: "ready_for_review",
+      reviewed_at: Time.current,
+      reviewer_notes: [proposal.reviewer_notes, "Routed to duplicate resolution. #{note}"].compact_blank.join("\n"),
+      duplicate_signals: signals,
+      agent_details: proposal.agent_details.merge(
+        "duplicate_routing" => {
+          "routed_at" => Time.current.utc.iso8601,
+          "confidence" => signals["confidence"],
+          "canonical_company_id" => canonical&.dig("id"),
+          "canonical_company_visible" => canonical&.dig("visible"),
+          "canonical_proposal_id" => Array(signals["proposal_matches"]).first&.dig("proposal_id"),
+          "recommended_action" => note
+        }.compact
+      )
+    )
+
+    result("duplicate_resolution", note)
+  end
 
   def process_user_suggestion!(triage)
     apply_suggestion_interpretation!
