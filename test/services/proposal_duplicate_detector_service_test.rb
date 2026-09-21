@@ -103,6 +103,39 @@ class ProposalDuplicateDetectorServiceTest < ActiveSupport::TestCase
     assert_nil signals["recommended_action"]
   end
 
+  # A candidate's source_url is the page it was cited from, not an address it claims.
+  # Discovery routinely cites a vendor directory, a registry entry or a market-map post
+  # — and those pages are often hosted by another company that is already in the index.
+  # Treating the citation as one of the candidate's own domains made exact_domain, the
+  # highest-precedence key, fire between an unrelated company and whoever happens to
+  # host the page it was found on.
+  test "a citation hosted on an indexed company's domain is not the candidate's own domain" do
+    signals = ProposalDuplicateDetectorService.call(proposal: proposal_for({
+      "name" => "Zephyr Escrow Analytics",
+      "main_url" => "https://zephyrescrow.example",
+      "source_url" => "https://contractpodai.com/resources/legal-tech-directory"
+    }))
+
+    refute signals["blocking"], "a directory page on another company's site is not shared identity"
+    assert_empty signals["domain_matches"]
+    assert_empty signals["name_matches"]
+    assert_nil signals["recommended_action"]
+  end
+
+  # The other half: dropping source_url costs nothing, because a citation on the
+  # candidate's own site says only what main_url already said.
+  test "a citation on the candidate's own site still matches through main_url" do
+    signals = ProposalDuplicateDetectorService.call(proposal: proposal_for({
+      "name" => "Totally Different",
+      "main_url" => "https://contractpodai.com",
+      "source_url" => "https://contractpodai.com/about-us"
+    }))
+
+    assert signals["blocking"]
+    assert_equal ["exact_domain"], signals["domain_matches"].map { |m| m["match_type"] }
+    assert_equal @company.id, signals["domain_matches"].first["id"]
+  end
+
   # ---- sibling-proposal matching -----------------------------------------
 
   test "two open proposals for the same company see each other" do

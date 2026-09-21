@@ -85,8 +85,18 @@ class ProposalDuplicateDetectorService
   # Domains the record itself claims, as distinct from domains discovered by following
   # its redirects. A match on a domain the record never declared is the signature of a
   # rebrand, and the reviewer needs to be told that rather than just "duplicate".
+  #
+  # source_url is deliberately not one of them: it is the page the record was cited
+  # *from*, not an address the record claims. CompanyProposalEnrichmentService.source_tier
+  # says so itself, grading a source_url as :registry, :profile, :owned or :other —
+  # opencorporates.com or a crunchbase.com profile is the usual value, and the intake
+  # services fill the field with the candidate's crunchbase_url when nothing better
+  # exists. Folding it in let exact_domain, the highest-precedence key, fire between a
+  # record and anything else living on its citation host, and it read asymmetrically:
+  # the sibling side below never looks at source_url, so the same pair was graded
+  # differently depending on which record was being checked.
   def declared_domains
-    @declared_domains ||= [changes["main_url"], proposal.source_payload["website"], changes["source_url"]]
+    @declared_domains ||= [changes["main_url"], proposal.source_payload["website"]]
                           .map { |url| Company.canonical_domain_for(url) }.compact_blank.uniq
   end
 
