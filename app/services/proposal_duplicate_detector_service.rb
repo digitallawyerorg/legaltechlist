@@ -134,21 +134,28 @@ class ProposalDuplicateDetectorService
     return [] if normalized_name.blank? && candidate_domains.empty?
 
     sibling_proposals.filter_map do |sibling|
-      sibling_changes = sibling.editable_changes
-      sibling_name = sibling_changes["name"].presence || sibling.source_payload["name"].presence
-      sibling_domains = [sibling_changes["main_url"], sibling.source_payload["website"]]
-                        .map { |url| Company.canonical_domain_for(url) }.compact_blank.uniq
-
-      match_type = sibling_match_type(sibling_name, sibling_domains)
-      next unless match_type
+      identity = sibling_identity(sibling)
+      match_types = sibling_match_types(identity)
+      next if match_types.empty?
 
       {
         "proposal_id" => sibling.id,
         "name" => sibling.display_name,
-        "main_url" => sibling_changes["main_url"],
+        "main_url" => identity[:changes]["main_url"],
         "status" => sibling.status,
         "created_at" => sibling.created_at&.utc&.iso8601,
-        "match_type" => match_type,
+        "match_type" => match_types.first,
+        # Every key that agreed, strongest first, exactly as the company side reports
+        # them. A reader that sees only the strongest cannot tell a name coincidence from
+        # a name match that the domain and the LinkedIn page both confirm.
+        "match_types" => match_types,
+        # Graded by the rule the company side already uses, so a reviewer reading a
+        # sibling pair and an index pair is reading one scale.
+        "confidence" => CompanyIdentityMatcher.confidence_for(
+          match_types.first,
+          names_agree: CompanyIdentityMatcher.names_agree?(candidate_identity, identity),
+          shared_profile: shared_sibling_profiles(identity).any?
+        ),
         # The older record is the one an operator has probably already looked at, so
         # name a default canonical rather than leaving the choice unframed.
         "is_older" => sibling.created_at.present? && proposal.created_at.present? && sibling.created_at < proposal.created_at
@@ -156,21 +163,53 @@ class ProposalDuplicateDetectorService
     end.first(CompanyIdentityMatcher::MAX_MATCHES)
   end
 
-  def sibling_match_type(sibling_name, sibling_domains)
-    return "exact_domain" if (candidate_domains & sibling_domains).any?
-    return "related_domain" if candidate_domains.product(sibling_domains).any? { |mine, theirs| CompanyIdentityMatcher.related_domains?(mine, theirs) }
+  # The sibling read the same way the candidate is read: its editable changes first, its
+  # source payload behind them. The profile keys were the missing half — a shared LinkedIn
+  # or Crunchbase page is the strongest identity key in the system and the only one that
+  # survives both a rename and a domain move, and between two proposals it was invisible.
+  def sibling_identity(sibling)
+    changes = sibling.editable_changes
+    name = changes["name"].presence || sibling.source_payload["name"].presence
 
-    sibling_normalized = Company.normalized_name_value(sibling_name)
-    return "exact_name" if normalized_name.present? && sibling_normalized == normalized_name
+    {
+      changes: changes,
+      normalized: Company.normalized_name_value(name),
+      core: CompanyIdentityMatcher.core_key(name),
+      domains: [changes["main_url"], sibling.source_payload["website"]]
+               .map { |url| Company.canonical_domain_for(url) }.compact_blank.uniq,
+      profiles: CompanyIdentityMatcher.profile_keys(
+        "linkedin_url" => changes["linkedin_url"].presence || sibling.source_payload["linkedin_url"],
+        "crunchbase_url" => changes["crunchbase_url"].presence || sibling.source_payload["crunchbase_url"]
+      )
+    }
+  end
 
-    sibling_core = CompanyIdentityMatcher.core_key(sibling_name)
-    return "core_name" if candidate_core.present? && sibling_core == candidate_core
+  def candidate_identity
+    @candidate_identity ||= { normalized: normalized_name, core: candidate_core }
+  end
 
-    sibling_brands = ([sibling_core] + sibling_domains.map { |domain| CompanyIdentityMatcher.brand_key(domain) }).compact_blank
-    candidate_brands = ([candidate_core] + candidate_domains.map { |domain| CompanyIdentityMatcher.brand_key(domain) }).compact_blank
-    return "brand_name" if (candidate_brands & sibling_brands).any?
+  # Ordered by CompanyIdentityMatcher::MATCH_TYPES, so the first is the strongest.
+  def sibling_match_types(sibling)
+    types = []
+    types << "exact_domain" if (candidate_domains & sibling[:domains]).any?
+    types << "related_domain" if candidate_domains.product(sibling[:domains]).any? { |mine, theirs| CompanyIdentityMatcher.related_domains?(mine, theirs) }
+    types << "shared_profile" if shared_sibling_profiles(sibling).any?
+    types << "exact_name" if normalized_name.present? && sibling[:normalized] == normalized_name
+    types << "core_name" if candidate_core.present? && sibling[:core] == candidate_core
+    types << "brand_name" if (candidate_brands & sibling_brands(sibling)).any?
+    types
+  end
 
-    nil
+  def candidate_brands
+    @candidate_brands ||= ([candidate_core] + candidate_domains.map { |domain| CompanyIdentityMatcher.brand_key(domain) }).compact_blank
+  end
+
+  def sibling_brands(sibling)
+    ([sibling[:core]] + sibling[:domains].map { |domain| CompanyIdentityMatcher.brand_key(domain) }).compact_blank
+  end
+
+  def shared_sibling_profiles(sibling)
+    CompanyIdentityMatcher::PROFILE_KINDS.select { |kind| candidate_profiles[kind].present? && candidate_profiles[kind] == sibling[:profiles][kind] }
   end
 
   def sibling_proposals
@@ -211,7 +250,17 @@ class ProposalDuplicateDetectorService
 
     if (proposal_hit = proposal_hits.first)
       canonical = proposal_hit["is_older"] ? "Proposal ##{proposal_hit['proposal_id']} is the earlier record" : "This is the earlier record"
-      parts << "Proposal ##{proposal_hit['proposal_id']} covers the same company. #{canonical}; keep one and reject the other."
+      label = "Proposal ##{proposal_hit['proposal_id']}"
+      parts << if proposal_hit["confidence"] == CONFIDENCE_CONFIRMED
+        "#{label} covers the same company. #{canonical}; keep one and reject the other."
+      elsif proposal_hit["match_type"].in?(%w[exact_domain related_domain])
+        # Europaius 4113/4114 and Epistemic Labs 4102/4103 were each one company with two
+        # genuinely distinct products, and were correctly held apart. Asserting sameness
+        # here told the reviewer to reject one of them.
+        "#{label} shares this website but has a different name — it may be two products from one company. #{canonical}; compare the two records before treating either as a duplicate."
+      else
+        "#{label} may cover the same company, matched on name alone with nothing else agreeing. #{canonical}; compare the two records to confirm before resolving."
+      end
     end
 
     parts.join(" ")

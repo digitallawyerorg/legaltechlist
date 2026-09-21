@@ -150,4 +150,58 @@ class ProposalDuplicateDetectorServiceTest < ActiveSupport::TestCase
 
     assert_empty ProposalDuplicateDetectorService.call(proposal: proposal)["proposal_matches"]
   end
+
+  # Europaius 4113/4114 and Epistemic Labs 4102/4103 were each one company with two
+  # genuinely distinct products on one website, and were correctly held apart rather than
+  # merged. The sibling comparison graded nothing, so the reviewer was told to reject one.
+  test "two open proposals sharing a website with different product names are only possible" do
+    first = proposal_for({ "name" => "Epistemic Labs Clause Engine", "main_url" => "https://epistemiclabs.example" }, status: "ready_for_review")
+    second = proposal_for({"name" => "Epistemic Labs Deposition Copilot", "main_url" => "https://epistemiclabs.example"})
+
+    signals = ProposalDuplicateDetectorService.call(proposal: second)
+    match = signals["proposal_matches"].find { |m| m["proposal_id"] == first.id }
+
+    assert match, "expected the sibling proposal to be reported"
+    assert_equal "exact_domain", match["match_type"]
+    assert_equal ProposalDuplicateDetectorService::CONFIDENCE_POSSIBLE, match["confidence"]
+    assert signals["blocking"], "a possible match is still a comparison a human has to make"
+    assert_match(/two products from one company/, signals["recommended_action"])
+    assert_match(/compare the two records/, signals["recommended_action"])
+    refute_match(/keep one and reject the other/, signals["recommended_action"])
+  end
+
+  # A shared company page is the only key that survives both a rename and a domain move —
+  # proposal 4001 is published as "Alentra" while describing ProseID — and between two
+  # proposals it was invisible, because the sibling side never read their profile urls.
+  test "two open proposals sharing a linkedin company page match on the shared profile" do
+    first = proposal_for({ "name" => "Alentra", "main_url" => "https://alentra.app",
+                           "linkedin_url" => "https://www.linkedin.com/company/proseid" }, status: "ready_for_review")
+    second = proposal_for({"name" => "ProseID", "main_url" => "https://proseid.com",
+                           "linkedin_url" => "https://linkedin.com/company/proseid/"})
+
+    signals = ProposalDuplicateDetectorService.call(proposal: second)
+    match = signals["proposal_matches"].find { |m| m["proposal_id"] == first.id }
+
+    assert match, "a shared company page has to be visible between two proposals"
+    assert_equal "shared_profile", match["match_type"]
+    assert_equal ProposalDuplicateDetectorService::CONFIDENCE_CONFIRMED, match["confidence"]
+    assert signals["blocking"]
+  end
+
+  # Caseway 4174/4175 and the Europaius double-post: one submission that arrived twice.
+  # Grading the sibling side must not soften these — they are one record, not two products.
+  test "twin proposals with the same name and website stay confirmed" do
+    first = proposal_for({ "name" => "Caseway", "main_url" => "https://caseway.ai" }, status: "ready_for_review")
+    second = proposal_for({"name" => "Caseway", "main_url" => "https://caseway.ai"})
+
+    signals = ProposalDuplicateDetectorService.call(proposal: second)
+    match = signals["proposal_matches"].find { |m| m["proposal_id"] == first.id }
+
+    assert match
+    assert_equal "exact_domain", match["match_type"]
+    assert_includes match["match_types"], "exact_name"
+    assert_equal ProposalDuplicateDetectorService::CONFIDENCE_CONFIRMED, match["confidence"]
+    assert signals["blocking"]
+    assert_match(/keep one and reject the other/, signals["recommended_action"])
+  end
 end

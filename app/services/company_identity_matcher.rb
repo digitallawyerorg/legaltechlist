@@ -293,6 +293,31 @@ class CompanyIdentityMatcher
     matches.select { |match| (Array(match["match_types"]) & DOMAIN_MATCH_TYPES).any? }
   end
 
+  # How far the evidence goes, for any two records compared on these keys. The
+  # proposal-to-proposal comparison grades through here too: sibling proposals used to be
+  # reported ungraded, so the reviewer-facing text asserted sameness on a shared domain
+  # alone — and Europaius 4113/4114 and Epistemic Labs 4102/4103 were one company with two
+  # genuinely distinct products. One grading rule, both sides.
+  def self.confidence_for(match_type, names_agree:, shared_profile:)
+    case match_type
+    when "redirect_domain", "shared_profile"
+      CONFIDENCE_CONFIRMED
+    when "exact_domain", "related_domain"
+      # One domain, and one domain tree, can host more than one product. Treat it as
+      # confirmed only when the names agree too; otherwise say it may be a sibling.
+      names_agree ? CONFIDENCE_CONFIRMED : CONFIDENCE_POSSIBLE
+    else
+      shared_profile ? CONFIDENCE_CONFIRMED : CONFIDENCE_POSSIBLE
+    end
+  end
+
+  # Each side is {normalized:, core:}. Either key agreeing is the names agreeing.
+  def self.names_agree?(one, other)
+    return true if one[:normalized].present? && one[:normalized] == other[:normalized]
+
+    one[:core].present? && one[:core] == other[:core]
+  end
+
   def self.matches_for(name:, domains: [], declared_domains: nil, profiles: {}, exclude_company_id: nil)
     new(name: name, domains: domains, declared_domains: declared_domains, profiles: profiles, exclude_company_id: exclude_company_id).matches
   end
@@ -424,22 +449,11 @@ class CompanyIdentityMatcher
   end
 
   def confidence_for(match_type, row)
-    case match_type
-    when "redirect_domain", "shared_profile"
-      CONFIDENCE_CONFIRMED
-    when "exact_domain", "related_domain"
-      # One domain, and one domain tree, can host more than one product. Treat it as
-      # confirmed only when the names agree too; otherwise say it may be a sibling.
-      names_agree?(row) ? CONFIDENCE_CONFIRMED : CONFIDENCE_POSSIBLE
-    else
-      shared_profiles(row).any? ? CONFIDENCE_CONFIRMED : CONFIDENCE_POSSIBLE
-    end
-  end
-
-  def names_agree?(row)
-    return true if normalized_name.present? && row[:normalized] == normalized_name
-
-    core_key.present? && row[:core] == core_key
+    self.class.confidence_for(
+      match_type,
+      names_agree: self.class.names_agree?({ normalized: normalized_name, core: core_key }, row),
+      shared_profile: shared_profiles(row).any?
+    )
   end
 
   # One pluck over the non-rejected index, with the derived match keys precomputed.
