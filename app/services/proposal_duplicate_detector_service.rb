@@ -147,6 +147,11 @@ class ProposalDuplicateDetectorService
       domains: candidate_domains,
       declared_domains: declared_domains,
       profiles: candidate_profiles,
+      # The ownership measurement is over the index AND the open queue. Counting the two
+      # populations separately gave one pair opposite verdicts in a single call — "owned"
+      # on the sibling side, "shared" on the company side — and the call came back with
+      # blocking and advisory both true.
+      extra_domain_carriers: open_queue_domain_carriers,
       # A proposal that has already minted its own company is not a duplicate of it:
       # without this, promoting an approved draft re-checks duplicates, finds the row the
       # proposal itself created, and blocks its own publication. A REJECTED proposal is
@@ -208,7 +213,7 @@ class ProposalDuplicateDetectorService
         # whichever list it lands in.
         "surfacing" => CompanyIdentityMatcher.surfacing_for(evidence)
       }.merge(domain_states.any? ? { "domain_ownership" => domain_states.values.first } : {})
-    end.first(CompanyIdentityMatcher::MAX_MATCHES)
+    end.then { |hits| CompanyIdentityMatcher.capped(hits) }
   end
 
   # Resolved once: the sibling set is the comparison population as well as the list of
@@ -241,18 +246,22 @@ class ProposalDuplicateDetectorService
     end
   end
 
-  # Open proposals other than the two being compared that carry this domain. The
-  # candidate is already out of sibling_proposals; the sibling is taken out here.
+  # Records other than the two being compared that carry this domain, over the SAME
+  # union the company side counts: the index plus the open queue. The candidate is
+  # already out of sibling_proposals; the sibling is taken out here, and so is the
+  # company this proposal minted itself, which is not a third party on any host.
   def sibling_other_carriers(domain, identity)
     return 0 if domain.blank?
 
-    count = sibling_domain_carriers[domain].to_i
+    count = matcher.domain_carriers[domain].to_i
     count -= 1 if identity[:domains].include?(domain)
+    count -= 1 if matcher.excluded_row_domains.include?(domain)
     [count, 0].max
   end
 
-  def sibling_domain_carriers
-    @sibling_domain_carriers ||= sibling_identities.each_with_object(Hash.new(0)) do |(_sibling, identity), counts|
+  # The open queue's own contribution to that union, which is what the matcher is given.
+  def open_queue_domain_carriers
+    @open_queue_domain_carriers ||= sibling_identities.each_with_object(Hash.new(0)) do |(_sibling, identity), counts|
       identity[:domains].uniq.each { |domain| counts[domain] += 1 }
     end
   end
@@ -330,6 +339,9 @@ class ProposalDuplicateDetectorService
     # "Review duplicate domain before approval." whenever the submission had a URL at
     # all, which reviewers learned to read as noise — in both directions.
     return nil if company_hits.empty? && proposal_hits.empty?
+    # An advisory hit gets its own sentence rather than a duplicate claim with a
+    # retraction stapled to the end of it.
+    return advisory_action(company_hits, proposal_hits) if (company_hits + proposal_hits).none? { |hit| hit["surfacing"] == SURFACING_BLOCKING }
 
     parts = []
     if (company_hit = preferred_hit(company_hits))
@@ -368,8 +380,6 @@ class ProposalDuplicateDetectorService
       end
     end
 
-    parts << advisory_clause(company_hits + proposal_hits) if (company_hits + proposal_hits).none? { |hit| hit["surfacing"] == SURFACING_BLOCKING }
-
     parts.join(" ")
   end
 
@@ -380,11 +390,23 @@ class ProposalDuplicateDetectorService
     hits.find { |hit| hit["surfacing"] == SURFACING_BLOCKING } || hits.first
   end
 
-  # Said out loud, because the complaint was never that the panel appeared - it was that
-  # a single loose key was worded exactly like a confirmed duplicate.
-  def advisory_clause(hits)
+  # The complaint that started this work was that a single loose key was worded exactly
+  # like a confirmed duplicate. Appending "not treated as a duplicate" to that sentence
+  # left the reviewer reading the claim first and the retraction last, twice over. So an
+  # advisory hit says what it is up front, then what agreed, and stops.
+  def advisory_action(company_hits, proposal_hits)
+    hits = company_hits + proposal_hits
     keys = hits.flat_map { |hit| Array(hit["match_types"]) }.uniq.map { |type| type.humanize.downcase }.to_sentence
 
-    "Not treated as a duplicate: #{keys} agreed, and nothing independent corroborates it. Compare the records if you disagree."
+    "Not treated as a duplicate#{advisory_subject(company_hits, proposal_hits)}: #{keys} agreed, and nothing independent did. Compare the records if you disagree."
+  end
+
+  def advisory_subject(company_hits, proposal_hits)
+    labels = []
+    labels << "#{company_hits.first['name']} (##{company_hits.first['id']})" if company_hits.first
+    labels << "proposal ##{proposal_hits.first['proposal_id']}" if proposal_hits.first
+    return "" if labels.empty?
+
+    " of #{labels.to_sentence(two_words_connector: ' or ', last_word_connector: ', or ')}"
   end
 end

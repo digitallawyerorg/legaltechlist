@@ -40,7 +40,7 @@ class CompanyIdentityMatcher
   CACHE_TTL = 5.minutes
   # Bumped whenever an index row gains a key. A row cached in the previous shape is
   # missing the new one, which silently turns the new match type off until it expires.
-  CACHE_SHAPE = "v3".freeze
+  CACHE_SHAPE = "v4".freeze
 
   DOMAIN_MATCH_TYPES = %w[exact_domain redirect_domain related_domain].freeze
   # shared_profile, prior_name and brand_name are grouped with the name keys because they
@@ -375,13 +375,20 @@ class CompanyIdentityMatcher
     key if key.present? && key.start_with?("#{kind}:")
   end
 
+  # The kind is read from the host, so a Crunchbase URL pasted into linkedin_url is a
+  # Crunchbase page. It must not DISPLACE the record's own crunchbase_url, though: first
+  # come first served dropped the correctly-filed page and the misfiled field's own kind
+  # at once, and shared_profile is the only always-alone-eligible key in the system, so a
+  # dropped one is a true duplicate lost. The entry whose derived kind is the field it
+  # came from wins; a misfiled one only fills a gap.
   def self.profile_keys(source)
-    PROFILE_KINDS.each_with_object({}) do |kind, keys|
-      key = profile_key_for(source["#{kind}_url"])
-      next if key.blank?
+    found = PROFILE_KINDS.filter_map do |field|
+      key = profile_key_for(source["#{field}_url"])
+      [field, key, key.split(":").first] if key.present?
+    end
 
-      derived = key.split(":").first
-      keys[derived] ||= key
+    found.each_with_object({}) do |(field, key, derived), keys|
+      keys[derived] = key if field == derived || !keys.key?(derived)
     end
   end
 
@@ -410,15 +417,6 @@ class CompanyIdentityMatcher
     candidates += [slug.to_s.sub(/-\d+\z/, "").tr("-", " ")] if slug.present?
 
     expand_name_values(candidates, current_normalized)
-  end
-
-  # The subset whose provenance is a name change actually RECORDED in the row's
-  # field-edit history, as opposed to one reconstructed from the slug. A recorded
-  # rename is a fact about the company; a slug is a string the row was created with,
-  # and a row named "Midpage AI" with the slug midpage-ai carries its own core as a
-  # "prior name" without anyone ever having renamed anything.
-  def self.recorded_name_values(prior_names: [], current_normalized: nil)
-    expand_name_values(Array(prior_names).compact_blank, current_normalized)
   end
 
   def self.expand_name_values(candidates, current_normalized)
@@ -485,14 +483,23 @@ class CompanyIdentityMatcher
   #   * no OTHER record in the compared population carries that domain, so there is no
   #     evidence it is a place records get put rather than an address.
   #
-  # +other_carriers+ counts records other than the two being compared. A domain with no
-  # readable brand label is UNEVALUATED, and an unevaluated key is not a demoted one.
+  # +other_carriers+ counts records other than the two being compared, over the index
+  # AND the open queue together.
+  #
+  # An unreadable brand label ends the FIRST reading, not the measurement. Giving up on
+  # the whole test there is what made this unable to fire on the hosts that need it most:
+  # brand_key is nil for every bare entry in SHARED_HOSTS, so two unrelated records whose
+  # canonical domain is wixsite.com itself blocked on exact_domain alone. So the
+  # population is still consulted: other carriers present is +shared+ however the label
+  # reads, and only a blank label with nobody else on the host stays UNEVALUATED — which
+  # is the tenant-subdomain case (marbury-clause.wixsite.com), where an absent label is
+  # not evidence that two records are different companies.
   def self.domain_ownership(domain, name_keys:, other_carriers:)
     return OWNERSHIP_UNEVALUATED if domain.blank?
 
     label = brand_key(domain)
-    return OWNERSHIP_UNEVALUATED if label.blank?
-    return OWNERSHIP_OWNED if label.in?(Array(name_keys))
+    return OWNERSHIP_OWNED if label.present? && label.in?(Array(name_keys))
+    return OWNERSHIP_UNEVALUATED if label.blank? && other_carriers.to_i.zero?
 
     other_carriers.to_i.zero? ? OWNERSHIP_OWNED : OWNERSHIP_SHARED
   end
@@ -543,17 +550,25 @@ class CompanyIdentityMatcher
   #   sides          [candidate, other], each {normalized:, name_keys:, brand_domain_keys:}
   #   domain_states  ownership state per domain key, from domain_ownership
   #   brand_key      the shared brand label, when brand_name fired
-  #   prior_name_recorded  the matched prior name came from a name change actually
-  #                        recorded in the edit history, not from the row's own slug
-  def self.evidence_for(match_types, sides:, domain_states: {}, brand_key: nil, prior_name_recorded: false)
+  def self.evidence_for(match_types, sides:, domain_states: {}, brand_key: nil)
     Array(match_types).map do |type|
       family, alone =
         case type
+        # A resolved redirect is a fact about where one site sends its visitors, not
+        # evidence of co-tenancy, which is the only thing the ownership test measures.
+        # Putting it under that test let a confirmed redirect report itself confirmed and
+        # advisory in one breath, because the target host happened to carry other records.
+        when "redirect_domain" then [FAMILY_ADDRESS, true]
         when *DOMAIN_MATCH_TYPES
           [FAMILY_ADDRESS, owned_domain?(domain_states[type])]
         when "shared_profile" then [FAMILY_PROFILE, true]
         when "exact_name" then [FAMILY_NAME, true]
-        when "prior_name" then [FAMILY_NAME, prior_name_recorded]
+        # Alone-eligible however the prior name was recovered. Requiring a rename recorded
+        # in the edit history read an absent record as evidence that two records are
+        # DIFFERENT companies, which is the same mistake the ownership test refuses to
+        # make about domains — and it silently demoted the real eSignLive/OneSpan rebrand,
+        # whose only trace of the old name is the slug.
+        when "prior_name" then [FAMILY_NAME, true]
         when "core_name" then [FAMILY_NAME, false]
         when "brand_name" then brand_evidence(brand_key, sides)
         else [FAMILY_NAME, false]
@@ -584,16 +599,37 @@ class CompanyIdentityMatcher
     SURFACING_ADVISORY
   end
 
+  # MAX_MATCHES is a display cap, and a display cap must not change a verdict. Ten
+  # advisory hits of a higher-precedence key would otherwise crowd out the eleventh,
+  # blocking one, and the caller's "any blocking?" would read the truncated list and
+  # answer no. Blocking hits are kept first; the reported ORDER is still precedence.
+  def self.capped(hits)
+    return hits if hits.size <= MAX_MATCHES
+
+    keep = hits.select { |hit| hit["surfacing"] == SURFACING_BLOCKING }.first(MAX_MATCHES)
+    hits.each do |hit|
+      break if keep.size >= MAX_MATCHES
+
+      keep << hit unless keep.any? { |kept| kept.equal?(hit) }
+    end
+    hits.select { |hit| keep.any? { |kept| kept.equal?(hit) } }
+  end
+
   def self.matches_for(name:, domains: [], declared_domains: nil, profiles: {}, exclude_company_id: nil)
     new(name: name, domains: domains, declared_domains: declared_domains, profiles: profiles, exclude_company_id: exclude_company_id).matches
   end
 
-  def initialize(name:, domains: [], declared_domains: nil, profiles: {}, exclude_company_id: nil)
+  # extra_domain_carriers is how a caller folds ITS OWN population into the ownership
+  # measurement: {domain => number of records}. The proposal detector passes the open
+  # queue, so one domain gets one verdict per call instead of reading "owned" on the
+  # sibling side and "shared" on the company side of the very same pair.
+  def initialize(name:, domains: [], declared_domains: nil, profiles: {}, exclude_company_id: nil, extra_domain_carriers: {})
     @name = name
     @domains = normalize_domains(domains)
     @declared_domains = normalize_domains(declared_domains.nil? ? domains : declared_domains)
     @profiles = profiles.to_h.compact_blank
     @exclude_company_id = exclude_company_id
+    @extra_domain_carriers = extra_domain_carriers.to_h
   end
 
   def matches
@@ -628,7 +664,7 @@ class CompanyIdentityMatcher
         "surfacing" => self.class.surfacing_for(evidence),
         "shared_profiles" => shared_profiles(row)
       }.merge(domain_states.any? ? { "domain_ownership" => domain_states.values.first } : {})
-    end.sort_by { |hit| MATCH_TYPES.index(hit["match_type"]) }.first(MAX_MATCHES)
+    end.then { |hits| self.class.capped(hits.sort_by { |hit| MATCH_TYPES.index(hit["match_type"]) }) }
   end
 
   # True when the matched domain is one we only learned by resolving the candidate's site,
@@ -642,9 +678,29 @@ class CompanyIdentityMatcher
 
   attr_reader :declared_domains
 
+  # The whole compared population, domain by domain: every record in the index plus
+  # whatever the caller folded in. Public because the caller grading its own population
+  # has to count over the same union, or the two sides disagree about one pair.
+  def domain_carriers
+    @domain_carriers ||= self.class.index.each_with_object(Hash.new(0)) do |row, counts|
+      row[:domains].uniq.each { |domain| counts[domain] += 1 }
+    end.tap do |counts|
+      extra_domain_carriers.each { |domain, extra| counts[domain] += extra.to_i }
+    end
+  end
+
+  # The candidate's own already-minted company is not a third party on any host.
+  def excluded_row_domains
+    @excluded_row_domains ||= if exclude_company_id.present?
+      Array(self.class.index.find { |row| row[:id] == exclude_company_id }&.fetch(:domains, nil))
+    else
+      []
+    end
+  end
+
   private
 
-  attr_reader :name, :domains, :profiles, :exclude_company_id
+  attr_reader :name, :domains, :profiles, :exclude_company_id, :extra_domain_carriers
 
   def normalize_domains(values)
     Array(values).compact_blank.map { |domain| domain.to_s.downcase }.uniq
@@ -693,14 +749,11 @@ class CompanyIdentityMatcher
   end
 
   def evidence_for(match_types, row, domain_states)
-    prior = prior_name_for(row)
-
     self.class.evidence_for(
       match_types,
       sides: [candidate_side, row_side(row)],
       domain_states: domain_states,
-      brand_key: brand_match_for(row),
-      prior_name_recorded: prior.present? && prior.in?(Array(row[:recorded_names]))
+      brand_key: brand_match_for(row)
     )
   end
 
@@ -725,20 +778,6 @@ class CompanyIdentityMatcher
     count -= 1 if row[:domains].include?(domain)
     count -= 1 if excluded_row_domains.include?(domain)
     [count, 0].max
-  end
-
-  def domain_carriers
-    @domain_carriers ||= self.class.index.each_with_object(Hash.new(0)) do |row, counts|
-      row[:domains].uniq.each { |domain| counts[domain] += 1 }
-    end
-  end
-
-  def excluded_row_domains
-    @excluded_row_domains ||= if exclude_company_id.present?
-      Array(self.class.index.find { |row| row[:id] == exclude_company_id }&.fetch(:domains, nil))
-    else
-      []
-    end
   end
 
   def match_types_for(row)
@@ -845,8 +884,7 @@ class CompanyIdentityMatcher
       brand_domain_keys: domains.filter_map { |domain| brand_key(domain) }.uniq,
       name_keys: name_keys(name),
       profiles: profile_keys("linkedin_url" => linkedin_url, "crunchbase_url" => crunchbase_url),
-      historical_names: historical_name_values(slug: slug, prior_names: prior_names, current_normalized: normalized),
-      recorded_names: recorded_name_values(prior_names: prior_names, current_normalized: normalized)
+      historical_names: historical_name_values(slug: slug, prior_names: prior_names, current_normalized: normalized)
     }
   end
 end

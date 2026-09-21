@@ -177,6 +177,25 @@ class DuplicateSubmissionRoutingTest < ActiveSupport::TestCase
     assert_equal 1, proposal.reload.duplicate_evidence.size
   end
 
+  # An entry written before the surfacing threshold existed carries no "surfacing" key on
+  # its matched hashes. Comparing the blobs literally made every proposal holding one
+  # append a near-identical copy on its first check after deploy.
+  test "a legacy evidence entry is not re-appended when the shape gains a key" do
+    published!(name: "Notaron", url: "https://notaron.com/")
+    proposal = contribution(name: "Notaron", url: "https://notaron.com")
+    proposal.refresh_duplicate_signals!
+
+    legacy = proposal.reload.duplicate_evidence.map do |entry|
+      entry.except("surfacing").merge("matched" => entry["matched"].map { |match| match.except("surfacing") })
+    end
+    proposal.update_columns(agent_details: proposal.agent_details.merge("duplicate_evidence" => legacy))
+
+    proposal.refresh_duplicate_signals!
+
+    assert_equal 1, proposal.reload.duplicate_evidence.size, "the same observation is one entry, whatever shape it was written in"
+    assert_nil proposal.duplicate_evidence.first["matched"].first["surfacing"], "and the entry as written is left alone"
+  end
+
   # An advisory decision is a decision, and the live view forgets decisions the same way
   # it forgets matches. It is recorded with what it was graded, and it reaches the
   # reviewer - as a warning rather than as a publish blocker, because a comparison worth

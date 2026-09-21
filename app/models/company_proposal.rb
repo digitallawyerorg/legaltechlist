@@ -119,7 +119,7 @@ class CompanyProposal < ActiveRecord::Base
 
     entry = duplicate_evidence_entry(signals)
     history = duplicate_evidence
-    return signals if history.any? { |seen| seen["matched"] == entry["matched"] }
+    return signals if history.any? { |seen| comparable_evidence(seen) == comparable_evidence(entry) }
 
     update_columns(agent_details: agent_details.merge(
       "duplicate_evidence" => (history + [entry]).last(MAX_DUPLICATE_EVIDENCE_ENTRIES)
@@ -129,6 +129,16 @@ class CompanyProposal < ActiveRecord::Base
 
   def duplicate_evidence
     Array(agent_details["duplicate_evidence"]).select { |entry| entry.is_a?(Hash) }
+  end
+
+  # Two entries are the same observation when they name the same matches. The comparison
+  # has to ignore keys the shape has GAINED since an entry was written: "surfacing"
+  # arrived with the blocking/advisory threshold, so every proposal holding a pre-change
+  # entry would otherwise append one near-identical copy on its first check after deploy.
+  EVIDENCE_SHAPE_ADDITIONS = %w[surfacing].freeze
+
+  def comparable_evidence(entry)
+    Array(entry["matched"]).map { |match| match.is_a?(Hash) ? match.except(*EVIDENCE_SHAPE_ADDITIONS) : match }
   end
 
   def duplicate_evidence_entry(signals)

@@ -76,6 +76,7 @@ class ProposalDuplicateDetectorServiceTest < ActiveSupport::TestCase
     # And when the site fetch resolves the redirect, the domain key catches it too.
     resolved = ProposalDuplicateDetectorService.call(proposal: proposal, extra_domains: ["contractpodai.com"])
     assert_equal ["exact_domain"], resolved["domain_matches"].map { |m| m["match_type"] }
+    assert resolved["blocking"], "a real rebrand caught on the fetched domain has to stay blocking"
     assert_match(/rebrand/, resolved["recommended_action"])
   end
 
@@ -270,6 +271,50 @@ class ProposalDuplicateDetectorServiceTest < ActiveSupport::TestCase
     refute signals["blocking"]
     assert signals["advisory"]
     assert_match(/Not treated as a duplicate/, signals["recommended_action"])
+  end
+
+  # The ownership measurement was split across two populations that could not see each
+  # other: the matcher counted index rows, the sibling side counted open proposals. The
+  # same pair then read "owned" on one side and "shared" on the other, and one call came
+  # back with blocking and advisory both true.
+  test "one domain gets one verdict whether it is read from the index or the open queue" do
+    @company.update!(name: "Indexed Listing", main_url: "https://www.producthunt.com/products/indexed-listing")
+    @company.update_columns(canonical_domain: "producthunt.com", visible: true, quality_status: nil)
+    second_indexed = companies(:two)
+    second_indexed.update!(name: "Second Indexed Listing", main_url: "https://www.producthunt.com/products/second-indexed")
+    second_indexed.update_columns(canonical_domain: "producthunt.com", visible: true, quality_status: nil)
+
+    sibling = proposal_for({ "name" => "Batesly", "main_url" => "https://www.producthunt.com/products/batesly" }, status: "ready_for_review")
+    candidate = proposal_for({"name" => "Tecnika Legal", "main_url" => "https://www.producthunt.com/products/tecnika-legal"})
+
+    signals = ProposalDuplicateDetectorService.call(proposal: candidate)
+    company_match = signals["domain_matches"].find { |match| match["id"] == @company.id }
+    sibling_match = signals["proposal_matches"].find { |match| match["proposal_id"] == sibling.id }
+
+    assert company_match, "the index row on the shared host is still reported"
+    assert sibling_match, "and so is the sibling proposal on it"
+    assert_equal CompanyIdentityMatcher::OWNERSHIP_SHARED, company_match["domain_ownership"]
+    assert_equal CompanyIdentityMatcher::OWNERSHIP_SHARED, sibling_match["domain_ownership"],
+                 "the index and the open queue are one population, so one domain gets one verdict"
+    refute signals["blocking"], "the same host must not read blocking on one side and advisory on the other"
+    assert signals["advisory"]
+  end
+
+  # The reviewer's complaint was a weak single key worded exactly like a confirmed
+  # duplicate, and appending "not treated as a duplicate" to that sentence left the
+  # claim first and the retraction last, with the ask repeated twice.
+  test "an advisory action opens with the retraction and does not say it twice" do
+    sibling = proposal_for({ "name" => "Pactolane", "main_url" => "https://www.pactolane.com" }, status: "ready_for_review")
+    candidate = proposal_for({"name" => "Pactolane Technologies", "main_url" => "https://pactolane-clm.example"})
+
+    action = ProposalDuplicateDetectorService.call(proposal: candidate)["recommended_action"]
+
+    assert action.start_with?("Not treated as a duplicate"), action
+    assert_match(/proposal ##{sibling.id}/, action)
+    assert_match(/core name and brand name agreed/, action)
+    refute_match(/may cover the same company/, action)
+    refute_match(/Possibly the same company/, action)
+    assert_equal 1, action.scan(/ompare the/).size, "the reviewer is asked to compare exactly once"
   end
 
   # A core-name agreement and the brand label read out of that same core are one

@@ -154,6 +154,69 @@ module Mcp
       assert_equal "published", proposal.reload.status
     end
 
+    # ---- duplicate detection holds every unattended path ------------------
+    #
+    # The queue owner's rule is that duplicate detection is a mandatory gate on every
+    # ingestion path. publish defaults to human_approved, so an ordinary unattended
+    # approve_proposal(id: X) arrives with publish == false, skips the publish gate that
+    # reads holds_automation? entirely, and reaches DuplicateGate.enforce!, which refuses
+    # only on blocking. An advisory duplicate therefore minted a hidden company draft
+    # with no human anywhere in the loop.
+    test "approve_proposal holds an unattended draft on an advisory duplicate" do
+      advisory_neighbour!(name: "Ready", url: "https://ready-clm.example")
+      proposal = ready_proposal
+
+      assert_no_difference "Company.count" do
+        response = Mcp::Tools::ApproveProposalTool.call(server_context: @context, id: proposal.id)
+        assert response.error?
+      end
+
+      signals = proposal.reload.duplicate_signals
+      refute signals["blocking"], "this is the advisory case, not the blocking one"
+      assert signals["advisory"]
+      assert_nil proposal.company_id, "nothing may be minted unattended over an advisory match"
+    end
+
+    test "a human approving past an advisory duplicate still drafts" do
+      advisory_neighbour!(name: "Ready", url: "https://ready-clm.example")
+      proposal = ready_proposal
+
+      result = call(Mcp::Tools::ApproveProposalTool, id: proposal.id, human_approved: true, publish: false)
+
+      assert_equal false, result["published"]
+      assert proposal.reload.company_id.present?, "a human in the loop is exactly what advisory allows for"
+    end
+
+    # The other unattended path, and the worse one: a user suggestion applies onto a LIVE
+    # company. The suggestion branch returned before DuplicateGate.check ever ran, so
+    # holds_automation? was never asked on it at all.
+    test "approve_proposal holds an autonomous suggestion on an advisory duplicate" do
+      company = companies(:one)
+      original = company.name
+      advisory_neighbour!(name: "Vantoria", url: "https://vantoria-legal.example")
+      call(Mcp::Tools::ProposeCompanyUpdateTool, slug: company.slug, changes: { "name" => "Vantoria Technologies" }, rationale: "Rebrand.")
+      proposal = CompanyProposal.order(:created_at).last
+
+      with_env("MCP_CURATOR_AUTOAPPLY_UPDATES" => "true", "MCP_CURATOR_MIN_CONFIDENCE" => "0.8") do
+        response = Mcp::Tools::ApproveProposalTool.call(server_context: @context, id: proposal.id, confidence: 0.9)
+        assert response.error?
+      end
+
+      assert_equal original, company.reload.name, "a live entry must not be overwritten unattended over an advisory match"
+      assert proposal.reload.duplicate_signals["advisory"]
+    end
+
+    test "a human approving a suggestion past an advisory duplicate still applies it" do
+      company = companies(:one)
+      advisory_neighbour!(name: "Vantoria", url: "https://vantoria-legal.example")
+      call(Mcp::Tools::ProposeCompanyUpdateTool, slug: company.slug, changes: { "name" => "Vantoria Technologies" }, rationale: "Rebrand.")
+      proposal = CompanyProposal.order(:created_at).last
+
+      call(Mcp::Tools::ApproveProposalTool, id: proposal.id, human_approved: true)
+
+      assert_equal "Vantoria Technologies", company.reload.name
+    end
+
     test "approve_proposal publishes autonomously with high confidence when autopublish is on" do
       proposal = ready_proposal
       with_env("MCP_CURATOR_AUTOPUBLISH" => "true", "MCP_CURATOR_MIN_CONFIDENCE" => "0.8") do
@@ -996,6 +1059,16 @@ module Mcp
         final_changes: {},
         duplicate_signals: {}
       )
+    end
+
+    # A second index row that agrees on the core name and on the brand label read out of
+    # that same core, with the domains disagreeing: one evidence family, nothing
+    # alone-eligible, so the pair grades advisory.
+    def advisory_neighbour!(name:, url:)
+      neighbour = companies(:two)
+      neighbour.update!(name: name, main_url: url)
+      neighbour.update_columns(canonical_domain: Company.canonical_domain_for(url), visible: true, quality_status: nil)
+      neighbour
     end
 
     def ready_proposal
