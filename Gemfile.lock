@@ -107,7 +107,8 @@ GEM
     browser (6.2.0)
     buftok (1.0.1)
     builder (3.3.0)
-    byebug (11.1.3)
+    byebug (13.0.0)
+      reline (>= 0.6.0)
     caxlsx (4.5.0)
       htmlentities (~> 4.3, >= 4.3.4)
       marcel (~> 1.0)
@@ -463,7 +464,7 @@ DEPENDENCIES
   bootstrap (~> 5.3.8)
   bootstrap_form (= 2.7.0)
   browser (= 6.2.0)
-  byebug (~> 11.1.3)
+  byebug (~> 13.0.0)
   caxlsx
   caxlsx_rails
   chartkick

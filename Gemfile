@@ -52,7 +52,7 @@ gem 'twitter', '~> 8.3'
 gem 'ffi', '~> 1.17.4'
 
 group :development, :test do
-  gem 'byebug', '~> 11.1.3'
+  gem 'byebug', '~> 13.0.0'
   gem 'minitest', '~> 6.0'
   gem 'minitest-mock' # minitest 6.x extracted Minitest::Mock into this gem
   gem 'rails-controller-testing'
