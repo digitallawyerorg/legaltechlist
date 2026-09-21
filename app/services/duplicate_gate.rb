@@ -54,15 +54,45 @@ class DuplicateGate
     # the gate without erasing what the gate saw — the evidence is already recorded.
     def blocking? = signals["blocking"] == true && !overridden?
 
+    # Something matched, but on a single loose key with nothing independent agreeing.
+    # A reviewer is told; a write by a human is not stopped.
+    def advisory? = signals["advisory"] == true && !overridden?
+
+    # What an UNATTENDED path asks. A human reading an advisory match can weigh it and
+    # proceed; a machine cannot, and the cost of it being wrong is not symmetric — a
+    # demotion that turns into an auto-published second row, or an auto-rejected real
+    # submission, is worse than the false positive the demotion removed. So automation
+    # stops on advisory too, and stopping means leaving the record for a human rather
+    # than disposing of it.
+    def holds_automation? = blocking? || advisory?
+
     def recommended_action = signals["recommended_action"].presence || FALLBACK_ACTION
 
     def matches = Array(signals["name_matches"]) + Array(signals["domain_matches"])
 
+    def blocking_matches = matches.select { |match| surfacing(match) == CompanyIdentityMatcher::SURFACING_BLOCKING }
+
+    def advisory_matches = matches.select { |match| surfacing(match) == CompanyIdentityMatcher::SURFACING_ADVISORY }
+
+    def proposal_matches = Array(signals["proposal_matches"])
+
+    def blocking_proposal_matches = proposal_matches.select { |match| surfacing(match) == CompanyIdentityMatcher::SURFACING_BLOCKING }
+
+    def advisory_proposal_matches = proposal_matches.select { |match| surfacing(match) == CompanyIdentityMatcher::SURFACING_ADVISORY }
+
     # The published row is the one to resolve against when there is one; otherwise the
     # first match, which may be a hidden draft the reviewer needs to be told about.
-    def canonical_match = matches.find { |match| match["visible"] } || matches.first
+    #
+    # Only a blocking match can be named here. An advisory hit is a comparison offered,
+    # not a canonical record: writing one into the routing entry would tell a reviewer
+    # to resolve against a record the gate itself declined to stop the write for.
+    def canonical_match = blocking_matches.find { |match| match["visible"] } || blocking_matches.first
 
-    def canonical_proposal_match = Array(signals["proposal_matches"]).first
+    def canonical_proposal_match = blocking_proposal_matches.first
+
+    # Hits written before this shape existed carry no surfacing value. They were all
+    # blocking when they were written, which is what the absence means — never advisory.
+    def surfacing(match) = match["surfacing"].presence || CompanyIdentityMatcher::SURFACING_BLOCKING
 
     def message = "Resolve the duplicate before approval: #{recommended_action}"
   end
@@ -78,7 +108,10 @@ class DuplicateGate
   # Reporting callers pass false; anything that acts on the answer leaves it on.
   def self.check(proposal, override: false, refresh: true, record_evidence: true)
     signals = proposal.current_duplicate_signals(refresh: refresh)
-    proposal.record_duplicate_evidence!(signals) if record_evidence && signals["blocking"]
+    # Advisory decisions are recorded too: the live view forgets either way, and "the
+    # gate looked and decided this was not strong enough" is exactly the disposition a
+    # later reader needs to be able to audit.
+    proposal.record_duplicate_evidence!(signals) if record_evidence
     Decision.new(proposal: proposal, signals: signals, overridden: ActiveModel::Type::Boolean.new.cast(override))
   end
 

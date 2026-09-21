@@ -248,6 +248,61 @@ class ProposalDuplicateDetectorServiceTest < ActiveSupport::TestCase
     end
   end
 
+  # ---- surfacing ---------------------------------------------------------
+
+  # The pair the reviewer reported, with the host the exclusion list does not name.
+  # Batesly and Tecnika Legal arrive with no site of their own and a store or directory
+  # listing standing in for one. The hit is still reported and still graded; it stops
+  # asserting a duplicate by itself once the population shows the host is a place
+  # records get put rather than an address either of them owns.
+  test "two proposals sharing only an aggregator address are advisory, not blocking" do
+    first = proposal_for({ "name" => "Batesly", "main_url" => "https://www.producthunt.com/products/batesly" }, status: "ready_for_review")
+    proposal_for({ "name" => "Third Listing", "main_url" => "https://www.producthunt.com/products/third-listing" }, status: "ready_for_review")
+    second = proposal_for({"name" => "Tecnika Legal", "main_url" => "https://www.producthunt.com/products/tecnika-legal"})
+
+    signals = ProposalDuplicateDetectorService.call(proposal: second)
+    match = signals["proposal_matches"].find { |m| m["proposal_id"] == first.id }
+
+    assert match, "the comparison is still offered to the reviewer"
+    assert_equal "exact_domain", match["match_type"]
+    assert_equal CompanyIdentityMatcher::OWNERSHIP_SHARED, match["domain_ownership"]
+    assert_equal CompanyIdentityMatcher::SURFACING_ADVISORY, match["surfacing"]
+    refute signals["blocking"]
+    assert signals["advisory"]
+    assert_match(/Not treated as a duplicate/, signals["recommended_action"])
+  end
+
+  # A core-name agreement and the brand label read out of that same core are one
+  # reading of two names, not two.
+  test "two proposals agreeing on a core name alone are advisory" do
+    first = proposal_for({ "name" => "Pactolane", "main_url" => "https://www.pactolane.com" }, status: "ready_for_review")
+    second = proposal_for({"name" => "Pactolane Technologies", "main_url" => "https://pactolane-clm.example"})
+
+    signals = ProposalDuplicateDetectorService.call(proposal: second)
+    match = signals["proposal_matches"].find { |m| m["proposal_id"] == first.id }
+
+    assert match
+    assert_equal %w[core_name brand_name], match["match_types"]
+    assert_equal CompanyIdentityMatcher::SURFACING_ADVISORY, match["surfacing"]
+    refute signals["blocking"]
+    assert signals["advisory"]
+  end
+
+  # Authedra 4148/4164: two open proposals for one company, judged a correct duplicate
+  # call, carried by the name and nothing else. exact_name is what has to hold it.
+  test "twin proposals with one name and no website still block on the name alone" do
+    first = proposal_for({ "name" => "Authedra" }, status: "ready_for_review")
+    second = proposal_for({"name" => "Authedra"})
+
+    signals = ProposalDuplicateDetectorService.call(proposal: second)
+    match = signals["proposal_matches"].find { |m| m["proposal_id"] == first.id }
+
+    assert_equal "exact_name", match["match_type"]
+    assert_equal CompanyIdentityMatcher::SURFACING_BLOCKING, match["surfacing"]
+    assert signals["blocking"]
+    refute_match(/Not treated as a duplicate/, signals["recommended_action"])
+  end
+
   # Caseway 4174/4175 and the Europaius double-post: one submission that arrived twice.
   # Grading the sibling side must not soften these — they are one record, not two products.
   test "twin proposals with the same name and website stay confirmed" do

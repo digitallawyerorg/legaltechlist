@@ -13,7 +13,13 @@
 # candidate's name, domains and profiles are, compares against the open queue as well as
 # the index, and writes the reviewer-facing summary.
 class ProposalDuplicateDetectorService
+  # Every key is still computed, still reported and still recorded. What changed is that
+  # carrying a key is no longer the same as stopping a write: CompanyIdentityMatcher
+  # grades each hit as blocking or advisory, and "blocking" below is that grade rather
+  # than the mere presence of a match type.
   BLOCKING_MATCH_TYPES = CompanyIdentityMatcher::MATCH_TYPES
+  SURFACING_BLOCKING = CompanyIdentityMatcher::SURFACING_BLOCKING
+  SURFACING_ADVISORY = CompanyIdentityMatcher::SURFACING_ADVISORY
 
   # How far the evidence actually goes. Both tiers still require a human to resolve
   # before approval — the Avokati AI pair that reached the public site matched on name
@@ -54,7 +60,11 @@ class ProposalDuplicateDetectorService
       "domain_matches" => CompanyIdentityMatcher.domain_matches(company_hits),
       "proposal_matches" => proposal_hits,
       "recommended_action" => recommended_action(company_hits, proposal_hits),
-      "blocking" => (company_hits + proposal_hits).any? { |hit| hit["match_type"].in?(BLOCKING_MATCH_TYPES) },
+      # A duplicate is surfaced as blocking only on strong, corroborated evidence: one
+      # key that can carry the claim alone, or two independent families agreeing. Weak
+      # single keys are reported as advisory instead of stopping the write.
+      "blocking" => (company_hits + proposal_hits).any? { |hit| hit["surfacing"] == SURFACING_BLOCKING },
+      "advisory" => (company_hits + proposal_hits).any? { |hit| hit["surfacing"] == SURFACING_ADVISORY },
       "confidence" => overall_confidence(company_hits + proposal_hits),
       "checked_at" => Time.current.utc.iso8601
     }
@@ -104,6 +114,24 @@ class ProposalDuplicateDetectorService
     @candidate_domains ||= (declared_domains + extra_domains).uniq
   end
 
+  def candidate_name_keys
+    @candidate_name_keys ||= CompanyIdentityMatcher.name_keys(candidate_name)
+  end
+
+  def candidate_brand_domain_keys
+    @candidate_brand_domain_keys ||= candidate_domains.filter_map { |domain| CompanyIdentityMatcher.brand_key(domain) }.uniq
+  end
+
+  # What the surfacing rule needs to know about this candidate: what it calls itself,
+  # and what it merely publishes as an address.
+  def candidate_side
+    @candidate_side ||= {
+      normalized: normalized_name,
+      name_keys: candidate_name_keys,
+      brand_domain_keys: candidate_brand_domain_keys
+    }
+  end
+
   def candidate_profiles
     @candidate_profiles ||= CompanyIdentityMatcher.profile_keys(
       "linkedin_url" => changes["linkedin_url"].presence || proposal.source_payload["linkedin_url"],
@@ -143,10 +171,17 @@ class ProposalDuplicateDetectorService
   def proposal_matches
     return [] if normalized_name.blank? && candidate_domains.empty?
 
-    sibling_proposals.filter_map do |sibling|
-      identity = sibling_identity(sibling)
+    sibling_identities.filter_map do |sibling, identity|
       match_types = sibling_match_types(identity)
       next if match_types.empty?
+
+      domain_states = sibling_domain_states(match_types, identity)
+      evidence = CompanyIdentityMatcher.evidence_for(
+        match_types,
+        sides: [candidate_side, sibling_side(identity)],
+        domain_states: domain_states,
+        brand_key: (candidate_brands & sibling_brands(identity)).first
+      )
 
       {
         "proposal_id" => sibling.id,
@@ -168,9 +203,58 @@ class ProposalDuplicateDetectorService
         ),
         # The older record is the one an operator has probably already looked at, so
         # name a default canonical rather than leaving the choice unframed.
-        "is_older" => sibling.created_at.present? && proposal.created_at.present? && sibling.created_at < proposal.created_at
-      }
+        "is_older" => sibling.created_at.present? && proposal.created_at.present? && sibling.created_at < proposal.created_at,
+        # Graded on the same scale the company side uses, so one pair reads the same
+        # whichever list it lands in.
+        "surfacing" => CompanyIdentityMatcher.surfacing_for(evidence)
+      }.merge(domain_states.any? ? { "domain_ownership" => domain_states.values.first } : {})
     end.first(CompanyIdentityMatcher::MAX_MATCHES)
+  end
+
+  # Resolved once: the sibling set is the comparison population as well as the list of
+  # candidates, and the ownership test counts records in it.
+  def sibling_identities
+    @sibling_identities ||= sibling_proposals.map { |sibling| [sibling, sibling_identity(sibling)] }
+  end
+
+  def sibling_side(identity)
+    { normalized: identity[:normalized], name_keys: identity[:name_keys], brand_domain_keys: identity[:brand_domain_keys] }
+  end
+
+  def sibling_domain_states(match_types, identity)
+    (match_types & CompanyIdentityMatcher::DOMAIN_MATCH_TYPES).index_with do |type|
+      value = sibling_matched_domain(type, identity)
+      CompanyIdentityMatcher.domain_ownership(
+        value,
+        name_keys: candidate_name_keys + identity[:name_keys],
+        other_carriers: sibling_other_carriers(value, identity)
+      )
+    end
+  end
+
+  def sibling_matched_domain(type, identity)
+    case type
+    when "exact_domain"
+      (candidate_identity_domains & identity[:domains]).first
+    when "related_domain"
+      identity[:domains].find { |theirs| candidate_domains.any? { |mine| CompanyIdentityMatcher.related_domains?(mine, theirs) } }
+    end
+  end
+
+  # Open proposals other than the two being compared that carry this domain. The
+  # candidate is already out of sibling_proposals; the sibling is taken out here.
+  def sibling_other_carriers(domain, identity)
+    return 0 if domain.blank?
+
+    count = sibling_domain_carriers[domain].to_i
+    count -= 1 if identity[:domains].include?(domain)
+    [count, 0].max
+  end
+
+  def sibling_domain_carriers
+    @sibling_domain_carriers ||= sibling_identities.each_with_object(Hash.new(0)) do |(_sibling, identity), counts|
+      identity[:domains].uniq.each { |domain| counts[domain] += 1 }
+    end
   end
 
   # The sibling read the same way the candidate is read: its editable changes first, its
@@ -180,13 +264,16 @@ class ProposalDuplicateDetectorService
   def sibling_identity(sibling)
     changes = sibling.editable_changes
     name = changes["name"].presence || sibling.source_payload["name"].presence
+    domains = [changes["main_url"], sibling.source_payload["website"]]
+              .map { |url| Company.canonical_domain_for(url) }.compact_blank.uniq
 
     {
       changes: changes,
       normalized: Company.normalized_name_value(name),
       core: CompanyIdentityMatcher.core_key(name),
-      domains: [changes["main_url"], sibling.source_payload["website"]]
-               .map { |url| Company.canonical_domain_for(url) }.compact_blank.uniq,
+      name_keys: CompanyIdentityMatcher.name_keys(name),
+      brand_domain_keys: domains.filter_map { |domain| CompanyIdentityMatcher.brand_key(domain) }.uniq,
+      domains: domains,
       profiles: CompanyIdentityMatcher.profile_keys(
         "linkedin_url" => changes["linkedin_url"].presence || sibling.source_payload["linkedin_url"],
         "crunchbase_url" => changes["crunchbase_url"].presence || sibling.source_payload["crunchbase_url"]
@@ -219,11 +306,11 @@ class ProposalDuplicateDetectorService
   end
 
   def candidate_brands
-    @candidate_brands ||= ([candidate_core] + candidate_domains.map { |domain| CompanyIdentityMatcher.brand_key(domain) }).compact_blank
+    @candidate_brands ||= ([candidate_core] + candidate_brand_domain_keys).compact_blank
   end
 
   def sibling_brands(sibling)
-    ([sibling[:core]] + sibling[:domains].map { |domain| CompanyIdentityMatcher.brand_key(domain) }).compact_blank
+    ([sibling[:core]] + sibling[:brand_domain_keys]).compact_blank
   end
 
   def shared_sibling_profiles(sibling)
@@ -245,7 +332,7 @@ class ProposalDuplicateDetectorService
     return nil if company_hits.empty? && proposal_hits.empty?
 
     parts = []
-    if (company_hit = company_hits.first)
+    if (company_hit = preferred_hit(company_hits))
       label = "#{company_hit['name']} (##{company_hit['id']})"
       parts << if matcher.rebrand?(company_hit)
         "#{label} already covers #{company_hit['matched_value']} — this looks like a rebrand, so update that entry rather than creating a new one. Compare the two records to see what this proposal adds."
@@ -266,7 +353,7 @@ class ProposalDuplicateDetectorService
       end
     end
 
-    if (proposal_hit = proposal_hits.first)
+    if (proposal_hit = preferred_hit(proposal_hits))
       canonical = proposal_hit["is_older"] ? "Proposal ##{proposal_hit['proposal_id']} is the earlier record" : "This is the earlier record"
       label = "Proposal ##{proposal_hit['proposal_id']}"
       parts << if proposal_hit["confidence"] == CONFIDENCE_CONFIRMED
@@ -281,6 +368,23 @@ class ProposalDuplicateDetectorService
       end
     end
 
+    parts << advisory_clause(company_hits + proposal_hits) if (company_hits + proposal_hits).none? { |hit| hit["surfacing"] == SURFACING_BLOCKING }
+
     parts.join(" ")
+  end
+
+  # The record the reviewer is being asked to resolve against is the one the evidence
+  # actually reaches. Narrating an advisory hit while a blocking one exists would name
+  # the weaker of the two as the canonical record.
+  def preferred_hit(hits)
+    hits.find { |hit| hit["surfacing"] == SURFACING_BLOCKING } || hits.first
+  end
+
+  # Said out loud, because the complaint was never that the panel appeared - it was that
+  # a single loose key was worded exactly like a confirmed duplicate.
+  def advisory_clause(hits)
+    keys = hits.flat_map { |hit| Array(hit["match_types"]) }.uniq.map { |type| type.humanize.downcase }.to_sentence
+
+    "Not treated as a duplicate: #{keys} agreed, and nothing independent corroborates it. Compare the records if you disagree."
   end
 end

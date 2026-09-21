@@ -138,7 +138,12 @@ class UserContributionIntakeService
     {
       "name_matches" => CompanyIdentityMatcher.name_matches(matches),
       "domain_matches" => CompanyIdentityMatcher.domain_matches(matches),
-      "blocking" => matches.any?,
+      # The same grade the gate applies, rather than "something matched". This blob is
+      # the snapshot the triage and verifier agents read, and a second definition of
+      # "blocking" living here would stamp a pair as a duplicate on the one path where
+      # the gate itself had already declined to.
+      "blocking" => matches.any? { |match| match["surfacing"] == CompanyIdentityMatcher::SURFACING_BLOCKING },
+      "advisory" => matches.any? { |match| match["surfacing"] == CompanyIdentityMatcher::SURFACING_ADVISORY },
       "checked_at" => Time.current.utc.iso8601
     }
   end

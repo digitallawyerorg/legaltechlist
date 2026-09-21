@@ -30,6 +30,10 @@ class CompanyUserSubmissionProcessorService
     # which point a second row existed or the submitted text had been overwritten.
     duplicate = DuplicateGate.check(proposal)
     return routed_result(DuplicateGate.route!(duplicate)) if duplicate.blocking?
+    # Everything past this point is unattended: enrichment overwrites the submitted
+    # text, and the tail of this method can publish. An advisory match is not enough to
+    # route to duplicate resolution, and it is far too much to auto-publish over.
+    return advisory_result(duplicate) if duplicate.advisory?
 
     return process_user_suggestion!(triage) if proposal.user_suggestion?
 
@@ -73,6 +77,13 @@ class CompanyUserSubmissionProcessorService
     result("duplicate_resolution", decision.recommended_action)
   end
 
+  # Not duplicate resolution — the evidence does not reach that — but not automation
+  # either. The record stops in the normal review queue with the comparison named on it.
+  def advisory_result(decision)
+    proposal.update!(status: "ready_for_review", reviewed_at: Time.current) if proposal.status == "pending"
+    result("ready_for_review", decision.recommended_action)
+  end
+
   def process_user_suggestion!(triage)
     apply_suggestion_interpretation!
     proposal.reload
@@ -83,6 +94,7 @@ class CompanyUserSubmissionProcessorService
     # interpreted record, before auto-apply is even considered.
     interpreted = DuplicateGate.check(proposal)
     return routed_result(DuplicateGate.route!(interpreted)) if interpreted.blocking?
+    return advisory_result(interpreted) if interpreted.advisory?
 
     if auto_apply_suggestion?
       begin

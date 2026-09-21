@@ -43,7 +43,9 @@ class CuratorPendingService
 
         quality = CompanyProposalQualityService.call(proposal)
 
-        if proposal.duplicate_blocking?
+        # Advisory too: this loop publishes without a human reading the record, and an
+        # advisory match is precisely the case a human is supposed to weigh.
+        if proposal.duplicate_blocking? || proposal.duplicate_advisory?
           queued << outcome(proposal, reason: "duplicate_signals", blockers: quality["blockers"])
           next
         end

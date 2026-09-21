@@ -55,7 +55,9 @@ module Mcp
         # report's own duplicate blocker is not a second, staler opinion.
         duplicate = DuplicateGate.check(proposal)
         quality = CompanyProposalQualityService.call(proposal)
-        gate_ok = quality["publish_ready"] && !duplicate.blocking?
+        # holds_automation? rather than blocking?: this tool publishes unattended unless
+        # human_approved is set, and the branch below lets a human past either way.
+        gate_ok = quality["publish_ready"] && !duplicate.holds_automation?
 
         if publish && !gate_ok && !human_approved
           return error_response(
@@ -65,6 +67,7 @@ module Mcp
             "publish_ready" => quality["publish_ready"],
             "blockers" => quality["blockers"],
             "duplicate_blocking" => duplicate.blocking?,
+            "duplicate_advisory" => duplicate.advisory?,
             "admin_url" => admin_proposal_url(proposal)
           )
         end

@@ -28,14 +28,19 @@
 #                   against an entry publishing Deep Law at deep-law.io matched nothing
 #                   before this key, on either side, by any spelling.
 #
-# Every key is blocking: each means a human has to compare two records. None asserts a
-# duplicate on its own, and brand_name deliberately resolves as no better than possible —
-# three unrelated products have shipped as "Deep Law". Comparison is the point.
+# Every key means a human may want to compare two records. It does not follow that every
+# key may stop a write: "Needs revision · matched on brand name · created first" was one
+# weak key, read off a citation host neither record owns, worded exactly like a confirmed
+# duplicate. So each hit is also SURFACED — blocking when one key can carry the claim
+# alone or two independent evidence families agree, advisory otherwise. Advisory hits are
+# still computed, still reported with every key that fired, still graded and still
+# recorded; they just no longer assert a duplicate by themselves. Nothing is deleted
+# here, only demoted. Comparison is still the point.
 class CompanyIdentityMatcher
   CACHE_TTL = 5.minutes
   # Bumped whenever an index row gains a key. A row cached in the previous shape is
   # missing the new one, which silently turns the new match type off until it expires.
-  CACHE_SHAPE = "v2".freeze
+  CACHE_SHAPE = "v3".freeze
 
   DOMAIN_MATCH_TYPES = %w[exact_domain redirect_domain related_domain].freeze
   # shared_profile, prior_name and brand_name are grouped with the name keys because they
@@ -49,6 +54,41 @@ class CompanyIdentityMatcher
   CONFIDENCE_POSSIBLE = "possible".freeze
 
   MAX_MATCHES = 10
+
+  # ---- surfacing ----------------------------------------------------------
+  #
+  # A key says two records *may* be the same. Surfacing says whether the evidence is
+  # strong enough to stop a write on its own.
+  #
+  #   blocking  at least one key that can carry a duplicate claim alone, or keys from two
+  #             independent evidence families.
+  #   advisory  keys agreed, but all of them are weak and all of them are reading the
+  #             same thing. The hit is still reported, still graded and still recorded;
+  #             it just does not assert a duplicate by itself.
+  #
+  # Nothing is deleted here. Every key that fired before still fires, still appears in
+  # match_types and still reaches the reviewer. "Needs revision - matched on brand name"
+  # was one weak key stopping a write, and the answer is to say how far that key goes,
+  # not to stop computing it.
+  SURFACING_BLOCKING = "blocking".freeze
+  SURFACING_ADVISORY = "advisory".freeze
+
+  # Evidence families, assigned by PROVENANCE rather than by key name. Two keys
+  # corroborate each other only when they are independent readings: a brand label read
+  # off both records' domains is a restatement of a domain agreement, not a second
+  # opinion about the name, so it sits with the domains.
+  FAMILY_ADDRESS = "address".freeze
+  FAMILY_PROFILE = "profile".freeze
+  FAMILY_NAME = "name".freeze
+
+  # Three states on purpose. "shared" is a measurement that came out negative;
+  # "unevaluated" is a measurement that could not be taken, which is not the same thing
+  # and must never be read as one. A tenant subdomain on a shared host publishes no
+  # readable brand label at all (brand_key is nil there by design), and an absent label
+  # is not evidence that two records are different companies.
+  OWNERSHIP_OWNED = "owned".freeze
+  OWNERSHIP_SHARED = "shared".freeze
+  OWNERSHIP_UNEVALUATED = "unevaluated".freeze
 
   # Corporate form, and the filler around it. These carry no identity wherever they
   # appear, so they are dropped from anywhere in the name.
@@ -186,6 +226,12 @@ class CompanyIdentityMatcher
 
   PROFILE_KINDS = PROFILE_PATH_ROOTS.keys.freeze
 
+  # PROFILE_PATH_ROOTS says which paths name a company; this says which SITES do.
+  # The same two hosts CompanyProposalEnrichmentService already names, so a host means
+  # one thing in both places.
+  PROFILE_KIND_HOSTS = CompanyProposalEnrichmentService::PROFILE_HOSTS
+                       .index_with { |host| host.split(".").first }.freeze
+
   # Prior names recovered from each row's own field-edit history. Extracted in SQL so the
   # index stays small: the quality_review blob is large and only the "from" side of a name
   # change is wanted.
@@ -221,6 +267,28 @@ class CompanyIdentityMatcher
   # a core in the first place.
   def self.core_key(value)
     core_name(value)&.delete(" ")
+  end
+
+  # The brand a record calls itself, read as a COMPONENT of its name rather than as the
+  # whole of it. Real submissions carry the brand inside a longer name - a parenthetical
+  # product, an "X by Y", a vendor plus a product - and the whole-name core of
+  # "White Rabbit (Deep-Law)" is "whiterabbitdeeplaw", which names no brand anyone else
+  # can carry. Reading the segments as well is what keeps public company 16479
+  # (D-Developments at deep-law.io) reachable from proposal 4139.
+  #
+  # Only separators that actually separate: a hyphen inside a word is part of the brand
+  # ("Deep-Law", "D-Developments"), a hyphen with spaces around it is punctuation.
+  NAME_SEGMENT_PATTERN = %r{[()\[\]{}|,:;/]|\s[-\u2013\u2014]\s|\s+by\s+}i
+
+  def self.name_segments(value)
+    value.to_s.split(NAME_SEGMENT_PATTERN).map(&:strip).compact_blank
+  end
+
+  # Every brand string this record CALLS ITSELF: the whole-name core and each segment's.
+  # Used to decide provenance, never to decide what matches - widening the match keys
+  # here would invent matches rather than grade the ones already found.
+  def self.name_keys(value)
+    ([core_key(value)] + name_segments(value).map { |segment| core_key(segment) }).compact_blank.uniq
   end
 
   def self.drop_trailing_legal_forms(tokens)
@@ -269,8 +337,28 @@ class CompanyIdentityMatcher
     core_key(labels[-(suffix_labels + 1)])
   end
 
-  def self.profile_key(kind, url)
-    segments = URI.parse(url.to_s.strip).path.to_s.downcase.split("/").reject(&:blank?)
+  # linkedin.com, crunchbase.com, or a subdomain of either. Anything else is not a
+  # company page however its path is spelled.
+  def self.profile_kind_for(host)
+    host = host.to_s.downcase.delete_suffix(".")
+    return nil if host.blank?
+
+    PROFILE_KIND_HOSTS.each { |entry, kind| return kind if host == entry || host.end_with?(".#{entry}") }
+    nil
+  end
+
+  # The company page a URL names. The kind is read from the HOST, not from the field the
+  # URL was sitting in: a Crunchbase link pasted into linkedin_url is a Crunchbase page,
+  # and a /company/<slug> path on any other site is not a company page at all. Before
+  # this check the path alone minted the key, so two records whose linkedin_url happened
+  # to be some vendor's own /company/team page shared a key graded "confirmed" - the one
+  # key in the system that asserts a duplicate with nothing else agreeing.
+  def self.profile_key_for(url)
+    uri = URI.parse(url.to_s.strip)
+    kind = profile_kind_for(uri.host)
+    return nil if kind.blank?
+
+    segments = uri.path.to_s.downcase.split("/").reject(&:blank?)
     return nil unless segments.first.in?(PROFILE_PATH_ROOTS.fetch(kind, []))
 
     key = segments[1].to_s
@@ -281,10 +369,19 @@ class CompanyIdentityMatcher
     nil
   end
 
+  # For a reader that already knows which kind it is asking about.
+  def self.profile_key(kind, url)
+    key = profile_key_for(url)
+    key if key.present? && key.start_with?("#{kind}:")
+  end
+
   def self.profile_keys(source)
     PROFILE_KINDS.each_with_object({}) do |kind, keys|
-      key = profile_key(kind, source["#{kind}_url"])
-      keys[kind] = key if key.present?
+      key = profile_key_for(source["#{kind}_url"])
+      next if key.blank?
+
+      derived = key.split(":").first
+      keys[derived] ||= key
     end
   end
 
@@ -312,6 +409,19 @@ class CompanyIdentityMatcher
     candidates = Array(prior_names).compact_blank
     candidates += [slug.to_s.sub(/-\d+\z/, "").tr("-", " ")] if slug.present?
 
+    expand_name_values(candidates, current_normalized)
+  end
+
+  # The subset whose provenance is a name change actually RECORDED in the row's
+  # field-edit history, as opposed to one reconstructed from the slug. A recorded
+  # rename is a fact about the company; a slug is a string the row was created with,
+  # and a row named "Midpage AI" with the slug midpage-ai carries its own core as a
+  # "prior name" without anyone ever having renamed anything.
+  def self.recorded_name_values(prior_names: [], current_normalized: nil)
+    expand_name_values(Array(prior_names).compact_blank, current_normalized)
+  end
+
+  def self.expand_name_values(candidates, current_normalized)
     candidates.flat_map { |value| [Company.normalized_name_value(value), core_key(value)] }
               .compact_blank
               .reject { |value| value == current_normalized }
@@ -360,6 +470,120 @@ class CompanyIdentityMatcher
     one[:core].present? && one[:core] == other[:core]
   end
 
+  # ---- surfacing ----------------------------------------------------------
+
+  # Is the shared domain an address one of these two records OWNS, or one they merely
+  # both happen to sit on?
+  #
+  # This is the general replacement for "is this host on the aggregator list". A list
+  # says what fifteen hosts are; this asks what the population shows, so play.google.com,
+  # producthunt.com, wellfound.com, github.com and the next one nobody has listed yet are
+  # all answered by the same test. Two readings, either of which is enough:
+  #
+  #   * the domain's brand label is a name one of the two records calls itself
+  #     (caseway.ai / "Caseway", pactolane.com / "Pactolane"), or
+  #   * no OTHER record in the compared population carries that domain, so there is no
+  #     evidence it is a place records get put rather than an address.
+  #
+  # +other_carriers+ counts records other than the two being compared. A domain with no
+  # readable brand label is UNEVALUATED, and an unevaluated key is not a demoted one.
+  def self.domain_ownership(domain, name_keys:, other_carriers:)
+    return OWNERSHIP_UNEVALUATED if domain.blank?
+
+    label = brand_key(domain)
+    return OWNERSHIP_UNEVALUATED if label.blank?
+    return OWNERSHIP_OWNED if label.in?(Array(name_keys))
+
+    other_carriers.to_i.zero? ? OWNERSHIP_OWNED : OWNERSHIP_SHARED
+  end
+
+  # Only a measured "shared" demotes. Unevaluated is not a negative.
+  def self.owned_domain?(state)
+    state != OWNERSHIP_SHARED
+  end
+
+  # The brand cross: one record CALLS ITSELF this brand and the other publishes it only
+  # as its address. That, and only that, is the false negative brand_name was built for
+  # (proposal 4139 against D-Developments at deep-law.io), and it is the only shape in
+  # which a brand label may assert a duplicate on its own.
+  #
+  # Each side is {normalized:, name_keys:, brand_domain_keys:}.
+  def self.brand_cross?(key, one, other)
+    brand_cross_one_way?(key, one, other) || brand_cross_one_way?(key, other, one)
+  end
+
+  # Refused when the side that supposedly only publishes the brand as an address in fact
+  # begins its own name with it: "Harvey Law Group" at harvey.com.hk does call itself
+  # Harvey, it just calls itself Harvey plus two more words, and reading that as "only
+  # publishes it as an address" is how an unrelated Hong Kong firm becomes an
+  # alone-eligible duplicate of a US legal-AI vendor.
+  def self.brand_cross_one_way?(key, naming, addressing)
+    return false if key.blank?
+    return false unless Array(naming[:name_keys]).include?(key)
+    return false if Array(addressing[:name_keys]).include?(key)
+    return false unless Array(addressing[:brand_domain_keys]).include?(key)
+
+    !leading_token_run?(addressing[:normalized], key)
+  end
+
+  # True when the normalized name starts with the key as a whole run of leading tokens:
+  # "harvey law group" starts with "harvey", "d developments" does not start with
+  # "deeplaw", "unison labs" does not start with "sixminute".
+  def self.leading_token_run?(normalized, key)
+    run = +""
+    normalized.to_s.split.any? do |token|
+      run << token
+      run == key
+    end
+  end
+
+  # Every key that fired on one pair, with the family it belongs to and whether it can
+  # carry a duplicate claim on its own.
+  #
+  #   sides          [candidate, other], each {normalized:, name_keys:, brand_domain_keys:}
+  #   domain_states  ownership state per domain key, from domain_ownership
+  #   brand_key      the shared brand label, when brand_name fired
+  #   prior_name_recorded  the matched prior name came from a name change actually
+  #                        recorded in the edit history, not from the row's own slug
+  def self.evidence_for(match_types, sides:, domain_states: {}, brand_key: nil, prior_name_recorded: false)
+    Array(match_types).map do |type|
+      family, alone =
+        case type
+        when *DOMAIN_MATCH_TYPES
+          [FAMILY_ADDRESS, owned_domain?(domain_states[type])]
+        when "shared_profile" then [FAMILY_PROFILE, true]
+        when "exact_name" then [FAMILY_NAME, true]
+        when "prior_name" then [FAMILY_NAME, prior_name_recorded]
+        when "core_name" then [FAMILY_NAME, false]
+        when "brand_name" then brand_evidence(brand_key, sides)
+        else [FAMILY_NAME, false]
+        end
+
+      { "key" => type, "family" => family, "alone" => alone }
+    end
+  end
+
+  # Ordered, because the two shapes overlap: a key can be a cross AND be domain-derived
+  # on both sides (a row naming Deep Law at deep-law.io, against a record at
+  # deep-law.com). The cross is the stronger statement, so it is read first.
+  def self.brand_evidence(key, sides)
+    return [FAMILY_NAME, false] if key.blank?
+    return [FAMILY_NAME, true] if brand_cross?(key, *sides)
+    return [FAMILY_ADDRESS, false] if sides.all? { |side| Array(side[:brand_domain_keys]).include?(key) }
+
+    [FAMILY_NAME, false]
+  end
+
+  # One alone-eligible key, or two independent families agreeing. Anything else is a
+  # single loose match, which is reported rather than enforced.
+  def self.surfacing_for(evidence)
+    return nil if evidence.blank?
+    return SURFACING_BLOCKING if evidence.any? { |item| item["alone"] }
+    return SURFACING_BLOCKING if evidence.map { |item| item["family"] }.uniq.size > 1
+
+    SURFACING_ADVISORY
+  end
+
   def self.matches_for(name:, domains: [], declared_domains: nil, profiles: {}, exclude_company_id: nil)
     new(name: name, domains: domains, declared_domains: declared_domains, profiles: profiles, exclude_company_id: exclude_company_id).matches
   end
@@ -382,6 +606,8 @@ class CompanyIdentityMatcher
       next if match_types.empty?
 
       match_type = match_types.first
+      domain_states = domain_states_for(match_types, row)
+      evidence = evidence_for(match_types, row, domain_states)
       {
         "id" => row[:id],
         "name" => row[:name],
@@ -396,8 +622,12 @@ class CompanyIdentityMatcher
         "match_types" => match_types,
         "matched_value" => matched_value_for(match_type, row),
         "confidence" => confidence_for(match_type, row),
+        # How far this pair goes: "blocking" stops a write, "advisory" is reported and
+        # recorded but asserts nothing on its own. Every key still appears above either
+        # way - a demoted key is still a comparison a reviewer may want to make.
+        "surfacing" => self.class.surfacing_for(evidence),
         "shared_profiles" => shared_profiles(row)
-      }
+      }.merge(domain_states.any? ? { "domain_ownership" => domain_states.values.first } : {})
     end.sort_by { |hit| MATCH_TYPES.index(hit["match_type"]) }.first(MAX_MATCHES)
   end
 
@@ -440,7 +670,75 @@ class CompanyIdentityMatcher
   end
 
   def brand_keys
-    @brand_keys ||= ([core_key] + domains.map { |domain| self.class.brand_key(domain) }).compact_blank.uniq
+    @brand_keys ||= ([core_key] + brand_domain_keys).compact_blank.uniq
+  end
+
+  # The brand labels this candidate publishes as an ADDRESS, kept apart from the one it
+  # carries in its name. Which of the two a shared brand key came from is the whole
+  # difference between a brand cross and two records on one host.
+  def brand_domain_keys
+    @brand_domain_keys ||= domains.filter_map { |domain| self.class.brand_key(domain) }.uniq
+  end
+
+  def candidate_side
+    @candidate_side ||= {
+      normalized: normalized_name,
+      name_keys: self.class.name_keys(name),
+      brand_domain_keys: brand_domain_keys
+    }
+  end
+
+  def row_side(row)
+    { normalized: row[:normalized], name_keys: Array(row[:name_keys]), brand_domain_keys: Array(row[:brand_domain_keys]) }
+  end
+
+  def evidence_for(match_types, row, domain_states)
+    prior = prior_name_for(row)
+
+    self.class.evidence_for(
+      match_types,
+      sides: [candidate_side, row_side(row)],
+      domain_states: domain_states,
+      brand_key: brand_match_for(row),
+      prior_name_recorded: prior.present? && prior.in?(Array(row[:recorded_names]))
+    )
+  end
+
+  def domain_states_for(match_types, row)
+    (match_types & DOMAIN_MATCH_TYPES).index_with do |type|
+      value = matched_value_for(type, row)
+      self.class.domain_ownership(
+        value,
+        name_keys: candidate_side[:name_keys] + Array(row[:name_keys]),
+        other_carriers: other_carriers_for(value, row)
+      )
+    end
+  end
+
+  # Records OTHER than the two being compared that carry this domain. The population is
+  # the index, which is already in memory; the candidate is not in it, except when it is
+  # the row it excludes itself against.
+  def other_carriers_for(domain, row)
+    return 0 if domain.blank?
+
+    count = domain_carriers[domain].to_i
+    count -= 1 if row[:domains].include?(domain)
+    count -= 1 if excluded_row_domains.include?(domain)
+    [count, 0].max
+  end
+
+  def domain_carriers
+    @domain_carriers ||= self.class.index.each_with_object(Hash.new(0)) do |row, counts|
+      row[:domains].uniq.each { |domain| counts[domain] += 1 }
+    end
+  end
+
+  def excluded_row_domains
+    @excluded_row_domains ||= if exclude_company_id.present?
+      Array(self.class.index.find { |row| row[:id] == exclude_company_id }&.fetch(:domains, nil))
+    else
+      []
+    end
   end
 
   def match_types_for(row)
@@ -542,8 +840,13 @@ class CompanyIdentityMatcher
       normalized: normalized,
       core: core,
       brand_keys: ([core] + domains.map { |domain| brand_key(domain) }).compact_blank.uniq,
+      # Carried separately from brand_keys, which mixes both provenances on purpose so
+      # that a name can meet a domain. Grading the hit needs to know which was which.
+      brand_domain_keys: domains.filter_map { |domain| brand_key(domain) }.uniq,
+      name_keys: name_keys(name),
       profiles: profile_keys("linkedin_url" => linkedin_url, "crunchbase_url" => crunchbase_url),
-      historical_names: historical_name_values(slug: slug, prior_names: prior_names, current_normalized: normalized)
+      historical_names: historical_name_values(slug: slug, prior_names: prior_names, current_normalized: normalized),
+      recorded_names: recorded_name_values(prior_names: prior_names, current_normalized: normalized)
     }
   end
 end

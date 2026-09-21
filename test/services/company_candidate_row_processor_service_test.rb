@@ -179,6 +179,66 @@ class CompanyCandidateRowProcessorServiceTest < ActiveSupport::TestCase
     refute report["publish_ready"]
   end
 
+  # The unattended disposition. On this path a blocking duplicate is resolved by
+  # REJECTING the candidate and merging its blank fields into the matched row, with no
+  # human anywhere in the loop - the shape that auto-rejected Notaron 4167 in the same
+  # second it arrived, admin_user null. Advisory evidence may not buy that disposition,
+  # and it may not buy the opposite one either: the row is neither rejected nor drafted,
+  # it stops for a human with the comparison named on it.
+  test "an advisory duplicate is neither auto-rejected nor auto-drafted" do
+    admin = AdminUser.create!(email: "rp-#{SecureRandom.hex(3)}@example.com", password: "password123", password_confirmation: "password123")
+    company = companies(:one)
+    company.update!(name: "Pactolane", main_url: "https://www.pactolane.com")
+    company.update_columns(canonical_domain: "pactolane.com", quality_status: nil, visible: true)
+
+    result = CompanyCandidateRowProcessorService.call(
+      candidate: {
+        "name" => "Pactolane Technologies",
+        "website" => "https://pactolane-clm.example",
+        "canonical_domain" => "pactolane-clm.example",
+        "status" => "absent_candidate"
+      },
+      index: 0,
+      admin_user: admin,
+      source: "llm_discovery",
+      proposal_type: "discovery_candidate",
+      source_label: "LLM Discovery"
+    )
+
+    assert_equal "needs_review", result["action"]
+    proposal = CompanyProposal.find(result["proposal_id"])
+    refute_equal "rejected", proposal.status, "a single loose key may not dispose of a record unattended"
+    assert_nil proposal.company_id, "and it may not mint a second row either"
+    assert proposal.duplicate_advisory?
+    refute proposal.duplicate_blocking?
+  end
+
+  # The blocking half, unchanged: strong corroborated evidence still resolves against
+  # the matched row on this path, because duplicate detection is still a mandatory gate.
+  test "a blocking duplicate is still resolved against the matched row" do
+    admin = AdminUser.create!(email: "rp-#{SecureRandom.hex(3)}@example.com", password: "password123", password_confirmation: "password123")
+    company = companies(:one)
+    company.update!(name: "Pactolane", main_url: "https://www.pactolane.com")
+    company.update_columns(canonical_domain: "pactolane.com", quality_status: nil, visible: true)
+
+    result = CompanyCandidateRowProcessorService.call(
+      candidate: {
+        "name" => "Pactolane",
+        "website" => "https://www.pactolane.com",
+        "canonical_domain" => "pactolane.com",
+        "status" => "absent_candidate"
+      },
+      index: 0,
+      admin_user: admin,
+      source: "llm_discovery",
+      proposal_type: "discovery_candidate",
+      source_label: "LLM Discovery"
+    )
+
+    assert_includes %w[duplicate_merged duplicate_rejected], result["action"]
+    assert_equal "rejected", CompanyProposal.find(result["proposal_id"]).status
+  end
+
   test "weak drafted description is left for enrichment" do
     admin = AdminUser.create!(email: "rp-#{SecureRandom.hex(3)}@example.com", password: "password123", password_confirmation: "password123")
     candidate = {
