@@ -281,12 +281,7 @@
   dependencies:
     "@babel/types" "^7.29.7"
 
-"@babel/helper-plugin-utils@^7.0.0", "@babel/helper-plugin-utils@^7.14.5", "@babel/helper-plugin-utils@^7.18.6", "@babel/helper-plugin-utils@^7.20.2", "@babel/helper-plugin-utils@^7.22.5", "@babel/helper-plugin-utils@^7.25.9", "@babel/helper-plugin-utils@^7.8.0":
-  version "7.25.9"
-  resolved "https://registry.npmjs.org/@babel/helper-plugin-utils/-/helper-plugin-utils-7.25.9.tgz"
-  integrity sha512-kSMlyUVdWe25rEsRGviIgOWnoT/nfABVWlqt9N19/dIPWViAOW2s9wznP5tURbs/IDuNk4gPy3YdYRgH3uxhBw==
-
-"@babel/helper-plugin-utils@^7.28.6", "@babel/helper-plugin-utils@^7.29.7":
+"@babel/helper-plugin-utils@^7.0.0", "@babel/helper-plugin-utils@^7.14.5", "@babel/helper-plugin-utils@^7.18.6", "@babel/helper-plugin-utils@^7.20.2", "@babel/helper-plugin-utils@^7.22.5", "@babel/helper-plugin-utils@^7.25.9", "@babel/helper-plugin-utils@^7.28.6", "@babel/helper-plugin-utils@^7.29.7", "@babel/helper-plugin-utils@^7.8.0":
   version "7.29.7"
   resolved "https://registry.yarnpkg.com/@babel/helper-plugin-utils/-/helper-plugin-utils-7.29.7.tgz#c0a0766f1a13617d8a17407d7ab8f9d486225ea4"
   integrity sha512-G7sHYigPY17oO5SYWnfD/0MTBwVR781S/JI643e/JhUYgVgWE/61SoW3NH9KWUKyKq5LVh3npif99Wkt6j86Jw==
@@ -1203,18 +1198,10 @@
   dependencies:
     "@babel/helper-plugin-utils" "^7.29.7"
 
-"@babel/plugin-transform-regenerator@^7.14.5", "@babel/plugin-transform-regenerator@^7.25.9":
-  version "7.25.9"
-  resolved "https://registry.npmjs.org/@babel/plugin-transform-regenerator/-/plugin-transform-regenerator-7.25.9.tgz"
-  integrity sha512-vwDcDNsgMPDGP0nMqzahDWE5/MLcX8sv96+wfX7as7LoF/kr97Bo/7fI00lXY4wUXYfVmwIIyG80fGZ1uvt2qg==
-  dependencies:
-    "@babel/helper-plugin-utils" "^7.25.9"
-    regenerator-transform "^0.15.2"
-
-"@babel/plugin-transform-regenerator@^7.26.0", "@babel/plugin-transform-regenerator@^7.29.7":
-  version "7.29.7"
-  resolved "https://registry.yarnpkg.com/@babel/plugin-transform-regenerator/-/plugin-transform-regenerator-7.29.7.tgz#0f42626a7dbb0e7a7f52e036d3e43deebdc3ea4e"
-  integrity sha512-rNNFV0DBAJp988xW2DOntfDoYn1eR8GGF5AT5vYc+rjyfaQkM242c9tZUHHPe7KYaiJizXPWhQTzzdbXySyhBw==
+"@babel/plugin-transform-regenerator@^7.14.5", "@babel/plugin-transform-regenerator@^7.25.9", "@babel/plugin-transform-regenerator@^7.29.7", "@babel/plugin-transform-regenerator@^7.29.8":
+  version "7.29.8"
+  resolved "https://registry.yarnpkg.com/@babel/plugin-transform-regenerator/-/plugin-transform-regenerator-7.29.8.tgz#3a4a4dd7214af9d524f0503bb97c99af5f4abf26"
+  integrity sha512-0UpIXPtdDtMXfnV2OJAVMLpj3H/92vmkA6lpSRakmycJvj3VUy6Xs1dM8tXRugupykr5WB+LpiVl0J8LMVg2mg==
   dependencies:
     "@babel/helper-plugin-utils" "^7.29.7"
 
@@ -1567,7 +1554,7 @@
     "@babel/types" "^7.4.4"
     esutils "^2.0.2"
 
-"@babel/runtime@^7.15.3", "@babel/runtime@^7.26.10", "@babel/runtime@^7.7.2", "@babel/runtime@^7.8.4":
+"@babel/runtime@^7.15.3", "@babel/runtime@^7.26.10", "@babel/runtime@^7.7.2":
   version "7.29.7"
   resolved "https://registry.yarnpkg.com/@babel/runtime/-/runtime-7.29.7.tgz#12022450c45a4da6d8d8287b18a4ff2ddb23f768"
   integrity sha512-Nq8OhGWiZIZGV6hLHoyAKLLcJihP/xFeBMGJoUrxTX2psI8dCifzLhZISFb+VWS3wFMRDmCGw5R+dOySCqPLhw==
@@ -6407,13 +6394,6 @@ regenerator-runtime@^0.13.9:
   version "0.13.11"
   resolved "https://registry.npmjs.org/regenerator-runtime/-/regenerator-runtime-0.13.11.tgz"
   integrity sha512-kY1AZVr2Ra+t+piVaJ4gxaFaReZVH40AKNo7UCX6W+dEwBo/2oZJzqfuN1qLq1oL45o56cPaTXELwrTh8Fpggg==
-
-regenerator-transform@^0.15.2:
-  version "0.15.2"
-  resolved "https://registry.npmjs.org/regenerator-transform/-/regenerator-transform-0.15.2.tgz"
-  integrity sha512-hfMp2BoF0qOk3uc5V20ALGDS2ddjQaLrdl7xrGXvAIow7qeWRM2VA2HuCHkUKk9slq3VwEwLNK3DFBqDfPGYtg==
-  dependencies:
-    "@babel/runtime" "^7.8.4"
 
 regexp.prototype.flags@^1.5.3:
   version "1.5.3"

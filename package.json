@@ -23,7 +23,7 @@
   "devDependencies": {
     "@babel/core": "^7.26.10",
     "@babel/plugin-transform-destructuring": "^7.26.0",
-    "@babel/plugin-transform-regenerator": "^7.26.0",
+    "@babel/plugin-transform-regenerator": "^7.29.8",
     "@babel/plugin-transform-runtime": "^7.26.10",
     "babel-loader": "^10.1.1",
     "webpack": "^5.110.3",
