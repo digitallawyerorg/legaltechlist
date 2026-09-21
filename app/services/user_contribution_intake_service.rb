@@ -110,15 +110,51 @@ class UserContributionIntakeService
   end
 
   # Stable for the same company from the same submitter, so a repeat lands on the row
-  # that already exists instead of creating a second one.
+  # that already exists instead of creating a second one — but only for a row that is
+  # really the same submission. The key knows a canonical host and a contact email and
+  # nothing else, so one contributor sending two different submissions whose URLs
+  # canonicalise to the same host shares it. Landing the second on the first one's row
+  # hands it to reopen_returned!, which renames that record to the newer submission while
+  # it keeps the older one's drafted description, verification, web research, site
+  # evidence and duplicate evidence — and replaces the Source payload of a record that is
+  # not this one, when that payload is the record of what its own contributor submitted.
+  # A submission the row on the key disagrees with gets an identity of its own, and so a
+  # row of its own, instead of being written over the top of someone else's.
   def submission_identity
     @submission_identity ||= begin
+      taken = CompanyProposal.find_by(source: SOURCE, source_identifier: shared_submission_key)
+      if taken.nil? || same_submission?(taken)
+        shared_submission_key
+      else
+        Digest::SHA256.hexdigest([shared_submission_key, Company.normalized_name_value(form.name)].join("|"))
+      end
+    end
+  end
+
+  def shared_submission_key
+    @shared_submission_key ||= begin
       key = [
         Company.canonical_domain_for(form.main_url) || Company.normalized_name_value(form.name),
         form.contact_email.to_s.strip.downcase
       ].compact_blank.join("|")
       key.presence ? Digest::SHA256.hexdigest(key) : SecureRandom.uuid
     end
+  end
+
+  # Agreement beyond the shared key: the company this row names, and the contributor it
+  # belongs to, read off the row itself rather than assumed from the key.
+  def same_submission?(proposal)
+    Company.normalized_name_value(submitted_name_of(proposal)) == Company.normalized_name_value(form.name) &&
+      proposal.submitter_email.to_s.strip.downcase == form.contact_email.to_s.strip.downcase
+  end
+
+  # The contributor's own copy first: source_payload is what was submitted and is
+  # rewritten only by another submission, where proposed and final changes are also
+  # edited by reviewers.
+  def submitted_name_of(proposal)
+    proposal.source_payload.to_h["name"].presence ||
+      proposal.final_changes.to_h["name"].presence ||
+      proposal.proposed_changes.to_h["name"]
   end
 
   # The signals the row is created with, from the same matcher every later reader uses.
