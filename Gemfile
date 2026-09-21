@@ -43,7 +43,7 @@ gem 'geocoder', '1.8.6'
 gem 'figaro', '1.3.0'
 gem 'sendgrid', '1.2.4'
 gem 'mail'  # Remove version constraint
-gem 'd3-rails', '5.9.2'
+gem 'd3-rails', '7.8.5'
 gem 'bootstrap_form', '2.7.0'
 gem 'google-analytics-rails', '1.1.1'
 

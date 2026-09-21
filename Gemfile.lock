@@ -129,7 +129,7 @@ GEM
     connection_pool (3.0.2)
     crass (1.0.7)
     csv (3.3.6)
-    d3-rails (5.9.2)
+    d3-rails (7.8.5)
       railties (>= 3.1)
     date (3.5.1)
     devise (5.0.4)
@@ -470,7 +470,7 @@ DEPENDENCIES
   chartkick
   coffee-rails (~> 5.0)
   csv
-  d3-rails (= 5.9.2)
+  d3-rails (= 7.8.5)
   devise (~> 5.0)
   dotenv
   execjs
