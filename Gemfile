@@ -83,7 +83,7 @@ gem 'importmap-rails'
 gem "turbo-rails"
 
 gem 'httparty'
-gem 'aws-sdk-s3', '~> 1.231'
+gem 'aws-sdk-s3', '~> 1.232'
 
 # For company validation script
 gem 'ruby-openai'
@@ -97,6 +97,6 @@ gem "ruby_llm-responses_api", "~> 0.6.1"
 
 # MCP server for the Claude Tag curator connector
 gem "mcp", "~> 1.5"
-gem "jwt", "~> 3.2"
+gem "jwt", "~> 3.3"
 
 gem "solid_queue", "~> 1.7"
