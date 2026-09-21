@@ -48,7 +48,7 @@ class LegacyUrlRedirectsTest < ActionDispatch::IntegrationTest
     get category_path(category)
 
     assert_response :success
-    assert_select "h1.company-index-title", "#{category.name} Companies"
+    assert_select "h1.company-index-title", category.name
     assert_select "link[rel='canonical'][href=?]", "#{site_url}#{category_path(category)}"
   end
 

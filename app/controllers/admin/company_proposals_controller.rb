@@ -127,7 +127,39 @@ module Admin
                   alert: "#{@company_proposal.display_name} could not be rejected: #{e.record.errors.full_messages.to_sentence.presence || e.message} Nothing was changed."
     end
 
+    # A proposal that is plausible but incomplete is handed back to whoever submitted it
+    # from here, on the proposal itself. It used to require Approve Draft first, which
+    # minted a company row purely so the Company Tab's return action had something to act
+    # on; nothing is created now, and the record stays a proposal.
+    def return_to_contributor
+      load_proposal
+
+      service = CompanyProposalReturnService.new(
+        proposal: @company_proposal, admin_user: current_admin_user,
+        instructions: params[:contributor_instructions], fields: Array(params[:contributor_fields])
+      )
+      service.call
+
+      redirect_to return_to_contributor_return_path, notice: return_to_contributor_notice(service.contributor_request)
+    # Nothing is written before the refusals inside the service, and a write that did not
+    # land raises rather than reporting success, so either way the proposal is untouched —
+    # and the reviewer is told so in the admin instead of on the public error page.
+    rescue ArgumentError, CompanyProposalReturnService::NotConfirmed, ActiveRecord::RecordInvalid => e
+      redirect_to custom_admin_company_proposal_path(@company_proposal, queue: returning_queue_context.presence),
+                  alert: "#{@company_proposal.display_name} was not returned to its contributor: #{e.message}"
+    end
+
     private
+
+    def return_to_contributor_return_path
+      queue_redirect_path(custom_admin_company_proposals_path(status: params[:return_status].presence || "pending_review"))
+    end
+
+    def return_to_contributor_notice(request)
+      contributor = request["contributor_email"].presence
+      parked = contributor ? "parked for #{contributor}" : "parked with no contributor address on file"
+      "#{@company_proposal.display_name} was returned to its contributor and #{parked}. No company draft was created."
+    end
 
     # Gap fills arrive as checkboxes; a field both records hold arrives as an explicit
     # choice between keeping what the index has and taking what the proposal says, and
@@ -204,7 +236,13 @@ module Admin
     def proposals_scope
       case @status
       when "pending_review"
-        CompanyProposal.pending_review
+        # Work whose next action is a reviewer's. A proposal waiting on its contributor
+        # is still pending_review — every other caller of that scope depends on it — but
+        # it is nobody's review task until they answer, so it gets its own chip below
+        # and reappears here the moment the request is cleared on resubmission.
+        CompanyProposal.pending_review.not_awaiting_contributor
+      when "awaiting_contributor"
+        CompanyProposal.pending_review.awaiting_contributor
       when "duplicate"
         duplicate_scope
       when "resolved_duplicates"
@@ -230,7 +268,8 @@ module Admin
 
     def proposal_filter_counts
       {
-        "pending_review" => CompanyProposal.pending_review.count,
+        "pending_review" => CompanyProposal.pending_review.not_awaiting_contributor.count,
+        "awaiting_contributor" => CompanyProposal.pending_review.awaiting_contributor.count,
         "duplicate" => duplicate_blocking_ids.size,
         "missing_taxonomy" => missing_taxonomy_scope.count,
         "ready" => ready_proposal_ids.size,

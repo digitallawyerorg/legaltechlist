@@ -76,7 +76,7 @@ css:
 .public-company-index
     .company-shell
         .company-main
-            h1.company-index-title= @taxonomy_facet.present? ? "#{@taxonomy_facet[:label]} Companies" : "Legal Tech Companies"
+            h1.company-index-title= company_index_heading(@taxonomy_facet)
             .company-toolbar
                 = render "filter_bar", clear_params: clear_params, selected_category_ids: selected_category_ids, selected_statuses: selected_statuses
 
@@ -288,11 +288,30 @@ javascript:
             });
         }
 
+        function bindCompanySortForms() {
+            document.querySelectorAll(".company-sort-form").forEach(function(form) {
+                if (form.dataset.boundSort) return;
+                form.dataset.boundSort = "true";
+
+                let select = form.querySelector(".company-sort");
+                if (!select) return;
+
+                // The submit button is the no-JS fallback; with JS the change submits.
+                let submit = form.querySelector(".company-sort-submit");
+                if (submit) submit.style.display = "none";
+
+                select.addEventListener("change", function() {
+                    form.requestSubmit ? form.requestSubmit() : form.submit();
+                });
+            });
+        }
+
         function bindCompanyFilters() {
             bindCompanyFilterSearch();
             bindCompanyFilterMasterCheckboxes();
             bindCompanyFilterCheckboxForms();
             bindCompanyFilterDropdownSubmit();
+            bindCompanySortForms();
         }
 
         document.addEventListener("turbo:load", bindCompanyFilters);

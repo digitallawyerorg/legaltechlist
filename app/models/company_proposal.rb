@@ -11,7 +11,13 @@ class CompanyProposal < ActiveRecord::Base
   validates :status, presence: true, inclusion: { in: STATUSES }
   validates :proposal_type, presence: true, inclusion: { in: PROPOSAL_TYPES }
   validates :source, presence: true
-  validates :source_identifier, uniqueness: { scope: :source, allow_blank: true }
+  # Judged only when the identity is actually being set or moved. Two proposals created
+  # in the same second by one discovery run can already share an identifier, and
+  # re-running this on every save froze both rows: rejecting, merging, approving or
+  # editing them each failed on a collision that predated the edit. Creating or renaming
+  # an identifier is still refused exactly as before.
+  validates :source_identifier, uniqueness: { scope: :source, allow_blank: true },
+                                if: -> { source_identifier_changed? || source_changed? }
 
   scope :recent, -> { order(created_at: :desc) }
   scope :pending_review, -> { where(status: %w[pending ready_for_review needs_revision]) }
@@ -21,6 +27,17 @@ class CompanyProposal < ActiveRecord::Base
   scope :user_submissions, -> { where(proposal_type: USER_SUBMISSION_TYPES) }
   scope :user_contributions, -> { where(proposal_type: "user_contribution") }
   scope :user_suggestions, -> { where(proposal_type: "user_suggestion") }
+
+  # A proposal parked with its contributor: the next action is the submitter's, not a
+  # reviewer's. It deliberately stays inside pending_review — the duplicate queue and
+  # the approval path both read that scope — and is instead kept off the Review Tab's
+  # default view by Admin::CompanyProposalsController, which gives it its own chip.
+  scope :awaiting_contributor, -> {
+    where("agent_details #>> '{current_contributor_request,state}' = ?", CompanyProposalReturnService::AWAITING_STATE)
+  }
+  scope :not_awaiting_contributor, -> {
+    where("agent_details #>> '{current_contributor_request,state}' IS DISTINCT FROM ?", CompanyProposalReturnService::AWAITING_STATE)
+  }
 
   EDITABLE_COMPANY_FIELDS = %w[
     name

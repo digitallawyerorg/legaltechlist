@@ -200,9 +200,22 @@ class CompanyProposalEnrichmentService
     return "a human reviewed it at #{proposal.reviewed_at.utc.iso8601}" if proposal.reviewed_at.present?
     return "enrichment is turned off for this record" if do_not_enrich?
     return "its description is locked against automated changes" if description_locked?
+    # Keyed on the proposal's own state, because a proposal can now be returned before
+    # any company exists — the company check below only fires once one does, which is
+    # exactly the draft this action was added to avoid creating.
+    return "it is waiting on its contributor to answer a reviewer's request" if awaiting_contributor?
     return "the record was returned to its contributor" if proposal.company&.quality_status == CompanyReviewMarkService::RETURNED_STATUS
 
     nil
+  end
+
+  # An outstanding contributor request means the next version of this record is coming
+  # from the submitter. Enriching over it now would overwrite the very fields they were
+  # asked to fix, and would do it to a record that is not terminal — once they resubmit
+  # the request is cleared and enrichment is available again.
+  def awaiting_contributor?
+    proposal.status == CompanyProposalReturnService::RETURNED_PROPOSAL_STATUS &&
+      proposal.agent_details.dig("current_contributor_request", "state") == CompanyProposalReturnService::AWAITING_STATE
   end
 
   # Set deliberately by a curator or reviewer on a record that keeps being damaged.

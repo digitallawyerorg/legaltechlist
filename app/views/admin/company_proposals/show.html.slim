@@ -1,4 +1,5 @@
 - content_for :title, "#{@company_proposal.display_name} Proposal"
+- returnable = @company_proposal.status.in?(CompanyProposalReturnService::RETURNABLE_STATUSES)
 - suggestion_diffs = @company_proposal.user_suggestion? ? proposal_suggestion_diffs(@company_proposal) : []
 
 - if @queue.present?
@@ -41,6 +42,8 @@
             | Edit
     .admin-proposal-toolbar-primary
         button.btn.btn-outline-danger type="button" data-bs-toggle="collapse" data-bs-target="#proposalRejectPanel" aria-expanded="false" aria-controls="proposalRejectPanel" Reject
+        - if returnable
+            button.btn.btn-outline-warning type="button" data-bs-toggle="collapse" data-bs-target="#proposalReturnPanel" aria-expanded="false" aria-controls="proposalReturnPanel" Return to contributor
         - if @company_proposal.user_suggestion?
             = form_with url: approve_custom_admin_company_proposal_path(@company_proposal), method: :post, local: true, class: "d-inline" do
                 = button_tag "Apply to Company", type: "submit", name: "publish", value: "0", class: "btn btn-success", data: { turbo_confirm: "Apply this suggestion to #{@company_proposal.company&.name}?" }
@@ -63,6 +66,43 @@
                     .d-flex.gap-2
                         = button_tag "Approve Draft", type: "submit", name: "publish", value: "0", class: "btn btn-sm btn-outline-success", data: { turbo_confirm: "Approve this proposal as an invisible draft?" }, disabled: @company_proposal.company_id.present?
                         = button_tag "Publish", type: "submit", name: "publish", value: "1", class: "btn btn-sm btn-success", data: { turbo_confirm: "Publish this proposal to the public site?" }, disabled: @company_proposal.company_id.present? || !@quality_report["publish_ready"]
+
+- contributor_request = @agent_details["current_contributor_request"]
+- if contributor_request.present?
+    .alert.alert-warning.mb-3
+        .fw-semibold.mb-1
+            i.fas.fa-reply.me-1
+            = "Waiting on the contributor — round #{Array(@agent_details['contributor_requests']).size}. The next action is theirs, not yours."
+        .small.mb-1= contributor_request["instructions"]
+        - if Array(contributor_request["fields"]).any?
+            .small.mb-1= "Fields to fix: #{Array(contributor_request['fields']).map(&:humanize).to_sentence}"
+        .small.text-muted
+            = "Requested by #{contributor_request['requested_by']} on #{contributor_request['requested_at']}"
+            - if contributor_request["contributor_email"].present?
+                = " · contributor #{contributor_request['contributor_email']}"
+            - else
+                = " · no contributor address on file for this record"
+
+- if returnable
+    #proposalReturnPanel.collapse.mb-3
+        .card.border-0.shadow-sm.border-warning
+            .card-body.py-3
+                h2.h6.mb-2 Return to contributor
+                p.text-muted.small
+                    | Use this when the proposal is plausible but needs the submitter to correct or supply something. It keeps its history, moves off your queue into Awaiting contributor with your instructions attached, and no company draft is created. Nothing is sent to the submitter — the request is recorded here, and the proposal comes back to the Review Tab when they resubmit. For a record that does not belong in the index, reject it instead.
+                = form_with url: return_to_contributor_custom_admin_company_proposal_path(@company_proposal), method: :post, local: true do
+                    == queue_hidden_fields(@queue)
+                    .mb-2
+                        = label_tag :contributor_instructions, "What does the contributor need to do?", class: "form-label small mb-1"
+                        = text_area_tag :contributor_instructions, nil, class: "form-control form-control-sm", rows: 3, required: true, placeholder: "e.g. The website returns a 404 — please provide a current URL, and confirm the founding year."
+                    .mb-2
+                        .form-label.small.mb-1 Fields affected (optional)
+                        .d-flex.flex-wrap.gap-3
+                            - %w[main_url description location founded_date linkedin_url crunchbase_url].each do |field|
+                                .form-check.mb-0
+                                    = check_box_tag "contributor_fields[]", field, false, class: "form-check-input", id: "contributor_field_#{field}"
+                                    = label_tag "contributor_field_#{field}", field.humanize, class: "form-check-label small"
+                    = submit_tag "Return to contributor", class: "btn btn-sm btn-warning", data: { turbo_confirm: "Park this proposal with instructions for its contributor? No company draft is created." }
 
 #proposalRejectPanel.collapse.mb-3
     .card.border-0.shadow-sm.border-danger

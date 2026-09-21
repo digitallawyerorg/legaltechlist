@@ -17,7 +17,14 @@ class UserContributionIntakeService
     # identity lived in an expiring cache key rather than on the record, so a double
     # submit — or a retried request — produced two rows for the same company.
     existing = CompanyProposal.find_by(source: SOURCE, source_identifier: submission_identity)
-    return existing if existing
+    if existing
+      # A resubmission of a record a reviewer explicitly asked the contributor to fix is
+      # the one case where the second payload is the point. Every other repeat is still a
+      # duplicate submit and is still discarded.
+      return reopen_returned!(existing) if awaiting_contributor?(existing)
+
+      return existing
+    end
 
     proposal = CompanyProposal.create!(
       status: "pending",
@@ -41,6 +48,52 @@ class UserContributionIntakeService
   private
 
   attr_reader :form, :request_ip
+
+  def awaiting_contributor?(proposal)
+    proposal.status == CompanyProposalReturnService::RETURNED_PROPOSAL_STATUS &&
+      proposal.agent_details.dig("current_contributor_request", "state") == CompanyProposalReturnService::AWAITING_STATE
+  end
+
+  # The contributor answered: take the new payload, put the record back in front of a
+  # reviewer, and close the outstanding request while keeping every round of history.
+  def reopen_returned!(proposal)
+    details = proposal.agent_details.deep_dup
+    answered = details.delete("current_contributor_request")
+    details["contributor_resubmissions"] = Array(details["contributor_resubmissions"]) + [{
+      "resubmitted_at" => Time.current.utc.iso8601,
+      "request_ip" => request_ip,
+      "answered_request_at" => answered&.dig("requested_at"),
+      "round" => Array(details["contributor_requests"]).size
+    }.compact]
+
+    proposal.update!(
+      source_payload: form.source_payload,
+      proposed_changes: form.proposed_changes,
+      final_changes: form.proposed_changes,
+      # Back on the Review Tab: the request is gone, so it is no longer filtered out of
+      # the reviewer's default view.
+      status: "ready_for_review",
+      agent_details: details
+      # reviewed_at is deliberately left as it was. It records that a human looked at
+      # this record, which is still true, and while it is set enrichment stays locked
+      # (CompanyProposalEnrichmentService#locked_reason) — the safer default for a record
+      # a reviewer has already had opinions about. A reviewer can still force enrichment.
+    )
+
+    # A resubmitted payload can name a different company than the one that was checked
+    # the first time round, so the duplicate state is recomputed against the index as it
+    # is now rather than left as the snapshot taken at first intake. Approval re-resolves
+    # it live as well, so neither the queue nor the gate is reading a stale answer.
+    proposal.refresh_duplicate_signals!
+
+    SlackNotifier.user_contribution_submitted(proposal)
+    # Enqueued exactly as a first submission is. The processor stands down on a record a
+    # human has already handled (it only processes status "pending"), which is the right
+    # outcome here: a record a reviewer has already had opinions about must not be
+    # auto-published by triage, and the duplicate gate still runs at approval.
+    UserContributionProcessingJob.perform_later(proposal.id)
+    proposal
+  end
 
   # Stable for the same company from the same submitter, so a repeat lands on the row
   # that already exists instead of creating a second one.

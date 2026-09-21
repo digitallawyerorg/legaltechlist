@@ -78,6 +78,17 @@ module CompaniesHelper
     end
   end
 
+  # Category names already read as a subject ("Litigation & Dispute Resolution"),
+  # so appending "Companies" is redundant. The other facets need it: bare
+  # "Law Firms" or "Subscription" would describe the audience or the pricing
+  # model rather than the companies listed.
+  def company_index_heading(facet)
+    return "Legal Tech Companies" if facet.blank?
+    return facet[:label] if facet[:type] == :category
+
+    "#{facet[:label]} Companies"
+  end
+
   def company_neighbor_path(neighbor, nav_context)
     company_path(neighbor[:slug], nav_context)
   end

@@ -40,8 +40,25 @@ class UserSubmissionTriageService
   def rule_verdict
     text = [proposal.user_message, proposal.final_changes["description"], proposal.final_changes["name"]].compact.join(" ")
 
+    blocklist_result = blocklist_verdict(text)
+    return blocklist_result if blocklist_result
+
     return verdict("reject", 0.99, "spam_pattern", "Matched obvious spam pattern.") if SPAM_PATTERNS.any? { |pattern| text.match?(pattern) }
     return verdict("review", 0.8, "marketing_language", "Contains promotional marketing language.") if MARKETING_PATTERNS.count { |pattern| text.match?(pattern) } >= 2
+
+    nil
+  end
+
+  # Checked ahead of the heuristics: a blocklist entry is a curated match on a
+  # submission already judged spam by hand, so it rejects on sight rather than
+  # leaving a blocker for a curator to notice. The reason names the blocklist so
+  # a human can tell these rejections apart from the pattern heuristic.
+  def blocklist_verdict(text)
+    domain = SubmissionBlocklist.blocked_domain_for(proposal.final_changes["main_url"])
+    return verdict("reject", 1.0, "blocklisted_domain", "Submitted domain #{domain} is on the intake spam blocklist.") if domain
+
+    host = SubmissionBlocklist.blocked_link_host_in([text, proposal.final_changes["main_url"]].compact.join(" "))
+    return verdict("reject", 1.0, "blocklisted_link", "Submission links to #{host}, which is on the intake spam blocklist.") if host
 
     nil
   end
