@@ -98,7 +98,12 @@ class DuplicateGate
 
     if proposal.status.in?(ROUTABLE_STATUSES)
       attributes[:status] = "ready_for_review"
-      attributes[:reviewed_at] = Time.current
+      # Only stamped when it is not already set. The value records when a human looked at
+      # the record, and a reopened resubmission arrives here carrying a real one
+      # (UserContributionIntakeService#reopen_returned! keeps it on purpose); overwriting
+      # it with a machine timestamp would lose that. Either way it stays present, so the
+      # enrichment lock it drives (CompanyProposalEnrichmentService#locked_reason) holds.
+      attributes[:reviewed_at] = Time.current if proposal.reviewed_at.blank?
       attributes[:reviewer_notes] = routed_notes(proposal, decision.recommended_action)
     end
 

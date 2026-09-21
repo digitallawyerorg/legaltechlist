@@ -82,15 +82,29 @@ class UserContributionIntakeService
 
     # A resubmitted payload can name a different company than the one that was checked
     # the first time round, so the duplicate state is recomputed against the index as it
-    # is now rather than left as the snapshot taken at first intake. Approval re-resolves
-    # it live as well, so neither the queue nor the gate is reading a stale answer.
+    # is now rather than left as the snapshot taken at first intake.
     proposal.refresh_duplicate_signals!
+
+    # The gate runs on this path too. It is the one ingestion path that reopens a record
+    # *past* the processor: the processor routes blocking duplicates (it calls the gate
+    # before anything else), but it only touches status "pending", so a record reopened
+    # to "ready_for_review" here is skipped by it. Without this call a resubmission that
+    # now matches a published record would land in the normal review queue carrying no
+    # routing entry, no reviewer note and no named canonical record — the exact hole the
+    # gate exists to close, reopened from the other side. Duplicate detection is
+    # mandatory on every path, so it is asked here rather than left to approval.
+    #
+    # It routes, it does not refuse: refusing would raise into the contribute form and
+    # throw away the contributor's answer. Routing keeps the payload, keeps the record
+    # open, and puts it in front of a human with the canonical record named on it.
+    decision = DuplicateGate.check(proposal, refresh: false)
+    DuplicateGate.route!(decision) if decision.blocking?
 
     SlackNotifier.user_contribution_submitted(proposal)
     # Enqueued exactly as a first submission is. The processor stands down on a record a
     # human has already handled (it only processes status "pending"), which is the right
     # outcome here: a record a reviewer has already had opinions about must not be
-    # auto-published by triage, and the duplicate gate still runs at approval.
+    # auto-published by triage.
     UserContributionProcessingJob.perform_later(proposal.id)
     proposal
   end

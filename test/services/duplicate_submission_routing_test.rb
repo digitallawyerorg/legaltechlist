@@ -209,6 +209,56 @@ class DuplicateSubmissionRoutingTest < ActiveSupport::TestCase
     assert_equal [@company.id], proposal.duplicate_signals["domain_matches"].map { |match| match["id"] }
   end
 
+  # The path that reopens a record past the processor. A reviewer returns a submission,
+  # the company is published from somewhere else while the contributor is writing their
+  # answer, and the answer arrives naming a record that now exists. The reopen sets the
+  # row to "ready_for_review", and the processor only ever touches "pending" — so before
+  # the gate was asked here, this landed in the normal review queue with nothing on it
+  # saying which published record it duplicated.
+  test "a resubmission that now matches a published record is routed to resolution" do
+    published!(name: "Unrelated Public Entry", url: "https://unrelated-public-entry.example")
+    original = UserContributionIntakeService.call(form: contribution_form(name: "Notaron", main_url: "https://notaron.com"))
+    refute original.duplicate_signals["blocking"], "nothing matched when it was first submitted"
+
+    CompanyProposalReturnService.call(
+      proposal: original, admin_user: admin_users(:one),
+      instructions: "The description does not say what the product does.", fields: %w[description]
+    )
+    published!(name: "Notaron", url: "https://notaron.com/")
+
+    again = UserContributionIntakeService.call(form: contribution_form(name: "Notaron", main_url: "https://notaron.com"))
+
+    assert_equal original.id, again.id, "the answer lands on the row that was returned"
+    again.reload
+    assert again.duplicate_blocking?, "the duplicate queue has to show it"
+    assert_equal @company.id, again.agent_details.dig("duplicate_routing", "canonical_company_id"),
+                 "the reopen has to pass through the gate, not around it"
+    assert_match(/already in the index/, again.reviewer_notes)
+    assert_nil again.company_id, "routing publishes nothing"
+  end
+
+  # reviewed_at says when a human last looked at the record, and the reopen keeps the one
+  # the reviewer earned on purpose. Routing must not overwrite it with the machine's own
+  # clock, or the reopen's promise is undone by the gate it now calls.
+  test "routing a resubmission keeps the reviewer's own reviewed_at" do
+    published!(name: "Unrelated Public Entry", url: "https://unrelated-public-entry.example")
+    original = UserContributionIntakeService.call(form: contribution_form(name: "Notaron", main_url: "https://notaron.com"))
+
+    CompanyProposalReturnService.call(
+      proposal: original, admin_user: admin_users(:one),
+      instructions: "The description does not say what the product does.", fields: %w[description]
+    )
+    reviewed_at = Time.zone.local(2026, 3, 4, 9, 30, 0)
+    original.update_columns(reviewed_at: reviewed_at)
+    published!(name: "Notaron", url: "https://notaron.com/")
+
+    again = UserContributionIntakeService.call(form: contribution_form(name: "Notaron", main_url: "https://notaron.com")).reload
+
+    assert again.agent_details["duplicate_routing"].present?, "the gate ran on this path"
+    assert_equal reviewed_at.to_i, again.reviewed_at.to_i,
+                 "the gate stamped over the timestamp a human earned"
+  end
+
   private
 
   def contribution_form(name:, main_url:)
