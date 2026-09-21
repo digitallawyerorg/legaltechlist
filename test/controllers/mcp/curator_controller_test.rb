@@ -2,9 +2,14 @@ require "test_helper"
 
 module Mcp
   class CuratorControllerTest < ActionDispatch::IntegrationTest
+    # The connector's own domain. The transport rejects any other Host, so requests
+    # have to arrive under a name CuratorPolicy.allowed_request_hosts vouches for.
+    SERVED_HOST = "techindex.law.stanford.edu".freeze
+
     setup do
       @previous_token = ENV["MCP_CURATOR_TOKEN"]
       ENV["MCP_CURATOR_TOKEN"] = "test-secret"
+      host! SERVED_HOST
     end
 
     teardown do
@@ -37,6 +42,13 @@ module Mcp
       assert_includes names, "discover_companies"
       assert_includes names, "curate_pending"
       assert_includes names, "apply_safe_fields"
+    end
+
+    test "rejects an authenticated request rebound onto a foreign Host" do
+      host! "evil.example.com"
+      post "/mcp", params: rpc("tools/list"), headers: request_headers
+      assert_response :forbidden
+      assert_match(/Invalid Host header/, response.body)
     end
 
     private

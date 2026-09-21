@@ -72,6 +72,24 @@ module Mcp
       "#{issuer(request)}/mcp"
     end
 
+    # Host names this connector is served under. mcp 1.x validates the Host header
+    # itself to block DNS rebinding, and ships only the loopback names; a deployed
+    # endpoint has to name its own. Derived from the URLs the app already knows it
+    # answers on, with MCP_ALLOWED_HOSTS for anything extra (a Heroku domain, a
+    # staging host). Ports are dropped: the gem matches the bare name on any port.
+    def allowed_request_hosts
+      from_urls = [site_url, ENV["MCP_OAUTH_ISSUER"]].filter_map { |url| host_in(url) }
+      configured = ENV["MCP_ALLOWED_HOSTS"].to_s.split(",").filter_map { |entry| entry.strip.presence }
+
+      (from_urls + configured).uniq
+    end
+
+    def host_in(url)
+      URI.parse(url.to_s).host
+    rescue URI::InvalidURIError
+      nil
+    end
+
     def allowed_redirect_hosts
       configured = ENV["MCP_OAUTH_ALLOWED_REDIRECT_HOSTS"].to_s.split(",").map(&:strip).reject(&:blank?)
       (DEFAULT_REDIRECT_HOSTS + configured).uniq

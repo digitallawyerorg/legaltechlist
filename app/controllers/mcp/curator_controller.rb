@@ -7,7 +7,13 @@ module Mcp
 
     def handle
       server = Mcp::CuratorServer.build(actor: "claude_tag")
-      transport = MCP::Server::Transports::StreamableHTTPTransport.new(server, stateless: true, enable_json_response: true)
+      # allowed_hosts is the deployment's side of the gem's DNS-rebinding guard: it
+      # ships loopback names only, so a request arriving under this app's own domain
+      # is rejected until that domain is named. See CuratorPolicy.allowed_request_hosts.
+      transport = MCP::Server::Transports::StreamableHTTPTransport.new(
+        server, stateless: true, enable_json_response: true,
+        allowed_hosts: Mcp::CuratorPolicy.allowed_request_hosts
+      )
 
       rewind_request_body!
       status, headers, body = transport.handle_request(Rack::Request.new(request.env))
