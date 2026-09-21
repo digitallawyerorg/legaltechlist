@@ -201,13 +201,21 @@ class ProposalDuplicateDetectorService
   # Ordered by CompanyIdentityMatcher::MATCH_TYPES, so the first is the strongest.
   def sibling_match_types(sibling)
     types = []
-    types << "exact_domain" if (candidate_domains & sibling[:domains]).any?
+    types << "exact_domain" if (candidate_identity_domains & sibling[:domains]).any?
     types << "related_domain" if candidate_domains.product(sibling[:domains]).any? { |mine, theirs| CompanyIdentityMatcher.related_domains?(mine, theirs) }
     types << "shared_profile" if shared_sibling_profiles(sibling).any?
     types << "exact_name" if normalized_name.present? && sibling[:normalized] == normalized_name
     types << "core_name" if candidate_core.present? && sibling[:core] == candidate_core
     types << "brand_name" if (candidate_brands & sibling_brands(sibling)).any?
     types
+  end
+
+  # Only the domains that can be a record's own address. A crunchbase.com or
+  # linkedin.com website is a page *about* the company, so two records that merely both
+  # live on the aggregator must not read as sharing a domain — see
+  # CompanyIdentityMatcher::NON_IDENTIFYING_HOSTS and the 4179 / 3827 panel.
+  def candidate_identity_domains
+    @candidate_identity_domains ||= CompanyIdentityMatcher.identifying_domains(candidate_domains)
   end
 
   def candidate_brands

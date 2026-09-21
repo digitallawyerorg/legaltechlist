@@ -124,6 +124,44 @@ class CompanyIdentityMatcher
     translate.goog s3.amazonaws.com
   ].freeze
 
+  # Aggregators, registries, social networks and link-in-bio pages. A record whose
+  # website or citation URL is one of these is not giving its own address: it is pointing
+  # at somebody else's page about it, and every other record on that host is pointing at a
+  # page about somebody else. Read as identity, the host becomes the shared address of
+  # every record discovery ever cited from it — the duplicate panels on proposals 4179 and
+  # 4378 both named the unrelated proposal 3827 (Tecnika Legal), "matched on brand name",
+  # because the brand label read off a crunchbase.com citation is "crunchbase" on all
+  # three of them.
+  #
+  # The registry and profile hosts are the ones CompanyProposalEnrichmentService already
+  # names, so a host means the same thing in both places; the rest are the social and
+  # link-in-bio pages a submission carries when it has no site of its own.
+  #
+  # This is not SHARED_HOSTS. Those hand out a subdomain per tenant, so the tenant label
+  # is still an identity and only the platform's own label is not. Here the whole host
+  # belongs to someone else, so no domain key may be read from it at all.
+  NON_IDENTIFYING_HOSTS = (
+    CompanyProposalEnrichmentService::ENTITY_REGISTRY_HOSTS + %w[
+      facebook.com instagram.com x.com twitter.com youtube.com
+      linktr.ee sites.google.com medium.com
+    ]
+  ).freeze
+
+  # True for one of those hosts and for anything under it.
+  def self.non_identifying_host?(domain)
+    host = domain.to_s.downcase.delete_suffix(".")
+    return false if host.blank?
+
+    NON_IDENTIFYING_HOSTS.any? { |entry| host == entry || host.end_with?(".#{entry}") }
+  end
+
+  # The subset of a record's domains that may stand for the record itself. Filtering one
+  # side of a domain comparison is enough to filter both: an element dropped here cannot
+  # survive in an intersection with the other side.
+  def self.identifying_domains(values)
+    Array(values).reject { |domain| non_identifying_host?(domain) }
+  end
+
   # Two-label registry suffixes. A host directly under one of these is a registrable
   # domain, not a subdomain of the suffix, and its brand label is the label before it.
   REGISTRY_SUFFIXES = %w[
@@ -218,6 +256,8 @@ class CompanyIdentityMatcher
   def self.brand_key(domain)
     host = domain.to_s.downcase.delete_suffix(".")
     return nil if host.blank?
+    # A Crunchbase or LinkedIn page carries the aggregator's brand, never the record's.
+    return nil if non_identifying_host?(host)
 
     labels = host.split(".")
     suffix_labels = REGISTRY_SUFFIXES.any? { |suffix| host.end_with?(".#{suffix}") } ? 2 : 1
@@ -253,6 +293,8 @@ class CompanyIdentityMatcher
   # that could be a tenant name.
   def self.related_domains?(one, other)
     return false if one.blank? || other.blank? || one == other
+    # Two pages on one aggregator are two companies, however they nest.
+    return false if non_identifying_host?(one) || non_identifying_host?(other)
 
     child, parent = one.length > other.length ? [one, other] : [other, one]
     return false unless child.end_with?(".#{parent}")
@@ -391,13 +433,19 @@ class CompanyIdentityMatcher
   # Every brand string this candidate carries: its name, and the label of each of its
   # domains. Matching the set against the other record's set is what lets a name meet a
   # domain — a product named only in its parent's URL, or the same brand on another TLD.
+  # The domains that may stand for this candidate. See NON_IDENTIFYING_HOSTS: two records
+  # both cited from Crunchbase share a host, not an address.
+  def identity_domains
+    @identity_domains ||= self.class.identifying_domains(domains)
+  end
+
   def brand_keys
     @brand_keys ||= ([core_key] + domains.map { |domain| self.class.brand_key(domain) }).compact_blank.uniq
   end
 
   def match_types_for(row)
     types = []
-    types << "exact_domain" if (domains & row[:domains]).any?
+    types << "exact_domain" if (identity_domains & row[:domains]).any?
     types << "redirect_domain" if row[:final_domain].present? && domains.include?(row[:final_domain])
     types << "related_domain" if related_domain_for(row).present?
     types << "shared_profile" if shared_profiles(row).any?
@@ -437,7 +485,7 @@ class CompanyIdentityMatcher
 
   def matched_value_for(match_type, row)
     case match_type
-    when "exact_domain" then (domains & row[:domains]).first
+    when "exact_domain" then (identity_domains & row[:domains]).first
     when "redirect_domain" then row[:final_domain]
     when "related_domain" then related_domain_for(row)
     when "shared_profile" then shared_profiles(row).first

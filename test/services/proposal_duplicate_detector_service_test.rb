@@ -221,6 +221,33 @@ class ProposalDuplicateDetectorServiceTest < ActiveSupport::TestCase
     assert signals["blocking"]
   end
 
+  # The 4179 / 3827 shape. The duplicate panels on proposals 4179 and 4378 both listed
+  # proposal 3827 (Tecnika Legal) as a match, reasoned "matched on brand name". The three
+  # records have nothing in common but a Crunchbase citation standing in for a website,
+  # and crunchbase.com reads as the brand "crunchbase" on all of them. A page about a
+  # company is not that company's address, on either side of the comparison.
+  test "two proposals whose only shared key is an aggregator brand do not see each other" do
+    tecnika = proposal_for({ "name" => "Tecnika Legal",
+                             "main_url" => "https://www.crunchbase.com/organization/tecnika-legal" },
+                           status: "ready_for_review")
+    same_host = proposal_for({"name" => "Harbor Clause Review",
+                              "main_url" => "https://www.crunchbase.com/organization/harbor-clause-review"})
+    other_host = proposal_for({"name" => "Orrinbeck Disclosure",
+                               "main_url" => "https://de.crunchbase.com/organization/orrinbeck-disclosure"})
+
+    [same_host, other_host].each do |candidate|
+      signals = ProposalDuplicateDetectorService.call(proposal: candidate)
+
+      assert_nil signals["proposal_matches"].find { |match| match["proposal_id"] == tecnika.id },
+                 "proposal ##{candidate.id} must not name an unrelated record it merely shares an aggregator with"
+      assert_empty signals["proposal_matches"]
+      assert_empty signals["domain_matches"]
+      assert_empty signals["name_matches"]
+      refute signals["blocking"]
+      assert_nil signals["recommended_action"]
+    end
+  end
+
   # Caseway 4174/4175 and the Europaius double-post: one submission that arrived twice.
   # Grading the sibling side must not soften these — they are one record, not two products.
   test "twin proposals with the same name and website stay confirmed" do

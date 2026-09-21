@@ -118,6 +118,49 @@ class CompanyIdentityMatcherTest < ActiveSupport::TestCase
     )
   end
 
+  # The duplicate panels on proposals 4179 and 4378 both named proposal 3827 (Tecnika
+  # Legal), described as "matched on brand name". The records are unrelated: all three
+  # were cited from Crunchbase, and the brand label of crunchbase.com is "crunchbase" for
+  # every one of them. An aggregator, registry or social page is not a company's address,
+  # so it supplies neither a domain nor a brand.
+  test "an aggregator page is not an address, so two records citing one do not match" do
+    company!(name: "Tecnika Legal", main_url: "https://www.crunchbase.com/organization/tecnika-legal",
+             canonical_domain: "crunchbase.com")
+
+    assert_empty matches_for("Harbor Clause Review", url: "https://www.crunchbase.com/organization/harbor-clause-review"),
+                 "two records on one aggregator share a host, not an identity"
+    assert_empty matches_for("Harbor Clause Review", url: "https://de.crunchbase.com/organization/harbor-clause-review"),
+                 "and not a brand label either, which is the key the 4179 panel reported"
+    assert_empty matches_for("Harbor Clause Review", url: "https://www.linkedin.com/company/harbor-clause-review")
+
+    assert_nil CompanyIdentityMatcher.brand_key("crunchbase.com")
+    assert_nil CompanyIdentityMatcher.brand_key("uk.linkedin.com")
+    assert_nil CompanyIdentityMatcher.brand_key("opencorporates.com")
+    assert_nil CompanyIdentityMatcher.brand_key("linktr.ee")
+    refute CompanyIdentityMatcher.related_domains?("www.crunchbase.com", "crunchbase.com")
+  end
+
+  # The other half of that rule: linkedin.com stops being an address, but a shared
+  # LinkedIn *company page* is still the strongest key in the system, and it is read from
+  # linkedin_url rather than from any domain. Losing it would blind the good path.
+  test "a shared linkedin company page still matches when linkedin is not an address" do
+    company!(name: "Vantoria", main_url: "https://www.linkedin.com/company/vantoria",
+             canonical_domain: "linkedin.com",
+             linkedin_url: "https://www.linkedin.com/company/vantoria")
+
+    match = CompanyIdentityMatcher.matches_for(
+      name: "Pellumbra",
+      domains: ["linkedin.com"],
+      profiles: CompanyIdentityMatcher.profile_keys("linkedin_url" => "https://linkedin.com/company/vantoria/")
+    ).first
+
+    assert match, "the company page survives even when neither record has a site of its own"
+    assert_equal "shared_profile", match["match_type"]
+    assert_equal ["shared_profile"], match["match_types"],
+                 "the shared host must not also be reported as a shared domain or brand"
+    assert_equal CompanyIdentityMatcher::CONFIDENCE_CONFIRMED, match["confidence"]
+  end
+
   # ---- FALSE NEGATIVES the matcher must now catch -------------------------
 
   # Proposal 4139 (deep-law.com) was not flagged against public company 16479, which
