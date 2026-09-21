@@ -29,7 +29,7 @@ class CompanyProposalQualityService
       "verification_state" => verification_state,
       "description_verification" => description_verification,
       "description_verified" => description_verified?,
-      "duplicate_signals" => proposal.current_duplicate_signals,
+      "duplicate_signals" => duplicate.signals,
       "checked_at" => Time.current.utc.iso8601
     }
   end
@@ -62,7 +62,7 @@ class CompanyProposalQualityService
   def blockers
     @blockers ||= begin
       values = []
-      values << duplicate_blocker if proposal.duplicate_blocking?
+      values << duplicate.recommended_action if duplicate.blocking?
       values << "Complete required fields before publishing: #{missing_publish_blocking_fields.map(&:humanize).to_sentence}." if missing_publish_blocking_fields.any?
       values << "Review low-confidence taxonomy before publishing." if low_confidence_taxonomy?
       values << description_blocker if description_blocker
@@ -74,10 +74,14 @@ class CompanyProposalQualityService
     end
   end
 
-  # Name the duplicate rather than announcing that a signal exists, so a reviewer can
-  # act without opening a second tab to work out what matched.
-  def duplicate_blocker
-    proposal.current_duplicate_signals["recommended_action"].presence || "Resolve the duplicate match before publishing."
+  # The report reads the same gate every write path does, so a reviewer is never told a
+  # record is publish-ready that the gate would stop. It is a read: no fresh resolution
+  # (a list view has usually just resolved these rows) and no evidence written, since
+  # rendering a report is not a disposition. The wording names the matched record rather
+  # than announcing that a signal exists, so a reviewer can act without opening a second
+  # tab to work out what matched.
+  def duplicate
+    @duplicate ||= DuplicateGate.check(proposal, refresh: false, record_evidence: false)
   end
 
   # A proposal that was never enriched has had no research applied to it at all, yet
@@ -229,7 +233,7 @@ class CompanyProposalQualityService
       proposal.revenue_models_present?(changes),
       proposal.target_clients_present?(changes),
       !weak_description?,
-      !proposal.duplicate_blocking?
+      !duplicate.blocking?
     ]
     ((checks.count(true).to_f / checks.size) * 100).round
   end

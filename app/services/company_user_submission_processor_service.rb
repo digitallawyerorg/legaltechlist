@@ -20,6 +20,17 @@ class CompanyUserSubmissionProcessorService
       return result("rejected", triage["reason"])
     end
 
+    # Before anything else decides what happens to this submission: does the index
+    # already hold this company? Nothing here used to ask. Triage's own duplicate rule
+    # compared canonical domains against publicly visible rows only, and everything after
+    # it — enrichment, the draft, the auto-publish — ran without consulting the detector
+    # that the approval gate and the admin queue both use. So a submission for a company
+    # already published under a later name, on another TLD, or into a hidden draft was
+    # enriched and drafted as new work, and the duplicate only surfaced at approval, by
+    # which point a second row existed or the submitted text had been overwritten.
+    duplicate = DuplicateGate.check(proposal)
+    return routed_result(DuplicateGate.route!(duplicate)) if duplicate.blocking?
+
     return process_user_suggestion!(triage) if proposal.user_suggestion?
 
     if triage["verdict"] == "review"
@@ -52,16 +63,41 @@ class CompanyUserSubmissionProcessorService
 
   attr_reader :proposal
 
+  # A suggestion is already bound to its company, so a match against that same company is
+  # the record commenting on itself, not a second listing — the matcher excludes it. Any
+  # other blocking match, on either proposal type, is a submission that needs resolving
+  # against an existing record before it can be treated as new. Deciding that, and moving
+  # the record into the duplicate queue, is DuplicateGate's job for every path; this one
+  # only translates the outcome into the result shape callers here expect.
+  def routed_result(decision)
+    result("duplicate_resolution", decision.recommended_action)
+  end
+
   def process_user_suggestion!(triage)
     apply_suggestion_interpretation!
     proposal.reload
 
+    # Interpretation rewrites the name, URL and profile links this suggestion is asking
+    # for, and those are exactly what identity is matched on — so the answer from before
+    # it ran is not the answer that governs the write. The gate is asked again on the
+    # interpreted record, before auto-apply is even considered.
+    interpreted = DuplicateGate.check(proposal)
+    return routed_result(DuplicateGate.route!(interpreted)) if interpreted.blocking?
+
     if auto_apply_suggestion?
-      company = CompanyProposalApplyUpdateService.call(
-        proposal: proposal,
-        admin_user: nil,
-        publish: proposal.company.visible?
-      )
+      begin
+        company = CompanyProposalApplyUpdateService.call(
+          proposal: proposal,
+          admin_user: nil,
+          publish: proposal.company.visible?
+        )
+      rescue DuplicateGate::Blocked => e
+        # Reached only when a match appears between the check above and the write — a twin
+        # arriving mid-run. The gate has already routed the record; report that rather
+        # than announcing an approval or crashing the run.
+        return result("duplicate_resolution", e.message)
+      end
+
       SlackNotifier.contribution_decision(
         proposal,
         decision: "approved",

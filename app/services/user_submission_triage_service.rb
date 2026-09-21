@@ -1,5 +1,12 @@
 require "timeout"
 
+# Is this submission spam, promotional, or worth a look? Triage answers that and nothing
+# else. It used to also reject anything whose canonical domain matched a *publicly
+# visible* company, which was wrong twice over: it rejected a real submission in the same
+# second it arrived, so nobody ever compared the two records, and it missed every other
+# shape of duplicate — a rebrand, a new TLD, a hidden draft. Duplicates are resolved by
+# CompanyUserSubmissionProcessorService against the shared matcher instead, which routes
+# them to a reviewer rather than discarding them.
 class UserSubmissionTriageService
   SPAM_PATTERNS = [
     /viagra/i, /casino/i, /crypto\s*airdrop/i, /buy\s+followers/i, /seo\s+services/i,
@@ -37,7 +44,6 @@ class UserSubmissionTriageService
     return blocklist_result if blocklist_result
 
     return verdict("reject", 0.99, "spam_pattern", "Matched obvious spam pattern.") if SPAM_PATTERNS.any? { |pattern| text.match?(pattern) }
-    return verdict("reject", 0.95, "duplicate_domain", "Website domain already listed.") if duplicate_domain_listed?
     return verdict("review", 0.8, "marketing_language", "Contains promotional marketing language.") if MARKETING_PATTERNS.count { |pattern| text.match?(pattern) } >= 2
 
     nil
@@ -55,15 +61,6 @@ class UserSubmissionTriageService
     return verdict("reject", 1.0, "blocklisted_link", "Submission links to #{host}, which is on the intake spam blocklist.") if host
 
     nil
-  end
-
-  def duplicate_domain_listed?
-    return false unless proposal.user_contribution?
-
-    domain = Company.canonical_domain_for(proposal.final_changes["main_url"])
-    return false if domain.blank?
-
-    Company.publicly_visible.where.not(main_url: [nil, ""]).any? { |company| company.canonical_main_domain == domain }
   end
 
   def llm_verdict

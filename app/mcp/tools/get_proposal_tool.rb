@@ -27,8 +27,15 @@ module Mcp
           "created_at" => proposal.created_at.iso8601,
           "editable_changes" => proposal.editable_changes,
           "final_changes" => proposal.final_changes,
-          "duplicate_signals" => proposal.duplicate_signals,
+          # Resolved now, not read from the stored column. The two disagreed: the column
+          # is only rewritten when a record is opened or enriched, so a proposal could
+          # report empty signals beside duplicate_blocking=true (or the reverse), and a
+          # reader taking either one on its own drew the wrong conclusion. duplicate_evidence
+          # is the append-only record of what the guard saw, which the live view forgets
+          # once a matched record changes state.
+          "duplicate_signals" => proposal.current_duplicate_signals,
           "duplicate_blocking" => proposal.duplicate_blocking?,
+          "duplicate_evidence" => proposal.duplicate_evidence,
           # The approval record. These columns always existed; none of them were exposed,
           # so an agent could not tell an approved record from an unapproved one, nor see
           # whose decision it was reading.

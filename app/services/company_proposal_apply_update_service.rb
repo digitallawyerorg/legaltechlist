@@ -1,17 +1,32 @@
 class CompanyProposalApplyUpdateService
-  def self.call(proposal:, admin_user:, publish: false)
-    new(proposal: proposal, admin_user: admin_user, publish: publish).call
+  def self.call(proposal:, admin_user:, publish: false, duplicate_override: false)
+    new(proposal: proposal, admin_user: admin_user, publish: publish, duplicate_override: duplicate_override).call
   end
 
-  def initialize(proposal:, admin_user:, publish: false)
+  def initialize(proposal:, admin_user:, publish: false, duplicate_override: false)
     @proposal = proposal
     @admin_user = admin_user
     @publish = publish
+    @duplicate_override = ActiveModel::Type::Boolean.new.cast(duplicate_override)
   end
 
   def call
     raise ArgumentError, "Only user suggestions can be applied to existing companies" unless proposal.user_suggestion?
     raise ArgumentError, "Proposal is not linked to a company" if proposal.company_id.blank?
+
+    # Duplicate detection is a mandatory validation, not a step one ingestion path gets to
+    # skip. This was the write with no gate in front of it: it edits a live, published
+    # company, it runs autonomously under MCP_CURATOR_AUTOAPPLY_UPDATES, and the approval
+    # tool routed every suggestion straight here past the quality gate and the duplicate
+    # check both. So a suggestion whose real subject is a different entry — or whose twin
+    # was still open in the queue — overwrote a published record instead of being compared
+    # against it.
+    #
+    # A suggestion matching the company it is already attached to is the record commenting
+    # on itself, and the matcher excludes that. Any other blocking match stops the write
+    # here and the record goes to duplicate resolution, where the comparison it needs can
+    # actually be made.
+    DuplicateGate.enforce!(proposal, override: duplicate_override)
 
     company = proposal.company
     changes = proposal.final_changes.slice(*CompanyProposal::EDITABLE_COMPANY_FIELDS)
@@ -43,7 +58,7 @@ class CompanyProposalApplyUpdateService
 
   private
 
-  attr_reader :proposal, :admin_user, :publish
+  attr_reader :proposal, :admin_user, :publish, :duplicate_override
 
   # A locked description is not overwritten by an automated apply. A permitted change
   # records what it replaced and why, the same as update_company_field.

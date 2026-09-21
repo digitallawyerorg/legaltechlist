@@ -3,7 +3,7 @@ module Mcp
     class ApproveProposalTool < BaseTool
       tool_name "approve_proposal"
       title "Approve proposal"
-      description "Approve a proposal into a draft (publish=false) or publish it live (publish=true). Publish defaults to true when human_approved=true, and to false otherwise. Re-calling with publish=true on a proposal that was previously approved as an invisible draft promotes that draft to visible (no new company is created). To add a historical/already-acquired company in one step, pass status (e.g. \"acquired\", \"inactive\") so it publishes straight into that lifecycle state (never appearing as active), and/or an acquisition payload to record the acquirer at publish time. Publish live autonomously only when you are certain: the quality gate passes, there are no duplicate signals, and you pass a high confidence (>= the server threshold). Otherwise leave it for a human, or pass human_approved=true only after a human approves in Slack."
+      description "Approve a proposal into a draft (publish=false) or publish it live (publish=true). Publish defaults to true when human_approved=true, and to false otherwise. Re-calling with publish=true on a proposal that was previously approved as an invisible draft promotes that draft to visible (no new company is created). To add a historical/already-acquired company in one step, pass status (e.g. \"acquired\", \"inactive\") so it publishes straight into that lifecycle state (never appearing as active), and/or an acquisition payload to record the acquirer at publish time. Publish live autonomously only when you are certain: the quality gate passes, there are no duplicate signals, and you pass a high confidence (>= the server threshold). Otherwise leave it for a human, or pass human_approved=true only after a human approves in Slack. Duplicate detection runs on every path, including a suggestion applied to an existing company: a blocking match stops the call, nothing is published or overwritten, and the record is routed to duplicate resolution (result=\"duplicate_resolution\")."
       annotations(read_only_hint: false, destructive_hint: false, idempotent_hint: false, title: "Approve proposal")
       input_schema(
         properties: {
@@ -49,10 +49,13 @@ module Mcp
         already = already_resolved_response(proposal, publish: publish)
         return already if already
 
-        return apply_existing_company_update(proposal, id: id, publish: publish, confidence: confidence, human_approved: human_approved) if proposal.user_suggestion?
+        return apply_existing_company_update(proposal, id: id, publish: publish, confidence: confidence, human_approved: human_approved, duplicate_override: human_approved && duplicate_override) if proposal.user_suggestion?
 
+        # Resolved before the quality report so both read the same answer, and so the
+        # report's own duplicate blocker is not a second, staler opinion.
+        duplicate = DuplicateGate.check(proposal)
         quality = CompanyProposalQualityService.call(proposal)
-        gate_ok = quality["publish_ready"] && !proposal.duplicate_blocking?
+        gate_ok = quality["publish_ready"] && !duplicate.blocking?
 
         if publish && !gate_ok && !human_approved
           return error_response(
@@ -61,7 +64,7 @@ module Mcp
             "error" => "Publish blocked by quality gate. Fix blockers, resolve duplicates, or pass human_approved=true after a human approves.",
             "publish_ready" => quality["publish_ready"],
             "blockers" => quality["blockers"],
-            "duplicate_blocking" => proposal.duplicate_blocking?,
+            "duplicate_blocking" => duplicate.blocking?,
             "admin_url" => admin_proposal_url(proposal)
           )
         end
@@ -108,6 +111,17 @@ module Mcp
             "profile_url" => (profile_url(company) if company.slug.present?),
             "admin_url" => admin_proposal_url(proposal)
           }.compact
+        )
+      rescue DuplicateGate::Blocked => e
+        # The gate routed the proposal to duplicate resolution rather than minting a
+        # second row. Nothing was published; retrying will hit the same gate.
+        error_response(
+          "result" => "duplicate_resolution",
+          "published" => false,
+          "retryable" => false,
+          "duplicate_blocking" => true,
+          "error" => "#{e.message} Routed to duplicate resolution instead of approved; resolve it there, or re-approve with human_approved=true and duplicate_override=true if the records are genuinely different companies.",
+          "admin_url" => admin_proposal_url(proposal)
         )
       rescue ArgumentError => e
         error_response("result" => "blocked", "published" => false, "retryable" => false, "error" => e.message, "admin_url" => admin_proposal_url(proposal))
@@ -162,7 +176,7 @@ module Mcp
       # Apply an edit to an EXISTING company. This changes a live entry, so it
       # needs either an explicit human approval, or (when autoapply is enabled)
       # a high enough confidence to clear the autonomy threshold.
-      def self.apply_existing_company_update(proposal, id:, publish:, confidence:, human_approved:)
+      def self.apply_existing_company_update(proposal, id:, publish:, confidence:, human_approved:, duplicate_override: false)
         autonomous_ok = Mcp::CuratorPolicy.autoapply_updates_enabled? && Mcp::CuratorPolicy.confidence_ok?(confidence, proposal)
 
         unless human_approved || autonomous_ok
@@ -175,7 +189,7 @@ module Mcp
           return error_response("result" => "blocked", "published" => false, "applied_update" => false, "error" => message, "confidence" => confidence, "admin_url" => admin_proposal_url(proposal))
         end
 
-        company = CompanyProposalApplyUpdateService.call(proposal: proposal, admin_user: curator, publish: publish)
+        company = CompanyProposalApplyUpdateService.call(proposal: proposal, admin_user: curator, publish: publish, duplicate_override: duplicate_override)
 
         audit!(
           action: "approve_proposal",
@@ -193,6 +207,19 @@ module Mcp
           "company_id" => company.id,
           "company_slug" => company.slug,
           "profile_url" => (profile_url(company) if company.slug.present?),
+          "admin_url" => admin_proposal_url(proposal)
+        )
+      rescue DuplicateGate::Blocked => e
+        # Not applied and not published: the gate routed the suggestion to duplicate
+        # resolution, where the record it actually collides with can be compared against
+        # it. Reported separately from a plain block so the caller does not retry.
+        error_response(
+          "result" => "duplicate_resolution",
+          "published" => false,
+          "applied_update" => false,
+          "retryable" => false,
+          "duplicate_blocking" => true,
+          "error" => "#{e.message} Routed to duplicate resolution instead of applied; resolve it there, or re-approve with human_approved=true and duplicate_override=true if the records are genuinely different companies.",
           "admin_url" => admin_proposal_url(proposal)
         )
       rescue ArgumentError => e

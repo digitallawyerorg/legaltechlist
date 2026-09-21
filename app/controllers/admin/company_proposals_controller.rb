@@ -47,7 +47,7 @@ module Admin
       publish = params[:publish] == "1"
 
       if @company_proposal.user_suggestion?
-        company = CompanyProposalApplyUpdateService.call(proposal: @company_proposal, admin_user: current_admin_user, publish: publish)
+        company = CompanyProposalApplyUpdateService.call(proposal: @company_proposal, admin_user: current_admin_user, publish: publish, duplicate_override: params[:duplicate_override] == "1")
         SlackNotifier.contribution_decision(@company_proposal, decision: "approved", admin_user: current_admin_user, note: "Applied update to #{company.name}.")
         redirect_to custom_admin_company_review_path(company.id), notice: "Update applied to #{company.name}."
       else
