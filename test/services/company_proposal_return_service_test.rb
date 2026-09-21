@@ -69,6 +69,29 @@ class CompanyProposalReturnServiceTest < ActiveSupport::TestCase
     assert_equal "Round two: the new URL is a parking page.", @proposal.agent_details.dig("current_contributor_request", "instructions")
   end
 
+  # The service writes with update!, so before the uniqueness rule was made conditional a
+  # return froze on a proposal whose source_identifier already matched another row's. The
+  # collision is planted with update_columns because there is still no unique index and
+  # validation would refuse to create the state that real discovery runs produce.
+  test "a proposal whose source_identifier already collides can still be returned" do
+    twin = returnable_proposal
+    twin.update_columns(source_identifier: @proposal.source_identifier)
+    collided_identifier = twin.source_identifier
+
+    CompanyProposalReturnService.call(
+      proposal: twin, admin_user: @admin,
+      instructions: "The description does not say what the product does."
+    )
+
+    twin.reload
+    assert_equal "needs_revision", twin.status
+    assert_equal collided_identifier, twin.source_identifier, "the identity is untouched by a return"
+
+    request = twin.agent_details["current_contributor_request"]
+    assert_equal "awaiting_contributor", request["state"]
+    assert_equal "The description does not say what the product does.", request["instructions"]
+  end
+
   # ---- refusals write nothing ---------------------------------------------
 
   test "blank instructions are refused and nothing is written" do
