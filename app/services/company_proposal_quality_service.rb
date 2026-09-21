@@ -215,6 +215,9 @@ class CompanyProposalQualityService
 
   def warnings
     values = []
+    # An advisory duplicate is a comparison worth offering and not a reason to hold
+    # publication, so it reads here rather than in blockers.
+    values << duplicate.recommended_action if duplicate.advisory? && !duplicate.blocking?
     values << "Founding year is missing; publishing is allowed, but add a sourced year later when one is found (never fabricate)." if changes["founded_date"].blank?
     values << "No enrichment critic verdict is recorded." if proposal.agent_details.dig("description_critic", "verdict").blank?
     values << verification_warning if verification_warning

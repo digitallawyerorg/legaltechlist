@@ -51,11 +51,29 @@ class ProposalApprovalDuplicateGuardTest < ActiveSupport::TestCase
     assert_nil proposal.reload.company_id
   end
 
+  # POLICY CHANGE, 2026-09-21, made by the queue owner: a duplicate is surfaced as
+  # blocking only on strong, corroborated evidence, and a single loose match is reported
+  # instead of enforced. This pair is the clearest case of the shape she asked us to stop
+  # stopping writes for. "Pactolane Technologies" against "Pactolane" agrees on the core
+  # name and on the brand label read out of that same core - two readings of the same two
+  # strings, in one evidence family, with the domains disagreeing. It used to refuse the
+  # approval; it now reports an advisory match and lets a human decide.
+  #
+  # The test is kept, and so is what it was watching: the match is still found, still
+  # named, still graded and still recorded. Only the disposition moved. Its NAME is kept
+  # too, deliberately, so that this decision stays findable from the history that
+  # recorded the old behaviour - read it as "the case where approval used to be refused".
   test "approval is refused for a rebrand of an existing company" do
     proposal = proposal_for(name: "Pactolane Technologies", url: "https://pactolane-clm.example")
 
-    error = assert_raises(ArgumentError) { CompanyProposalApprovalService.call(proposal: proposal, admin_user: @admin, publish: false) }
-    assert_match(/Resolve the duplicate/, error.message)
+    company = CompanyProposalApprovalService.call(proposal: proposal, admin_user: @admin, publish: false)
+    assert company.persisted?, "a human approving on one loose key is no longer refused"
+
+    decision = DuplicateGate.check(proposal.reload, record_evidence: false)
+    refute decision.blocking?
+    assert decision.advisory?, "the match is still found and still put in front of the reviewer"
+    assert_equal [%w[core_name brand_name]], decision.matches.map { |match| match["match_types"] }
+    assert_match(/Not treated as a duplicate/, decision.recommended_action)
   end
 
   test "the override still lets a human approve two genuinely distinct companies" do

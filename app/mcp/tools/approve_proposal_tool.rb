@@ -49,13 +49,23 @@ module Mcp
         already = already_resolved_response(proposal, publish: publish)
         return already if already
 
-        return apply_existing_company_update(proposal, id: id, publish: publish, confidence: confidence, human_approved: human_approved, duplicate_override: human_approved && duplicate_override) if proposal.user_suggestion?
-
-        # Resolved before the quality report so both read the same answer, and so the
-        # report's own duplicate blocker is not a second, staler opinion.
+        # Resolved before the suggestion branch, not after it. A user suggestion applies
+        # onto a LIVE company and is reachable unattended through autonomous_ok, and the
+        # branch used to return before this line ever ran — so nothing but the apply
+        # service's own blocking-only enforce! stood between an advisory duplicate and a
+        # machine overwriting a published record.
         duplicate = DuplicateGate.check(proposal)
+
+        if proposal.user_suggestion?
+          return duplicate_hold_response(proposal, duplicate, applied_update: true) if unattended_hold?(duplicate, human_approved)
+
+          return apply_existing_company_update(proposal, id: id, publish: publish, confidence: confidence, human_approved: human_approved, duplicate_override: human_approved && duplicate_override)
+        end
+
         quality = CompanyProposalQualityService.call(proposal)
-        gate_ok = quality["publish_ready"] && !duplicate.blocking?
+        # holds_automation? rather than blocking?: this tool publishes unattended unless
+        # human_approved is set, and the branch below lets a human past either way.
+        gate_ok = quality["publish_ready"] && !duplicate.holds_automation?
 
         if publish && !gate_ok && !human_approved
           return error_response(
@@ -65,9 +75,17 @@ module Mcp
             "publish_ready" => quality["publish_ready"],
             "blockers" => quality["blockers"],
             "duplicate_blocking" => duplicate.blocking?,
+            "duplicate_advisory" => duplicate.advisory?,
             "admin_url" => admin_proposal_url(proposal)
           )
         end
+
+        # publish defaults to human_approved, so an ordinary unattended approve_proposal
+        # (id: X) arrives here with publish == false and skips the branch above entirely.
+        # That path still WRITES — it mints an invisible company draft — and nothing
+        # downstream stops on advisory, so an advisory duplicate minted a hidden second
+        # row with no human anywhere in the loop.
+        return duplicate_hold_response(proposal, duplicate) if unattended_hold?(duplicate, human_approved)
 
         if publish && !human_approved
           unless Mcp::CuratorPolicy.autopublish_enabled?
@@ -130,6 +148,33 @@ module Mcp
         # Signal the client may safely retry rather than treating it as terminal.
         Rails.logger.debug("[ApproveProposalTool] transient failure for proposal #{id}: #{e.class}: #{e.message}")
         error_response("result" => "error", "published" => false, "retryable" => true, "error" => "Transient failure (#{e.class}); safe to retry: #{e.message}", "admin_url" => admin_proposal_url(proposal))
+      end
+
+      # A human reading an advisory match can weigh it; a machine cannot. Every path
+      # through this tool that writes without human_approved stops on advisory as well as
+      # on blocking, which is what DuplicateGate::Decision#holds_automation? means.
+      def self.unattended_hold?(duplicate, human_approved)
+        !human_approved && duplicate.holds_automation?
+      end
+
+      # Stopping means leaving the record where a human will see it, never disposing of
+      # it: the proposal is routed to duplicate resolution, exactly as an enforced
+      # blocking match would be.
+      def self.duplicate_hold_response(proposal, duplicate, applied_update: false)
+        DuplicateGate.route!(duplicate)
+
+        payload = {
+          "result" => "duplicate_resolution",
+          "published" => false,
+          "retryable" => false,
+          "duplicate_blocking" => duplicate.blocking?,
+          "duplicate_advisory" => duplicate.advisory?,
+          "error" => "Resolve the duplicate before approval: #{duplicate.recommended_action} Routed to duplicate resolution rather than written unattended; resolve it there, or re-approve with human_approved=true (and duplicate_override=true if the records are genuinely different companies).",
+          "admin_url" => admin_proposal_url(proposal)
+        }
+        payload["applied_update"] = false if applied_update
+
+        error_response(payload)
       end
 
       # Attach acquirer details to a freshly-approved company when an acquisition

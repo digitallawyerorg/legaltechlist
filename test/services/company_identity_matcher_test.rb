@@ -118,6 +118,49 @@ class CompanyIdentityMatcherTest < ActiveSupport::TestCase
     )
   end
 
+  # The duplicate panels on proposals 4179 and 4378 both named proposal 3827 (Tecnika
+  # Legal), described as "matched on brand name". The records are unrelated: all three
+  # were cited from Crunchbase, and the brand label of crunchbase.com is "crunchbase" for
+  # every one of them. An aggregator, registry or social page is not a company's address,
+  # so it supplies neither a domain nor a brand.
+  test "an aggregator page is not an address, so two records citing one do not match" do
+    company!(name: "Tecnika Legal", main_url: "https://www.crunchbase.com/organization/tecnika-legal",
+             canonical_domain: "crunchbase.com")
+
+    assert_empty matches_for("Harbor Clause Review", url: "https://www.crunchbase.com/organization/harbor-clause-review"),
+                 "two records on one aggregator share a host, not an identity"
+    assert_empty matches_for("Harbor Clause Review", url: "https://de.crunchbase.com/organization/harbor-clause-review"),
+                 "and not a brand label either, which is the key the 4179 panel reported"
+    assert_empty matches_for("Harbor Clause Review", url: "https://www.linkedin.com/company/harbor-clause-review")
+
+    assert_nil CompanyIdentityMatcher.brand_key("crunchbase.com")
+    assert_nil CompanyIdentityMatcher.brand_key("uk.linkedin.com")
+    assert_nil CompanyIdentityMatcher.brand_key("opencorporates.com")
+    assert_nil CompanyIdentityMatcher.brand_key("linktr.ee")
+    refute CompanyIdentityMatcher.related_domains?("www.crunchbase.com", "crunchbase.com")
+  end
+
+  # The other half of that rule: linkedin.com stops being an address, but a shared
+  # LinkedIn *company page* is still the strongest key in the system, and it is read from
+  # linkedin_url rather than from any domain. Losing it would blind the good path.
+  test "a shared linkedin company page still matches when linkedin is not an address" do
+    company!(name: "Vantoria", main_url: "https://www.linkedin.com/company/vantoria",
+             canonical_domain: "linkedin.com",
+             linkedin_url: "https://www.linkedin.com/company/vantoria")
+
+    match = CompanyIdentityMatcher.matches_for(
+      name: "Pellumbra",
+      domains: ["linkedin.com"],
+      profiles: CompanyIdentityMatcher.profile_keys("linkedin_url" => "https://linkedin.com/company/vantoria/")
+    ).first
+
+    assert match, "the company page survives even when neither record has a site of its own"
+    assert_equal "shared_profile", match["match_type"]
+    assert_equal ["shared_profile"], match["match_types"],
+                 "the shared host must not also be reported as a shared domain or brand"
+    assert_equal CompanyIdentityMatcher::CONFIDENCE_CONFIRMED, match["confidence"]
+  end
+
   # ---- FALSE NEGATIVES the matcher must now catch -------------------------
 
   # Proposal 4139 (deep-law.com) was not flagged against public company 16479, which
@@ -134,6 +177,8 @@ class CompanyIdentityMatcherTest < ActiveSupport::TestCase
     assert_equal "deeplaw", match["matched_value"]
     # Three unrelated products have shipped as "Deep Law". This needs comparing, not merging.
     assert_equal CompanyIdentityMatcher::CONFIDENCE_POSSIBLE, match["confidence"]
+    assert_equal CompanyIdentityMatcher::SURFACING_BLOCKING, match["surfacing"],
+                 "a real duplicate that is caught has to be pinned as caught, not merely as found"
   end
 
   # Proposal 4279 was submitted as "Unison Labs" for the product sixminute.ai, and the row
@@ -145,6 +190,7 @@ class CompanyIdentityMatcherTest < ActiveSupport::TestCase
 
     assert match, "the product name in the existing entry's domain must be matchable"
     assert_equal "brand_name", match["match_type"]
+    assert_equal CompanyIdentityMatcher::SURFACING_BLOCKING, match["surfacing"]
   end
 
   # Company 13192 was renamed from eSignLive to OneSpan; a submission under the old brand
@@ -156,13 +202,21 @@ class CompanyIdentityMatcherTest < ActiveSupport::TestCase
 
     assert match, "the slug outlives a rename and is the cheapest record of a prior name"
     assert_equal "prior_name", match["match_type"]
+    # A prior name is alone-eligible however it was recovered. Requiring a rename
+    # recorded in the edit history read an ABSENT record as evidence that two records
+    # are different companies, and demoted this real rebrand to advisory unnoticed -
+    # the test passed because it never asserted the disposition.
+    assert_equal CompanyIdentityMatcher::SURFACING_BLOCKING, match["surfacing"]
   end
 
   test "a prior name recorded in the field-edit history matches" do
     company!(name: "Margo Legal", main_url: "https://margolegal.com", canonical_domain: "margolegal.com", slug: "margo-legal",
              quality_review: { "field_edits" => [{ "changes" => { "name" => { "from" => "ClickoAI", "to" => "Margo Legal" } } }] })
 
-    assert_equal "prior_name", matches_for("Clickoai", url: "https://clickoai.example").first&.dig("match_type")
+    match = matches_for("Clickoai", url: "https://clickoai.example").first
+
+    assert_equal "prior_name", match["match_type"]
+    assert_equal CompanyIdentityMatcher::SURFACING_BLOCKING, match["surfacing"]
   end
 
   # Proposal 4001 is published as "Alentra" while describing ProseID; 4167 Notaron matched
@@ -180,6 +234,7 @@ class CompanyIdentityMatcherTest < ActiveSupport::TestCase
     assert match, "a shared company page survives both a rename and a domain move"
     assert_equal "shared_profile", match["match_type"]
     assert_equal CompanyIdentityMatcher::CONFIDENCE_CONFIRMED, match["confidence"]
+    assert_equal CompanyIdentityMatcher::SURFACING_BLOCKING, match["surfacing"]
   end
 
   # Hidden mints are the state every recent approval left its company in, and a guard that
@@ -191,6 +246,7 @@ class CompanyIdentityMatcherTest < ActiveSupport::TestCase
 
     assert match
     refute match["visible"], "the reviewer has to be told this one is not public"
+    assert_equal CompanyIdentityMatcher::SURFACING_BLOCKING, match["surfacing"]
   end
 
   # An auto-applied main_url change does not recompute canonical_domain, so the record
@@ -221,13 +277,273 @@ class CompanyIdentityMatcherTest < ActiveSupport::TestCase
     assert_equal "redirect_domain", match["match_type"]
     assert_equal "onespan.com", match["matched_value"]
     assert_equal CompanyIdentityMatcher::CONFIDENCE_CONFIRMED, match["confidence"]
+    assert_equal CompanyIdentityMatcher::SURFACING_BLOCKING, match["surfacing"]
     assert matcher.rebrand?(match), "a domain the stored record never declared is a rebrand"
   end
 
   test "diacritics fold so an accented name matches its unaccented spelling" do
     company!(name: "White Rabbit Bilişim", main_url: "https://whiterabbitbilisim.example", canonical_domain: "whiterabbitbilisim.example")
 
-    assert matches_for("White Rabbit Bilisim", url: "https://elsewhere.example").first
+    match = matches_for("White Rabbit Bilisim", url: "https://elsewhere.example").first
+
+    assert match
+    assert_equal CompanyIdentityMatcher::SURFACING_BLOCKING, match["surfacing"]
+  end
+
+  # ---- surfacing: how far one key goes ------------------------------------
+  #
+  # Every key above still fires, is still reported and is still recorded. These pin how
+  # far each one reaches on its own, which is the part the reviewer was objecting to:
+  # "Needs revision . matched on brand name" read exactly like a confirmed duplicate.
+
+  # The 3827 class, generalised past the host list. crunchbase.com is excluded by name;
+  # producthunt.com and wellfound.com are not, and never will be until somebody adds
+  # them. Two records sitting on a listing host neither of them owns is a comparison to
+  # offer, not a duplicate to assert - and the ownership test says so from the third
+  # record on, with no list to maintain.
+  test "a shared domain nobody owns does not assert a duplicate on its own" do
+    company!(name: "Batesly", main_url: "https://www.producthunt.com/products/batesly", canonical_domain: "producthunt.com")
+    @other.update!(name: "Third Listing", main_url: "https://www.producthunt.com/products/third-listing")
+    @other.update_columns(canonical_domain: "producthunt.com", visible: true, quality_status: nil)
+
+    match = matches_for("Tecnika Legal", url: "https://www.producthunt.com/products/tecnika-legal")
+            .find { |hit| hit["id"] == @company.id }
+
+    assert match, "the hit is still reported - nothing is deleted, only demoted"
+    assert_equal "exact_domain", match["match_type"]
+    assert_equal CompanyIdentityMatcher::OWNERSHIP_SHARED, match["domain_ownership"]
+    assert_equal CompanyIdentityMatcher::SURFACING_ADVISORY, match["surfacing"]
+  end
+
+  # The other side of the same measurement: a domain whose brand label is what one of
+  # the two records calls itself is an address, and an address still blocks alone.
+  test "a shared domain one of the records is named after still blocks alone" do
+    company!(name: "Caseway", main_url: "https://caseway.ai", canonical_domain: "caseway.ai")
+
+    match = matches_for("Totally Different", url: "https://caseway.ai").first
+
+    assert_equal "exact_domain", match["match_type"]
+    assert_equal CompanyIdentityMatcher::OWNERSHIP_OWNED, match["domain_ownership"]
+    assert_equal CompanyIdentityMatcher::SURFACING_BLOCKING, match["surfacing"]
+  end
+
+  # A domain that publishes no readable brand label at all - a tenant subdomain on a
+  # shared host, where brand_key is deliberately nil - is UNEVALUATED, not shared. An
+  # absent value is not evidence that two records are different companies, and reading
+  # it as one would quietly demote a whole population of early-stage records.
+  test "a domain with no readable brand label is unevaluated, not demoted" do
+    company!(name: "Marbury Clause Review", main_url: "https://marbury-clause.wixsite.com/marbury",
+             canonical_domain: "marbury-clause.wixsite.com")
+
+    match = matches_for("Marbury Legal", url: "https://marbury-clause.wixsite.com/marbury").first
+
+    assert match, "two records at one tenant subdomain are one company"
+    assert_nil CompanyIdentityMatcher.brand_key("marbury-clause.wixsite.com")
+    assert_equal CompanyIdentityMatcher::OWNERSHIP_UNEVALUATED, match["domain_ownership"]
+    assert_equal CompanyIdentityMatcher::SURFACING_BLOCKING, match["surfacing"]
+  end
+
+  # "Pactolane Technologies" against "Pactolane": the core name agrees, and the brand
+  # key is that same core wearing a second label. Two readings of the same two strings
+  # are one piece of evidence, so this is reported rather than enforced.
+  test "a name agreement with nothing independent agreeing is advisory" do
+    company!(name: "Pactolane", main_url: "https://www.pactolane.com", canonical_domain: "pactolane.com")
+
+    match = matches_for("Pactolane Technologies", url: "https://pactolane-clm.example").first
+
+    assert match, "still found, still named, still graded"
+    assert_equal %w[core_name brand_name], match["match_types"]
+    assert_equal CompanyIdentityMatcher::SURFACING_ADVISORY, match["surfacing"]
+  end
+
+  # Two weak keys that are independent readings DO corroborate each other: the name and
+  # the address are different channels, so together they block even though neither
+  # stands alone. This is the corroboration half of the rule.
+  test "a weak name key and a weak domain key from different families block together" do
+    company!(name: "Batesly", main_url: "https://www.producthunt.com/products/batesly", canonical_domain: "producthunt.com")
+    @other.update!(name: "Third Listing", main_url: "https://www.producthunt.com/products/third-listing")
+    @other.update_columns(canonical_domain: "producthunt.com", visible: true, quality_status: nil)
+
+    match = matches_for("Batesly Technologies", url: "https://www.producthunt.com/products/batesly-2")
+            .find { |hit| hit["id"] == @company.id }
+
+    assert_equal CompanyIdentityMatcher::OWNERSHIP_SHARED, match["domain_ownership"],
+                 "the domain alone is still not owned by either record"
+    assert_includes match["match_types"], "core_name"
+    assert_equal CompanyIdentityMatcher::SURFACING_BLOCKING, match["surfacing"]
+  end
+
+  # Proposal 4139 against public company 16479, under the name the record actually
+  # carries: "White Rabbit (Deep-Law)", not the shortened "Deep-Law". The brand is a
+  # COMPONENT of the name on one side and an address on the other, and reading the
+  # brand as the whole-name core ("whiterabbitdeeplaw") loses the flagship case the
+  # brand key was built for.
+  test "a brand named on one side and published as an address on the other blocks alone" do
+    company!(name: "D-Developments", main_url: "https://deep-law.io", canonical_domain: "deep-law.io")
+
+    match = matches_for("White Rabbit (Deep-Law)", url: "https://deep-law.com").first
+
+    assert_equal "brand_name", match["match_type"]
+    assert_equal "deeplaw", match["matched_value"]
+    assert_equal CompanyIdentityMatcher::SURFACING_BLOCKING, match["surfacing"]
+    assert_includes CompanyIdentityMatcher.name_keys("White Rabbit (Deep-Law)"), "deeplaw"
+  end
+
+  # The same pair with the sides swapped. The cross is a statement about the pair, not
+  # about which of the two happens to be the candidate.
+  test "the brand cross reads the same in the other direction" do
+    company!(name: "White Rabbit (Deep-Law)", main_url: "https://deep-law.com", canonical_domain: "deep-law.com")
+
+    match = matches_for("D-Developments", url: "https://deep-law.io").first
+
+    assert_equal "brand_name", match["match_type"]
+    assert_equal CompanyIdentityMatcher::SURFACING_BLOCKING, match["surfacing"]
+  end
+
+  # And the case the cross must refuse. Three unrelated products have shipped as "Deep
+  # Law" and the same is true of "Harvey": a record whose own name simply BEGINS with
+  # the brand does not merely publish it as an address, it calls itself that plus two
+  # more words. Reading that as a cross made a Hong Kong immigration firm an
+  # alone-eligible duplicate of a US legal-AI vendor.
+  test "a brand the other record's own name begins with is not a cross" do
+    company!(name: "Harvey Law Group", main_url: "https://harvey.com.hk", canonical_domain: "harvey.com.hk")
+
+    match = matches_for("Harvey", url: "https://harvey.ai").first
+
+    assert match, "still reported"
+    assert_equal "brand_name", match["match_type"]
+    assert_equal CompanyIdentityMatcher::SURFACING_ADVISORY, match["surfacing"]
+  end
+
+  # profile_key validated the path and never the host, so ANY site's /company/<slug>
+  # page minted a key - and shared_profile is graded confirmed and asserts a duplicate
+  # with nothing else agreeing. The kind follows the host too: a Crunchbase link pasted
+  # into linkedin_url is a Crunchbase page.
+  test "a company page is only a company page on linkedin or crunchbase" do
+    assert_nil CompanyIdentityMatcher.profile_key("linkedin", "https://batesly.example/company/team")
+    assert_nil CompanyIdentityMatcher.profile_key("linkedin", "https://www.producthunt.com/company/batesly")
+    assert_empty CompanyIdentityMatcher.profile_keys("linkedin_url" => "https://batesly.example/company/team")
+    assert_equal "linkedin:caseway-ai", CompanyIdentityMatcher.profile_key("linkedin", "https://uk.linkedin.com/company/caseway-ai")
+    assert_equal({ "crunchbase" => "crunchbase:tecnika-legal" },
+                 CompanyIdentityMatcher.profile_keys("linkedin_url" => "https://www.crunchbase.com/organization/tecnika-legal"),
+                 "the kind is read from the host, not from the field the url sat in")
+  end
+
+  test "two records whose profile urls are the same page on some other site do not match" do
+    company!(name: "Batesly", main_url: "https://batesly.example", canonical_domain: "batesly.example",
+             linkedin_url: "https://legalsite.example/company/team")
+
+    assert_empty CompanyIdentityMatcher.matches_for(
+      name: "Tecnika Legal",
+      domains: ["tecnikalegal.example"],
+      profiles: CompanyIdentityMatcher.profile_keys("linkedin_url" => "https://legalsite.example/company/team")
+    )
+  end
+
+  # Proposal 4117 against company 17297, judged a correct duplicate call. The canonical
+  # row is hidden - as most of this month's approvals are - so there is nothing public
+  # to look at, and the name is the only key there is. exact_name has to carry it.
+  test "a name-carried duplicate of a hidden canonical row still blocks" do
+    company!(name: "SpecterAI", main_url: "https://specterlaw.ai", canonical_domain: "specterlaw.ai", visible: false)
+
+    match = matches_for("SpecterAI", url: "https://specterlaw.ai").first
+
+    refute match["visible"], "the canonical record is not public and cannot be checked by looking"
+    assert_includes match["match_types"], "exact_name"
+    assert_equal CompanyIdentityMatcher::SURFACING_BLOCKING, match["surfacing"]
+
+    name_only = CompanyIdentityMatcher.matches_for(name: "SpecterAI").first
+    assert_equal CompanyIdentityMatcher::SURFACING_BLOCKING, name_only["surfacing"],
+                 "a hidden canonical with no reachable site is unevaluated evidence, not absent evidence"
+  end
+
+  # A resolved HTTP redirect is a fact about where one site sends its visitors. It is
+  # not evidence of co-tenancy, which is the only thing the ownership test measures, so
+  # putting it under that test let one hit report confidence "confirmed" and surfacing
+  # "advisory" in the same breath whenever the target host carried other records.
+  test "a confirmed redirect is not demoted by other records on the target host" do
+    company = company!(name: "Old Brand", main_url: "https://oldbrand.example", canonical_domain: "oldbrand.example")
+    company.update_columns(url_health: { "final_url" => "https://listinghub.example/newbrand" })
+    @other.update!(name: "Third Listing", main_url: "https://listinghub.example/third")
+    @other.update_columns(canonical_domain: "listinghub.example", visible: true, quality_status: nil)
+
+    match = matches_for("Newbrand Counsel", url: "https://listinghub.example/newbrand")
+            .find { |hit| hit["id"] == company.id }
+
+    assert match
+    assert_equal "redirect_domain", match["match_type"]
+    assert_equal CompanyIdentityMatcher::OWNERSHIP_SHARED, match["domain_ownership"],
+                 "the host really is shared - the measurement is not what is wrong here"
+    assert_equal CompanyIdentityMatcher::CONFIDENCE_CONFIRMED, match["confidence"]
+    assert_equal CompanyIdentityMatcher::SURFACING_BLOCKING, match["surfacing"],
+                 "a confirmed redirect must not be graded confirmed and advisory at once"
+  end
+
+  # The ownership test could not fire at all on the hosts that need it most: brand_key is
+  # nil for every BARE entry in SHARED_HOSTS, and returning UNEVALUATED on a blank label
+  # ended the measurement before the population was ever read. Two unrelated records
+  # whose canonical domain is wixsite.com itself blocked on exact_domain alone.
+  test "a bare shared host with other records on it is measured, not excused" do
+    company!(name: "Marbury Clause Review", main_url: "https://wixsite.com/marbury", canonical_domain: "wixsite.com")
+    @other.update!(name: "Third Tenant", main_url: "https://wixsite.com/third")
+    @other.update_columns(canonical_domain: "wixsite.com", visible: true, quality_status: nil)
+
+    match = matches_for("Orrinbeck Disclosure", url: "https://wixsite.com/orrinbeck")
+            .find { |hit| hit["id"] == @company.id }
+
+    assert match, "the comparison is still offered"
+    assert_nil CompanyIdentityMatcher.brand_key("wixsite.com"), "there is no brand label to read"
+    assert_equal CompanyIdentityMatcher::OWNERSHIP_SHARED, match["domain_ownership"]
+    assert_equal CompanyIdentityMatcher::SURFACING_ADVISORY, match["surfacing"]
+  end
+
+  # shared_profile is the only always-alone-eligible key in the system, so a dropped one
+  # is a true duplicate lost. The kind is read from the host, which is right; writing it
+  # first-come-first-served was not, because a Crunchbase url pasted into linkedin_url
+  # then displaced the record's own crunchbase_url.
+  test "a misfiled profile url does not displace the record's own company page" do
+    assert_equal({ "crunchbase" => "crunchbase:proseid" },
+                 CompanyIdentityMatcher.profile_keys(
+                   "linkedin_url" => "https://www.crunchbase.com/organization/some-other-org",
+                   "crunchbase_url" => "https://www.crunchbase.com/organization/proseid"
+                 ),
+                 "the field whose kind matches the host wins")
+    assert_equal({ "crunchbase" => "crunchbase:tecnika-legal" },
+                 CompanyIdentityMatcher.profile_keys("linkedin_url" => "https://www.crunchbase.com/organization/tecnika-legal"),
+                 "and a misfiled url still fills a gap when the right field is empty")
+  end
+
+  test "a shared crunchbase page still matches when the other field holds a misfiled one" do
+    company!(name: "Alentra", main_url: "https://alentra.app", canonical_domain: "alentra.app",
+             linkedin_url: "https://www.crunchbase.com/organization/some-other-org",
+             crunchbase_url: "https://www.crunchbase.com/organization/proseid")
+
+    match = CompanyIdentityMatcher.matches_for(
+      name: "ProseID",
+      domains: ["proseid.com"],
+      profiles: CompanyIdentityMatcher.profile_keys("crunchbase_url" => "https://www.crunchbase.com/organization/proseid")
+    ).first
+
+    assert match, "the record's own company page must survive a misfiled neighbour field"
+    assert_equal "shared_profile", match["match_type"]
+    assert_equal CompanyIdentityMatcher::SURFACING_BLOCKING, match["surfacing"]
+  end
+
+  # MAX_MATCHES is a display cap. Applying it before the caller asks "is anything here
+  # blocking" let ten advisory hits of a higher-precedence key crowd out an eleventh,
+  # blocking one and turn a blocking pair advisory.
+  test "the display cap keeps a blocking hit that weaker keys would crowd out" do
+    advisory = Array.new(CompanyIdentityMatcher::MAX_MATCHES) do |index|
+      { "id" => index, "match_type" => "exact_domain", "surfacing" => CompanyIdentityMatcher::SURFACING_ADVISORY }
+    end
+    blocking = { "id" => 99, "match_type" => "exact_name", "surfacing" => CompanyIdentityMatcher::SURFACING_BLOCKING }
+
+    capped = CompanyIdentityMatcher.capped(advisory + [blocking])
+
+    assert_equal CompanyIdentityMatcher::MAX_MATCHES, capped.size
+    assert_includes capped, blocking, "truncating the list must not change the verdict"
+    assert_equal blocking, capped.last, "and the reported order is still precedence"
+    assert_equal advisory, CompanyIdentityMatcher.capped(advisory), "an uncapped list is returned as it is"
   end
 
   # ---- reporting ----------------------------------------------------------

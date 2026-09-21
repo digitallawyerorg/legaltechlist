@@ -177,6 +177,63 @@ class DuplicateSubmissionRoutingTest < ActiveSupport::TestCase
     assert_equal 1, proposal.reload.duplicate_evidence.size
   end
 
+  # An entry written before the surfacing threshold existed carries no "surfacing" key on
+  # its matched hashes. Comparing the blobs literally made every proposal holding one
+  # append a near-identical copy on its first check after deploy.
+  test "a legacy evidence entry is not re-appended when the shape gains a key" do
+    published!(name: "Notaron", url: "https://notaron.com/")
+    proposal = contribution(name: "Notaron", url: "https://notaron.com")
+    proposal.refresh_duplicate_signals!
+
+    legacy = proposal.reload.duplicate_evidence.map do |entry|
+      entry.except("surfacing").merge("matched" => entry["matched"].map { |match| match.except("surfacing") })
+    end
+    proposal.update_columns(agent_details: proposal.agent_details.merge("duplicate_evidence" => legacy))
+
+    proposal.refresh_duplicate_signals!
+
+    assert_equal 1, proposal.reload.duplicate_evidence.size, "the same observation is one entry, whatever shape it was written in"
+    assert_nil proposal.duplicate_evidence.first["matched"].first["surfacing"], "and the entry as written is left alone"
+  end
+
+  # An advisory decision is a decision, and the live view forgets decisions the same way
+  # it forgets matches. It is recorded with what it was graded, and it reaches the
+  # reviewer - as a warning rather than as a publish blocker, because a comparison worth
+  # offering is not a reason to hold a record.
+  test "an advisory match is recorded in the evidence trail and reported to the reviewer" do
+    published!(name: "Pactolane", url: "https://www.pactolane.com")
+    proposal = contribution(name: "Pactolane Technologies", url: "https://pactolane-clm.example")
+
+    signals = proposal.refresh_duplicate_signals!
+    refute signals["blocking"], "one loose key no longer stops a write"
+    assert signals["advisory"]
+
+    evidence = proposal.reload.duplicate_evidence
+    assert_equal 1, evidence.size
+    assert_equal CompanyIdentityMatcher::SURFACING_ADVISORY, evidence.first["surfacing"]
+    assert_equal @company.id, evidence.first["matched"].first["id"]
+    assert_equal CompanyIdentityMatcher::SURFACING_ADVISORY, evidence.first["matched"].first["surfacing"]
+
+    report = proposal.quality_report
+    refute_includes Array(report["blockers"]), signals["recommended_action"]
+    assert_includes Array(report["warnings"]), signals["recommended_action"]
+  end
+
+  # Nothing may be resolved AGAINST an advisory hit: naming one as the canonical record
+  # would tell a reviewer to merge into a record the gate declined to stop the write for.
+  test "an advisory match is never named as the record to resolve against" do
+    published!(name: "Pactolane", url: "https://www.pactolane.com")
+    proposal = contribution(name: "Pactolane Technologies", url: "https://pactolane-clm.example")
+
+    decision = DuplicateGate.check(proposal)
+
+    assert decision.advisory?
+    assert_equal 1, decision.advisory_matches.size
+    assert_nil decision.canonical_match
+    refute_equal "duplicate_resolution", process!(proposal)["status"]
+    assert_nil proposal.agent_details["duplicate_routing"]
+  end
+
   test "a submission with no match records no evidence" do
     published!(name: "Unrelated Public Entry", url: "https://unrelated-public-entry.example")
     proposal = contribution(name: "Wholly Novel Filing Co", url: "https://whollynovelfiling.example")

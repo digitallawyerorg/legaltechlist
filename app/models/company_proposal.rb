@@ -115,11 +115,11 @@ class CompanyProposal < ActiveRecord::Base
   MAX_DUPLICATE_EVIDENCE_ENTRIES = 20
 
   def record_duplicate_evidence!(signals = current_duplicate_signals)
-    return signals unless persisted? && signals["blocking"]
+    return signals unless persisted? && (signals["blocking"] || signals["advisory"])
 
     entry = duplicate_evidence_entry(signals)
     history = duplicate_evidence
-    return signals if history.any? { |seen| seen["matched"] == entry["matched"] }
+    return signals if history.any? { |seen| comparable_evidence(seen) == comparable_evidence(entry) }
 
     update_columns(agent_details: agent_details.merge(
       "duplicate_evidence" => (history + [entry]).last(MAX_DUPLICATE_EVIDENCE_ENTRIES)
@@ -131,20 +131,39 @@ class CompanyProposal < ActiveRecord::Base
     Array(agent_details["duplicate_evidence"]).select { |entry| entry.is_a?(Hash) }
   end
 
+  # Two entries are the same observation when they name the same matches. The comparison
+  # has to ignore keys the shape has GAINED since an entry was written: "surfacing"
+  # arrived with the blocking/advisory threshold, so every proposal holding a pre-change
+  # entry would otherwise append one near-identical copy on its first check after deploy.
+  EVIDENCE_SHAPE_ADDITIONS = %w[surfacing].freeze
+
+  def comparable_evidence(entry)
+    Array(entry["matched"]).map { |match| match.is_a?(Hash) ? match.except(*EVIDENCE_SHAPE_ADDITIONS) : match }
+  end
+
   def duplicate_evidence_entry(signals)
     matches = Array(signals["name_matches"]) + Array(signals["domain_matches"])
     {
       "first_seen_at" => Time.current.utc.iso8601,
       "status" => status,
       "confidence" => signals["confidence"],
+      # How far the gate took it, not merely what it saw. An entry with no surfacing
+      # value predates the threshold and was blocking by definition.
+      "surfacing" => signals["blocking"] ? CompanyIdentityMatcher::SURFACING_BLOCKING : CompanyIdentityMatcher::SURFACING_ADVISORY,
       "recommended_action" => signals["recommended_action"],
-      "matched" => matches.map { |match| match.slice("id", "name", "match_type", "matched_value", "confidence", "visible", "quality_status") } +
-                   Array(signals["proposal_matches"]).map { |match| match.slice("proposal_id", "name", "match_type", "status", "is_older") }
+      "matched" => matches.map { |match| match.slice("id", "name", "match_type", "matched_value", "confidence", "visible", "quality_status", "surfacing") } +
+                   Array(signals["proposal_matches"]).map { |match| match.slice("proposal_id", "name", "match_type", "status", "is_older", "surfacing") }
     }
   end
 
   def duplicate_blocking?
     current_duplicate_signals["blocking"] == true
+  end
+
+  # Something matched, but only on a single loose key. Reported to the reviewer and
+  # recorded; it does not stop a human's write, and it does stop an unattended one.
+  def duplicate_advisory?
+    current_duplicate_signals["advisory"] == true
   end
 
   def duplicate_matches

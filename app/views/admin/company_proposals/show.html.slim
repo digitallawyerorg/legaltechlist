@@ -292,6 +292,8 @@
                 h2.h6.mb-0 Duplicate check
                 - if @company_proposal.duplicate_blocking?
                     span.badge.text-bg-danger Match found
+                - elsif @company_proposal.duplicate_advisory?
+                    span.badge.text-bg-warning Weak signals only
                 - else
                     span.badge.text-bg-success No match
             .card-body.py-3
@@ -309,6 +311,8 @@
                                     span.badge.text-bg-warning.ms-1 Possible
                                 - else
                                     span.badge.text-bg-danger.ms-1 Confirmed
+                                - if match["surfacing"] == CompanyIdentityMatcher::SURFACING_ADVISORY
+                                    span.badge.text-bg-light.text-dark.ms-1 Advisory — does not block approval
                             .text-muted.small.mb-2
                                 = match["canonical_domain"].presence || match["main_url"]
                                 span.ms-1= "· matched on #{match['match_type'].to_s.humanize.downcase}"
@@ -324,9 +328,16 @@
                     .admin-kicker.mb-2 Also in the review queue
                     - proposal_matches.each do |match|
                         .border.rounded.p-2.mb-2
-                            .small.fw-semibold= link_to "#{match['name']} (proposal ##{match['proposal_id']})", custom_admin_company_proposal_path(match["proposal_id"])
+                            .small.fw-semibold
+                                = link_to "#{match['name']} (proposal ##{match['proposal_id']})", custom_admin_company_proposal_path(match["proposal_id"])
+                                - if match["confidence"] == ProposalDuplicateDetectorService::CONFIDENCE_POSSIBLE
+                                    span.badge.text-bg-warning.ms-1 Possible
+                                - elsif match["confidence"].present?
+                                    span.badge.text-bg-danger.ms-1 Confirmed
+                                - if match["surfacing"] == CompanyIdentityMatcher::SURFACING_ADVISORY
+                                    span.badge.text-bg-light.text-dark.ms-1 Advisory — does not block approval
                             .text-muted.small.mb-2
-                                = "#{match['status'].to_s.humanize} · matched on #{match['match_type'].to_s.humanize.downcase}"
+                                = "#{match['status'].to_s.humanize} · matched on #{Array(match['match_types']).presence&.map { |type| type.to_s.humanize.downcase }&.to_sentence || match['match_type'].to_s.humanize.downcase}"
                                 = match["is_older"] ? " · created first" : " · created later"
                             = form_with url: reject_custom_admin_company_proposal_path(@company_proposal), method: :post, local: true do
                                 = hidden_field_tag :duplicate_of_proposal_id, match["proposal_id"]
