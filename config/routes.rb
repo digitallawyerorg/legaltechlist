@@ -46,6 +46,7 @@ Rails.application.routes.draw do
   get 'admin/proposals/:id/compare-duplicate', to: 'admin/company_proposals#compare_duplicate', as: :compare_duplicate_custom_admin_company_proposal
   post 'admin/proposals/:id/merge-duplicate', to: 'admin/company_proposals#merge_duplicate', as: :merge_duplicate_custom_admin_company_proposal
   post 'admin/proposals/:id/reject', to: 'admin/company_proposals#reject', as: :reject_custom_admin_company_proposal
+  post 'admin/proposals/:id/return-to-contributor', to: 'admin/company_proposals#return_to_contributor', as: :return_to_contributor_custom_admin_company_proposal
   get 'admin/agent-reviews/:id', to: 'admin/agent_reviews#show', as: :custom_admin_agent_review
   post 'admin/agent-reviews/:id/apply', to: 'admin/agent_reviews#apply', as: :apply_custom_admin_agent_review
   post 'admin/agent-reviews/:id/reject', to: 'admin/agent_reviews#reject', as: :reject_custom_admin_agent_review
