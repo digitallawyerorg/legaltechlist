@@ -11,7 +11,13 @@ class CompanyProposal < ActiveRecord::Base
   validates :status, presence: true, inclusion: { in: STATUSES }
   validates :proposal_type, presence: true, inclusion: { in: PROPOSAL_TYPES }
   validates :source, presence: true
-  validates :source_identifier, uniqueness: { scope: :source, allow_blank: true }
+  # Judged only when the identity is actually being set or moved. Two proposals created
+  # in the same second by one discovery run can already share an identifier, and
+  # re-running this on every save froze both rows: rejecting, merging, approving or
+  # editing them each failed on a collision that predated the edit. Creating or renaming
+  # an identifier is still refused exactly as before.
+  validates :source_identifier, uniqueness: { scope: :source, allow_blank: true },
+                                if: -> { source_identifier_changed? || source_changed? }
 
   scope :recent, -> { order(created_at: :desc) }
   scope :pending_review, -> { where(status: %w[pending ready_for_review needs_revision]) }

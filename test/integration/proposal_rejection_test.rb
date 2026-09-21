@@ -76,6 +76,34 @@ class ProposalRejectionTest < ActionDispatch::IntegrationTest
     ActionController::Base.allow_forgery_protection = false
   end
 
+  # ---- disposing of a pre-existing identifier collision -------------------
+
+  # One discovery run created two proposals in the same second with the same
+  # source_identifier, so the collision predates every disposition. Rejecting
+  # re-validated the whole record and refused it — "could not be rejected: Source
+  # identifier has already been taken" — leaving both rows stuck in the queue with no
+  # way out of it.
+  test "a proposal whose identifier already collides can still be rejected" do
+    twin = CompanyProposal.create!(
+      status: "ready_for_review", proposal_type: "discovery_candidate", source: "llm_discovery",
+      source_identifier: SecureRandom.uuid, source_payload: {}, duplicate_signals: {},
+      proposed_changes: { "name" => "Zephyr" }, final_changes: { "name" => "Zephyr" }
+    )
+    # There is no unique index behind the validation, so this is the state the pair is
+    # actually in: two rows, one source and one identifier between them.
+    twin.update_columns(source_identifier: @proposal.source_identifier)
+
+    post reject_custom_admin_company_proposal_path(@proposal), params: { rejection_reason: "Duplicate of the twin from the same run." }
+
+    assert_response :redirect
+    assert_nil flash[:alert]
+    assert_equal "rejected", @proposal.reload.status
+
+    post reject_custom_admin_company_proposal_path(twin), params: { rejection_reason: "Same run, same identifier." }
+
+    assert_equal "rejected", twin.reload.status, "both halves of the pair have to be disposable"
+  end
+
   # ---- applying a reviewer's per-field choices ----------------------------
 
   # The safety property that matters once conflicting fields can be overridden at all:
