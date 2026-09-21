@@ -5,10 +5,15 @@ module Mcp
     include Devise::Test::IntegrationHelpers
 
     REDIRECT_URI = "https://claude.ai/api/mcp/auth_callback".freeze
+    SERVED_HOST = "techindex.law.stanford.edu".freeze
 
     setup do
       @previous_token = ENV["MCP_CURATOR_TOKEN"]
       ENV["MCP_CURATOR_TOKEN"] = nil
+      # /mcp answers only under a host CuratorPolicy vouches for, and the issuer the
+      # token is minted against is derived from the same request, so the whole flow
+      # has to run on one host rather than switching for the final call.
+      host! SERVED_HOST
     end
 
     teardown do
@@ -106,7 +111,7 @@ module Mcp
     private
 
     def base
-      "http://www.example.com"
+      "http://#{SERVED_HOST}"
     end
 
     def verifier
