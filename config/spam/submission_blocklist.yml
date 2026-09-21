@@ -1,0 +1,20 @@
+# Intake spam blocklist for public submissions.
+#
+# UserSubmissionTriageService rejects a submission outright when it matches an
+# entry here, before enrichment runs. Adding an entry is a one-line change: put
+# the domain or host under the right list with a comment naming the submission it
+# came from and the date. No code change is needed.
+
+# Registrable domains of the submitted URL. A subdomain of a listed domain matches
+# too; a domain that merely contains one as a substring does not.
+domains:
+  - snkzizjsygw.com # proposal 4104 "FPS Database", 2026-08-23
+  - fxutwwaassxocp.com # proposal 4176 "Restorix", 2026-09-12
+
+# Link hosts appearing anywhere in the submitted text — the payload shortlinks and
+# opt-out footers this operator reuses. Matched even when the dot is obfuscated
+# ("brnd .li/delist") to dodge link scanners.
+link_hosts:
+  - qmy.li # payload shortlink, proposal 4104 "FPS Database", 2026-08-23
+  - bynd.li # payload shortlink, proposal 4176 "Restorix", 2026-09-12
+  - brnd.li # opt-out footer, proposals 4104 and 4176, 2026-08-23 / 2026-09-12
