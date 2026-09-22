@@ -8,7 +8,7 @@ class SiteEvidenceFetcherServiceTest < ActiveSupport::TestCase
     <script>var tracking = 1;</script></head>
     <body><nav>Home Pricing</nav><h1>Contract lifecycle management</h1>
     <p>Pactolane centralizes contracts, supports approval workflows and eIDAS e-signature.</p>
-    <footer>Imprint</footer></body></html>
+    <footer>Imprint © 2026 Pactolane Holdings Ltd</footer></body></html>
   HTML
 
   def with_fetch_enabled
@@ -49,7 +49,27 @@ class SiteEvidenceFetcherServiceTest < ActiveSupport::TestCase
     assert_includes page["text"], "eIDAS e-signature"
     assert_includes page["text"], "CLM for legal and procurement teams."
     refute_includes page["text"], "var tracking", "scripts must not leak into evidence text"
-    refute_includes page["text"], "Imprint", "chrome elements are stripped"
+    refute_includes page["text"], "Pricing", "nav chrome is stripped"
+  end
+
+  # The footer is where the operating company gets named when the product branding
+  # does not. Stripping it left DescriptionVerificationAgent with no entity to
+  # verify against, so it returned MANUAL_REVIEW with no verified_company.
+  FOOTER_ENTITY_HTML = <<~HTML.freeze
+    <html><head><title>Lexvane</title></head>
+    <body><nav>Home Pricing Careers</nav><h1>Lexvane</h1>
+    <p>Lexvane automates matter intake for in-house teams.</p>
+    <footer>© 2026 Foo Holdings Ltd. All rights reserved.</footer></body></html>
+  HTML
+
+  test "keeps footer text so a copyright line naming the legal entity reaches the agent" do
+    payload = run_fetch({ default: ok_response(FOOTER_ENTITY_HTML) }, main_url: "https://lexvane.com")
+    page = payload["pages"].find { |p| p["label"] == "website" }
+
+    assert_equal "fetched", page["status"]
+    assert_includes page["text"], "© 2026 Foo Holdings Ltd",
+                    "the footer names the operating company when product branding does not"
+    refute_includes page["text"], "Careers", "nav chrome is still stripped"
   end
 
   test "records a LinkedIn sign-in wall as blocked, not as a failure to try" do
