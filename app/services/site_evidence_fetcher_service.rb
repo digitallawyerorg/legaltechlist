@@ -170,7 +170,10 @@ class SiteEvidenceFetcherService
 
   def extract(body)
     doc = Nokogiri::HTML(body)
-    doc.search("script, style, noscript, svg, nav, footer, header, form").remove
+    # The footer stays: it is where the legal entity gets named ("© 2026 Foo
+    # Holdings Ltd") when the product branding does not, which is exactly the
+    # evidence DescriptionVerificationAgent needs to resolve identity.
+    doc.search("script, style, noscript, svg, nav, header, form").remove
     title = doc.at("title")&.text.to_s.squish.presence
     meta = doc.at("meta[name='description']")&.attr("content").to_s.squish
     text = [meta, doc.at("body")&.text.to_s].compact_blank.join(" ").gsub(/\s+/, " ").strip
