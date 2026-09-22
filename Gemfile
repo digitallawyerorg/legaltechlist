@@ -63,7 +63,7 @@ group :development do
   gem 'web-console', '~> 4.3'
 end
 
-gem 'json', '~> 3.0'
+gem 'json', '~> 2.21'
 gem 'csv'
 
 gem 'bootsnap', '>= 1.4.4', require: false
