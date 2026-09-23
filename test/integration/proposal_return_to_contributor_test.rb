@@ -46,8 +46,12 @@ class ProposalReturnToContributorTest < ActionDispatch::IntegrationTest
     end
 
     assert_redirected_to custom_admin_company_proposals_path(status: "user_contributions")
-    assert_match(/founder@pactolane.example/, flash[:notice])
+    assert_match(/parked for its contributor/, flash[:notice])
     assert_match(/No company draft was created/, flash[:notice])
+    # A flash is rendered by whatever page this browser loads next, public pages
+    # included, so the contributor's address is named on the proposal and nowhere else
+    # (PublicContributeFormPrivacyTest).
+    refute_includes flash[:notice], "founder@pactolane.example"
 
     @proposal.reload
     assert_equal "needs_revision", @proposal.status

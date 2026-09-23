@@ -279,10 +279,8 @@ css:
                 | Submissions are reviewed before publication. We list companies, not individual products.
                 = link_to " See how we classify companies", statistics_methodology_path
 
-        - if notice.present?
-            .company-suggest-flash.notice= notice
-        - if alert.present?
-            .company-suggest-flash.alert= alert
+        / One render site, not two: the explicit notice/alert lines that used to sit here
+        / printed flash[:notice] and flash[:alert] a second time, on top of the loop below.
         - flash.each do |type, message|
             - next if message.blank?
             - flash_class = (type.to_s == "alert" ? "alert" : "notice")
