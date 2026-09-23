@@ -144,7 +144,14 @@ module Admin
     # Nothing is written before the refusals inside the service, and a write that did not
     # land raises rather than reporting success, so either way the proposal is untouched —
     # and the reviewer is told so in the admin instead of on the public error page.
-    rescue ArgumentError, CompanyProposalReturnService::NotConfirmed, ActiveRecord::RecordInvalid => e
+    # NotConfirmed#message quotes the values it compared, and one of those values is the
+    # contributor request itself — the submitter's email address and the reviewer's
+    # instructions. That must not go into a flash, which public pages render, so this
+    # refusal names the fields that did not save instead of printing them.
+    rescue CompanyProposalReturnService::NotConfirmed => e
+      redirect_to custom_admin_company_proposal_path(@company_proposal, queue: returning_queue_context.presence),
+                  alert: "#{@company_proposal.display_name} was not returned to its contributor: the system reported success, but #{e.unconfirmed.keys.map { |field| field.humanize.downcase }.to_sentence} did not save. Nothing was changed."
+    rescue ArgumentError, ActiveRecord::RecordInvalid => e
       redirect_to custom_admin_company_proposal_path(@company_proposal, queue: returning_queue_context.presence),
                   alert: "#{@company_proposal.display_name} was not returned to its contributor: #{e.message}"
     end
@@ -155,9 +162,13 @@ module Admin
       queue_redirect_path(custom_admin_company_proposals_path(status: params[:return_status].presence || "pending_review"))
     end
 
+    # Names whether an address is on file, never the address itself. A flash is
+    # session state that is rendered by whatever page this browser loads next, and
+    # public pages render flash too, so a contributor's email address put in here
+    # ends up on the public suggest-a-company form. The address itself stays where
+    # it belongs: on the proposal, behind the admin authentication.
     def return_to_contributor_notice(request)
-      contributor = request["contributor_email"].presence
-      parked = contributor ? "parked for #{contributor}" : "parked with no contributor address on file"
+      parked = request["contributor_email"].presence ? "parked for its contributor" : "parked with no contributor address on file"
       "#{@company_proposal.display_name} was returned to its contributor and #{parked}. No company draft was created."
     end
 
