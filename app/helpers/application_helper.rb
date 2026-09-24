@@ -150,6 +150,41 @@ module ApplicationHelper
     safe_join(["Possible duplicates found: ", safe_join(links, ", ")])
   end
 
+  # What actually agreed, and on what value.
+  #
+  # The duplicate panel used to print the matched record's stored canonical_domain and
+  # label the line "matched on <strongest key>". Those are two unrelated facts stuck
+  # together: canonical_domain is CompanyIdentityMatcher.index_row's row[:domains].first,
+  # the companies.canonical_domain column, which that method's own comment notes is NOT
+  # recomputed when main_url changes. On a rebranded entry it is the PREVIOUS domain, so
+  # the card named a domain the match never fired on — Apertera #11445 was shown as an
+  # "exact domain" match on alexatranslations.com, the domain it carried before the
+  # June 2026 rename. matched_value is the value the key was actually compared on, and
+  # the matcher has always carried it; this only stops throwing it away.
+  #
+  # Every key that agreed is listed, strongest first, the way the review-queue side of
+  # the same panel already lists them. matched_value is the strongest key's value, so it
+  # is attached to that key rather than to the sentence.
+  def admin_duplicate_match_basis(match)
+    keys = (Array(match["match_types"]).presence || [match["match_type"]]).compact_blank.map(&:to_s)
+    return "" if keys.empty?
+
+    labels = keys.map { |type| type.humanize.downcase }
+    value = match["matched_value"].presence
+    labels[0] = "#{labels[0]} (#{value})" if value
+    "matched on #{labels.to_sentence}"
+  end
+
+  # The address the entry is listed at, shown only when it is not the value that matched.
+  # Repeating the matched domain as a bare string in front of the basis is what made the
+  # two readable as one claim in the first place.
+  def admin_duplicate_listed_address(match)
+    listed = match["canonical_domain"].presence || match["main_url"].presence
+    return if listed.blank? || listed == match["matched_value"]
+
+    "entry is listed at #{listed}"
+  end
+
   # Re-submit the originating queue's filters with a form, so completing a record
   # returns the reviewer to the list they were working through. See ReviewQueueContext.
   def queue_hidden_fields(queue)
