@@ -23,6 +23,21 @@ class CompanyIdentityMatcherTest < ActiveSupport::TestCase
 
   # ---- name normalization -------------------------------------------------
 
+  test "index is decoded once per cache version, not once per match" do
+    ActiveSupport::IsolatedExecutionState[:company_identity_matcher_index] = nil
+    loads = 0
+    original = CompanyIdentityMatcher.method(:load_index)
+    CompanyIdentityMatcher.define_singleton_method(:load_index) { |version| loads += 1; original.call(version) }
+
+    3.times { CompanyIdentityMatcher.index }
+
+    assert_equal 1, loads
+  ensure
+    CompanyIdentityMatcher.singleton_class.send(:remove_method, :load_index)
+    CompanyIdentityMatcher.define_singleton_method(:load_index, original)
+    ActiveSupport::IsolatedExecutionState[:company_identity_matcher_index] = nil
+  end
+
   test "core name ignores corporate form and glued product suffixes" do
     assert_equal "contractpod", CompanyIdentityMatcher.core_name("ContractPodAi")
     assert_equal "contractpod", CompanyIdentityMatcher.core_name("ContractPod Technologies")

@@ -848,7 +848,22 @@ class CompanyIdentityMatcher
   # published-but-404 entry is in. Every hidden mint that the guard cannot see degrades
   # the instrument used to clear the next submission.
   def self.index
-    Rails.cache.fetch("company_identity_matcher/#{CACHE_SHAPE}/#{Company.duplicate_candidate_cache_version}", expires_in: CACHE_TTL) do
+    version = Company.duplicate_candidate_cache_version
+    memo = ActiveSupport::IsolatedExecutionState[:company_identity_matcher_index]
+    return memo[:rows] if memo && memo[:version] == version
+
+    rows = load_index(version)
+    ActiveSupport::IsolatedExecutionState[:company_identity_matcher_index] = { version: version, rows: rows }
+    rows
+  end
+
+  # The shared cache holds the index across processes, but every read of it decodes all
+  # of its rows. A queue view asks the matcher about every open proposal, and each ask
+  # reads the index several times, so the decode — not the matching — made the review
+  # queue overrun Heroku's 30 second limit. The decoded rows are kept per thread under the
+  # same version key the shared cache uses, so they go stale exactly when it does.
+  def self.load_index(version)
+    Rails.cache.fetch("company_identity_matcher/#{CACHE_SHAPE}/#{version}", expires_in: CACHE_TTL) do
       Company.where("companies.quality_status IS DISTINCT FROM ?", "rejected")
              .pluck(
                :id, :name, :slug, :canonical_domain, :main_url, :visible, :quality_status,
