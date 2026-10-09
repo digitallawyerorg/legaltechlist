@@ -314,8 +314,9 @@
                                 - if match["surfacing"] == CompanyIdentityMatcher::SURFACING_ADVISORY
                                     span.badge.text-bg-light.text-dark.ms-1 Advisory — does not block approval
                             .text-muted.small.mb-2
-                                = match["canonical_domain"].presence || match["main_url"]
-                                span.ms-1= "· matched on #{match['match_type'].to_s.humanize.downcase}"
+                                = admin_duplicate_match_basis(match)
+                                - if (listed_address = admin_duplicate_listed_address(match))
+                                    span.ms-1= "· #{listed_address}"
                                 - if Array(match["shared_profiles"]).any?
                                     span.ms-1= "· shared #{Array(match['shared_profiles']).to_sentence} profile"
                             .d-flex.flex-wrap.gap-2
