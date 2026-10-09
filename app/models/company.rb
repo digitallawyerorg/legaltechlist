@@ -299,7 +299,7 @@ class Company < ActiveRecord::Base
   end
 
   def self.duplicate_candidate_cache
-    store = ActiveSupport::IsolatedExecutionState[:company_duplicate_candidate_ids] ||= {}
+    store = DuplicateDetectionMemo.candidate_ids ||= {}
     cache_key = duplicate_candidate_cache_version
     if store[:cache_key] != cache_key
       store.clear

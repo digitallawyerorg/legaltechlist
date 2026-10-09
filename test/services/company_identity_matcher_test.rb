@@ -24,7 +24,6 @@ class CompanyIdentityMatcherTest < ActiveSupport::TestCase
   # ---- name normalization -------------------------------------------------
 
   test "index is decoded once per cache version, not once per match" do
-    ActiveSupport::IsolatedExecutionState[:company_identity_matcher_index] = nil
     loads = 0
     original = CompanyIdentityMatcher.method(:load_index)
     CompanyIdentityMatcher.define_singleton_method(:load_index) { |version| loads += 1; original.call(version) }
@@ -35,7 +34,20 @@ class CompanyIdentityMatcherTest < ActiveSupport::TestCase
   ensure
     CompanyIdentityMatcher.singleton_class.send(:remove_method, :load_index)
     CompanyIdentityMatcher.define_singleton_method(:load_index, original)
-    ActiveSupport::IsolatedExecutionState[:company_identity_matcher_index] = nil
+  end
+
+  # update_columns leaves the cache version alone, so only the end of the unit of work
+  # (request, job, test) can retire the decoded index. A copy that outlived it made a
+  # later test match against names an earlier one never saw renamed.
+  test "decoded index does not outlive the unit of work that built it" do
+    company = companies(:two)
+    CompanyIdentityMatcher.index
+    company.update_columns(name: "Renamed Outside Callbacks")
+
+    ActiveSupport::CurrentAttributes.clear_all
+
+    matches = CompanyIdentityMatcher.matches_for(name: "Renamed Outside Callbacks")
+    assert_includes CompanyIdentityMatcher.name_matches(matches).map { |match| match["id"] }, company.id
   end
 
   test "core name ignores corporate form and glued product suffixes" do
