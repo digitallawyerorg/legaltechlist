@@ -307,6 +307,7 @@ discipline, and the approval rules below.
 | `MCP_OAUTH_ISSUER` | request base URL | OAuth issuer; set to the canonical HTTPS host on Heroku. |
 | `MCP_OAUTH_SECRET` | `secret_key_base` | HMAC secret for signing OAuth JWTs. |
 | `MCP_OAUTH_ALLOWED_REDIRECT_HOSTS` | `claude.ai,claude.com,console.anthropic.com` | Extra allowed OAuth redirect hosts (comma-separated). |
+| `MCP_ALLOWED_HOSTS` | hosts of `SITE_URL` + `MCP_OAUTH_ISSUER` | Extra `Host` header values `POST /mcp` accepts (comma-separated). Required when a proxy rewrites `Host`: the Stanford proxy forwards as `legaltech.herokuapp.com`, so production needs that name here or every MCP call is a `403 Invalid Host header`. |
 | `MCP_CURATOR_AUTOPUBLISH` | `true` | Auto-publish kill-switch for NEW entries. |
 | `MCP_CURATOR_AUTOAPPLY_UPDATES` | `false` | Allow autonomous edits to EXISTING companies. |
 | `MCP_CURATOR_MIN_CONFIDENCE` | `0.8` | Min self-reported confidence for autonomous publish/apply. |
@@ -343,13 +344,20 @@ Set `MCP_OAUTH_ISSUER` to the canonical HTTPS URL on Heroku (e.g.
 `https://your-app.herokuapp.com`) so the issuer stays stable behind the router, and
 set `MCP_OAUTH_SECRET` to a strong random value.
 
+`POST /mcp` also checks the `Host` header (the mcp gem's DNS-rebinding guard) and
+answers `403 Forbidden: Invalid Host header` for any name it doesn't know. Claude
+reports that as "Authorization ... failed" even though the OAuth flow itself
+succeeded. If the app sits behind a proxy that rewrites `Host` (production does:
+requests arrive as `legaltech.herokuapp.com`), add that name to `MCP_ALLOWED_HOSTS`.
+
 ## Deploy on Heroku
 
 1. Set config and create the curator identity:
 
 ```bash
 heroku config:set MCP_OAUTH_ISSUER=https://your-app.herokuapp.com \
-                  MCP_OAUTH_SECRET=$(openssl rand -hex 32) -a your-app
+                  MCP_OAUTH_SECRET=$(openssl rand -hex 32) \
+                  MCP_ALLOWED_HOSTS=your-app.herokuapp.com -a your-app
 heroku run bin/rails curator:setup -a your-app
 ```
 
