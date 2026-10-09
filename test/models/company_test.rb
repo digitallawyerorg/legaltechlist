@@ -366,4 +366,56 @@ class CompanyTest < ActiveSupport::TestCase
     company.founded_date_from_source!(year: "2018", source_url: "https://opencorporates.com/companies/x")
     assert_equal "2018", company.reload.founded_date
   end
+
+  test "tracking parameters are stripped from main_url, other query parameters kept" do
+    company = companies(:one)
+    company.update!(main_url: "https://founderagreement.com/?utm_source=dir&utm_medium=ref&ref=codex&page=2")
+    assert_equal "https://founderagreement.com/?page=2", company.reload.main_url
+  end
+
+  test "an empty founding year is stored as missing, not as a year" do
+    company = companies(:one)
+    company.update!(founded_date: "")
+    assert_nil company.reload.founded_date
+  end
+
+  test "a name with nothing transliterable still gets a usable slug" do
+    company = companies(:one).dup
+    company.name = "汉知宝科技"
+    company.skip_geocoding = true
+    company.save!
+    assert_equal "company-#{company.id}", company.reload.slug
+  end
+
+  test "renaming re-derives the slug and keeps the old one for redirects" do
+    company = companies(:one)
+    company.update_columns(name: "as", slug: "as")
+    company.name = "Theo Ai"
+    company.regenerate_slug_for_name!
+    company.save!
+
+    assert_equal "theo-ai", company.reload.slug
+    assert_equal ["as"], company.previous_slugs
+    assert_equal company, Company.find_by_previous_slug("as")
+  end
+
+  test "a slug that already fits the new name is left alone" do
+    company = companies(:one)
+    company.update_columns(slug: "test-company-one-2")
+    company.regenerate_slug_for_name!
+    assert_equal "test-company-one-2", company.slug
+    assert_empty company.previous_slugs
+  end
+
+  test "hiding a record as out of scope leaves its lifecycle status alone" do
+    company = companies(:one)
+    company.update_columns(status: "active")
+    company.hide_as_out_of_scope!
+    company.reload
+
+    assert_equal "active", company.status
+    assert_not company.visible?
+    assert_equal "rejected", company.quality_status
+    assert company.deliberately_hidden?
+  end
 end

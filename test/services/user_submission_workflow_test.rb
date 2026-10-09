@@ -299,6 +299,23 @@ class UserSubmissionWorkflowTest < ActiveSupport::TestCase
     assert_equal "published", proposal.reload.status
   end
 
+  # UpGrowth: returned to its contributor (hidden), then an applied suggestion put it back.
+  test "applying a suggestion to a record hidden on purpose updates it but keeps it off the site" do
+    @company.update_columns(visible: false, quality_status: "awaiting_contributor", verification_verdict: "awaiting_contributor_update")
+    proposal = CompanyProposal.create!(
+      status: "ready_for_review", proposal_type: "user_suggestion", source: "user_suggestion",
+      source_identifier: SecureRandom.uuid, company: @company, submitter_email: "reviewer@example.com",
+      issue_type: "incorrect_details", source_payload: {},
+      proposed_changes: { "name" => @company.name }, final_changes: { "name" => @company.name, "founded_date" => "2014" }
+    )
+
+    CompanyProposalApplyUpdateService.call(proposal: proposal, admin_user: admin_users(:one), publish: true)
+
+    @company.reload
+    assert_equal "2014", @company.founded_date
+    assert_not @company.visible?
+  end
+
   private
 
   def valid_contribution_form

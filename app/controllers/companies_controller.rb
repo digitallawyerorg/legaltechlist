@@ -253,7 +253,14 @@ class CompaniesController < ApplicationController
 
         @company = loaded_scope.find(company.id)
       else
-        @company = loaded_scope.find_by_slug_or_id!(param, scope: loaded_scope)
+        @company = loaded_scope.find_by_slug_or_id(param, scope: loaded_scope)
+        return if @company
+
+        # A slug retired by a rename or a merge still resolves: profile URLs are cited.
+        moved = Company.find_by_previous_slug(CGI.unescape(param), scope: Company.publicly_visible)
+        raise ActiveRecord::RecordNotFound unless moved
+
+        redirect_to company_path(moved, companies_navigation_context), status: :moved_permanently
       end
     end
 

@@ -60,6 +60,10 @@ module Mcp
         )
 
         json_response(result.merge("company" => company_summary(keeper.reload), "profile_url" => profile_url(keeper)))
+      rescue ActiveRecord::InvalidForeignKey, ActiveRecord::RecordNotUnique, ActiveRecord::RecordInvalid => e
+        # A constraint failure is a defect in the merge, not a blip: retrying repeats it.
+        # The merge runs in one transaction, so nothing was changed.
+        error_response("result" => "error", "retryable" => false, "error" => "Merge rolled back, nothing changed (#{e.class}): #{e.message}")
       rescue StandardError => e
         Rails.logger.debug("[MergeCompaniesTool] transient failure merging into #{keep_id}: #{e.class}: #{e.message}")
         error_response("result" => "error", "retryable" => true, "error" => "Transient failure (#{e.class}); safe to retry: #{e.message}")

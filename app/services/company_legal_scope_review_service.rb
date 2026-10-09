@@ -22,11 +22,7 @@ class CompanyLegalScopeReviewService
 
     if review["is_legal_technology"] == false && review["confidence"].to_f >= HIGH_CONFIDENCE
       unless dry_run
-        company.update!(
-          visible: false,
-          status: "inactive",
-          verification_verdict: "out_of_scope_review"
-        )
+        company.hide_as_out_of_scope!
       end
 
       return {

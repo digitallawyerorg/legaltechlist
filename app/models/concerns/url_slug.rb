@@ -7,12 +7,19 @@ module UrlSlug
 
   included do
     before_validation :assign_slug_from_source, if: :should_assign_slug?
+    # A name with nothing transliterable (汉知宝科技) yields no slug before the row has an
+    # id, which left a published profile at "/companies/". Fill it once the id exists.
+    after_create :assign_fallback_slug!, if: -> { slug.blank? }
     validates :slug, presence: true, uniqueness: true, format: { with: SLUG_FORMAT }, if: -> { slug.present? }
   end
 
   class_methods do
     def slug_for_name(name)
       LegaltechAtlas.slug_for(name)
+    end
+
+    def fallback_slug_for(id)
+      "#{model_name.element.dasherize}-#{id}"
     end
 
     def find_by_slug_or_id(param, scope: all)
@@ -39,7 +46,7 @@ module UrlSlug
         next if record.slug.present?
 
         base = slug_for_name(record.public_send(slug_source))
-        base = "record-#{record.id}" if base.blank?
+        base = fallback_slug_for(record.id) if base.blank?
         candidate = base
         suffix = 2
         while reserved.include?(candidate)
@@ -86,6 +93,7 @@ module UrlSlug
 
   def assign_slug_from_source
     base = self.class.slug_for_name(slug_source_value)
+    base = self.class.fallback_slug_for(id) if base.blank? && id.present?
     return if base.blank?
 
     candidate = base
@@ -96,5 +104,10 @@ module UrlSlug
     end
 
     self.slug = candidate
+  end
+
+  def assign_fallback_slug!
+    assign_slug_from_source
+    update_column(:slug, slug) if slug.present?
   end
 end

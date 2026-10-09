@@ -95,7 +95,7 @@ class CuratorPendingService
   # permits a reviewer to publish on their judgement, and nothing here has judgement.
   def can_autopublish?(quality, budget)
     publish && Mcp::CuratorPolicy.autopublish_enabled? && quality["publish_ready"] &&
-      quality["description_verified"] && budget.positive?
+      quality["description_verified"] && quality["legal_signal"] != false && budget.positive?
   end
 
   def skip_reason(quality, budget)
@@ -103,6 +103,7 @@ class CuratorPendingService
     return "autopublish_kill_switch" unless Mcp::CuratorPolicy.autopublish_enabled?
     return "quality_gate" unless quality["publish_ready"]
     return "description_not_verified" unless quality["description_verified"]
+    return "no_legal_signal" if quality["legal_signal"] == false
     return "daily_publish_budget_exhausted" unless budget.positive?
 
     "needs_review"

@@ -48,12 +48,17 @@ module Mcp
     # OAuth 2.1 access token issued by Mcp::OauthController (the primary path for
     # the Claude connector).
     def valid_oauth_token?
-      Mcp::OauthTokens.verify(
+      payload = Mcp::OauthTokens.verify(
         bearer_token,
         type: "access",
         resource: Mcp::CuratorPolicy.resource(request),
         issuer: Mcp::CuratorPolicy.issuer(request)
-      ).present?
+      )
+      return false unless payload
+
+      # The token's subject is the admin who authorized the connector.
+      Mcp::Current.operator = AdminUser.find_by(id: payload["sub"])
+      true
     end
 
     # Optional static bearer token, handy for MCP Inspector / curl testing and as

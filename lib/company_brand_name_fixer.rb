@@ -151,11 +151,7 @@ module CompanyBrandNameFixer
       if dry_run
         result
       else
-        company.update!(
-          visible: false,
-          status: "inactive",
-          verification_verdict: "out_of_scope_review"
-        )
+        company.hide_as_out_of_scope!
         result.merge(applied: true)
       end
     when :rename
