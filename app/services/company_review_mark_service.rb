@@ -1,5 +1,5 @@
 class CompanyReviewMarkService
-  DECISIONS = %w[verified needs_work reject return_to_contributor].freeze
+  DECISIONS = %w[verified needs_work reject return_to_contributor hide_pending_review].freeze
 
   # A record that is potentially valid but incomplete should not have to be rejected to
   # get off the reviewer's desk. "return_to_contributor" parks it with the reviewer's
@@ -88,6 +88,12 @@ class CompanyReviewMarkService
       requested
     when "return_to_contributor"
       return_to_contributor!
+    when "hide_pending_review"
+      # Off the site now, decision still open: for a record that is unsafe to show
+      # (a hijacked URL) before anyone knows whether it belongs in the index at all.
+      requested = { "quality_status" => "needs_review", "verification_verdict" => "hidden_pending_review", "visible" => false }
+      company.update!(requested.merge(quality_reviewed_at: Time.current))
+      requested
     end
   end
 

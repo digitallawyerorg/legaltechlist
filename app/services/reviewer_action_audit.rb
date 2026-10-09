@@ -89,7 +89,9 @@ class ReviewerActionAudit
       "final_status" => confirmed["quality_status"],
       "error_details" => error&.message,
       "originating_queue" => context["queue"].presence,
-      "entry_point" => context["entry_point"].presence
+      "entry_point" => context["entry_point"].presence,
+      "reason" => context["reason"].presence,
+      "operator" => context["operator"].presence
     }.merge(extra).compact
   end
 

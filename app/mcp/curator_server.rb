@@ -4,7 +4,7 @@ module Mcp
   module CuratorServer
     # Running connector build. Surfaced via get_stats.server_version so the curator can
     # confirm which server is live during validation.
-    VERSION = "1.18.0".freeze
+    VERSION = "1.19.0".freeze
 
     module_function
 
@@ -136,8 +136,15 @@ module Mcp
         connection_reset are strong "actually dead" signals worth acting on. get_stats reports the
         cause mix as by_reason (all non-ok) plus by_reason_broken and by_reason_unknown, so
         "how many confirmed dead, by cause" is a one-call read of url_health.by_reason_broken.
+        offsite_redirect means the site now lands on another brand's domain (a rebrand, an
+        acquirer, or a lapsed domain): check which. suspected_hijack means it lands on a gambling
+        or spam site: remove the link with update_company_field(clear_urls: [...], reason) and,
+        if the record cannot be shown safely, mark_review(decision: "hide_pending_review", reason).
         When you confirm a company is defunct, set status via
         update_company_field(status: "inactive"); if it was acquired, use record_acquisition instead.
+        Status is lifecycle only: a company that is out of scope (a law firm, an agency, a
+        consultancy) is hidden with mark_review(decision: "reject", reason), never marked
+        inactive. A record hidden this way is never re-published automatically.
         List a specific cause with
         list_companies(url_health_status: "unknown", url_reason: "dns_failure"), and read the
         per-company verdict (status/reason_code/consecutive_failures/checked_at) via get_company.

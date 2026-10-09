@@ -38,7 +38,9 @@ class CompanyProposalApplyUpdateService
     # history — so the same rules that govern a direct edit apply here.
     scalar_changes = guard_description!(company, scalar_changes)
     company.assign_attributes(scalar_changes)
-    company.visible = true if publish
+    # An update to a record someone took off the site is still applied, but it does not
+    # put the record back: that is how a returned record (UpGrowth) went live again.
+    company.visible = true if publish && !company.deliberately_hidden?
     company.human_reviewed_at = Time.current
     company.quality_reviewed_at = Time.current
     company.save!

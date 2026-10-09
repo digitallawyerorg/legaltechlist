@@ -5,6 +5,19 @@ class CompanyProposalQualityService
   # founding year is a non-blocking warning (flag for backfill) rather than a blocker.
   PUBLISH_BLOCKING_FIELDS = %w[name main_url location description category_id business_model_id target_client_id].freeze
 
+  # Any sign the record is about legal work at all, across the languages the index
+  # covers. Deliberately broad: it exists to catch the t-shirt printers and logo
+  # agencies that filled every field and scored 100, not to judge borderline scope.
+  LEGAL_SIGNAL = /
+    legal|\blaw|lawyer|attorney|solicitor|barrister|counsel|paralegal|court|judic|juris|jurid|jurí|
+    litigat|dispute|arbitrat|\bmediat|contract|clause|complian|regulat|governance|\brisk|privacy|gdpr|
+    \bkyc\b|\baml\b|sanction|patent|trademark|copyright|intellectual\sproperty|\bip\b|discovery|
+    forensic|investigat|justice|notar|statut|legislat|immigra|\bvisa|\bclaim|tribunal|\bfiling|probate|
+    \bwill\b|estate\splan|divorce|\be-?sign\b|\besignature|\be-signature|\bsignatures?\b|due\sdiligence|data\sroom|
+    recht|anwalt|droit|avocat|derecho|abogad|direito|advogad|diritto|avvocat|advoka|advocat|prawn|
+    hukuk|wakil|wakeel|sheria|qanun|mahkam|法|律|弁護
+  /xi
+
   def self.call(proposal)
     new(proposal).call
   end
@@ -17,6 +30,7 @@ class CompanyProposalQualityService
     {
       "score" => score,
       "publish_ready" => blockers.empty?,
+      "legal_signal" => legal_signal?,
       "missing_required_fields" => missing_required_fields,
       "missing_publish_blocking_fields" => missing_publish_blocking_fields,
       "blockers" => blockers,
@@ -222,7 +236,15 @@ class CompanyProposalQualityService
     values << "No enrichment critic verdict is recorded." if proposal.agent_details.dig("description_critic", "verdict").blank?
     values << verification_warning if verification_warning
     values << "Taxonomy was not auto-accepted." if taxonomy_suggestion.present? && !taxonomy_suggestion["accepted"]
+    values << "Nothing in the name, website or description refers to legal work. Confirm it is legal technology before publishing; it cannot be published automatically." unless legal_signal?
     values
+  end
+
+  def legal_signal?
+    return @legal_signal if defined?(@legal_signal)
+
+    text = [changes["name"], changes["main_url"], changes["description"], changes["all_tags"]].join(" ")
+    @legal_signal = text.match?(LEGAL_SIGNAL)
   end
 
   def score
@@ -236,7 +258,8 @@ class CompanyProposalQualityService
       proposal.revenue_models_present?(changes),
       proposal.target_clients_present?(changes),
       !weak_description?,
-      !duplicate.blocking?
+      !duplicate.blocking?,
+      legal_signal?
     ]
     ((checks.count(true).to_f / checks.size) * 100).round
   end

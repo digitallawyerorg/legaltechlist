@@ -15,11 +15,12 @@ module Mcp
       # Taxonomy an enrichment can get wrong and nothing could then put right: tags were
       # unreachable, and a wrongly-set secondary category could not be cleared at all.
       TAXONOMY_FIELDS = %w[all_tags secondary_category_id].freeze
+      CLEARABLE_URL_FIELDS = %w[main_url linkedin_url crunchbase_url].freeze
       WRITABLE_FIELDS = (FACT_FIELDS + TEXT_FIELDS + TAXONOMY_FIELDS).freeze
 
       tool_name "update_company_field"
       title "Update company factual field"
-      description "Edit an existing/published company in place: #{WRITABLE_FIELDS.join(', ')}. founded_date must be a plausible 4-digit year and REQUIRES a source_url (cite-only — never guess a year). Writing description or a url REQUIRES a `reason` (e.g. 'restoring the submitter's original text after an enrichment overwrote it'); a description must clear the same publication gate as any published text, and writing one locks the record against further automated description changes until a human unlocks it. Use propose_company_update for anything outside this allowlist."
+      description "Edit an existing/published company in place: #{WRITABLE_FIELDS.join(', ')}. founded_date must be a plausible 4-digit year and REQUIRES a source_url (cite-only — never guess a year). Writing description or a url REQUIRES a `reason` (e.g. 'restoring the submitter's original text after an enrichment overwrote it'); a description must clear the same publication gate as any published text, and writing one locks the record against further automated description changes until a human unlocks it. Renaming re-derives the profile slug; the old slug keeps redirecting. To remove a URL that is wrong or dangerous (e.g. a lapsed domain now serving a gambling site), list it in clear_urls with a reason rather than sending an empty value. Use propose_company_update for anything outside this allowlist."
       annotations(read_only_hint: false, destructive_hint: false, idempotent_hint: true, title: "Update company factual field")
       input_schema(
         properties: {
@@ -44,14 +45,15 @@ module Mcp
             },
             additionalProperties: false
           },
+          clear_urls: { type: "array", items: { type: "string", enum: CLEARABLE_URL_FIELDS }, description: "URL fields to empty (#{CLEARABLE_URL_FIELDS.join(', ')}). Requires reason. Use for a hijacked or wrong link; to replace a link, set it in fields instead." },
           source_url: { type: "string", description: "Citation URL supporting the value; required when setting founded_date." },
           reason: { type: "string", description: "Why this edit is being made. Required for description and url fields, and recorded on the company." },
           lock_description: { type: "boolean", description: "Default true when writing a description: stops later automated enrichment overwriting it. Pass false only when the record should stay open to enrichment." }
         },
-        required: %w[slug fields]
+        required: %w[slug]
       )
 
-      def self.call(server_context:, slug:, fields:, source_url: nil, reason: nil, lock_description: nil)
+      def self.call(server_context:, slug:, fields: {}, clear_urls: nil, source_url: nil, reason: nil, lock_description: nil)
         company = find_company(slug)
         return not_found("Company '#{slug}' not found") unless company
 
@@ -60,19 +62,30 @@ module Mcp
         clearing = raw.key?("secondary_category_id") && raw["secondary_category_id"].blank?
         applied = raw.compact
         applied["secondary_category_id"] = nil if clearing
-        return not_found("No writable fields provided. Allowed: #{WRITABLE_FIELDS.join(', ')}") if applied.empty?
+        clear_urls = Array(clear_urls).map(&:to_s)
+        unknown_clears = clear_urls - CLEARABLE_URL_FIELDS
+        if unknown_clears.any?
+          return error_response("result" => "blocked", "retryable" => false, "error" => "clear_urls accepts only #{CLEARABLE_URL_FIELDS.join(', ')} (got #{unknown_clears.join(', ')}).")
+        end
+        if (conflicting = clear_urls & applied.keys).any?
+          return error_response("result" => "blocked", "retryable" => false, "error" => "#{conflicting.to_sentence} is both set and cleared; send one or the other.")
+        end
+        return not_found("No writable fields provided. Allowed: #{WRITABLE_FIELDS.join(', ')}") if applied.empty? && clear_urls.empty?
 
         # An edit to public text has to say why. Without it there is no way for the next
         # reader to tell a considered restore from an accident.
         blanked = applied.slice(*TEXT_FIELDS, *FACT_FIELDS).select { |_field, value| value.to_s.strip.blank? }
         if blanked.any?
-          return error_response("result" => "blocked", "retryable" => false, "error" => "Refusing to blank #{blanked.keys.to_sentence}. Send a value, or use secondary_category_id: null if you meant to clear a category.")
+          return error_response("result" => "blocked", "retryable" => false, "error" => "Refusing to blank #{blanked.keys.to_sentence}. Send a value, list a URL field in clear_urls (with a reason) to remove a wrong or hijacked link, or use secondary_category_id: null to clear a category.")
         end
 
-        text_edits = applied.slice(*TEXT_FIELDS, *TAXONOMY_FIELDS)
+        text_edits = applied.slice(*TEXT_FIELDS, *TAXONOMY_FIELDS).keys + clear_urls
         if text_edits.any? && reason.to_s.strip.blank?
-          return error_response("result" => "blocked", "retryable" => false, "error" => "Editing #{text_edits.keys.to_sentence} requires a `reason` explaining the change.")
+          return error_response("result" => "blocked", "retryable" => false, "error" => "Editing #{text_edits.to_sentence} requires a `reason` explaining the change.")
         end
+        # Cleared after the blank guard on purpose: an empty value in `fields` is still
+        # refused as a probable accident, while clear_urls is the deliberate form.
+        clear_urls.each { |field| applied[field] = nil }
 
         if applied["description"].present?
           verdict = CompanyProposalEnrichmentService.description_critic_for(applied["description"])
@@ -102,7 +115,16 @@ module Mcp
           company.all_tags = applied["all_tags"]
           rejected_tags = Array(company.rejected_tag_names)
         end
-        company.canonical_domain = company.canonical_main_domain if applied.key?("main_url")
+        if applied.key?("main_url")
+          company.canonical_domain = company.canonical_main_domain
+          # The stored verdict describes the old URL (a hijacked domain read as "ok"), so it
+          # goes with it; the next sweep checks the new one.
+          company.url_status = nil
+          company.url_status_code = nil
+          company.url_health = {}
+          company.url_checked_at = nil
+        end
+        company.regenerate_slug_for_name! if applied.key?("name")
         # Identity keys are derived, so a name or url change has to rebuild them or the
         # duplicate detector keeps matching on the old value.
         company.fingerprint = company.calculated_fingerprint if applied.key?("main_url") || applied.key?("name")
@@ -133,6 +155,7 @@ module Mcp
           "error" => (unconfirmed_error(unconfirmed) if unconfirmed.any?),
           "company_id" => company.id,
           "company_slug" => company.slug,
+          "previous_slugs" => company.previous_slugs,
           "requested" => applied,
           "confirmed" => confirmed,
           "unconfirmed" => unconfirmed,
@@ -204,6 +227,7 @@ module Mcp
         review["field_edits"] = Array(review["field_edits"]) + [{
           "at" => Time.current.utc.iso8601,
           "via" => "update_company_field",
+          "by" => Mcp::Current.operator_email,
           "reason" => reason.to_s.strip.presence,
           "changes" => applied.keys.index_with { |field| { "from" => previous[field], "to" => applied[field] } }
         }]

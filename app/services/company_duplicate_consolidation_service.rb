@@ -268,7 +268,25 @@ class CompanyDuplicateConsolidationService
     CompanyProposal.where(company_id: duplicate.id).update_all(company_id: keeper.id, updated_at: Time.current)
     CompanyImportRow.where(company_id: duplicate.id).update_all(company_id: keeper.id, updated_at: Time.current)
     transfer_active_storage_attachments!(duplicate, keeper)
+    transfer_company_logo!(duplicate, keeper)
+    # The duplicate's profile URL may already be cited, so it redirects to the keeper.
+    keeper.remember_previous_slugs!(duplicate.slug, duplicate.previous_slugs)
+    keeper.update_column(:previous_slugs, keeper.previous_slugs)
     duplicate.delete
+  end
+
+  # company_logos is one row per company with a foreign key, and `delete` skips the
+  # has_one cleanup, so a duplicate with a logo failed the merge on that constraint.
+  # The keeper's own logo wins; the duplicate's moves only to fill a gap.
+  def transfer_company_logo!(duplicate, keeper)
+    logo = CompanyLogo.find_by(company_id: duplicate.id)
+    return unless logo
+
+    if CompanyLogo.exists?(company_id: keeper.id)
+      logo.delete
+    else
+      logo.update_columns(company_id: keeper.id, updated_at: Time.current)
+    end
   end
 
   def transfer_taggings!(duplicate, keeper)
@@ -310,7 +328,8 @@ class CompanyDuplicateConsolidationService
     counts = {
       "taggings" => duplicate.taggings.count,
       "company_proposals" => CompanyProposal.where(company_id: duplicate.id).count,
-      "company_import_rows" => CompanyImportRow.where(company_id: duplicate.id).count
+      "company_import_rows" => CompanyImportRow.where(company_id: duplicate.id).count,
+      "company_logo" => CompanyLogo.where(company_id: duplicate.id).count
     }
     counts["active_storage_attachments"] = ActiveStorage::Attachment.where(record_type: "Company", record_id: duplicate.id).count if defined?(ActiveStorage::Attachment) && ActiveStorage::Attachment.table_exists?
     counts

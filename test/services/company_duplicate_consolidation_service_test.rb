@@ -41,7 +41,7 @@ class CompanyDuplicateConsolidationServiceTest < ActiveSupport::TestCase
     assert_equal keeper, proposal.reload.company
     assert_equal keeper, import_row.reload.company
     assert_equal [duplicate.id], run.details["results"].first["deleted_company_ids"]
-    assert_equal({ "taggings" => 1, "company_proposals" => 1, "company_import_rows" => 1, "active_storage_attachments" => 0 }, run.details["results"].first["transferred_associations"][duplicate.id.to_s])
+    assert_equal({ "taggings" => 1, "company_proposals" => 1, "company_import_rows" => 1, "company_logo" => 0, "active_storage_attachments" => 0 }, run.details["results"].first["transferred_associations"][duplicate.id.to_s])
   end
 
   test "dry run records consolidation without changing companies" do
@@ -132,5 +132,33 @@ class CompanyDuplicateConsolidationServiceTest < ActiveSupport::TestCase
 
     assert_equal keeper.id, run.details["results"].first["keeper_id"]
     assert_nil Company.find_by(id: duplicate.id)
+  end
+
+  # company_logos has a foreign key and `delete` skips the has_one cleanup, so a
+  # duplicate with a logo failed every merge (Midpage 15685/15715).
+  test "an explicit merge moves the duplicate's logo when the keeper has none" do
+    keeper = companies(:one)
+    duplicate = companies(:two)
+    logo = CompanyLogo.create!(company: duplicate, data: "png-bytes", content_type: "image/png")
+
+    result = CompanyDuplicateConsolidationService.merge_into(keep_id: keeper.id, merge_ids: [duplicate.id])
+
+    assert_equal "merged", result["result"]
+    assert_equal keeper.id, logo.reload.company_id
+    assert_includes keeper.reload.previous_slugs, "test-company-two"
+  end
+
+  test "an explicit merge drops the duplicate's logo when the keeper has its own" do
+    keeper = companies(:one)
+    duplicate = companies(:two)
+    kept = CompanyLogo.create!(company: keeper, data: "keeper", content_type: "image/png")
+    dropped = CompanyLogo.create!(company: duplicate, data: "duplicate", content_type: "image/png")
+
+    assert_equal 1, CompanyDuplicateConsolidationService.merge_into(keep_id: keeper.id, merge_ids: [duplicate.id], dry_run: true)["transferred_associations"][duplicate.id]["company_logo"]
+    CompanyDuplicateConsolidationService.merge_into(keep_id: keeper.id, merge_ids: [duplicate.id])
+
+    assert_nil Company.find_by(id: duplicate.id)
+    assert CompanyLogo.exists?(kept.id)
+    assert_not CompanyLogo.exists?(dropped.id)
   end
 end

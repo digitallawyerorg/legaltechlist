@@ -102,6 +102,7 @@ class CompanyImportWorkerService
     proposal = CompanyProposal.find_by(id: result["proposal_id"])
     company = proposal&.company
     return result unless company.present?
+    return result.merge("publish_skipped" => "deliberately_hidden") if company.deliberately_hidden?
 
     company.update_columns(
       visible: true,

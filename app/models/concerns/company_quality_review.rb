@@ -33,8 +33,15 @@ module CompanyQualityReview
     "agent_published_source_verified" => "Agent published",
     "reject_or_hide_pending_review" => "Reject or hide",
     "duplicate_consolidation_keeper" => "Duplicate consolidation keeper",
-    "out_of_scope_review" => "Out of scope review"
+    "out_of_scope_review" => "Out of scope review",
+    "hidden_pending_review" => "Hidden pending review"
   }.freeze
+
+  # Verdicts recording that a person, or the scope pass, took a record off the public
+  # site on purpose. No automated publish may undo one: the import worker used to
+  # re-publish "already drafted" rows over them, which is how ~70 law firms hidden as
+  # out of scope (Greenberg Traurig among them) came back as live "inactive" entries.
+  DELIBERATELY_HIDDEN_VERDICTS = %w[human_rejected out_of_scope_review awaiting_contributor_update hidden_pending_review].freeze
 
   included do
     scope :review_state_not_reviewed, -> { where(quality_status: [nil, ""]).where(human_reviewed_at: nil) }
@@ -59,6 +66,18 @@ module CompanyQualityReview
       else all
       end
     }
+  end
+
+  def deliberately_hidden?
+    quality_status.in?(["rejected", CompanyReviewMarkService::RETURNED_STATUS]) ||
+      verification_verdict.in?(DELIBERATELY_HIDDEN_VERDICTS)
+  end
+
+  # Out of scope is a verdict about the index, not about the business, so lifecycle
+  # status is left alone. Setting it to "inactive" here told readers live law firms
+  # had shut down, and inflated the public inactive count.
+  def hide_as_out_of_scope!
+    update!(visible: false, quality_status: "rejected", verification_verdict: "out_of_scope_review")
   end
 
   def review_state

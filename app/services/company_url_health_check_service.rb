@@ -29,6 +29,10 @@ class CompanyUrlHealthCheckService
   # inconclusive, never as broken.
   BOT_BLOCK_CODES = [401, 403, 405, 406, 429].freeze
 
+  # Hosts a lapsed legal-tech domain gets resold to. AdvantageLaw and Black Swan
+  # Digital Forensics both read "ok" while redirecting to sites like losari88gacor.com.
+  HIJACK_HOST_PATTERN = /gacor|slot|casino|togel|judi|poker|sbobet|jackpot|maxwin|bandar|betting|gambl/
+
   # Machine-readable reason_code taxonomy stored on Company#url_health["reason_code"].
   # Lets a curator separate "up but blocks crawlers" (fine) from "actually dead" (fix)
   # instead of leaving every "unknown" verdict in limbo.
@@ -44,6 +48,10 @@ class CompanyUrlHealthCheckService
   #                      http_410 = strong "dead"; http_400/402/409 also seen)
   #   connection_reset – peer reset the connection mid-request
   #   connection_error – unclassified transport error (default fallback)
+  #   offsite_redirect – answered 2xx, but only after redirecting to a different brand's
+  #                      domain (a rebrand, an acquirer, or a lapsed domain): unknown
+  #   suspected_hijack – the redirect lands on a gambling/spam host; broken at once,
+  #                      because the profile is sending readers to it today
   # Additional codes emitted only under specific OS-level conditions (so they may not
   # appear in a given sample): connection_refused (Errno::ECONNREFUSED),
   # host_unreachable (Errno::EHOSTUNREACH/ENETUNREACH), invalid_url (no usable main_url).
@@ -133,7 +141,7 @@ class CompanyUrlHealthCheckService
 
       probe(location, redirects_left - 1, method: :head)
     when Net::HTTPSuccess
-      success_outcome(code: response.code.to_i, final_url: uri.to_s)
+      landed_outcome(code: response.code.to_i, final_url: uri.to_s)
     else
       code = response.code.to_i
       # Some servers reject HEAD (405/501) — retry once with GET before judging.
@@ -200,6 +208,33 @@ class CompanyUrlHealthCheckService
     nil
   end
 
+  # A 2xx is only "ok" if it is still the company's site. The verdict used to ignore
+  # where the redirects ended, so hijacked domains passed as healthy.
+  def landed_outcome(code:, final_url:)
+    requested = Company.canonical_domain_for(company.main_url)
+    landed = Company.canonical_domain_for(final_url)
+    return success_outcome(code: code, final_url: final_url) if same_site?(requested, landed)
+
+    if landed.match?(HIJACK_HOST_PATTERN)
+      return { "result" => "hijack", "status_code" => code, "final_url" => final_url, "reason" => "redirects to #{landed}, which looks like a gambling or spam site", "reason_code" => "suspected_hijack" }
+    end
+
+    inconclusive_outcome("redirects to a different domain (#{landed})", code: code, final_url: final_url, reason_code: "offsite_redirect")
+  end
+
+  # Same site: the same host or a subdomain of it either way, or the same brand label
+  # on another TLD (legalsign.ai -> legalsign.com).
+  def same_site?(requested, landed)
+    return true if requested.blank? || landed.blank? || requested == landed
+    return true if landed.end_with?(".#{requested}") || requested.end_with?(".#{landed}")
+
+    brand_label(requested) == brand_label(landed)
+  end
+
+  def brand_label(domain)
+    domain.split(".").first
+  end
+
   def success_outcome(code:, final_url:)
     { "result" => Company::URL_STATUS_OK, "status_code" => code, "final_url" => final_url, "reason_code" => Company::URL_STATUS_OK }
   end
@@ -224,7 +259,9 @@ class CompanyUrlHealthCheckService
     prior_failures = company.url_health&.dig("consecutive_failures").to_i
     consecutive = failing ? prior_failures + 1 : 0
 
-    url_status = if failing
+    url_status = if outcome["result"] == "hijack"
+      Company::URL_STATUS_BROKEN
+    elsif failing
       consecutive >= FAILURE_THRESHOLD ? Company::URL_STATUS_BROKEN : Company::URL_STATUS_UNKNOWN
     else
       outcome["result"]

@@ -93,6 +93,10 @@ class CompanyProposalApprovalService
     company = proposal.company
 
     if publish && !company.visible?
+      if company.deliberately_hidden?
+        raise ArgumentError, "#{company.name} (##{company.id}) was taken off the site on purpose (#{company.verification_verdict.presence || company.quality_status}). Reopen the company record before publishing it again."
+      end
+
       validate_proposal!
       ActiveRecord::Base.transaction do
         company.update!(visible: true)

@@ -54,11 +54,12 @@ module Mcp
 
         def find_company(identifier)
           value = identifier.to_s.strip
-          Company.find_by(slug: value) || (value.match?(/\A\d+\z/) ? Company.find_by(id: value.to_i) : nil)
+          Company.find_by(slug: value) || (value.match?(/\A\d+\z/) ? Company.find_by(id: value.to_i) : nil) ||
+            Company.find_by_previous_slug(value)
         end
 
         def profile_url(company)
-          "#{Mcp::CuratorPolicy.site_url}/companies/#{company.slug}"
+          "#{Mcp::CuratorPolicy.site_url}/companies/#{company.to_param}"
         end
 
         def admin_proposal_url(proposal)
@@ -94,7 +95,7 @@ module Mcp
             records_processed: records_processed,
             started_at: Time.current,
             finished_at: Time.current,
-            details: { "action" => action, "actor" => "claude_tag", "summary" => summary }.merge(details.deep_stringify_keys)
+            details: { "action" => action, "actor" => "claude_tag", "operator" => Mcp::Current.operator_email, "summary" => summary }.compact.merge(details.deep_stringify_keys)
           )
         rescue StandardError => e
           Rails.logger.debug("[CuratorMCP] audit failed for #{action}: #{e.message}")

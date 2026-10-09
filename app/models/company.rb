@@ -23,6 +23,8 @@ class Company < ActiveRecord::Base
   before_update :publish_to_list, :if => :visible_changed?
   after_commit :sync_legaltech_atlas_link, on: :update, if: :should_sync_legaltech_atlas_link?
   before_validation :normalize_status
+  before_validation :normalize_blank_founded_date
+  before_validation :strip_main_url_tracking, if: :main_url_changed?
   before_validation :sync_structured_location_fields
 
   has_many :taggings,  dependent: :destroy
@@ -226,6 +228,25 @@ class Company < ActiveRecord::Base
     nil
   end
 
+  # Campaign and referral parameters say how a visitor arrived, not where the company
+  # lives. Submitters append them to the URL they hand us (?ref=codex, utm_source=...),
+  # and the published profile then advertised their campaign.
+  TRACKING_PARAM_PATTERN = /\A(?:utm_[a-z_]+|ref|referrer|fbclid|gclid|msclkid|mc_cid|mc_eid|_hs[a-z]+|yclid)\z/i
+
+  def self.without_tracking_params(url)
+    value = url.to_s.strip
+    return url if value.blank? || !value.include?("?")
+
+    uri = URI.parse(value)
+    return url unless uri.is_a?(URI::HTTP) && uri.query.present?
+
+    kept = URI.decode_www_form(uri.query).reject { |key, _| key.match?(TRACKING_PARAM_PATTERN) }
+    uri.query = kept.any? ? URI.encode_www_form(kept) : nil
+    uri.to_s
+  rescue URI::InvalidURIError, ArgumentError
+    url
+  end
+
   def self.valid_http_url?(value)
     uri = URI.parse(value.to_s.strip)
     uri.is_a?(URI::HTTP) && uri.host.present?
@@ -419,6 +440,39 @@ class Company < ActiveRecord::Base
 
   def normalize_status
     self.status = status.to_s.strip.downcase.presence
+  end
+
+  # "" counted as a known year in every `founded_date: nil` backlog query.
+  def normalize_blank_founded_date
+    self.founded_date = founded_date.presence
+  end
+
+  def strip_main_url_tracking
+    self.main_url = self.class.without_tracking_params(main_url)
+  end
+
+  # The live record a superseded slug (from a rename or a merge) now belongs to.
+  def self.find_by_previous_slug(slug, scope: all)
+    return nil if slug.blank?
+
+    scope.where("? = ANY(companies.previous_slugs)", slug.to_s).order(:id).first
+  end
+
+  # Re-derive the slug after a rename, keeping the old one so cited profile URLs
+  # redirect instead of 404ing ("Theo Ai" kept answering at /companies/as). A slug
+  # that already matches the new name, with or without a -2 suffix, is left alone.
+  def regenerate_slug_for_name!
+    base = self.class.slug_for_name(name)
+    return if base.blank? || slug.to_s.match?(/\A#{Regexp.escape(base)}(?:-\d+)?\z/)
+
+    old_slug = slug
+    self.slug = nil
+    assign_slug_from_source
+    remember_previous_slugs!(old_slug)
+  end
+
+  def remember_previous_slugs!(*slugs)
+    self.previous_slugs = (Array(previous_slugs) + slugs.flatten).map(&:to_s).compact_blank.uniq - [slug.to_s]
   end
 
   def url_broken?

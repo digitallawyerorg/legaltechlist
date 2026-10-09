@@ -31,6 +31,11 @@ class CompanyContributionForm
   validate :tags_present
   validate :tags_must_be_discoverable
 
+  # Strip ?ref= / utm_* at the door, so the proposal never carries them either.
+  def main_url=(value)
+    super(Company.without_tracking_params(value))
+  end
+
   def self.from_params(params)
     permitted = params.require(:company_contribution).permit(
       :contact_name, :contact_email, :name, :main_url, :location, :founded_date,

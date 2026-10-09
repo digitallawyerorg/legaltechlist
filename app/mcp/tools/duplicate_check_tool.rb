@@ -8,13 +8,20 @@ module Mcp
       input_schema(
         properties: {
           name: { type: "string", description: "Company name to check." },
-          url: { type: "string", description: "Company website URL (optional, improves domain matching)." }
+          url: { type: "string", description: "Company website URL (optional, improves domain matching)." },
+          exclude_id: { type: "integer", description: "A company id to leave out of the matches: pass the record you are renaming, so it is not reported as its own duplicate." }
         },
         required: ["name"]
       )
 
-      def self.call(server_context:, name:, url: nil)
+      def self.call(server_context:, name:, url: nil, exclude_id: nil)
         normalized = AtlasCandidateNormalizerService.call("Organization Name" => name, "Website" => url)
+        if exclude_id.present?
+          %w[name_matches domain_matches].each do |key|
+            normalized[key] = Array(normalized[key]).reject { |match| match.is_a?(Hash) && (match["id"] || match[:id]).to_i == exclude_id.to_i }
+          end
+          normalized["recommended_action"] = "No other record matches (company ##{exclude_id.to_i} excluded)." if normalized["name_matches"].empty? && normalized["domain_matches"].empty?
+        end
 
         json_response(
           "name" => normalized["name"],

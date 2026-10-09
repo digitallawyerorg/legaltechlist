@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_07_02_200000) do
+ActiveRecord::Schema[8.0].define(version: 2026_10_08_120100) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -137,6 +137,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_07_02_200000) do
     t.string "acquirer_name"
     t.string "acquirer_url"
     t.jsonb "acquisition_details"
+    t.string "previous_slugs", default: [], null: false, array: true
     t.index ["business_model_id"], name: "index_companies_on_business_model_id"
     t.index ["canonical_domain"], name: "index_companies_on_canonical_domain"
     t.index ["category_id"], name: "index_companies_on_category_id"
@@ -160,6 +161,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_07_02_200000) do
     t.index ["visible", "created_at"], name: "index_companies_on_visible_and_created_at", order: { created_at: :desc }
     t.index ["visible", "founded_date"], name: "index_companies_on_visible_and_founded_date", order: { founded_date: :desc }
     t.index ["visible"], name: "index_companies_on_visible"
+    t.index ["previous_slugs"], name: "index_companies_on_previous_slugs", using: :gin
   end
 
   create_table "company_business_models", force: :cascade do |t|

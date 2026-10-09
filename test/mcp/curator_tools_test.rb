@@ -97,10 +97,86 @@ module Mcp
 
     test "mark_review reject hides the company" do
       company = companies(:two)
-      call(Mcp::Tools::MarkReviewTool, slug: company.slug, decision: "reject")
+      call(Mcp::Tools::MarkReviewTool, slug: company.slug, decision: "reject", reason: "Law firm, out of scope")
       company.reload
       assert_equal "rejected", company.quality_status
       assert_not company.visible
+    end
+
+    test "mark_review refuses to hide a record without a reason" do
+      company = companies(:two)
+      response = Mcp::Tools::MarkReviewTool.call(server_context: @context, slug: company.slug, decision: "reject")
+      assert response.error?
+      assert company.reload.visible
+    end
+
+    test "mark_review hide_pending_review takes a record off the site and publish_company will not put it back" do
+      company = companies(:two)
+      call(Mcp::Tools::MarkReviewTool, slug: company.slug, decision: "hide_pending_review", reason: "main_url redirects to a gambling site")
+      company.reload
+      assert_not company.visible
+      assert_equal "hidden_pending_review", company.verification_verdict
+      assert company.deliberately_hidden?
+
+      response = Mcp::Tools::PublishCompanyTool.call(server_context: @context, slug: company.slug, human_approved: true)
+      assert response.error?
+      assert_not company.reload.visible
+    end
+
+    test "update_company_field clears a hijacked URL with a reason, and drops its stale health verdict" do
+      company = companies(:one)
+      company.update_columns(main_url: "https://hollyjolly.us/", url_status: "ok", url_health: { "final_url" => "https://taipan78.com/" })
+
+      refused = Mcp::Tools::UpdateCompanyFieldTool.call(server_context: @context, slug: company.slug, clear_urls: ["main_url"])
+      assert refused.error?
+
+      result = call(Mcp::Tools::UpdateCompanyFieldTool, slug: company.slug, clear_urls: %w[main_url linkedin_url], reason: "Domain lapsed; redirects to a gambling site")
+      assert_equal "updated", result["result"]
+      company.reload
+      assert_nil company.main_url
+      assert_nil company.linkedin_url
+      assert_nil company.url_status
+      assert_empty company.url_health
+    end
+
+    test "update_company_field rename re-derives the slug and the old slug still finds the record" do
+      company = companies(:one)
+      company.update_columns(name: "as", slug: "as")
+
+      result = call(Mcp::Tools::UpdateCompanyFieldTool, slug: "as", fields: { "name" => "Theo Ai" }, reason: "Name was a parsing artifact")
+
+      assert_equal "theo-ai", result["company_slug"]
+      assert_equal ["as"], result["previous_slugs"]
+      assert_equal company.id, call(Mcp::Tools::GetCompanyTool, slug: "as")["id"]
+    end
+
+    test "duplicate_check leaves out the record being renamed" do
+      company = companies(:one)
+      with_self = call(Mcp::Tools::DuplicateCheckTool, name: company.name, url: company.main_url)
+      assert(with_self["domain_matches"].any? { |match| match["id"] == company.id })
+
+      without_self = call(Mcp::Tools::DuplicateCheckTool, name: company.name, url: company.main_url, exclude_id: company.id)
+      assert(without_self["name_matches"].none? { |match| match["id"] == company.id })
+      assert(without_self["domain_matches"].none? { |match| match["id"] == company.id })
+    end
+
+    test "audit rows and field edits name the operator who authorized the connector" do
+      operator = AdminUser.create!(email: "hafez@example.com", password: "password123", password_confirmation: "password123")
+      Mcp::Current.operator = operator
+      company = companies(:one)
+
+      call(Mcp::Tools::UpdateCompanyFieldTool, slug: company.slug, fields: { "city" => "Oakland" }, reason: "Per company site")
+
+      assert_equal "hafez@example.com", PipelineRun.where(run_type: "curator_mcp").order(:id).last.details["operator"]
+      assert_equal "hafez@example.com", company.reload.quality_review["field_edits"].last["by"]
+    ensure
+      Mcp::Current.reset
+    end
+
+    test "search_companies name_only ignores descriptions" do
+      companies(:two).update_columns(description: "Our mission is to help Test Company One customers")
+      result = call(Mcp::Tools::SearchCompaniesTool, query: "Company One", name_only: true)
+      assert_equal ["Test Company One"], result["companies"].map { |company| company["name"] }
     end
 
     test "get_taxonomy returns the controlled vocabulary" do

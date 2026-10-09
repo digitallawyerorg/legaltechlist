@@ -10,6 +10,19 @@
 domains:
   - snkzizjsygw.com # proposal 4104 "FPS Database", 2026-08-23
   - fxutwwaassxocp.com # proposal 4176 "Restorix", 2026-09-12
+  - customtshirts.ae # proposal 5731 "Custom T-Shirt UAE" (apparel), 2026-10-08
+  - customized.ae # proposal 5269 "Customized AE" (merchandise), 2026-10-08
+  - bespokepatches.co.uk # proposal 4906 "Bespoke Patches UK", 2026-10-08
+  - embroideredpatches.us # proposal 4774 "American Embroidered Patches", 2026-10-08
+  - logodesigncanada.ca # proposal 5467 "Logo Design Canada" (design agency), 2026-10-08
+  - presentationdesigners.co.uk # proposal 5401 "Presentation Designers UK", 2026-10-08
+  - cdrwriters.com.au # proposal 5138 "CDR Writers" (migration report writing), 2026-10-08
+  # Gambling sites that lapsed legal-tech domains now redirect to (companies 11339
+  # AdvantageLaw and 11356 Black Swan Digital Forensics), 2026-10-08.
+  - hollyjolly.us
+  - taipan78.com
+  - rakyatlosari88.com
+  - losari88gacor.com
 
 # Link hosts appearing anywhere in the submitted text — the payload shortlinks and
 # opt-out footers this operator reuses. Matched even when the dot is obfuscated

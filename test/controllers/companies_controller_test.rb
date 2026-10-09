@@ -467,4 +467,16 @@ class CompaniesControllerTest < ActionController::TestCase
       end
     end
   end
+
+  # Profiles hand out citations, so a rename or merge must not break the old URL.
+  test "a retired slug redirects permanently to the record's current profile" do
+    @company.update_columns(previous_slugs: ["as"])
+    get :show, params: { slug: "as" }
+    assert_response :moved_permanently
+    assert_match %r{/companies/#{@company.slug}}, response.location
+  end
+
+  test "an unknown slug is still a 404" do
+    assert_raises(ActiveRecord::RecordNotFound) { get :show, params: { slug: "no-such-company" } }
+  end
 end

@@ -48,6 +48,7 @@ module Mcp
       # itself: it must be presentable and it must not be a duplicate of a live entry.
       def self.publish_blockers(company)
         blockers = []
+        blockers << "it was taken off the site on purpose (#{company.verification_verdict.presence || company.quality_status}); reopen it with mark_review verified or needs_work first" if company.deliberately_hidden?
         blockers << "it has no description" if company.description.to_s.strip.blank?
         blockers << "it has no website" if company.main_url.to_s.strip.blank?
         blockers << "its description does not clear the publication gate" unless description_ok?(company)

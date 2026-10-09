@@ -8,6 +8,7 @@ module Mcp
       input_schema(
         properties: {
           query: { type: "string", description: "Free-text query matched against name, description, and location." },
+          name_only: { type: "boolean", description: "Match query against the company name only (case-insensitive substring), e.g. to find sentence-fragment names like \"Our\" without every description that contains the word." },
           limit: { type: "integer", description: "Max results (1-25, default 10)." },
           needs_review: { type: "boolean", description: "Only return companies whose quality_status is needs_review." },
           missing_founded_date: { type: "boolean", description: "Only return companies with no founded_date set." },
@@ -17,14 +18,18 @@ module Mcp
         required: []
       )
 
-      def self.call(server_context:, query: nil, limit: 10, needs_review: false, missing_founded_date: false, url_broken: false, status: nil)
+      def self.call(server_context:, query: nil, name_only: false, limit: 10, needs_review: false, missing_founded_date: false, url_broken: false, status: nil)
         capped = [[limit.to_i, 1].max, 25].min
         scope = Company.publicly_visible.includes(:category, :secondary_category)
         scope = scope.needs_review if needs_review
         scope = scope.missing_founded_date if missing_founded_date
         scope = scope.url_broken if url_broken
         scope = scope.where("LOWER(status) = ?", status.to_s.strip.downcase) if status.present?
-        scope = scope.text_search(query) if query.present?
+        if query.present? && ActiveModel::Type::Boolean.new.cast(name_only)
+          scope = scope.where("companies.name ILIKE ?", "%#{Company.sanitize_sql_like(query.to_s.strip)}%")
+        elsif query.present?
+          scope = scope.text_search(query)
+        end
         companies = scope.order(:name).limit(capped)
 
         json_response(

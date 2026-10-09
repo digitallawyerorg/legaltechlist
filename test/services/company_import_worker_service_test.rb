@@ -120,4 +120,21 @@ class CompanyImportWorkerServiceTest < ActiveSupport::TestCase
     assert_equal "held", row.status
     refute_equal "published", row.action
   end
+
+  # How ~70 law firms came back: the scope pass hid them, then a re-import treated the
+  # hidden row as an "already drafted" candidate and published it over that decision.
+  test "a re-import never re-publishes a record that was hidden on purpose" do
+    company = companies(:two)
+    company.update_columns(visible: false, status: "active", quality_status: nil, verification_verdict: "out_of_scope_review")
+    proposal = CompanyProposal.create!(status: "approved_to_draft", proposal_type: "atlas_candidate", source: "legaltechatlas_csv",
+                                       source_identifier: "example2.com", company: company)
+    quality = { "publish_ready" => true, "description_verified" => true, "warnings" => [] }
+
+    result = CompanyImportWorkerService.allocate.send(:publish_if_ready, { "action" => "already_drafted", "proposal_id" => proposal.id }, quality)
+
+    assert_equal "deliberately_hidden", result["publish_skipped"]
+    company.reload
+    assert_not company.visible?
+    assert_equal "out_of_scope_review", company.verification_verdict
+  end
 end

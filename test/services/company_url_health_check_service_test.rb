@@ -60,6 +60,36 @@ class CompanyUrlHealthCheckServiceTest < ActiveSupport::TestCase
     assert_equal "ok", CompanyUrlHealthCheckService.derive_reason_code(url_status: "ok", status_code: 200, reason: nil)
   end
 
+  def run_redirect_check(to:)
+    responses = { "example.com" => response(Net::HTTPMovedPermanently, "301", location: to) }
+    fake = ->(uri, _method, **) { responses.fetch(uri.host.sub(/\Awww\./, ""), response(Net::HTTPOK, "200")) }
+    service = CompanyUrlHealthCheckService.new(company: @company)
+    service.stub(:request, fake) { service.call }
+    @company.reload
+  end
+
+  test "a redirect to a gambling host is broken at once, not ok" do
+    run_redirect_check(to: "https://losari88gacor.com/")
+    assert_equal Company::URL_STATUS_BROKEN, @company.url_status
+    assert_equal "suspected_hijack", @company.url_health["reason_code"]
+    assert_equal "https://losari88gacor.com/", @company.url_health["final_url"]
+  end
+
+  test "a redirect to another brand's domain is flagged for review rather than ok" do
+    run_redirect_check(to: "https://www.ekie.co/")
+    assert_equal Company::URL_STATUS_UNKNOWN, @company.url_status
+    assert_equal "offsite_redirect", @company.url_health["reason_code"]
+    assert_equal 0, @company.url_consecutive_failures
+  end
+
+  test "a redirect to the same brand on another TLD or subdomain stays ok" do
+    run_redirect_check(to: "https://example.io/home")
+    assert_equal Company::URL_STATUS_OK, @company.url_status
+
+    run_redirect_check(to: "https://app.example.com/")
+    assert_equal Company::URL_STATUS_OK, @company.url_status
+  end
+
   test "only escalates to broken after consecutive failures" do
     run_check(response(Net::HTTPNotFound, "404"))
     assert_equal Company::URL_STATUS_UNKNOWN, @company.url_status
