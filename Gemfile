@@ -91,7 +91,7 @@ gem 'parallel'
 
 gem 'dotenv'
 
-gem "ruby_llm", "~> 1.16"
+gem "ruby_llm", "~> 2.0"
 
 gem "ruby_llm-responses_api", "~> 0.6.1"
 
