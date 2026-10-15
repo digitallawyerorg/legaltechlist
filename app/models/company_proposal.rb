@@ -166,9 +166,15 @@ class CompanyProposal < ActiveRecord::Base
     current_duplicate_signals["advisory"] == true
   end
 
+  # name_matches and domain_matches are two views over ONE set of company hits, not two
+  # populations: ProposalDuplicateDetectorService#call selects both out of the same array,
+  # so a record that agrees on a name key AND an address key is in both, and the reviewer
+  # panel drew it twice (Apertera #11445 on proposal 4675). Each hit already carries every
+  # key that agreed in "match_types", so nothing is lost by keeping the first copy — see
+  # admin_duplicate_match_warning, which already dedupes this same concatenation.
   def duplicate_matches
     signals = current_duplicate_signals
-    Array(signals["name_matches"]) + Array(signals["domain_matches"])
+    (Array(signals["name_matches"]) + Array(signals["domain_matches"])).uniq { |match| match["id"] }
   end
 
   def duplicate_proposal_matches
