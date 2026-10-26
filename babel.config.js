@@ -16,6 +16,12 @@ module.exports = function(api) {
   }
 
   return {
+    // Babel 8 replaces the per-plugin `loose` and `useBuiltIns` options with top-level assumptions.
+    assumptions: {
+      setPublicClassFields: true,
+      privateFieldsAsProperties: true,
+      setSpreadProperties: true
+    },
     presets: [
       isTestEnv && [
         '@babel/preset-env',
@@ -29,38 +35,24 @@ module.exports = function(api) {
         '@babel/preset-env',
         {
           forceAllTransforms: true,
-          useBuiltIns: 'entry',
-          corejs: 3,
           modules: false,
           exclude: ['transform-typeof-symbol']
         }
       ]
     ].filter(Boolean),
     plugins: [
-      ['@babel/plugin-proposal-private-methods', { loose: true }],
-      ['@babel/plugin-proposal-private-property-in-object', { loose: true }],
-      ['@babel/plugin-proposal-class-properties', { loose: true }],
+      // preset-env 8 dropped useBuiltIns/corejs; core-js entry polyfills now come from this plugin.
+      (isProductionEnv || isDevelopmentEnv) && [
+        'babel-plugin-polyfill-corejs3',
+        {
+          method: 'entry-global',
+          version: '3'
+        }
+      ],
       '@babel/plugin-transform-destructuring',
-      [
-        '@babel/plugin-proposal-object-rest-spread',
-        {
-          useBuiltIns: true
-        }
-      ],
-      [
-        '@babel/plugin-transform-runtime',
-        {
-          helpers: false,
-          regenerator: true,
-          corejs: false
-        }
-      ],
-      [
-        '@babel/plugin-transform-regenerator',
-        {
-          async: false
-        }
-      ]
+      // transform-runtime is gone: in Babel 8 it only injects helper imports, which this config never wanted,
+      // and the regenerator runtime is now an inlined helper.
+      '@babel/plugin-transform-regenerator'
     ].filter(Boolean)
   }
 }
