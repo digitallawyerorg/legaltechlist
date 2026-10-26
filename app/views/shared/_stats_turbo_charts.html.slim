@@ -1,5 +1,9 @@
 javascript:
     (function() {
+        // Turbo re-runs this script on every visit; register the listeners once.
+        if (window.statsTurboChartsBound) return;
+        window.statsTurboChartsBound = true;
+
         function statsViewportChartHeight() {
             if (window.innerWidth < 992) return null;
 
@@ -52,12 +56,6 @@ javascript:
             resizeTimer = window.setTimeout(syncStatsChartHeights, 120);
         }
 
-        function bootChartkick() {
-            if (window.Chartkick) {
-                window.dispatchEvent(new Event("chartkick:load"));
-            }
-        }
-
         function refreshStatsCharts() {
             if (document.documentElement.hasAttribute("data-turbo-preview")) return;
 
@@ -88,7 +86,8 @@ javascript:
                 return;
             }
 
-            bootChartkick();
+            // Chartkick's inline scripts draw on render; re-dispatching chartkick:load would
+            // replay callbacks queued by earlier pages whose chart elements are gone.
             window.setTimeout(syncStatsChartHeights, 150);
         }
 

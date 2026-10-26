@@ -227,6 +227,7 @@ javascript:
             }
 
             document.addEventListener("keydown", function(event) {
+                if (!modal.isConnected) return;
                 if (event.key === "Escape" && modal.classList.contains("is-open")) closeModal();
             });
         }

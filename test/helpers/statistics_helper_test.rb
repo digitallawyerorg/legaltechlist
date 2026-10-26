@@ -18,9 +18,9 @@ class StatisticsHelperTest < ActiveSupport::TestCase
     neighbors = neighbors_for("funding_by_category")
 
     assert_equal "Target Audience", neighbors[:prev][:title]
-    assert_equal statistics_target_client_path, neighbors[:prev][:path]
+    assert_equal statistics_category_evolution_5_years_path(dimension: "market_focus"), neighbors[:prev][:path]
     assert_equal "Funding by Region", neighbors[:next][:title]
-    assert_equal statistics_funding_by_region_path, neighbors[:next][:path]
+    assert_equal statistics_funding_by_category_path(dimension: "region"), neighbors[:next][:path]
   end
 
   test "stats_chart_neighbors returns wrapped prev and next for funding by region" do
