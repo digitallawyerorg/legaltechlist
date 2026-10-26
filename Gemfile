@@ -3,15 +3,15 @@ source 'https://rubygems.org'
 ruby '3.3.10'
 
 # Core
-gem 'rails', '~> 8.1.3'
-gem 'pg', '~> 1.6.3'
+gem 'rails', '~> 8.1.4'
+gem 'pg', '~> 1.7.0'
 gem 'puma'
 gem 'redis', '~> 6.0'
 gem 'sprockets-rails'
 
 # Admin and Authentication
 gem 'devise', '~> 5.0'
-gem 'kaminari', '~> 1.2.1'
+gem 'kaminari', '~> 1.3.0'
 
 # Frontend
 gem 'sass-rails', '~> 6.0'
@@ -83,7 +83,7 @@ gem 'importmap-rails'
 gem "turbo-rails"
 
 gem 'httparty'
-gem 'aws-sdk-s3', '~> 1.232'
+gem 'aws-sdk-s3', '~> 1.235'
 
 # For company validation script
 gem 'ruby-openai'
@@ -95,7 +95,7 @@ gem "ruby_llm", "~> 2.1.1"
 
 
 # MCP server for the Claude Tag curator connector
-gem "mcp", "~> 1.5"
+gem "mcp", "~> 1.8"
 gem "jwt", "~> 3.3"
 
 gem "solid_queue", "~> 1.7"
