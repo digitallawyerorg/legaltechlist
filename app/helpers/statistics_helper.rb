@@ -64,14 +64,16 @@ module StatisticsHelper
     [217, 239, 139], [166, 217, 106], [102, 189, 99], [26, 152, 80]
   ].freeze
 
+  # Link straight to the final URL: Turbo re-renders a redirected page without
+  # running its inline chart scripts, which leaves the chart blank.
   STATS_CHART_PAGES = [
     { actions: %w[total_companies], title: "Total Companies", path: :statistics_total_companies_path },
     { actions: %w[country_distribution], title: "Geographic Distribution", path: :statistics_country_distribution_path },
     { actions: %w[category_evolution_5_years], title: "Category Expansion", path: :statistics_category_evolution_5_years_path },
-    { actions: %w[category_evolution_5_years], title: "Business Model", path: :statistics_business_model_path },
-    { actions: %w[category_evolution_5_years], title: "Target Audience", path: :statistics_target_client_path },
+    { actions: %w[category_evolution_5_years], title: "Business Model", path: :statistics_category_evolution_5_years_path, path_params: { dimension: "revenue_model" } },
+    { actions: %w[category_evolution_5_years], title: "Target Audience", path: :statistics_category_evolution_5_years_path, path_params: { dimension: "market_focus" } },
     { actions: %w[funding_by_category], dimension: "category", title: "Funding by Category", path: :statistics_funding_by_category_path },
-    { actions: %w[funding_by_category], dimension: "region", title: "Funding by Region", path: :statistics_funding_by_region_path },
+    { actions: %w[funding_by_category], dimension: "region", title: "Funding by Region", path: :statistics_funding_by_category_path, path_params: { dimension: "region" } },
     { actions: %w[ai_trends], title: "AI in Legal Tech", path: :statistics_ai_trends_path },
     { actions: %w[tag_distribution], title: "Technology Themes", path: :statistics_tag_distribution_path }
   ].freeze
@@ -85,8 +87,8 @@ module StatisticsHelper
     next_page = STATS_CHART_PAGES[(index + 1) % page_count]
 
     {
-      prev: { title: prev_page[:title], path: public_send(prev_page[:path]) },
-      next: { title: next_page[:title], path: public_send(next_page[:path]) }
+      prev: { title: prev_page[:title], path: public_send(prev_page[:path], **prev_page.fetch(:path_params, {})) },
+      next: { title: next_page[:title], path: public_send(next_page[:path], **next_page.fetch(:path_params, {})) }
     }
   end
 
