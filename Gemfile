@@ -11,7 +11,7 @@ gem 'sprockets-rails'
 
 # Admin and Authentication
 gem 'devise', '~> 5.0'
-gem 'kaminari', '~> 1.3.0'
+gem 'kaminari', '~> 1.3.2'
 
 # Frontend
 gem 'sass-rails', '~> 6.0'
@@ -83,7 +83,7 @@ gem 'importmap-rails'
 gem "turbo-rails"
 
 gem 'httparty'
-gem 'aws-sdk-s3', '~> 1.235'
+gem 'aws-sdk-s3', '~> 1.237'
 
 # For company validation script
 gem 'ruby-openai'
