@@ -60,6 +60,10 @@
                                     .small.text-muted= truncate(url.to_s, length: 48)
                                 - elsif !proposal.user_submission?
                                     .small.text-muted Missing website
+                                - if (latest_review = proposal.latest_review)
+                                    .small(class=(latest_review["outcome"] == CompanyProposalReviewLog::OUTCOME_NEEDS_MORE_WORK ? "text-warning" : "text-success"))
+                                        i.fas.fa-clipboard-check.me-1
+                                        = CompanyProposalReviewLog.label(latest_review)
                             td.admin-nowrap
                                 span.admin-status-pill(class=(quality["publish_ready"] ? "text-bg-success" : "text-bg-warning"))= "#{quality['score']}%"
                             td

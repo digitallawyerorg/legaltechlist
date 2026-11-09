@@ -13,6 +13,7 @@ class CompanyProposalApplyUpdateService
   def call
     raise ArgumentError, "Only user suggestions can be applied to existing companies" unless proposal.user_suggestion?
     raise ArgumentError, "Proposal is not linked to a company" if proposal.company_id.blank?
+    raise ArgumentError, "#{proposal.display_name} is already #{proposal.status.humanize.downcase}. Reopen it before applying it again." if proposal.terminal?
 
     # Duplicate detection is a mandatory validation, not a step one ingestion path gets to
     # skip. This was the write with no gate in front of it: it edits a live, published
@@ -38,12 +39,16 @@ class CompanyProposalApplyUpdateService
     # history — so the same rules that govern a direct edit apply here.
     scalar_changes = guard_description!(company, scalar_changes)
     company.assign_attributes(scalar_changes)
+    replace_logo = logo_replacement?(company, scalar_changes)
     # An update to a record someone took off the site is still applied, but it does not
     # put the record back: that is how a returned record (UpGrowth) went live again.
     company.visible = true if publish && !company.deliberately_hidden?
     company.human_reviewed_at = Time.current
     company.quality_reviewed_at = Time.current
     company.save!
+    # The stored logo wins over logo_url when both exist, so a new URL only shows once
+    # the stored copy it is replacing is gone.
+    company.company_logo&.destroy! if replace_logo
 
     apply_associations!(company, changes)
     apply_tags!(company, changes["all_tags"]) if changes.key?("all_tags")
@@ -81,6 +86,14 @@ class CompanyProposalApplyUpdateService
     }]
     company.quality_review = review
     scalar_changes
+  end
+
+  def logo_replacement?(company, scalar_changes)
+    incoming = scalar_changes["logo_url"].to_s.strip
+    return false if incoming.blank?
+    raise ArgumentError, "Logo URL must be a full http(s) address of an image" unless CompanyProposal.web_address?(incoming)
+
+    company.company_logo.present?
   end
 
   def description_locked?(company)

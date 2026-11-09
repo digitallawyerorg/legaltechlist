@@ -49,6 +49,10 @@ module Mcp
             "company_visible" => proposal.company&.visible,
             "canonical_record" => proposal.agent_details["canonical_record"]
           },
+          # Reviews that did not change the status ("reviewed — no change", "needs more
+          # work"), so a record someone already looked at is not triaged again.
+          "review_log" => proposal.review_log,
+          "last_review_label" => CompanyProposalReviewLog.label(proposal.latest_review),
           # Who sent it in, and what they said. Also always present, also unexposed.
           "submitter" => {
             "email" => proposal.submitter_email.presence,

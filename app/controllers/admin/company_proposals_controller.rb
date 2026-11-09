@@ -16,10 +16,13 @@ module Admin
 
     def edit
       load_proposal
+      redirect_if_terminal
     end
 
     def update
       load_proposal
+      return if redirect_if_terminal
+
       @company_proposal.assign_attributes(proposal_notes_params)
       @company_proposal.final_changes = sanitized_final_changes
       @company_proposal.agent_details = @company_proposal.agent_details.merge("taxonomy_suggestion" => CompanyProposalTaxonomySuggestionService.call(source_payload: @company_proposal.source_payload, final_changes: @company_proposal.final_changes))
@@ -36,6 +39,8 @@ module Admin
 
     def enrich
       load_proposal
+      return if redirect_if_terminal
+
       CompanyProposalEnrichmentService.call(proposal: @company_proposal, admin_user: current_admin_user, force: true)
 
       redirect_to custom_admin_company_proposal_path(@company_proposal), notice: "Proposal enriched for review. No company records were changed."
@@ -157,7 +162,59 @@ module Admin
                   alert: "#{@company_proposal.display_name} was not returned to its contributor: #{e.message}"
     end
 
+    # "I looked at this and it is fine as it is" (or "this still needs work") recorded on
+    # the proposal, so the next reviewer can tell a reviewed record from an untouched one.
+    def record_review
+      load_proposal
+      entry = CompanyProposalReviewLog.record!(@company_proposal, outcome: params[:review_outcome], reviewer: current_admin_user.email, note: params[:review_note])
+
+      redirect_to custom_admin_company_proposal_path(@company_proposal, queue: returning_queue_context.presence),
+                  notice: "Recorded: #{CompanyProposalReviewLog.label(entry)}."
+    rescue ArgumentError, ActiveRecord::RecordInvalid => e
+      redirect_to custom_admin_company_proposal_path(@company_proposal, queue: returning_queue_context.presence), alert: e.message
+    end
+
+    # A rejection is final unless someone deliberately reopens it. Reopening puts the
+    # proposal back in the queue and keeps what the rejection said in the review log.
+    def reopen
+      load_proposal
+      unless @company_proposal.rejected?
+        return redirect_to custom_admin_company_proposal_path(@company_proposal), alert: "Only rejected proposals can be reopened."
+      end
+
+      previous = { "rejection_reason" => @company_proposal.rejection_reason, "rejected_at" => @company_proposal.rejected_at&.utc&.iso8601,
+                   "canonical_record" => @company_proposal.agent_details["canonical_record"] }.compact
+      note = [params[:reopen_note].to_s.strip.presence, ("Previously rejected: #{previous['rejection_reason']}" if previous["rejection_reason"].present?)].compact.join(" — ")
+
+      CompanyProposal.transaction do
+        @company_proposal.update!(
+          status: "ready_for_review",
+          rejected_at: nil,
+          rejection_reason: nil,
+          admin_user: current_admin_user,
+          agent_details: @company_proposal.agent_details.except("canonical_record").merge(
+            "reopened_from" => Array(@company_proposal.agent_details["reopened_from"]) + [previous]
+          )
+        )
+        CompanyProposalReviewLog.record!(@company_proposal, outcome: CompanyProposalReviewLog::OUTCOME_REOPENED, reviewer: current_admin_user.email, note: note)
+      end
+
+      redirect_to custom_admin_company_proposal_path(@company_proposal), notice: "#{@company_proposal.display_name} was reopened and is back in the review queue."
+    rescue ActiveRecord::RecordInvalid => e
+      redirect_to custom_admin_company_proposal_path(@company_proposal), alert: "#{@company_proposal.display_name} could not be reopened: #{e.message}"
+    end
+
     private
+
+    # Published and rejected proposals are decisions already taken; the edit and enrich
+    # paths would otherwise quietly change a closed record.
+    def redirect_if_terminal
+      return false unless @company_proposal.terminal?
+
+      redirect_to custom_admin_company_proposal_path(@company_proposal),
+                  alert: "#{@company_proposal.display_name} is #{@company_proposal.status.humanize.downcase} and read-only.#{' Reopen it to make changes.' if @company_proposal.rejected?}"
+      true
+    end
 
     def return_to_contributor_return_path
       queue_redirect_path(custom_admin_company_proposals_path(status: params[:return_status].presence || "pending_review"))

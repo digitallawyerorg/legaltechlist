@@ -1,6 +1,6 @@
 module ProposalChangesHelper
   DISPLAY_ORDER = %w[
-    name main_url location founded_date status description
+    name main_url logo_url location founded_date status description
     category_id secondary_category_id
     business_model_ids business_model_id target_client_ids target_client_id all_tags
     crunchbase_url linkedin_url total_funding_amount_usd funding_status

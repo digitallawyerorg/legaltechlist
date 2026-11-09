@@ -9,6 +9,7 @@ module Mcp
       CHANGE_FIELD_SCHEMA = {
         name: { type: "string" },
         main_url: { type: "string" },
+        logo_url: { type: "string", description: "Direct http(s) URL of the company's logo image. Replaces the stored logo when the proposal is applied." },
         location: { type: "string" },
         founded_date: { type: "string", description: "ISO date (YYYY-MM-DD) or year." },
         status: { type: "string", description: "Lifecycle status, e.g. active, acquired, defunct." },

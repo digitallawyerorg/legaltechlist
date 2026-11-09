@@ -251,7 +251,7 @@ module CompaniesHelper
   def company_bing_search_reference(company)
     name = company.name.to_s.strip
     query = CGI.escape("tell me more about #{name}")
-    url = "https://www.bing.com/mt?q=#{query}"
+    url = "https://www.bing.com/copilotsearch?q=#{query}"
     { label: "Bing", icon: "fa-brands fa-microsoft", icon_color: "#008373", url: url, host: "bing.com Copilot Search" }
   end
 
