@@ -2,6 +2,9 @@ class CompanyProposal < ActiveRecord::Base
   include TaxonomyCompleteness
 
   STATUSES = %w[pending ready_for_review needs_revision approved_to_draft published rejected].freeze
+  # Finished decisions. A proposal in one of these is read-only in the admin: no reject,
+  # approve, publish, return or edit. A rejected one can be explicitly reopened.
+  TERMINAL_STATUSES = %w[published rejected].freeze
   PROPOSAL_TYPES = %w[atlas_candidate discovery_candidate user_contribution user_suggestion].freeze
   USER_SUBMISSION_TYPES = %w[user_contribution user_suggestion].freeze
 
@@ -18,6 +21,8 @@ class CompanyProposal < ActiveRecord::Base
   # an identifier is still refused exactly as before.
   validates :source_identifier, uniqueness: { scope: :source, allow_blank: true },
                                 if: -> { source_identifier_changed? || source_changed? }
+
+  validate :logo_url_must_be_web_address, if: -> { will_save_change_to_final_changes? || will_save_change_to_proposed_changes? }
 
   scope :recent, -> { order(created_at: :desc) }
   scope :pending_review, -> { where(status: %w[pending ready_for_review needs_revision]) }
@@ -42,6 +47,7 @@ class CompanyProposal < ActiveRecord::Base
   EDITABLE_COMPANY_FIELDS = %w[
     name
     main_url
+    logo_url
     location
     founded_date
     status
@@ -214,6 +220,18 @@ class CompanyProposal < ActiveRecord::Base
     status == "rejected"
   end
 
+  def terminal?
+    status.in?(TERMINAL_STATUSES)
+  end
+
+  def review_log
+    CompanyProposalReviewLog.entries(self)
+  end
+
+  def latest_review
+    CompanyProposalReviewLog.latest(self)
+  end
+
   def user_submission?
     proposal_type.in?(USER_SUBMISSION_TYPES)
   end
@@ -225,11 +243,29 @@ class CompanyProposal < ActiveRecord::Base
     submitter_email.present?
   end
 
+  # A logo is rendered as an <img src> on the public profile, so only a plain web address
+  # is accepted: anything else (javascript:, data:, a bare word) never reaches a company.
+  def self.web_address?(value)
+    uri = URI.parse(value.to_s.strip)
+    uri.is_a?(URI::HTTP) && uri.host.present?
+  rescue URI::InvalidURIError
+    false
+  end
+
   def user_contribution?
     proposal_type == "user_contribution"
   end
 
   def user_suggestion?
     proposal_type == "user_suggestion"
+  end
+
+  private
+
+  def logo_url_must_be_web_address
+    value = editable_changes["logo_url"]
+    return if value.blank? || self.class.web_address?(value)
+
+    errors.add(:base, "Logo URL must be a full http(s) address of an image")
   end
 end

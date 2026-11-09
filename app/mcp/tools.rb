@@ -22,6 +22,7 @@ module Mcp
         EnrichProposalTool,
         AssessProposalTool,
         UpdateProposalTool,
+        RecordProposalReviewTool,
         CuratePendingTool,
         ApproveProposalTool,
         RejectProposalTool,

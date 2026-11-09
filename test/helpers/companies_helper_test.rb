@@ -108,7 +108,7 @@ class CompaniesHelperTest < ActionView::TestCase
     reference = company_bing_search_reference(company)
 
     assert_equal "Bing", reference[:label]
-    assert_equal "https://www.bing.com/mt?q=tell+me+more+about+Legal.io", reference[:url]
+    assert_equal "https://www.bing.com/copilotsearch?q=tell+me+more+about+Legal.io", reference[:url]
     assert_equal "bing.com Copilot Search", reference[:host]
   end
 

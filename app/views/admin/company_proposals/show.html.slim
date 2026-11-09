@@ -1,5 +1,7 @@
 - content_for :title, "#{@company_proposal.display_name} Proposal"
 - returnable = @company_proposal.status.in?(CompanyProposalReturnService::RETURNABLE_STATUSES)
+- terminal = @company_proposal.terminal?
+- review_log = @company_proposal.review_log
 - suggestion_diffs = @company_proposal.user_suggestion? ? proposal_suggestion_diffs(@company_proposal) : []
 
 - if @queue.present?
@@ -28,32 +30,50 @@
         - else
             span.text-muted.small is invisible until you explicitly publish it.
 
+- if @company_proposal.rejected?
+    .alert.alert-secondary.d-flex.flex-wrap.justify-content-between.align-items-start.gap-3.mb-3
+        div
+            .fw-semibold.mb-1
+                i.fas.fa-ban.me-1
+                = "Rejected#{" on #{@company_proposal.rejected_at.to_date.to_fs(:long)}" if @company_proposal.rejected_at}#{" by #{@company_proposal.admin_user.email}" if @company_proposal.admin_user}. This proposal is closed and read-only."
+            - if @company_proposal.rejection_reason.present?
+                .small= @company_proposal.rejection_reason
+        = form_with url: reopen_custom_admin_company_proposal_path(@company_proposal), method: :post, local: true, class: "d-flex flex-wrap gap-2 align-items-center" do
+            = text_field_tag :reopen_note, nil, class: "form-control form-control-sm", placeholder: "Why reopen? (optional)", style: "min-width: 14rem"
+            = submit_tag "Reopen for review", class: "btn btn-sm btn-outline-secondary", data: { turbo_confirm: "Reopen this rejected proposal and put it back in the review queue?" }
+- elsif @company_proposal.status == "published"
+    .alert.alert-success.small.mb-3
+        i.fas.fa-check-circle.me-1
+        | This proposal has been applied. It is closed and read-only.
+
 .admin-proposal-toolbar.mb-3
     .admin-proposal-toolbar-secondary
         - if @company_proposal.company&.slug.present?
             = link_to company_path(@company_proposal.company), class: "btn btn-outline-secondary", target: "_blank", rel: "noopener" do
                 i.fas.fa-arrow-up-right-from-square.me-1
                 | View on site
-        = button_to enrich_custom_admin_company_proposal_path(@company_proposal), method: :post, class: "btn btn-outline-secondary", form: { data: { turbo_confirm: "Generate proposal-only enrichment without changing company records?" } } do
-            i.fas.fa-wand-magic-sparkles.me-1
-            | Enrich
-        = link_to edit_custom_admin_company_proposal_path(@company_proposal), class: "btn btn-outline-secondary" do
-            i.fas.fa-pen.me-1
-            | Edit
-    .admin-proposal-toolbar-primary
-        button.btn.btn-outline-danger type="button" data-bs-toggle="collapse" data-bs-target="#proposalRejectPanel" aria-expanded="false" aria-controls="proposalRejectPanel" Reject
-        - if returnable
-            button.btn.btn-outline-warning type="button" data-bs-toggle="collapse" data-bs-target="#proposalReturnPanel" aria-expanded="false" aria-controls="proposalReturnPanel" Return to contributor
-        - if @company_proposal.user_suggestion?
-            = form_with url: approve_custom_admin_company_proposal_path(@company_proposal), method: :post, local: true, class: "d-inline" do
-                = button_tag "Apply to Company", type: "submit", name: "publish", value: "0", class: "btn btn-success", data: { turbo_confirm: "Apply this suggestion to #{@company_proposal.company&.name}?" }
-        - elsif !@company_proposal.duplicate_blocking?
-            = form_with url: approve_custom_admin_company_proposal_path(@company_proposal), method: :post, local: true, class: "d-inline" do
-                = hidden_field_tag :reviewed_description_digest, CompanyProposalApprovalService.digest_for(@final_changes["description"])
-                = button_tag "Approve Draft", type: "submit", name: "publish", value: "0", class: "btn btn-outline-success", data: { turbo_confirm: "Approve this proposal as an invisible draft?" }, disabled: @company_proposal.company_id.present?
-                = button_tag "Publish", type: "submit", name: "publish", value: "1", class: "btn btn-success", data: { turbo_confirm: "Publish this proposal to the public site?" }, disabled: @company_proposal.company_id.present? || !@quality_report["publish_ready"]
+        - unless terminal
+            = button_to enrich_custom_admin_company_proposal_path(@company_proposal), method: :post, class: "btn btn-outline-secondary", form: { data: { turbo_confirm: "Generate proposal-only enrichment without changing company records?" } } do
+                i.fas.fa-wand-magic-sparkles.me-1
+                | Enrich
+            = link_to edit_custom_admin_company_proposal_path(@company_proposal), class: "btn btn-outline-secondary" do
+                i.fas.fa-pen.me-1
+                | Edit
+    - unless terminal
+        .admin-proposal-toolbar-primary
+            button.btn.btn-outline-danger type="button" data-bs-toggle="collapse" data-bs-target="#proposalRejectPanel" aria-expanded="false" aria-controls="proposalRejectPanel" Reject
+            - if returnable
+                button.btn.btn-outline-warning type="button" data-bs-toggle="collapse" data-bs-target="#proposalReturnPanel" aria-expanded="false" aria-controls="proposalReturnPanel" Return to contributor
+            - if @company_proposal.user_suggestion?
+                = form_with url: approve_custom_admin_company_proposal_path(@company_proposal), method: :post, local: true, class: "d-inline" do
+                    = button_tag "Apply to Company", type: "submit", name: "publish", value: "0", class: "btn btn-success", data: { turbo_confirm: "Apply this suggestion to #{@company_proposal.company&.name}?" }
+            - elsif !@company_proposal.duplicate_blocking?
+                = form_with url: approve_custom_admin_company_proposal_path(@company_proposal), method: :post, local: true, class: "d-inline" do
+                    = hidden_field_tag :reviewed_description_digest, CompanyProposalApprovalService.digest_for(@final_changes["description"])
+                    = button_tag "Approve Draft", type: "submit", name: "publish", value: "0", class: "btn btn-outline-success", data: { turbo_confirm: "Approve this proposal as an invisible draft?" }, disabled: @company_proposal.company_id.present?
+                    = button_tag "Publish", type: "submit", name: "publish", value: "1", class: "btn btn-success", data: { turbo_confirm: "Publish this proposal to the public site?" }, disabled: @company_proposal.company_id.present? || !@quality_report["publish_ready"]
 
-- if !@company_proposal.user_suggestion? && @company_proposal.duplicate_blocking?
+- if !terminal && !@company_proposal.user_suggestion? && @company_proposal.duplicate_blocking?
     .card.border-0.shadow-sm.mb-3
         .card-body.py-2
             = form_with url: approve_custom_admin_company_proposal_path(@company_proposal), method: :post, local: true do
@@ -83,7 +103,7 @@
             - else
                 = " · no contributor address on file for this record"
 
-- if returnable
+- if returnable && !terminal
     #proposalReturnPanel.collapse.mb-3
         .card.border-0.shadow-sm.border-warning
             .card-body.py-3
@@ -104,15 +124,16 @@
                                     = label_tag "contributor_field_#{field}", field.humanize, class: "form-check-label small"
                     = submit_tag "Return to contributor", class: "btn btn-sm btn-warning", data: { turbo_confirm: "Park this proposal with instructions for its contributor? No company draft is created." }
 
-#proposalRejectPanel.collapse.mb-3
-    .card.border-0.shadow-sm.border-danger
-        .card-body.py-3
-            = form_with url: reject_custom_admin_company_proposal_path(@company_proposal), method: :post, local: true do
-                == queue_hidden_fields(@queue)
-                .mb-2
-                    = label_tag :rejection_reason, "Rejection reason", class: "form-label small mb-1"
-                    = text_area_tag :rejection_reason, @company_proposal.rejection_reason, class: "form-control form-control-sm", rows: 2
-                = submit_tag "Confirm Rejection", class: "btn btn-sm btn-danger", data: { turbo_confirm: "Reject this proposal without changing company data?" }
+- unless terminal
+    #proposalRejectPanel.collapse.mb-3
+        .card.border-0.shadow-sm.border-danger
+            .card-body.py-3
+                = form_with url: reject_custom_admin_company_proposal_path(@company_proposal), method: :post, local: true do
+                    == queue_hidden_fields(@queue)
+                    .mb-2
+                        = label_tag :rejection_reason, "Rejection reason", class: "form-label small mb-1"
+                        = text_area_tag :rejection_reason, @company_proposal.rejection_reason, class: "form-control form-control-sm", rows: 2
+                    = submit_tag "Confirm Rejection", class: "btn btn-sm btn-danger", data: { turbo_confirm: "Reject this proposal without changing company data?" }
 
 .row.g-3
     .col-lg-8
@@ -143,9 +164,10 @@
         .card.border-0.shadow-sm.mb-3
             .card-header.bg-white.py-2.d-flex.justify-content-between.align-items-center
                 h2.h6.mb-0 Final editable fields
-                = link_to edit_custom_admin_company_proposal_path(@company_proposal), class: "btn btn-outline-secondary btn-sm" do
-                    i.fas.fa-pen.me-1
-                    | Edit
+                - unless terminal
+                    = link_to edit_custom_admin_company_proposal_path(@company_proposal), class: "btn btn-outline-secondary btn-sm" do
+                        i.fas.fa-pen.me-1
+                        | Edit
             .card-body.py-3
                 dl.row.mb-0.small
                     - proposal_changes_for_display(@final_changes).each do |label, value|
@@ -254,6 +276,31 @@
                     pre.bg-light.border.rounded.p-2.small.mb-0= JSON.pretty_generate(@source_payload)
 
     .col-lg-4
+        .card.border-0.shadow-sm.mb-3#proposalReviewLog
+            .card-header.bg-white.py-2.d-flex.justify-content-between.align-items-center
+                h2.h6.mb-0 Review log
+                - if (latest = review_log.last)
+                    span.badge(class=(latest["outcome"] == CompanyProposalReviewLog::OUTCOME_NEEDS_MORE_WORK ? "text-bg-warning" : "text-bg-light"))= CompanyProposalReviewLog::LABELS[latest["outcome"]] || latest["outcome"].to_s.humanize
+                - else
+                    span.badge.text-bg-secondary Not reviewed yet
+            .card-body.py-3
+                - if review_log.any?
+                    ul.list-unstyled.small.mb-3
+                        - review_log.last(5).reverse_each do |entry|
+                            li.mb-2
+                                .fw-semibold= CompanyProposalReviewLog.label(entry)
+                                - if entry["note"].present?
+                                    .text-muted= entry["note"]
+                - unless terminal
+                    = form_with url: record_review_custom_admin_company_proposal_path(@company_proposal), method: :post, local: true do
+                        == queue_hidden_fields(@queue)
+                        .mb-2
+                            = label_tag :review_outcome, "Record your review", class: "form-label small mb-1"
+                            = select_tag :review_outcome, options_for_select(CompanyProposalReviewLog::RECORDABLE_OUTCOMES.map { |outcome| [CompanyProposalReviewLog::LABELS[outcome], outcome] }), class: "form-select form-select-sm"
+                        .mb-2
+                            = text_area_tag :review_note, nil, class: "form-control form-control-sm", rows: 2, placeholder: "Note (required for 'needs more work')"
+                        = submit_tag "Save review", class: "btn btn-sm btn-outline-primary"
+                        p.text-muted.small.mt-2.mb-0 Records that you looked at this proposal, so the next reviewer (or Claude/Jane) does not triage it again. It does not change any company data.
         .card.border-0.shadow-sm.mb-3
             .card-header.bg-white.py-2.d-flex.justify-content-between.align-items-center
                 h2.h6.mb-0 Required before publish
@@ -318,7 +365,8 @@
                                 span.ms-1= "· matched on #{match['match_type'].to_s.humanize.downcase}"
                                 - if Array(match["shared_profiles"]).any?
                                     span.ms-1= "· shared #{Array(match['shared_profiles']).to_sentence} profile"
-                            .d-flex.flex-wrap.gap-2
+                            - unless terminal
+                              .d-flex.flex-wrap.gap-2
                                 = link_to "Compare records", compare_duplicate_custom_admin_company_proposal_path(@company_proposal, company_id: match["id"]), class: "btn btn-sm btn-primary"
                                 = form_with url: reject_custom_admin_company_proposal_path(@company_proposal), method: :post, local: true, class: "d-inline" do
                                     = hidden_field_tag :duplicate_of_company_id, match["id"]
@@ -339,7 +387,8 @@
                             .text-muted.small.mb-2
                                 = "#{match['status'].to_s.humanize} · matched on #{Array(match['match_types']).presence&.map { |type| type.to_s.humanize.downcase }&.to_sentence || match['match_type'].to_s.humanize.downcase}"
                                 = match["is_older"] ? " · created first" : " · created later"
-                            = form_with url: reject_custom_admin_company_proposal_path(@company_proposal), method: :post, local: true do
+                            - unless terminal
+                              = form_with url: reject_custom_admin_company_proposal_path(@company_proposal), method: :post, local: true do
                                 = hidden_field_tag :duplicate_of_proposal_id, match["proposal_id"]
                                 = button_tag "Keep that one, reject this", type: "submit", class: "btn btn-sm btn-outline-danger", data: { turbo_confirm: "Reject this proposal and record proposal ##{match['proposal_id']} as the canonical record?" }
                 - if company_matches.empty? && proposal_matches.empty?
