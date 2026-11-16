@@ -11,7 +11,7 @@ gem 'sprockets-rails'
 
 # Admin and Authentication
 gem 'devise', '~> 5.0'
-gem 'kaminari', '~> 1.3.0'
+gem 'kaminari', '~> 1.3.3'
 
 # Frontend
 gem 'sass-rails', '~> 6.0'
@@ -53,7 +53,7 @@ gem 'ffi', '~> 1.17.4'
 
 group :development, :test do
   gem 'byebug', '~> 13.0.0'
-  gem 'minitest', '~> 6.0'
+  gem 'minitest', '~> 6.1'
   gem 'minitest-mock' # minitest 6.x extracted Minitest::Mock into this gem
   gem 'rails-controller-testing'
 end
@@ -83,7 +83,7 @@ gem 'importmap-rails'
 gem "turbo-rails"
 
 gem 'httparty'
-gem 'aws-sdk-s3', '~> 1.235'
+gem 'aws-sdk-s3', '~> 1.242'
 
 # For company validation script
 gem 'ruby-openai'
@@ -91,11 +91,11 @@ gem 'parallel'
 
 gem 'dotenv'
 
-gem "ruby_llm", "~> 2.1.1"
+gem "ruby_llm", "~> 2.2.0"
 
 
 # MCP server for the Claude Tag curator connector
-gem "mcp", "~> 1.8"
+gem "mcp", "~> 1.10"
 gem "jwt", "~> 3.3"
 
 gem "solid_queue", "~> 1.7"
